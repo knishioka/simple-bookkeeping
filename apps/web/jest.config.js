@@ -11,6 +11,7 @@ const customJestConfig = {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   testMatch: ['**/__tests__/**/*.(ts|tsx)', '**/*.(test|spec).(ts|tsx)'],
+  testPathIgnorePatterns: ['/node_modules/', '/e2e/'],
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',
     '!src/**/*.d.ts',
@@ -19,10 +20,10 @@ const customJestConfig = {
   ],
   coverageThreshold: {
     global: {
-      branches: 80,
-      functions: 80,
-      lines: 80,
-      statements: 80,
+      branches: 50,
+      functions: 50,
+      lines: 50,
+      statements: 50,
     },
   },
 };

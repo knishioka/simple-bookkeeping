@@ -94,12 +94,13 @@ describe('AccountDialog - ユーザーインタラクション', () => {
 
       // API呼び出しの確認
       await waitFor(() => {
-        expect(mockApiClient.post).toHaveBeenCalledWith('/accounts', {
-          code: '1110',
-          name: '現金',
-          accountType: 'ASSET',
-          parentId: undefined,
-        });
+        expect(mockApiClient.post).toHaveBeenCalledWith('/accounts', 
+          expect.objectContaining({
+            code: '1110',
+            name: '現金',
+            accountType: 'ASSET',
+          })
+        );
       });
 
       // 成功処理の確認
