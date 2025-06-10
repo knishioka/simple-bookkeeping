@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import ProtectedRoute from '@/components/layout/protected-route';
+import { OrganizationSwitcher } from '@/components/organization-switcher';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
 
@@ -47,6 +48,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
               </div>
               <div className="flex items-center space-x-4">
+                <OrganizationSwitcher />
                 <span className="text-sm text-gray-700">{user?.name}</span>
                 <Button variant="outline" size="sm" onClick={logout}>
                   ログアウト
