@@ -45,3 +45,83 @@ jest.mock('@/components/ui/dialog', () => ({
   DialogHeader: ({ children }) => <div>{children}</div>,
   DialogTitle: ({ children }) => <h2>{children}</h2>,
 }));
+
+// Simplified Select mock for testing
+global.mockSelectValue = null;
+
+jest.mock('@/components/ui/select', () => {
+  const React = require('react');
+  
+  return {
+    Select: ({ children, onValueChange, defaultValue, value, ...props }) => {
+      React.useEffect(() => {
+        global.mockSelectOnValueChange = onValueChange;
+      }, [onValueChange]);
+      
+      return React.createElement('div', {
+        'data-testid': 'mock-select',
+        'data-value': value || defaultValue || '',
+        ...props
+      }, children);
+    },
+    
+    SelectTrigger: ({ children, ...props }) => {
+      return React.createElement('button', {
+        ...props,
+        'data-testid': 'select-trigger',
+        role: 'combobox',
+        type: 'button'
+      }, children);
+    },
+    
+    SelectContent: ({ children, ...props }) => {
+      return React.createElement('div', {
+        ...props,
+        'data-testid': 'select-content'
+      }, children);
+    },
+    
+    SelectItem: ({ children, value, ...props }) => {
+      return React.createElement('button', {
+        ...props,
+        'data-testid': `select-item-${value}`,
+        'data-value': value,
+        role: 'option',
+        type: 'button',
+        onClick: () => {
+          if (global.mockSelectOnValueChange) {
+            global.mockSelectOnValueChange(value);
+          }
+        }
+      }, children);
+    },
+    
+    SelectValue: ({ placeholder, children, ...props }) => {
+      return React.createElement('span', {
+        ...props,
+        'data-testid': 'select-value'
+      }, children || placeholder);
+    },
+    
+    SelectGroup: ({ children, ...props }) => {
+      return React.createElement('div', {
+        ...props,
+        'data-testid': 'select-group'
+      }, children);
+    },
+    
+    SelectLabel: ({ children, ...props }) => {
+      return React.createElement('div', {
+        ...props,
+        'data-testid': 'select-label'
+      }, children);
+    },
+    
+    SelectSeparator: (props) => {
+      return React.createElement('hr', {
+        ...props,
+        'data-testid': 'select-separator'
+      });
+    }
+  };
+});

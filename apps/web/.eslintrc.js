@@ -12,4 +12,19 @@ module.exports = {
       },
     },
   },
+  overrides: [
+    {
+      files: ['e2e/**/*.ts', 'e2e/**/*.spec.ts'],
+      rules: {
+        'no-console': 'off',
+        '@typescript-eslint/no-unused-vars': 'warn',
+      },
+    },
+    {
+      files: ['jest.setup.js', 'playwright.config.ts'],
+      rules: {
+        'import/no-extraneous-dependencies': 'off',
+      },
+    },
+  ],
 };
