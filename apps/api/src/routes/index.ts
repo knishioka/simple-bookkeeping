@@ -3,6 +3,7 @@ import { Router } from 'express';
 import accountsRoutes from './accounts.routes';
 import authRoutes from './auth.routes';
 import journalEntriesRoutes from './journalEntries.routes';
+import reportsRoutes from './reports.routes';
 
 const router = Router();
 
@@ -10,6 +11,7 @@ const router = Router();
 router.use('/auth', authRoutes);
 router.use('/accounts', accountsRoutes);
 router.use('/journal-entries', journalEntriesRoutes);
+router.use('/reports', reportsRoutes);
 
 // Base route
 router.get('/', (req, res) => {

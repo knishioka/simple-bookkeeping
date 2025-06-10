@@ -3,6 +3,7 @@
 ## 1. 概要
 
 ### 1.1 基本設計方針
+
 - RESTful APIとして設計
 - JSON形式でのデータ交換
 - JWT認証を使用
@@ -10,6 +11,7 @@
 - ページネーション対応
 
 ### 1.2 共通仕様
+
 - Base URL: `/api/v1`
 - Content-Type: `application/json`
 - 認証: `Authorization: Bearer {token}`
@@ -18,6 +20,7 @@
 ## 2. 認証API
 
 ### 2.1 ログイン
+
 ```
 POST /auth/login
 {
@@ -38,6 +41,7 @@ Response:
 ```
 
 ### 2.2 ログアウト
+
 ```
 POST /auth/logout
 Authorization: Bearer {token}
@@ -49,6 +53,7 @@ Response:
 ```
 
 ### 2.3 トークンリフレッシュ
+
 ```
 POST /auth/refresh
 {
@@ -65,6 +70,7 @@ Response:
 ## 3. 会計期間API
 
 ### 3.1 会計期間一覧取得
+
 ```
 GET /accounting-periods
 
@@ -83,6 +89,7 @@ Response:
 ```
 
 ### 3.2 会計期間作成
+
 ```
 POST /accounting-periods
 {
@@ -95,6 +102,7 @@ POST /accounting-periods
 ## 4. 勘定科目API
 
 ### 4.1 勘定科目一覧取得
+
 ```
 GET /accounts?type={account_type}&active=true
 
@@ -114,6 +122,7 @@ Response:
 ```
 
 ### 4.2 勘定科目階層取得
+
 ```
 GET /accounts/tree
 
@@ -137,6 +146,7 @@ Response:
 ```
 
 ### 4.3 勘定科目作成
+
 ```
 POST /accounts
 {
@@ -150,6 +160,7 @@ POST /accounts
 ## 5. 仕訳API
 
 ### 5.1 仕訳一覧取得
+
 ```
 GET /journal-entries?from=2024-01-01&to=2024-12-31&page=1&limit=50
 
@@ -195,6 +206,7 @@ Response:
 ```
 
 ### 5.2 仕訳登録
+
 ```
 POST /journal-entries
 {
@@ -217,6 +229,7 @@ POST /journal-entries
 ```
 
 ### 5.3 仕訳更新
+
 ```
 PUT /journal-entries/{id}
 {
@@ -226,11 +239,13 @@ PUT /journal-entries/{id}
 ```
 
 ### 5.4 仕訳削除
+
 ```
 DELETE /journal-entries/{id}
 ```
 
 ### 5.5 仕訳承認
+
 ```
 POST /journal-entries/{id}/approve
 ```
@@ -238,6 +253,7 @@ POST /journal-entries/{id}/approve
 ## 6. レポートAPI
 
 ### 6.1 試算表取得
+
 ```
 GET /reports/trial-balance?date=2024-12-31
 
@@ -261,60 +277,95 @@ Response:
 ```
 
 ### 6.2 貸借対照表取得
+
 ```
-GET /reports/balance-sheet?date=2024-12-31
+GET /reports/accounting-periods/{accountingPeriodId}/balance-sheet?asOfDate=2024-12-31
 
 Response:
 {
-  "date": "2024-12-31",
-  "assets": {
-    "current_assets": {
-      "total": 3000000,
-      "accounts": [...]
-    },
-    "fixed_assets": {
-      "total": 2000000,
-      "accounts": [...]
-    },
-    "total": 5000000
-  },
-  "liabilities": {
-    "current_liabilities": {
-      "total": 1000000,
-      "accounts": [...]
-    },
-    "total": 1000000
-  },
-  "equity": {
-    "total": 4000000,
-    "accounts": [...]
+  "data": {
+    "assets": [
+      {
+        "accountId": "uuid",
+        "accountCode": "1110",
+        "accountName": "現金",
+        "accountType": "ASSET",
+        "balance": 1000000,
+        "children": []
+      }
+    ],
+    "liabilities": [
+      {
+        "accountId": "uuid",
+        "accountCode": "2110",
+        "accountName": "買掛金",
+        "accountType": "LIABILITY",
+        "balance": 200000,
+        "children": []
+      }
+    ],
+    "equity": [
+      {
+        "accountId": "uuid",
+        "accountCode": "3000",
+        "accountName": "資本金",
+        "accountType": "EQUITY",
+        "balance": 800000,
+        "children": []
+      }
+    ],
+    "totalAssets": 1000000,
+    "totalLiabilities": 200000,
+    "totalEquity": 800000
   }
 }
 ```
 
 ### 6.3 損益計算書取得
+
 ```
-GET /reports/income-statement?from=2024-01-01&to=2024-12-31
+GET /reports/accounting-periods/{accountingPeriodId}/profit-loss?startDate=2024-01-01&endDate=2024-12-31
 
 Response:
 {
-  "period": {
-    "from": "2024-01-01",
-    "to": "2024-12-31"
-  },
-  "revenue": {
-    "total": 10000000,
-    "accounts": [...]
-  },
-  "expenses": {
-    "total": 7000000,
-    "accounts": [...]
-  },
-  "net_income": 3000000
+  "data": {
+    "revenues": [
+      {
+        "accountId": "uuid",
+        "accountCode": "4000",
+        "accountName": "売上高",
+        "accountType": "REVENUE",
+        "balance": 10000000,
+        "children": []
+      }
+    ],
+    "expenses": [
+      {
+        "accountId": "uuid",
+        "accountCode": "5000",
+        "accountName": "仕入高",
+        "accountType": "EXPENSE",
+        "balance": 6000000,
+        "children": []
+      },
+      {
+        "accountId": "uuid",
+        "accountCode": "6000",
+        "accountName": "販売費及び一般管理費",
+        "accountType": "EXPENSE",
+        "balance": 1000000,
+        "children": []
+      }
+    ],
+    "totalRevenues": 10000000,
+    "totalExpenses": 7000000,
+    "netIncome": 3000000
+  }
 }
 ```
 
 ### 6.4 総勘定元帳取得
+
 ```
 GET /reports/general-ledger/{account_id}?from=2024-01-01&to=2024-12-31
 
@@ -346,6 +397,7 @@ Response:
 ## 7. マスタデータAPI
 
 ### 7.1 取引先API
+
 ```
 GET /partners
 POST /partners
@@ -354,6 +406,7 @@ DELETE /partners/{id}
 ```
 
 ### 7.2 固定資産API
+
 ```
 GET /fixed-assets
 POST /fixed-assets
@@ -364,6 +417,7 @@ POST /fixed-assets/{id}/depreciate
 ## 8. インポート/エクスポートAPI
 
 ### 8.1 仕訳CSVインポート
+
 ```
 POST /import/journal-entries
 Content-Type: multipart/form-data
@@ -372,6 +426,7 @@ file: journal_entries.csv
 ```
 
 ### 8.2 データエクスポート
+
 ```
 GET /export/journal-entries?format=csv&from=2024-01-01&to=2024-12-31
 GET /export/balance-sheet?format=pdf&date=2024-12-31
@@ -380,6 +435,7 @@ GET /export/balance-sheet?format=pdf&date=2024-12-31
 ## 9. エラーレスポンス
 
 ### 9.1 標準エラー形式
+
 ```json
 {
   "error": {
@@ -396,6 +452,7 @@ GET /export/balance-sheet?format=pdf&date=2024-12-31
 ```
 
 ### 9.2 HTTPステータスコード
+
 - 200: 成功
 - 201: 作成成功
 - 400: リクエスト不正
@@ -408,16 +465,19 @@ GET /export/balance-sheet?format=pdf&date=2024-12-31
 ## 10. セキュリティ考慮事項
 
 ### 10.1 認証・認可
+
 - JWT有効期限: 1時間
 - リフレッシュトークン有効期限: 7日
 - ロールベースアクセス制御（RBAC）
 
 ### 10.2 レート制限
+
 - 認証API: 5回/分
 - 一般API: 100回/分
 - インポートAPI: 10回/時
 
 ### 10.3 データ保護
+
 - HTTPS必須
 - SQLインジェクション対策
 - XSS対策

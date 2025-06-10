@@ -119,7 +119,7 @@ export const refreshToken = async (req: Request, res: Response) => {
   }
 };
 
-export const logout = async (req: Request, res: Response) => {
+export const logout = async (_req: Request, res: Response) => {
   // In a stateless JWT setup, logout is handled client-side
   // Here we just return a success response
   res.json({

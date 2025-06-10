@@ -59,7 +59,7 @@ export const getAccounts = async (
   }
 };
 
-export const getAccountTree = async (req: Request, res: Response) => {
+export const getAccountTree = async (_req: Request, res: Response) => {
   try {
     const accounts = await prisma.account.findMany({
       where: {

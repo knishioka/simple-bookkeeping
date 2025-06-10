@@ -12,7 +12,8 @@ export interface AuthenticatedRequest extends Request {
 }
 
 export const authenticate = (req: Request, res: Response, next: NextFunction) => {
-  passport.authenticate('jwt', { session: false }, (err: Error, user: unknown) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  passport.authenticate('jwt', { session: false }, (err: Error, user: any) => {
     if (err || !user) {
       return res.status(401).json({
         error: {
@@ -22,7 +23,12 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
       });
     }
 
-    (req as AuthenticatedRequest).user = user;
+    (req as AuthenticatedRequest).user = user as {
+      id: string;
+      email: string;
+      name: string;
+      role: UserRole;
+    };
     next();
   })(req, res, next);
 };

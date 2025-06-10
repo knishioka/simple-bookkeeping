@@ -6,7 +6,11 @@ interface TokenPayload {
   role: string;
 }
 
-export const generateTokens = (userId: string, email: string, role: string) => {
+export const generateTokens = (
+  userId: string,
+  email: string,
+  role: string
+): { accessToken: string; refreshToken: string } => {
   const payload: TokenPayload = {
     sub: userId,
     email,
