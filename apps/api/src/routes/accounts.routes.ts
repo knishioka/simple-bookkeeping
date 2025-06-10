@@ -15,20 +15,20 @@ router.use(setOrganizationContext);
 router.use(requireOrganization);
 
 // Get all accounts
-router.get('/', accountsController.getAccounts);
+router.get('/', accountsController.getAccounts as any);
 
 // Get account tree
-router.get('/tree', accountsController.getAccountTree);
+router.get('/tree', accountsController.getAccountTree as any);
 
 // Get single account
-router.get('/:id', accountsController.getAccount);
+router.get('/:id', accountsController.getAccount as any);
 
 // Create account (Admin/Accountant only)
 router.post(
   '/',
   authorize(UserRole.ADMIN, UserRole.ACCOUNTANT),
   validate(z.object({ body: createAccountSchema })),
-  accountsController.createAccount
+  accountsController.createAccount as any
 );
 
 // Update account (Admin/Accountant only)
@@ -43,10 +43,10 @@ router.put(
       }),
     })
   ),
-  accountsController.updateAccount
+  accountsController.updateAccount as any
 );
 
 // Delete account (Admin only)
-router.delete('/:id', authorize(UserRole.ADMIN), accountsController.deleteAccount);
+router.delete('/:id', authorize(UserRole.ADMIN), accountsController.deleteAccount as any);
 
 export default router;

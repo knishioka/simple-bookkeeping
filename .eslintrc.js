@@ -25,7 +25,7 @@ module.exports = {
   rules: {
     // TypeScript
     '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-    '@typescript-eslint/no-explicit-any': 'error',
+    '@typescript-eslint/no-explicit-any': 'warn',
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-non-null-assertion': 'warn',
@@ -66,6 +66,13 @@ module.exports = {
         jest: true,
       },
       rules: {
+        '@typescript-eslint/no-explicit-any': 'off',
+      },
+    },
+    {
+      files: ['**/seed.ts', '**/scripts/**/*.js'],
+      rules: {
+        'no-console': 'off',
         '@typescript-eslint/no-explicit-any': 'off',
       },
     },

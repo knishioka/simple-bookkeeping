@@ -3,6 +3,7 @@ import { Router } from 'express';
 import accountsRoutes from './accounts.routes';
 import authRoutes from './auth.routes';
 import journalEntriesRoutes from './journalEntries.routes';
+import ledgersRoutes from './ledgers.routes';
 import organizationsRoutes from './organizations.routes';
 import reportsRoutes from './reports.routes';
 
@@ -14,9 +15,10 @@ router.use('/organizations', organizationsRoutes);
 router.use('/accounts', accountsRoutes);
 router.use('/journal-entries', journalEntriesRoutes);
 router.use('/reports', reportsRoutes);
+router.use('/ledgers', ledgersRoutes);
 
 // Base route
-router.get('/', (req, res) => {
+router.get('/', (_req, res) => {
   res.json({
     message: 'Simple Bookkeeping API',
     version: '1.0.0',

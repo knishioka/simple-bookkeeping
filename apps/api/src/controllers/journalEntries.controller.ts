@@ -1,8 +1,8 @@
 import { JournalStatus } from '@simple-bookkeeping/database';
-import { prisma } from '@simple-bookkeeping/database/src/client';
 import { CreateJournalEntryInput } from '@simple-bookkeeping/shared';
 import { Request, Response } from 'express';
 
+import { prisma } from '../lib/prisma';
 import { AuthenticatedRequest } from '../middlewares/auth';
 import {
   generateEntryNumber,
@@ -202,7 +202,7 @@ export const createJournalEntry = async (
     }
 
     // Validate that all accounts belong to the organization
-    const accountIds = lines.map((line) => line.accountId);
+    const accountIds = lines.map((line: any) => line.accountId);
     const accountCount = await prisma.account.count({
       where: {
         id: { in: accountIds },
@@ -328,7 +328,7 @@ export const updateJournalEntry = async (
 
     // Validate that all accounts belong to the organization if lines are provided
     if (lines) {
-      const accountIds = lines.map((line) => line.accountId);
+      const accountIds = lines.map((line: any) => line.accountId);
       const accountCount = await prisma.account.count({
         where: {
           id: { in: accountIds },

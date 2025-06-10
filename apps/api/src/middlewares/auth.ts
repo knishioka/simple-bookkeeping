@@ -1,6 +1,8 @@
-import { UserRole, prisma } from '@simple-bookkeeping/database';
+import { UserRole } from '@simple-bookkeeping/database';
 import { NextFunction, Request, Response } from 'express';
 import passport from 'passport';
+
+import { prisma } from '../lib/prisma';
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -104,8 +106,10 @@ export const setOrganizationContext = async (
       });
 
       if (userOrg && userOrg.organization.isActive) {
-        authReq.user.organizationId = organizationId;
-        authReq.user.organizationRole = userOrg.role;
+        if (authReq.user) {
+          authReq.user.organizationId = organizationId;
+          authReq.user.organizationRole = userOrg.role;
+        }
       } else {
         return res.status(403).json({
           error: {
@@ -132,8 +136,10 @@ export const setOrganizationContext = async (
       });
 
       if (defaultOrg && defaultOrg.organization.isActive) {
-        authReq.user.organizationId = defaultOrg.organizationId;
-        authReq.user.organizationRole = defaultOrg.role;
+        if (authReq.user) {
+          authReq.user.organizationId = defaultOrg.organizationId;
+          authReq.user.organizationRole = defaultOrg.role;
+        }
       }
     }
 

@@ -15,17 +15,17 @@ router.use(setOrganizationContext);
 router.use(requireOrganization);
 
 // Get all journal entries
-router.get('/', journalEntriesController.getJournalEntries);
+router.get('/', journalEntriesController.getJournalEntries as any);
 
 // Get single journal entry
-router.get('/:id', journalEntriesController.getJournalEntry);
+router.get('/:id', journalEntriesController.getJournalEntry as any);
 
 // Create journal entry (Admin/Accountant only)
 router.post(
   '/',
   authorize(UserRole.ADMIN, UserRole.ACCOUNTANT),
   validate(z.object({ body: createJournalEntrySchema })),
-  journalEntriesController.createJournalEntry
+  journalEntriesController.createJournalEntry as any
 );
 
 // Update journal entry (Admin/Accountant only)
@@ -41,17 +41,17 @@ router.put(
       }),
     })
   ),
-  journalEntriesController.updateJournalEntry
+  journalEntriesController.updateJournalEntry as any
 );
 
 // Delete journal entry (Admin only)
-router.delete('/:id', authorize(UserRole.ADMIN), journalEntriesController.deleteJournalEntry);
+router.delete('/:id', authorize(UserRole.ADMIN), journalEntriesController.deleteJournalEntry as any);
 
 // Approve journal entry (Admin/Accountant only)
 router.post(
   '/:id/approve',
   authorize(UserRole.ADMIN, UserRole.ACCOUNTANT),
-  journalEntriesController.approveJournalEntry
+  journalEntriesController.approveJournalEntry as any
 );
 
 export default router;

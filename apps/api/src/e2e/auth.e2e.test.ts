@@ -3,8 +3,7 @@ import bcrypt from 'bcrypt';
 import request from 'supertest';
 
 import app from '../index';
-
-import { prisma } from './setup';
+import { prisma } from '../lib/prisma';
 
 describe('Auth E2E', () => {
   let adminUser: { email: string; password: string };

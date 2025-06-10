@@ -22,6 +22,23 @@ Simple Bookkeepingは、日本の確定申告（青色申告）に対応した�
 - Styling: Tailwind CSS + shadcn/ui
 - Testing: Jest + Playwright
 - Container: Docker & Docker Compose
+- Package Manager: pnpm (Monorepo)
+
+## プロジェクト構成
+
+```
+simple-bookkeeping/
+├── apps/
+│   ├── web/              # Next.js フロントエンド
+│   └── api/              # Express.js バックエンド
+├── packages/
+│   ├── database/         # Prismaスキーマとマイグレーション
+│   ├── types/            # 共通型定義
+│   ├── errors/           # エラーハンドリング
+│   ├── shared/           # 共有ユーティリティ
+│   └── typescript-config/# 共通TypeScript設定
+└── docs/                 # ドキュメント
+```
 
 ## セットアップ
 
@@ -87,11 +104,43 @@ API_PORT=3011  # デフォルト: 3001
 - [API設計仕様書](./docs/specifications/api-design.md)
 - [実装計画](./docs/implementation-plan/roadmap.md)
 - [技術スタック選定書](./docs/implementation-plan/tech-stack.md)
+- [パッケージ構成](./docs/architecture/package-structure.md)
+- [システム構成](./SYSTEM-ARCHITECTURE.md)
+- [リファクタリング概要](./REFACTORING-SUMMARY.md)
 - [AIコーディングガイドライン](./CLAUDE.md)
 
-## 開発状況
+## 現在の開発状況
 
-現在、基本設計とドキュメント作成が完了し、実装フェーズに入っています。
+### Phase 1 (基本機能) - 完了 ✅
+- ✅ 技術スタック選定とプロジェクトセットアップ
+- ✅ データベース設計と実装
+- ✅ 認証・認可システムの実装
+- ✅ 基本的なUIコンポーネントの作成
+- ✅ 勘定科目マスタ管理機能
+- ✅ 仕訳入力機能
+- ✅ 仕訳帳・総勘定元帳の実装
+- ✅ 基本的な財務諸表の作成
+
+### Phase 2 (拡張機能) - 開発中 🚧
+- ✅ 複数組織対応（マルチテナント機能）
+- ✅ 補助簿機能の実装
+  - 現金出納帳
+  - 預金出納帳
+  - 売掛金・買掛金台帳
+- ✅ 財務諸表のフロントエンド実装
+  - 貸借対照表（B/S）
+  - 損益計算書（P/L）
+  - 試算表
+- ✅ 包括的リファクタリング実施（2025年1月）
+  - 共通コンポーネント・フックの抽出
+  - 型定義の一元管理（@simple-bookkeeping/types）
+  - エラーハンドリングの統一（@simple-bookkeeping/errors）
+- 🚧 ユーザー権限管理の詳細化
+- 🚧 会計期間管理
+- 🚧 仕訳テンプレート機能
+- 🚧 CSVインポート・エクスポート機能
+
+詳細は[実装計画](./docs/implementation-plan/roadmap.md)をご覧ください。
 
 ## ライセンス
 

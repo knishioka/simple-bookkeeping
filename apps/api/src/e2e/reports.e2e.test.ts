@@ -3,9 +3,9 @@ import bcrypt from 'bcrypt';
 import request from 'supertest';
 
 import app from '../index';
+import { prisma } from '../lib/prisma';
 import { generateTokens } from '../utils/jwt';
 
-import { prisma } from './setup';
 
 describe('Reports E2E', () => {
   let adminToken: string;

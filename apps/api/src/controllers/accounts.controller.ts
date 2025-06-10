@@ -1,7 +1,7 @@
-import { prisma } from '@simple-bookkeeping/database/src/client';
 import { CreateAccountInput } from '@simple-bookkeeping/shared';
-import { Request, Response } from 'express';
+import { Response } from 'express';
 
+import { prisma } from '../lib/prisma';
 import { AuthenticatedRequest } from '../middlewares/auth';
 
 interface AccountQuery {
@@ -10,12 +10,11 @@ interface AccountQuery {
 }
 
 export const getAccounts = async (
-  req: AuthenticatedRequest &
-    Request<Record<string, never>, Record<string, never>, Record<string, never>, AccountQuery>,
+  req: AuthenticatedRequest,
   res: Response
-) => {
+): Promise<void> => {
   try {
-    const { type, active } = req.query;
+    const { type, active } = req.query as AccountQuery;
     const organizationId = req.user?.organizationId;
 
     const where: Record<string, unknown> = {
@@ -63,7 +62,7 @@ export const getAccounts = async (
   }
 };
 
-export const getAccountTree = async (req: AuthenticatedRequest, res: Response) => {
+export const getAccountTree = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const organizationId = req.user?.organizationId;
 
@@ -99,11 +98,11 @@ export const getAccountTree = async (req: AuthenticatedRequest, res: Response) =
 };
 
 export const getAccount = async (
-  req: AuthenticatedRequest & Request<{ id: string }>,
+  req: AuthenticatedRequest,
   res: Response
-) => {
+): Promise<Response<any, Record<string, any>> | undefined> => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
     const organizationId = req.user?.organizationId;
 
     const account = await prisma.account.findFirst({
@@ -141,12 +140,11 @@ export const getAccount = async (
 };
 
 export const createAccount = async (
-  req: AuthenticatedRequest &
-    Request<Record<string, never>, Record<string, never>, CreateAccountInput>,
+  req: AuthenticatedRequest,
   res: Response
-) => {
+): Promise<Response<any, Record<string, any>> | undefined> => {
   try {
-    const { code, name, accountType, parentId } = req.body;
+    const { code, name, accountType, parentId } = req.body as CreateAccountInput;
 
     // Check if account code already exists in this organization
     const organizationId = req.user?.organizationId;
@@ -233,13 +231,12 @@ export const createAccount = async (
 };
 
 export const updateAccount = async (
-  req: AuthenticatedRequest &
-    Request<{ id: string }, Record<string, never>, Partial<CreateAccountInput>>,
+  req: AuthenticatedRequest,
   res: Response
-) => {
+): Promise<Response<any, Record<string, any>> | undefined> => {
   try {
-    const { id } = req.params;
-    const { name, parentId } = req.body;
+    const { id } = req.params as { id: string };
+    const { name, parentId } = req.body as Partial<CreateAccountInput>;
 
     const organizationId = req.user?.organizationId;
     const account = await prisma.account.findFirst({
@@ -293,11 +290,11 @@ export const updateAccount = async (
 };
 
 export const deleteAccount = async (
-  req: AuthenticatedRequest & Request<{ id: string }>,
+  req: AuthenticatedRequest,
   res: Response
-) => {
+): Promise<Response<any, Record<string, any>> | undefined> => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
 
     const organizationId = req.user?.organizationId;
     const account = await prisma.account.findFirst({

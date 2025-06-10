@@ -1,6 +1,7 @@
-import { prisma, UserRole } from '@simple-bookkeeping/database';
+import { UserRole } from '@simple-bookkeeping/database';
 import { Response } from 'express';
 
+import { prisma } from '../lib/prisma';
 import { AuthenticatedRequest } from '../middlewares/auth';
 
 export const getMyOrganizations = async (req: AuthenticatedRequest, res: Response) => {

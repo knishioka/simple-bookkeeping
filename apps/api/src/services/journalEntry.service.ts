@@ -1,4 +1,4 @@
-import { prisma } from '@simple-bookkeeping/database/src/client';
+import { prisma } from '../lib/prisma';
 
 export const generateEntryNumber = async (date: Date, organizationId: string): Promise<string> => {
   const year = date.getFullYear();

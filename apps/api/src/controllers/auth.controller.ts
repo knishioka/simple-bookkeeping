@@ -1,8 +1,9 @@
-import { prisma } from '@simple-bookkeeping/database/src/client';
+import { UserRole } from '@simple-bookkeeping/database';
 import { LoginInput } from '@simple-bookkeeping/shared';
 import bcrypt from 'bcrypt';
 import { Request, Response } from 'express';
 
+import { prisma } from '../lib/prisma';
 import { generateTokens, verifyRefreshToken } from '../utils/jwt';
 
 export const login = async (
@@ -36,7 +37,8 @@ export const login = async (
       });
     }
 
-    const { accessToken, refreshToken } = generateTokens(user.id, user.email, user.role);
+    // TODO: Remove hardcoded role when fully migrated to organization-based roles
+    const { accessToken, refreshToken } = generateTokens(user.id, user.email, UserRole.ADMIN);
 
     // Update last login
     await prisma.user.update({
@@ -52,7 +54,8 @@ export const login = async (
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role,
+          // TODO: Get role from user's default organization
+          role: UserRole.ADMIN,
         },
       },
     });
@@ -87,7 +90,6 @@ export const refreshToken = async (req: Request, res: Response) => {
       select: {
         id: true,
         email: true,
-        role: true,
         isActive: true,
       },
     });
@@ -101,7 +103,8 @@ export const refreshToken = async (req: Request, res: Response) => {
       });
     }
 
-    const tokens = generateTokens(user.id, user.email, user.role);
+    // TODO: Remove hardcoded role when fully migrated to organization-based roles
+    const tokens = generateTokens(user.id, user.email, UserRole.ADMIN);
 
     res.json({
       data: {

@@ -350,6 +350,48 @@ fix: バグ修正
    - [ ] テストは通ったか
    - [ ] 不要なconsole.logは削除したか
 
+## サーバー起動時の必須確認事項
+
+### Webサーバー起動手順
+```bash
+# サーバー起動
+pnpm --filter @simple-bookkeeping/web dev
+
+# 疎通確認（必須）
+curl -I http://localhost:3000
+curl -s http://localhost:3000 | grep -q "Simple Bookkeeping"
+```
+
+### **重要**: サーバー起動時の必須ルール
+1. **疎通確認必須**: サーバー起動後は必ず動作確認を行う
+2. **複数ページテスト**: 主要ページ（/, /demo, /demo/accounts, /demo/journal-entries）の動作を確認
+3. **失敗時の対応**: 疎通確認に失敗した場合は原因調査と再起動を行う
+4. **ユーザー報告**: 疎通確認完了後にのみURLを案内する
+
+### 疎通確認コマンド例
+```bash
+# 基本疎通確認
+curl -I http://localhost:3000
+
+# ページ内容確認
+curl -s http://localhost:3000 | head -5
+
+# デモページ確認
+curl -s http://localhost:3000/demo | grep -q "機能デモ" && echo "✅ Demo working" || echo "❌ Demo failed"
+curl -s http://localhost:3000/demo/accounts | grep -q "勘定科目管理" && echo "✅ Accounts working" || echo "❌ Accounts failed"
+curl -s http://localhost:3000/demo/journal-entries | grep -q "仕訳入力" && echo "✅ Journal entries working" || echo "❌ Journal entries failed"
+```
+
+### APIサーバー起動時も同様に確認
+```bash
+# APIサーバー起動
+pnpm --filter @simple-bookkeeping/api dev
+
+# 疎通確認
+curl -I http://localhost:3001/api/v1/
+curl -s http://localhost:3001/api/v1/ | grep -q "Simple Bookkeeping API"
+```
+
 ## 継続的な改善
 
 このガイドラインは生きたドキュメントです。プロジェクトの成長に合わせて、以下の点を定期的に見直してください：
@@ -366,3 +408,6 @@ fix: バグ修正
 - [Prisma ドキュメント](https://www.prisma.io/docs/)
 - [React Hook Form](https://react-hook-form.com/)
 - [Zod](https://zod.dev/)
+
+### サーバー管理に関する重要メモ
+- 修正をする開発するときはサーバーの立ち上げっぱなしをなくすために必ずサーバーを落とすようにしてください。

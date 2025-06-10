@@ -1,0 +1,17 @@
+{
+  "name": "@simple-bookkeeping/errors",
+  "version": "1.0.0",
+  "description": "Shared error handling for Simple Bookkeeping",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@simple-bookkeeping/types": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

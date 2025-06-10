@@ -16,7 +16,6 @@ interface ApiResponse<T> {
 
 class ApiClient {
   private config: ApiConfig;
-  private organizationId: string | null = null;
 
   constructor(config: ApiConfig) {
     this.config = config;
@@ -79,14 +78,12 @@ class ApiClient {
   setOrganizationId(organizationId: string): void {
     if (typeof window !== 'undefined') {
       localStorage.setItem('organizationId', organizationId);
-      this.organizationId = organizationId;
     }
   }
 
   clearOrganizationId(): void {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('organizationId');
-      this.organizationId = null;
     }
   }
 

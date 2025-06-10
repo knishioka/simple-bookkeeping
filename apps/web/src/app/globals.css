@@ -74,3 +74,42 @@
     @apply bg-background text-foreground;
   }
 }
+
+@media print {
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  
+  /* 印刷時の余白調整 */
+  @page {
+    margin: 1cm;
+  }
+  
+  /* ナビゲーションやボタンを非表示 */
+  nav,
+  button,
+  .no-print {
+    display: none !important;
+  }
+  
+  /* 印刷時の背景色を有効化 */
+  .print\:shadow-none {
+    box-shadow: none !important;
+  }
+  
+  /* テーブルのページ分割を防ぐ */
+  table {
+    page-break-inside: avoid;
+  }
+  
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+  
+  /* カードの枠線を維持 */
+  .border {
+    border-color: #e5e7eb !important;
+  }
+}

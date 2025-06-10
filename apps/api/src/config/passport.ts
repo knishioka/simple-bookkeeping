@@ -1,9 +1,17 @@
-import { prisma, UserRole } from '@simple-bookkeeping/database';
+import { UserRole } from '@simple-bookkeeping/database';
 import { ExtractJwt, Strategy as JwtStrategy, StrategyOptions } from 'passport-jwt';
+
+import { prisma } from '../lib/prisma';
+
+const jwtSecret = process.env.JWT_SECRET;
+
+if (!jwtSecret) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
 
 const opts: StrategyOptions = {
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-  secretOrKey: process.env.JWT_SECRET || 'your-secret-key',
+  secretOrKey: jwtSecret,
 };
 
 export const jwtStrategy = new JwtStrategy(opts, async (payload, done) => {

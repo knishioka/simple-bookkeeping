@@ -13,10 +13,10 @@ router.use(authenticate);
 router.use(setOrganizationContext);
 
 // Get user's organizations
-router.get('/mine', organizationsController.getMyOrganizations);
+router.get('/mine', organizationsController.getMyOrganizations as any);
 
 // Get organization details (requires organization context)
-router.get('/current', organizationsController.getCurrentOrganization);
+router.get('/current', organizationsController.getCurrentOrganization as any);
 
 // Create organization (any authenticated user can create)
 router.post(
@@ -33,7 +33,7 @@ router.post(
       }),
     })
   ),
-  organizationsController.createOrganization
+  organizationsController.createOrganization as any
 );
 
 // Update organization (Admin only within the organization)
@@ -51,7 +51,7 @@ router.put(
       }),
     })
   ),
-  organizationsController.updateOrganization
+  organizationsController.updateOrganization as any
 );
 
 // Invite user to organization (Admin only)
@@ -66,14 +66,14 @@ router.post(
       }),
     })
   ),
-  organizationsController.inviteUser
+  organizationsController.inviteUser as any
 );
 
 // Remove user from organization (Admin only)
 router.delete(
   '/:id/users/:userId',
   authorize(UserRole.ADMIN),
-  organizationsController.removeUser
+  organizationsController.removeUser as any
 );
 
 export default router;

@@ -1,5 +1,5 @@
 // Mock prisma
-jest.mock('@simple-bookkeeping/database/src/client', () => ({
+jest.mock('../../lib/prisma', () => ({
   prisma: {
     journalEntry: {
       findFirst: jest.fn(),
@@ -10,8 +10,7 @@ jest.mock('@simple-bookkeeping/database/src/client', () => ({
   },
 }));
 
-import { prisma } from '@simple-bookkeeping/database/src/client';
-
+import { prisma } from '../../lib/prisma';
 import { generateEntryNumber, validateJournalEntryBalance } from '../journalEntry.service';
 
 describe('JournalEntry Service', () => {
