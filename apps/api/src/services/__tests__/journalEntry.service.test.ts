@@ -23,7 +23,7 @@ describe('JournalEntry Service', () => {
       const organizationId = 'org-123';
       const entryNumber = await generateEntryNumber(date, organizationId);
 
-      expect(entryNumber).toBe('202403000001');
+      expect(entryNumber).toBe('2024030001');
       expect(prisma.journalEntry.findFirst).toHaveBeenCalledWith({
         where: {
           organizationId,
@@ -39,14 +39,14 @@ describe('JournalEntry Service', () => {
 
     it('should increment existing entry number', async () => {
       (prisma.journalEntry.findFirst as jest.Mock).mockResolvedValue({
-        entryNumber: '202403000005',
+        entryNumber: '2024030005',
       });
 
       const date = new Date('2024-03-20');
       const organizationId = 'org-123';
       const entryNumber = await generateEntryNumber(date, organizationId);
 
-      expect(entryNumber).toBe('202403000006');
+      expect(entryNumber).toBe('2024030006');
     });
   });
 
