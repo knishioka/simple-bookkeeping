@@ -1,0 +1,10 @@
+{
+  "extends": "@simple-bookkeeping/typescript-config/base.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "target": "ES2022",
+    "module": "commonjs"
+  },
+  "include": ["src/**/*", "prisma/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
