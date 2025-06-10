@@ -1,0 +1,60 @@
+# Simple Bookkeeping - 日本の確定申告対応複式簿記システム
+
+## 概要
+Simple Bookkeepingは、日本の確定申告（青色申告）に対応した複式簿記システムです。個人事業主や小規模事業者が簡単に帳簿管理と確定申告書類の作成ができることを目的としています。
+
+## 主な機能
+- 複式簿記による仕訳入力
+- 貸借対照表（BS）・損益計算書（PL）の自動生成
+- 青色申告決算書の作成
+- e-Tax形式でのデータ出力
+- 消費税計算（10%、軽減税率8%対応）
+- 各種帳簿の管理（仕訳帳、総勘定元帳、現金出納帳など）
+
+## 技術スタック
+- Frontend: Next.js 14+ (App Router) + TypeScript
+- Backend: Express.js + TypeScript
+- Database: PostgreSQL 15+
+- ORM: Prisma
+- Styling: Tailwind CSS + shadcn/ui
+- Testing: Jest + Playwright
+
+## セットアップ
+```bash
+# リポジトリのクローン
+git clone https://github.com/knishioka/simple-bookkeeping.git
+cd simple-bookkeeping
+
+# 依存関係のインストール
+pnpm install
+
+# 環境変数の設定
+cp .env.example .env
+
+# データベースのセットアップ
+docker-compose up -d
+pnpm prisma migrate dev
+
+# 開発サーバーの起動
+pnpm dev
+```
+
+## ドキュメント
+- [システム仕様書](./docs/specifications/system-requirements.md)
+- [データモデル仕様書](./docs/specifications/data-model.md)
+- [API設計仕様書](./docs/specifications/api-design.md)
+- [実装計画](./docs/implementation-plan/roadmap.md)
+- [技術スタック選定書](./docs/implementation-plan/tech-stack.md)
+- [AIコーディングガイドライン](./CLAUDE.md)
+
+## 開発状況
+現在、基本設計とドキュメント作成が完了し、実装フェーズに入っています。
+
+## ライセンス
+[MIT License](./LICENSE)
+
+## コントリビューション
+プルリクエストを歓迎します。大きな変更を行う場合は、まずissueを作成して変更内容について議論してください。
+
+## お問い合わせ
+- Issue: https://github.com/knishioka/simple-bookkeeping/issues
