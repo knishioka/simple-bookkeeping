@@ -11,7 +11,9 @@ async function main() {
   await prisma.partner.deleteMany();
   await prisma.account.deleteMany();
   await prisma.accountingPeriod.deleteMany();
+  await prisma.userOrganization.deleteMany();
   await prisma.user.deleteMany();
+  await prisma.organization.deleteMany();
 
   // Create default admin user
   const hashedPassword = await bcrypt.hash('admin123', 10);
@@ -20,12 +22,35 @@ async function main() {
       email: 'admin@example.com',
       passwordHash: hashedPassword,
       name: '管理者',
-      role: UserRole.ADMIN,
     },
   });
 
   // eslint-disable-next-line no-console
   console.log('Created admin user:', adminUser.email);
+
+  // Create default organization
+  const organization = await prisma.organization.create({
+    data: {
+      name: 'サンプル会社',
+      code: 'SAMPLE',
+      email: 'info@sample.co.jp',
+      address: '東京都千代田区大手町1-1-1',
+      phone: '03-1234-5678',
+    },
+  });
+
+  // eslint-disable-next-line no-console
+  console.log('Created organization:', organization.name);
+
+  // Add admin user to organization
+  await prisma.userOrganization.create({
+    data: {
+      userId: adminUser.id,
+      organizationId: organization.id,
+      role: UserRole.ADMIN,
+      isDefault: true,
+    },
+  });
 
   // Create accounting period
   const currentYear = new Date().getFullYear();
@@ -35,6 +60,7 @@ async function main() {
       startDate: new Date(currentYear, 0, 1),
       endDate: new Date(currentYear, 11, 31),
       isActive: true,
+      organizationId: organization.id,
     },
   });
 
@@ -131,6 +157,7 @@ async function main() {
         name: account.name,
         accountType: account.accountType,
         isSystem: true,
+        organizationId: organization.id,
       },
     });
     parentAccounts.set(account.code, created.id);
@@ -145,6 +172,7 @@ async function main() {
         accountType: account.accountType,
         parentId: parentAccounts.get(account.parentCode || ''),
         isSystem: true,
+        organizationId: organization.id,
       },
     });
   }
@@ -163,6 +191,7 @@ async function main() {
         address: '東京都千代田区丸の内1-1-1',
         phone: '03-1234-5678',
         email: 'info@sample-shoji.co.jp',
+        organizationId: organization.id,
       },
     }),
     prisma.partner.create({
@@ -174,6 +203,7 @@ async function main() {
         address: '東京都新宿区西新宿2-2-2',
         phone: '03-2345-6789',
         email: 'sales@office-supply.co.jp',
+        organizationId: organization.id,
       },
     }),
   ]);
