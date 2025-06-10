@@ -4,13 +4,15 @@ import { Router } from 'express';
 import { z } from 'zod';
 
 import * as accountsController from '../controllers/accounts.controller';
-import { authenticate, authorize } from '../middlewares/auth';
+import { authenticate, authorize, setOrganizationContext, requireOrganization } from '../middlewares/auth';
 import { validate } from '../middlewares/validation';
 
 const router = Router();
 
-// All routes require authentication
+// All routes require authentication and organization context
 router.use(authenticate);
+router.use(setOrganizationContext);
+router.use(requireOrganization);
 
 // Get all accounts
 router.get('/', accountsController.getAccounts);

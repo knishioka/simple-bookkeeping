@@ -1,10 +1,11 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 
+import { AuthenticatedRequest } from '../middlewares/auth';
 import { ReportsService } from '../services/reports.service';
 
 const reportsService = new ReportsService();
 
-export const getBalanceSheet = async (req: Request, res: Response) => {
+export const getBalanceSheet = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { accountingPeriodId } = req.params;
     const { asOfDate } = req.query;
@@ -28,7 +29,17 @@ export const getBalanceSheet = async (req: Request, res: Response) => {
       });
     }
 
-    const balanceSheet = await reportsService.getBalanceSheet(accountingPeriodId, date);
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      return res.status(400).json({
+        error: {
+          code: 'ORGANIZATION_REQUIRED',
+          message: '組織が選択されていません',
+        },
+      });
+    }
+
+    const balanceSheet = await reportsService.getBalanceSheet(accountingPeriodId, date, organizationId);
 
     res.json({
       data: balanceSheet,
@@ -44,7 +55,7 @@ export const getBalanceSheet = async (req: Request, res: Response) => {
   }
 };
 
-export const getProfitLoss = async (req: Request, res: Response) => {
+export const getProfitLoss = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { accountingPeriodId } = req.params;
     const { startDate, endDate } = req.query;
@@ -79,7 +90,17 @@ export const getProfitLoss = async (req: Request, res: Response) => {
       });
     }
 
-    const profitLoss = await reportsService.getProfitLoss(accountingPeriodId, start, end);
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      return res.status(400).json({
+        error: {
+          code: 'ORGANIZATION_REQUIRED',
+          message: '組織が選択されていません',
+        },
+      });
+    }
+
+    const profitLoss = await reportsService.getProfitLoss(accountingPeriodId, start, end, organizationId);
 
     res.json({
       data: profitLoss,

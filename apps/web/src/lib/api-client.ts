@@ -16,6 +16,7 @@ interface ApiResponse<T> {
 
 class ApiClient {
   private config: ApiConfig;
+  private organizationId: string | null = null;
 
   constructor(config: ApiConfig) {
     this.config = config;
@@ -30,6 +31,11 @@ class ApiClient {
     const token = this.getToken();
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    const orgId = this.getOrganizationId();
+    if (orgId) {
+      headers.set('X-Organization-Id', orgId);
     }
 
     return headers;
@@ -60,6 +66,27 @@ class ApiClient {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
+    }
+  }
+
+  private getOrganizationId(): string | null {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('organizationId');
+    }
+    return null;
+  }
+
+  setOrganizationId(organizationId: string): void {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('organizationId', organizationId);
+      this.organizationId = organizationId;
+    }
+  }
+
+  clearOrganizationId(): void {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('organizationId');
+      this.organizationId = null;
     }
   }
 

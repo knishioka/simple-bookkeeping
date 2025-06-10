@@ -29,10 +29,13 @@ interface ProfitLossData {
 }
 
 export class ReportsService {
-  async getBalanceSheet(accountingPeriodId: string, asOfDate: Date): Promise<BalanceSheetData> {
+  async getBalanceSheet(accountingPeriodId: string, asOfDate: Date, organizationId: string): Promise<BalanceSheetData> {
     // 会計期間の検証
-    const accountingPeriod = await prisma.accountingPeriod.findUnique({
-      where: { id: accountingPeriodId },
+    const accountingPeriod = await prisma.accountingPeriod.findFirst({
+      where: { 
+        id: accountingPeriodId,
+        organizationId,
+      },
     });
 
     if (!accountingPeriod) {
@@ -45,6 +48,7 @@ export class ReportsService {
         accountingPeriodId,
         entryDate: { lte: asOfDate },
         status: JournalStatus.APPROVED,
+        organizationId,
       },
       include: {
         lines: {
@@ -79,6 +83,7 @@ export class ReportsService {
 
     // 全勘定科目を取得
     const accounts = await prisma.account.findMany({
+      where: { organizationId },
       orderBy: { code: 'asc' },
     });
 
@@ -130,11 +135,15 @@ export class ReportsService {
   async getProfitLoss(
     accountingPeriodId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    organizationId: string
   ): Promise<ProfitLossData> {
     // 会計期間の検証
-    const accountingPeriod = await prisma.accountingPeriod.findUnique({
-      where: { id: accountingPeriodId },
+    const accountingPeriod = await prisma.accountingPeriod.findFirst({
+      where: { 
+        id: accountingPeriodId,
+        organizationId,
+      },
     });
 
     if (!accountingPeriod) {
@@ -150,6 +159,7 @@ export class ReportsService {
           lte: endDate,
         },
         status: JournalStatus.APPROVED,
+        organizationId,
       },
       include: {
         lines: {
@@ -185,6 +195,7 @@ export class ReportsService {
         accountType: {
           in: [AccountType.REVENUE, AccountType.EXPENSE],
         },
+        organizationId,
       },
       orderBy: { code: 'asc' },
     });

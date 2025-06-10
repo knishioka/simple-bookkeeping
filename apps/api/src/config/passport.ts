@@ -1,4 +1,4 @@
-import { prisma } from '@simple-bookkeeping/database/src/client';
+import { prisma, UserRole } from '@simple-bookkeeping/database';
 import { ExtractJwt, Strategy as JwtStrategy, StrategyOptions } from 'passport-jwt';
 
 const opts: StrategyOptions = {
@@ -14,8 +14,21 @@ export const jwtStrategy = new JwtStrategy(opts, async (payload, done) => {
         id: true,
         email: true,
         name: true,
-        role: true,
         isActive: true,
+        userOrganizations: {
+          select: {
+            organizationId: true,
+            role: true,
+            isDefault: true,
+            organization: {
+              select: {
+                id: true,
+                name: true,
+                isActive: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -23,7 +36,16 @@ export const jwtStrategy = new JwtStrategy(opts, async (payload, done) => {
       return done(null, false);
     }
 
-    return done(null, user);
+    // Map user with system-wide role (ADMIN by default for now)
+    const mappedUser = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: UserRole.ADMIN, // Will be removed once we fully migrate to org-based roles
+      userOrganizations: user.userOrganizations,
+    };
+
+    return done(null, mappedUser);
   } catch (error) {
     return done(error, false);
   }

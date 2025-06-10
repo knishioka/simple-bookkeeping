@@ -1,12 +1,13 @@
 import { prisma } from '@simple-bookkeeping/database/src/client';
 
-export const generateEntryNumber = async (date: Date): Promise<string> => {
+export const generateEntryNumber = async (date: Date, organizationId: string): Promise<string> => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
 
   // Find the last entry number for the month
   const lastEntry = await prisma.journalEntry.findFirst({
     where: {
+      organizationId,
       entryNumber: {
         startsWith: `${year}${month}`,
       },
@@ -35,9 +36,10 @@ export const validateJournalEntryBalance = (
   return Math.abs(totalDebit - totalCredit) < 0.01;
 };
 
-export const getAccountingPeriod = async (date: Date) => {
+export const getAccountingPeriod = async (date: Date, organizationId: string) => {
   return await prisma.accountingPeriod.findFirst({
     where: {
+      organizationId,
       startDate: { lte: date },
       endDate: { gte: date },
       isActive: true,

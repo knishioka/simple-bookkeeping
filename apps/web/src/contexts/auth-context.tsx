@@ -1,17 +1,25 @@
 'use client';
 
-import { UserRole } from '@simple-bookkeeping/database';
 import { useRouter } from 'next/navigation';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
 import { apiClient } from '@/lib/api-client';
 
+interface Organization {
+  id: string;
+  name: string;
+  code: string;
+  role: 'ADMIN' | 'ACCOUNTANT' | 'VIEWER';
+  isDefault: boolean;
+}
+
 interface User {
   id: string;
   email: string;
   name: string;
-  role: UserRole;
+  organizations: Organization[];
+  currentOrganization?: Organization;
 }
 
 interface AuthContextType {
@@ -20,6 +28,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
+  switchOrganization: (organizationId: string) => Promise<void>;
+  currentOrganization: Organization | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -40,6 +50,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -59,12 +70,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await apiClient.post<{
         token: string;
         refreshToken: string;
-        user: User;
+        user: {
+          id: string;
+          email: string;
+          name: string;
+        };
       }>('/auth/login', { email, password });
 
       if (response.data) {
         apiClient.setToken(response.data.token, response.data.refreshToken);
-        setUser(response.data.user);
+        
+        // Get user's organizations
+        const orgsResponse = await apiClient.get<Organization[]>('/organizations/mine');
+        if (orgsResponse.data) {
+          const organizations = orgsResponse.data;
+          const defaultOrg = organizations.find(org => org.isDefault) || organizations[0];
+          
+          const fullUser: User = {
+            ...response.data.user,
+            organizations,
+            currentOrganization: defaultOrg,
+          };
+          
+          setUser(fullUser);
+          setCurrentOrganization(defaultOrg);
+          
+          // Set default organization in API client headers
+          if (defaultOrg) {
+            apiClient.setOrganizationId(defaultOrg.id);
+          }
+        }
+        
         toast.success('ログインしました');
         router.push('/dashboard');
       }
@@ -79,16 +115,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       await apiClient.post('/auth/logout');
       apiClient.clearTokens();
+      apiClient.clearOrganizationId();
       setUser(null);
+      setCurrentOrganization(null);
       toast.success('ログアウトしました');
       router.push('/login');
     } catch (error) {
       console.error('Logout failed:', error);
       // Even if logout fails, clear local state
       apiClient.clearTokens();
+      apiClient.clearOrganizationId();
       setUser(null);
+      setCurrentOrganization(null);
       router.push('/login');
     }
+  };
+
+  const switchOrganization = async (organizationId: string) => {
+    if (!user) return;
+
+    const organization = user.organizations.find(org => org.id === organizationId);
+    if (!organization) {
+      toast.error('組織が見つかりません');
+      return;
+    }
+
+    setCurrentOrganization(organization);
+    setUser({
+      ...user,
+      currentOrganization: organization,
+    });
+    
+    // Update API client with new organization
+    apiClient.setOrganizationId(organizationId);
+    
+    toast.success(`${organization.name} に切り替えました`);
+    
+    // Refresh the current page to reload data
+    router.refresh();
   };
 
   const value: AuthContextType = {
@@ -97,6 +161,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     logout,
     isAuthenticated: !!user,
+    switchOrganization,
+    currentOrganization,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

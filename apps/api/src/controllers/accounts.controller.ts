@@ -10,13 +10,17 @@ interface AccountQuery {
 }
 
 export const getAccounts = async (
-  req: Request<Record<string, never>, Record<string, never>, Record<string, never>, AccountQuery>,
+  req: AuthenticatedRequest &
+    Request<Record<string, never>, Record<string, never>, Record<string, never>, AccountQuery>,
   res: Response
 ) => {
   try {
     const { type, active } = req.query;
+    const organizationId = req.user?.organizationId;
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = {
+      organizationId,
+    };
     if (type) {
       where.accountType = type;
     }
@@ -59,11 +63,14 @@ export const getAccounts = async (
   }
 };
 
-export const getAccountTree = async (_req: Request, res: Response) => {
+export const getAccountTree = async (req: AuthenticatedRequest, res: Response) => {
   try {
+    const organizationId = req.user?.organizationId;
+
     const accounts = await prisma.account.findMany({
       where: {
         parentId: null,
+        organizationId,
       },
       include: {
         children: {
@@ -91,12 +98,19 @@ export const getAccountTree = async (_req: Request, res: Response) => {
   }
 };
 
-export const getAccount = async (req: Request<{ id: string }>, res: Response) => {
+export const getAccount = async (
+  req: AuthenticatedRequest & Request<{ id: string }>,
+  res: Response
+) => {
   try {
     const { id } = req.params;
+    const organizationId = req.user?.organizationId;
 
-    const account = await prisma.account.findUnique({
-      where: { id },
+    const account = await prisma.account.findFirst({
+      where: { 
+        id,
+        organizationId,
+      },
       include: {
         parent: true,
         children: true,
@@ -134,9 +148,24 @@ export const createAccount = async (
   try {
     const { code, name, accountType, parentId } = req.body;
 
-    // Check if account code already exists
+    // Check if account code already exists in this organization
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      return res.status(400).json({
+        error: {
+          code: 'ORGANIZATION_REQUIRED',
+          message: '組織が選択されていません',
+        },
+      });
+    }
+
     const existingAccount = await prisma.account.findUnique({
-      where: { code },
+      where: { 
+        organizationId_code: {
+          organizationId,
+          code,
+        },
+      },
     });
 
     if (existingAccount) {
@@ -150,8 +179,11 @@ export const createAccount = async (
 
     // Validate parent account if provided
     if (parentId) {
-      const parentAccount = await prisma.account.findUnique({
-        where: { id: parentId },
+      const parentAccount = await prisma.account.findFirst({
+        where: { 
+          id: parentId,
+          organizationId,
+        },
       });
 
       if (!parentAccount) {
@@ -179,6 +211,7 @@ export const createAccount = async (
         name,
         accountType,
         parentId,
+        organizationId,
       },
       include: {
         parent: true,
@@ -208,8 +241,12 @@ export const updateAccount = async (
     const { id } = req.params;
     const { name, parentId } = req.body;
 
-    const account = await prisma.account.findUnique({
-      where: { id },
+    const organizationId = req.user?.organizationId;
+    const account = await prisma.account.findFirst({
+      where: { 
+        id,
+        organizationId,
+      },
     });
 
     if (!account) {
@@ -262,8 +299,12 @@ export const deleteAccount = async (
   try {
     const { id } = req.params;
 
-    const account = await prisma.account.findUnique({
-      where: { id },
+    const organizationId = req.user?.organizationId;
+    const account = await prisma.account.findFirst({
+      where: { 
+        id,
+        organizationId,
+      },
       include: {
         _count: {
           select: {

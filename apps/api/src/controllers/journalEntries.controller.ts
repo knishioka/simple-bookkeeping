@@ -19,21 +19,35 @@ interface JournalEntryQuery {
 }
 
 export const getJournalEntries = async (
-  req: Request<
-    Record<string, never>,
-    Record<string, never>,
-    Record<string, never>,
-    JournalEntryQuery
-  >,
+  req: AuthenticatedRequest &
+    Request<
+      Record<string, never>,
+      Record<string, never>,
+      Record<string, never>,
+      JournalEntryQuery
+    >,
   res: Response
 ) => {
   try {
     const { from, to, status, page = '1', limit = '50' } = req.query;
+    const organizationId = req.user?.organizationId;
+
+    if (!organizationId) {
+      return res.status(400).json({
+        error: {
+          code: 'ORGANIZATION_REQUIRED',
+          message: '組織の選択が必要です',
+        },
+      });
+    }
+
     const pageNum = parseInt(page);
     const limitNum = Math.min(parseInt(limit), 100);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {};
+    const where: any = {
+      organizationId,
+    };
     if (from || to) {
       where.entryDate = {};
       if (from) where.entryDate.gte = new Date(from);
@@ -97,12 +111,25 @@ export const getJournalEntries = async (
   }
 };
 
-export const getJournalEntry = async (req: Request<{ id: string }>, res: Response) => {
+export const getJournalEntry = async (
+  req: AuthenticatedRequest & Request<{ id: string }>,
+  res: Response
+) => {
   try {
     const { id } = req.params;
+    const organizationId = req.user?.organizationId;
 
-    const entry = await prisma.journalEntry.findUnique({
-      where: { id },
+    if (!organizationId) {
+      return res.status(400).json({
+        error: {
+          code: 'ORGANIZATION_REQUIRED',
+          message: '組織の選択が必要です',
+        },
+      });
+    }
+
+    const entry = await prisma.journalEntry.findFirst({
+      where: { id, organizationId },
       include: {
         lines: {
           include: {
@@ -153,6 +180,16 @@ export const createJournalEntry = async (
   try {
     const { entryDate, description, documentNumber, lines } = req.body;
     const userId = req.user?.id || '';
+    const organizationId = req.user?.organizationId;
+
+    if (!organizationId) {
+      return res.status(400).json({
+        error: {
+          code: 'ORGANIZATION_REQUIRED',
+          message: '組織の選択が必要です',
+        },
+      });
+    }
 
     // Validate balance
     if (!validateJournalEntryBalance(lines)) {
@@ -164,9 +201,27 @@ export const createJournalEntry = async (
       });
     }
 
+    // Validate that all accounts belong to the organization
+    const accountIds = lines.map((line) => line.accountId);
+    const accountCount = await prisma.account.count({
+      where: {
+        id: { in: accountIds },
+        organizationId,
+      },
+    });
+
+    if (accountCount !== accountIds.length) {
+      return res.status(400).json({
+        error: {
+          code: 'INVALID_ACCOUNT',
+          message: '無効な勘定科目が含まれています',
+        },
+      });
+    }
+
     // Get accounting period
     const date = new Date(entryDate);
-    const accountingPeriod = await getAccountingPeriod(date);
+    const accountingPeriod = await getAccountingPeriod(date, organizationId);
 
     if (!accountingPeriod) {
       return res.status(400).json({
@@ -178,7 +233,7 @@ export const createJournalEntry = async (
     }
 
     // Generate entry number
-    const entryNumber = await generateEntryNumber(date);
+    const entryNumber = await generateEntryNumber(date, organizationId);
 
     // Create journal entry with lines in a transaction
     const entry = await prisma.$transaction(async (tx) => {
@@ -189,6 +244,7 @@ export const createJournalEntry = async (
           description,
           documentNumber,
           accountingPeriodId: accountingPeriod.id,
+          organizationId,
           createdById: userId,
           status: JournalStatus.DRAFT,
           lines: {
@@ -237,9 +293,19 @@ export const updateJournalEntry = async (
   try {
     const { id } = req.params;
     const { description, documentNumber, lines } = req.body;
+    const organizationId = req.user?.organizationId;
 
-    const existingEntry = await prisma.journalEntry.findUnique({
-      where: { id },
+    if (!organizationId) {
+      return res.status(400).json({
+        error: {
+          code: 'ORGANIZATION_REQUIRED',
+          message: '組織の選択が必要です',
+        },
+      });
+    }
+
+    const existingEntry = await prisma.journalEntry.findFirst({
+      where: { id, organizationId },
     });
 
     if (!existingEntry) {
@@ -258,6 +324,26 @@ export const updateJournalEntry = async (
           message: '下書き状態の仕訳のみ編集可能です',
         },
       });
+    }
+
+    // Validate that all accounts belong to the organization if lines are provided
+    if (lines) {
+      const accountIds = lines.map((line) => line.accountId);
+      const accountCount = await prisma.account.count({
+        where: {
+          id: { in: accountIds },
+          organizationId,
+        },
+      });
+
+      if (accountCount !== accountIds.length) {
+        return res.status(400).json({
+          error: {
+            code: 'INVALID_ACCOUNT',
+            message: '無効な勘定科目が含まれています',
+          },
+        });
+      }
     }
 
     // Validate balance if lines are provided
@@ -304,8 +390,8 @@ export const updateJournalEntry = async (
       }
 
       // Fetch updated entry with relations
-      return await tx.journalEntry.findUnique({
-        where: { id },
+      return await tx.journalEntry.findFirst({
+        where: { id, organizationId },
         include: {
           lines: {
             include: {
@@ -336,9 +422,19 @@ export const deleteJournalEntry = async (
 ) => {
   try {
     const { id } = req.params;
+    const organizationId = req.user?.organizationId;
 
-    const entry = await prisma.journalEntry.findUnique({
-      where: { id },
+    if (!organizationId) {
+      return res.status(400).json({
+        error: {
+          code: 'ORGANIZATION_REQUIRED',
+          message: '組織の選択が必要です',
+        },
+      });
+    }
+
+    const entry = await prisma.journalEntry.findFirst({
+      where: { id, organizationId },
     });
 
     if (!entry) {
@@ -359,8 +455,19 @@ export const deleteJournalEntry = async (
       });
     }
 
-    await prisma.journalEntry.delete({
-      where: { id },
+    await prisma.$transaction(async (tx) => {
+      // Verify entry belongs to organization before deletion
+      const entryToDelete = await tx.journalEntry.findFirst({
+        where: { id, organizationId },
+      });
+
+      if (!entryToDelete) {
+        throw new Error('Entry not found');
+      }
+
+      await tx.journalEntry.delete({
+        where: { id },
+      });
     });
 
     res.json({
@@ -385,9 +492,19 @@ export const approveJournalEntry = async (
 ) => {
   try {
     const { id } = req.params;
+    const organizationId = req.user?.organizationId;
 
-    const entry = await prisma.journalEntry.findUnique({
-      where: { id },
+    if (!organizationId) {
+      return res.status(400).json({
+        error: {
+          code: 'ORGANIZATION_REQUIRED',
+          message: '組織の選択が必要です',
+        },
+      });
+    }
+
+    const entry = await prisma.journalEntry.findFirst({
+      where: { id, organizationId },
     });
 
     if (!entry) {

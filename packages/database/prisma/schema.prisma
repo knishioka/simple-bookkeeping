@@ -10,6 +10,47 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// 組織（会社）
+model Organization {
+  id          String   @id @default(uuid())
+  name        String   // 組織名
+  code        String   @unique // 組織コード
+  taxId       String?  @map("tax_id") // 法人番号
+  address     String?  // 住所
+  phone       String?  // 電話番号
+  email       String?  // メールアドレス
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  userOrganizations  UserOrganization[]
+  accountingPeriods  AccountingPeriod[]
+  accounts           Account[]
+  partners           Partner[]
+  journalEntries     JournalEntry[]
+  auditLogs          AuditLog[]
+
+  @@map("organizations")
+}
+
+// ユーザーと組織の関連
+model UserOrganization {
+  id               String   @id @default(uuid())
+  userId           String   @map("user_id")
+  organizationId   String   @map("organization_id")
+  role             UserRole // 組織内でのロール
+  isDefault        Boolean  @default(false) @map("is_default") // デフォルト組織
+  joinedAt         DateTime @default(now()) @map("joined_at")
+  
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@map("user_organizations")
+}
+
 // 会計期間
 model AccountingPeriod {
   id        String   @id @default(uuid())
@@ -20,8 +61,11 @@ model AccountingPeriod {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  organizationId String   @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   journalEntries JournalEntry[]
 
+  @@index([organizationId])
   @@map("accounting_periods")
 }
 
@@ -46,12 +90,17 @@ model Account {
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
 
-  parent   Account?            @relation("AccountHierarchy", fields: [parentId], references: [id])
-  children Account[]           @relation("AccountHierarchy")
-  lines    JournalEntryLine[]
+  organizationId String   @map("organization_id")
+  
+  parent         Account?            @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children       Account[]           @relation("AccountHierarchy")
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  lines          JournalEntryLine[]
 
+  @@unique([organizationId, code])
   @@index([accountType])
   @@index([parentId])
+  @@index([organizationId])
   @@map("accounts")
 }
 
@@ -75,13 +124,18 @@ model JournalEntry {
   createdAt          DateTime         @default(now()) @map("created_at")
   updatedAt          DateTime         @updatedAt @map("updated_at")
 
+  organizationId   String           @map("organization_id")
+  
   accountingPeriod AccountingPeriod  @relation(fields: [accountingPeriodId], references: [id])
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   createdBy        User              @relation(fields: [createdById], references: [id])
   lines            JournalEntryLine[]
 
+  @@unique([organizationId, entryNumber])
   @@index([entryDate])
   @@index([accountingPeriodId])
   @@index([status])
+  @@index([organizationId])
   @@map("journal_entries")
 }
 
@@ -114,7 +168,7 @@ enum PartnerType {
 // 取引先
 model Partner {
   id          String      @id @default(uuid())
-  code        String      @unique // 取引先コード
+  code        String      // 取引先コード
   name        String      // 取引先名
   nameKana    String      @map("name_kana") // フリガナ
   partnerType PartnerType @map("partner_type")
@@ -122,11 +176,16 @@ model Partner {
   phone       String?
   email       String?
   taxId       String?     @map("tax_id") // 法人番号/個人番号
-  isActive    Boolean     @default(true) @map("is_active")
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
+  isActive       Boolean     @default(true) @map("is_active")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+  organizationId String      @map("organization_id")
+  
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  @@unique([organizationId, code])
   @@index([partnerType])
+  @@index([organizationId])
   @@map("partners")
 }
 
@@ -143,14 +202,14 @@ model User {
   email        String   @unique
   passwordHash String   @map("password_hash")
   name         String
-  role         UserRole @default(VIEWER)
   isActive     Boolean  @default(true) @map("is_active")
   lastLoginAt  DateTime? @map("last_login_at")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  journalEntries JournalEntry[]
-  auditLogs      AuditLog[]
+  userOrganizations UserOrganization[]
+  journalEntries    JournalEntry[]
+  auditLogs         AuditLog[]
 
   @@map("users")
 }
@@ -173,13 +232,16 @@ model AuditLog {
   oldValues  Json?       @map("old_values")
   newValues  Json?       @map("new_values")
   ipAddress  String?     @map("ip_address")
-  userAgent  String?     @map("user_agent")
-  createdAt  DateTime    @default(now()) @map("created_at")
+  userAgent      String?     @map("user_agent")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  organizationId String      @map("organization_id")
 
-  user User @relation(fields: [userId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([entityType, entityId])
   @@index([userId])
   @@index([createdAt])
+  @@index([organizationId])
   @@map("audit_logs")
 }
