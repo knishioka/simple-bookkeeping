@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  postgres:
+    ports:
+      - '${DB_PORT:-5432}:5432'
+    volumes:
+      - ./packages/database/prisma:/prisma
+
+  api:
+    build:
+      target: deps
+    command: pnpm -F @simple-bookkeeping/api dev
+    volumes:
+      - ./:/app
+      - /app/node_modules
+      - /app/apps/api/node_modules
+      - /app/apps/web/node_modules
+      - /app/packages/database/node_modules
+      - /app/packages/shared/node_modules
+
+  web:
+    build:
+      target: deps
+    command: pnpm -F @simple-bookkeeping/web dev
+    volumes:
+      - ./:/app
+      - /app/node_modules
+      - /app/apps/api/node_modules
+      - /app/apps/web/node_modules
+      - /app/packages/database/node_modules
+      - /app/packages/shared/node_modules

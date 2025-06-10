@@ -23,7 +23,12 @@
     "prepare": "husky install",
     "clean": "turbo run clean && rm -rf node_modules",
     "db:migrate": "turbo run db:migrate",
-    "db:seed": "turbo run db:seed"
+    "db:seed": "turbo run db:seed",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:build": "docker-compose build",
+    "docker:logs": "docker-compose logs -f",
+    "docker:dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

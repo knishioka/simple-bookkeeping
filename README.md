@@ -1,9 +1,11 @@
 # Simple Bookkeeping - 日本の確定申告対応複式簿記システム
 
 ## 概要
+
 Simple Bookkeepingは、日本の確定申告（青色申告）に対応した複式簿記システムです。個人事業主や小規模事業者が簡単に帳簿管理と確定申告書類の作成ができることを目的としています。
 
 ## 主な機能
+
 - 複式簿記による仕訳入力
 - 貸借対照表（BS）・損益計算書（PL）の自動生成
 - 青色申告決算書の作成
@@ -12,14 +14,42 @@ Simple Bookkeepingは、日本の確定申告（青色申告）に対応した�
 - 各種帳簿の管理（仕訳帳、総勘定元帳、現金出納帳など）
 
 ## 技術スタック
+
 - Frontend: Next.js 14+ (App Router) + TypeScript
 - Backend: Express.js + TypeScript
 - Database: PostgreSQL 15+
 - ORM: Prisma
 - Styling: Tailwind CSS + shadcn/ui
 - Testing: Jest + Playwright
+- Container: Docker & Docker Compose
 
 ## セットアップ
+
+### Docker環境（推奨）
+
+```bash
+# リポジトリのクローン
+git clone https://github.com/knishioka/simple-bookkeeping.git
+cd simple-bookkeeping
+
+# 環境変数の設定
+cp .env.docker .env
+
+# Dockerコンテナの起動
+pnpm docker:up
+
+# データベースの初期化
+docker-compose exec api pnpm -F @simple-bookkeeping/database db:migrate
+docker-compose exec api pnpm -F @simple-bookkeeping/database db:seed
+```
+
+アプリケーションは以下のURLでアクセス可能です：
+
+- Web: http://localhost:3000
+- API: http://localhost:3001
+
+### ローカル環境
+
 ```bash
 # リポジトリのクローン
 git clone https://github.com/knishioka/simple-bookkeeping.git
@@ -31,15 +61,27 @@ pnpm install
 # 環境変数の設定
 cp .env.example .env
 
+# PostgreSQLの起動（別途インストールが必要）
 # データベースのセットアップ
-docker-compose up -d
-pnpm prisma migrate dev
+pnpm db:migrate
+pnpm db:seed
 
 # 開発サーバーの起動
 pnpm dev
 ```
 
+### ポート設定
+
+デフォルトのポートが使用中の場合、`.env`ファイルで変更できます：
+
+```bash
+# .env
+WEB_PORT=3010  # デフォルト: 3000
+API_PORT=3011  # デフォルト: 3001
+```
+
 ## ドキュメント
+
 - [システム仕様書](./docs/specifications/system-requirements.md)
 - [データモデル仕様書](./docs/specifications/data-model.md)
 - [API設計仕様書](./docs/specifications/api-design.md)
@@ -48,13 +90,17 @@ pnpm dev
 - [AIコーディングガイドライン](./CLAUDE.md)
 
 ## 開発状況
+
 現在、基本設計とドキュメント作成が完了し、実装フェーズに入っています。
 
 ## ライセンス
+
 [MIT License](./LICENSE)
 
 ## コントリビューション
+
 プルリクエストを歓迎します。大きな変更を行う場合は、まずissueを作成して変更内容について議論してください。
 
 ## お問い合わせ
+
 - Issue: https://github.com/knishioka/simple-bookkeeping/issues
