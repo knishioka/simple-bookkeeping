@@ -16,14 +16,14 @@
     "clean": "rm -rf node_modules .turbo"
   },
   "dependencies": {
-    "@prisma/client": "^5.8.0"
+    "@prisma/client": "^6.9.0"
   },
   "devDependencies": {
     "@simple-bookkeeping/typescript-config": "workspace:*",
     "@types/bcrypt": "^5.0.2",
     "@types/node": "^20.11.0",
-    "bcrypt": "^5.1.1",
-    "prisma": "^5.8.0",
+    "bcrypt": "^6.0.0",
+    "prisma": "^6.9.0",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3"
   }
