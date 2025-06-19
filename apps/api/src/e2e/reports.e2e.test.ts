@@ -1,32 +1,32 @@
 import { AccountType, JournalStatus, UserRole } from '@prisma/client';
-import bcrypt from 'bcrypt';
 import request from 'supertest';
 
 import app from '../index';
 import { prisma } from '../lib/prisma';
-import { generateTokens } from '../utils/jwt';
 
+import { createTestUser, cleanupTestData } from './test-helpers';
 
 describe('Reports E2E', () => {
   let adminToken: string;
+  let organizationId: string;
+  let userId: string;
   let accountingPeriodId: string;
   let assetAccountId: string;
   let revenueAccountId: string;
   let expenseAccountId: string;
 
   beforeAll(async () => {
-    // Create test user
-    const user = await prisma.user.create({
-      data: {
-        email: 'reports-admin@test.com',
-        passwordHash: await bcrypt.hash('password', 10),
-        name: 'Reports Admin',
-        role: UserRole.ADMIN,
-      },
-    });
+    // Create test user with organization
+    const testUser = await createTestUser(
+      'reports-admin@test.com',
+      'Reports Admin',
+      UserRole.ADMIN,
+      'TEST-REPORTS'
+    );
 
-    const tokens = generateTokens(user.id, user.email, user.role);
-    adminToken = tokens.accessToken;
+    adminToken = testUser.token;
+    organizationId = testUser.organization.id;
+    userId = testUser.user.id;
 
     // Create accounting period
     const accountingPeriod = await prisma.accountingPeriod.create({
@@ -35,6 +35,7 @@ describe('Reports E2E', () => {
         startDate: new Date('2024-01-01'),
         endDate: new Date('2024-12-31'),
         isActive: true,
+        organizationId,
       },
     });
     accountingPeriodId = accountingPeriod.id;
@@ -46,6 +47,7 @@ describe('Reports E2E', () => {
         name: '現金',
         accountType: AccountType.ASSET,
         isSystem: true,
+        organizationId,
       },
     });
     assetAccountId = assetAccount.id;
@@ -56,6 +58,7 @@ describe('Reports E2E', () => {
         name: '売上高',
         accountType: AccountType.REVENUE,
         isSystem: true,
+        organizationId,
       },
     });
     revenueAccountId = revenueAccount.id;
@@ -66,6 +69,7 @@ describe('Reports E2E', () => {
         name: '仕入高',
         accountType: AccountType.EXPENSE,
         isSystem: true,
+        organizationId,
       },
     });
     expenseAccountId = expenseAccount.id;
@@ -77,7 +81,8 @@ describe('Reports E2E', () => {
         entryDate: new Date('2024-01-15'),
         description: '売上計上',
         accountingPeriodId,
-        createdById: user.id,
+        createdById: userId,
+        organizationId,
         status: JournalStatus.APPROVED,
         lines: {
           create: [
@@ -106,7 +111,8 @@ describe('Reports E2E', () => {
         entryDate: new Date('2024-01-20'),
         description: '仕入計上',
         accountingPeriodId,
-        createdById: user.id,
+        createdById: userId,
+        organizationId,
         status: JournalStatus.APPROVED,
         lines: {
           create: [
@@ -181,5 +187,9 @@ describe('Reports E2E', () => {
 
       expect(response.body.error.code).toBe('INVALID_DATE_RANGE');
     });
+  });
+
+  afterAll(async () => {
+    await cleanupTestData();
   });
 });

@@ -7,7 +7,9 @@ import ledgersRoutes from './ledgers.routes';
 import organizationsRoutes from './organizations.routes';
 import reportsRoutes from './reports.routes';
 
-const router = Router();
+import type { Router as RouterType } from 'express';
+
+const router: RouterType = Router();
 
 // Mount routes
 router.use('/auth', authRoutes);

@@ -1,31 +1,29 @@
 import { AccountType, UserRole } from '@prisma/client';
-import bcrypt from 'bcrypt';
 import request from 'supertest';
 
 import app from '../index';
 import { prisma } from '../lib/prisma';
-import { generateTokens } from '../utils/jwt';
 
+import { createTestUser, cleanupTestData } from './test-helpers';
 
 describe('Journal Entries E2E', () => {
   let accountantToken: string;
+  let organizationId: string;
   let accountingPeriodId: string;
   let cashAccountId: string;
   let salesAccountId: string;
 
   beforeAll(async () => {
-    // Create test user
-    const user = await prisma.user.create({
-      data: {
-        email: 'accountant@test.com',
-        passwordHash: await bcrypt.hash('password', 10),
-        name: 'Test Accountant',
-        role: UserRole.ACCOUNTANT,
-      },
-    });
+    // Create test user with organization
+    const testUser = await createTestUser(
+      'accountant@test.com',
+      'Test Accountant',
+      UserRole.ACCOUNTANT,
+      'TEST-JOURNAL'
+    );
 
-    const tokens = generateTokens(user.id, user.email, user.role);
-    accountantToken = tokens.accessToken;
+    accountantToken = testUser.token;
+    organizationId = testUser.organization.id;
 
     // Create accounting period
     const period = await prisma.accountingPeriod.create({
@@ -34,6 +32,7 @@ describe('Journal Entries E2E', () => {
         startDate: new Date('2024-01-01'),
         endDate: new Date('2024-12-31'),
         isActive: true,
+        organizationId,
       },
     });
     accountingPeriodId = period.id;
@@ -44,6 +43,7 @@ describe('Journal Entries E2E', () => {
         code: '1110',
         name: '現金',
         accountType: AccountType.ASSET,
+        organizationId,
       },
     });
     cashAccountId = cashAccount.id;
@@ -53,6 +53,7 @@ describe('Journal Entries E2E', () => {
         code: '4110',
         name: '売上高',
         accountType: AccountType.REVENUE,
+        organizationId,
       },
     });
     salesAccountId = salesAccount.id;
@@ -135,5 +136,9 @@ describe('Journal Entries E2E', () => {
         limit: 10,
       });
     });
+  });
+
+  afterAll(async () => {
+    await cleanupTestData();
   });
 });

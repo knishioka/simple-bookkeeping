@@ -3,7 +3,9 @@ import { Router } from 'express';
 import { getBalanceSheet, getProfitLoss } from '../controllers/reports.controller';
 import { authenticate, setOrganizationContext, requireOrganization } from '../middlewares/auth';
 
-const router = Router();
+import type { Router as RouterType } from 'express';
+
+const router: RouterType = Router();
 
 // All routes require authentication and organization context
 router.use(authenticate);

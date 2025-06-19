@@ -13,7 +13,6 @@ async function main() {
     create: {
       code: 'TEST001',
       name: 'テスト会社',
-      fiscalYearStart: 4,
       taxId: '1234567890123',
       address: '東京都渋谷区',
       phone: '03-1234-5678',
@@ -23,7 +22,8 @@ async function main() {
   console.log('Created organization:', organization.name);
 
   // Create test user with random password
-  const testPassword = process.env.SEED_TEST_PASSWORD || `test${Math.random().toString(36).substring(2, 15)}`;
+  const testPassword =
+    process.env.SEED_TEST_PASSWORD || `test${Math.random().toString(36).substring(2, 15)}`;
   const hashedPassword = await bcrypt.hash(testPassword, 10);
   const user = await prisma.user.upsert({
     where: { email: 'test@example.com' },
@@ -59,23 +59,24 @@ async function main() {
 
   // Create accounting period
   const currentYear = new Date().getFullYear();
-  const accountingPeriod = await prisma.accountingPeriod.upsert({
+  const existingPeriod = await prisma.accountingPeriod.findFirst({
     where: {
-      organizationId_startDate_endDate: {
-        organizationId: organization.id,
-        startDate: new Date(currentYear, 3, 1), // April 1
-        endDate: new Date(currentYear + 1, 2, 31), // March 31
-      },
-    },
-    update: {},
-    create: {
       organizationId: organization.id,
       name: `${currentYear}年度`,
-      startDate: new Date(currentYear, 3, 1),
-      endDate: new Date(currentYear + 1, 2, 31),
-      isCurrent: true,
     },
   });
+
+  const accountingPeriod =
+    existingPeriod ||
+    (await prisma.accountingPeriod.create({
+      data: {
+        organizationId: organization.id,
+        name: `${currentYear}年度`,
+        startDate: new Date(currentYear, 3, 1),
+        endDate: new Date(currentYear + 1, 2, 31),
+        isActive: true,
+      },
+    }));
 
   console.log('Created accounting period:', accountingPeriod.name);
 
@@ -87,20 +88,20 @@ async function main() {
     { code: '1130', name: '普通預金', accountType: AccountType.ASSET },
     { code: '1140', name: '売掛金', accountType: AccountType.ASSET },
     { code: '1150', name: '商品', accountType: AccountType.ASSET },
-    
+
     // Liabilities
     { code: '2110', name: '買掛金', accountType: AccountType.LIABILITY },
     { code: '2120', name: '未払金', accountType: AccountType.LIABILITY },
     { code: '2130', name: '預り金', accountType: AccountType.LIABILITY },
-    
+
     // Equity
     { code: '3110', name: '資本金', accountType: AccountType.EQUITY },
     { code: '3120', name: '利益剰余金', accountType: AccountType.EQUITY },
-    
+
     // Revenue
     { code: '4110', name: '売上高', accountType: AccountType.REVENUE },
     { code: '4120', name: '受取利息', accountType: AccountType.REVENUE },
-    
+
     // Expenses
     { code: '5110', name: '仕入高', accountType: AccountType.EXPENSE },
     { code: '5210', name: '給料手当', accountType: AccountType.EXPENSE },

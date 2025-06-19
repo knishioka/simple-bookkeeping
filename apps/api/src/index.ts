@@ -1,6 +1,6 @@
 import cors from 'cors';
 import dotenv from 'dotenv';
-import express from 'express';
+import express, { Express } from 'express';
 import helmet from 'helmet';
 import passport from 'passport';
 
@@ -9,7 +9,7 @@ import routes from './routes';
 
 dotenv.config();
 
-const app = express();
+const app: Express = express();
 const PORT = process.env.API_PORT || 3001;
 
 // Middleware

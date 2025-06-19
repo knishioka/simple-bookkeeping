@@ -6,7 +6,9 @@ import * as authController from '../controllers/auth.controller';
 import { authenticate } from '../middlewares/auth';
 import { validate } from '../middlewares/validation';
 
-const router = Router();
+import type { Router as RouterType } from 'express';
+
+const router: RouterType = Router();
 
 // Login
 router.post('/login', validate(z.object({ body: loginSchema })), authController.login);

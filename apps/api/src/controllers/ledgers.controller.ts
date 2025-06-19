@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 
+import { AuthenticatedRequest } from '../middlewares/auth';
 import { ledgerService } from '../services/ledger.service';
 
 /**
@@ -8,7 +9,7 @@ import { ledgerService } from '../services/ledger.service';
 export const getCashBook = async (req: Request, res: Response) => {
   try {
     const { startDate, endDate } = req.query;
-    const organizationId = req.user?.organizationId;
+    const organizationId = (req as AuthenticatedRequest).user?.organizationId;
 
     if (!organizationId) {
       return res.status(401).json({ error: 'Organization not found' });
@@ -51,7 +52,7 @@ export const getCashBook = async (req: Request, res: Response) => {
 export const getBankBook = async (req: Request, res: Response) => {
   try {
     const { startDate, endDate } = req.query;
-    const organizationId = req.user?.organizationId;
+    const organizationId = (req as AuthenticatedRequest).user?.organizationId;
 
     if (!organizationId) {
       return res.status(401).json({ error: 'Organization not found' });
@@ -84,9 +85,11 @@ export const getBankBook = async (req: Request, res: Response) => {
       data: {
         openingBalance: totalOpeningBalance,
         entries,
-        closingBalance: entries.length > 0 
-          ? totalOpeningBalance + entries.reduce((sum, e) => sum + (e.debitAmount - e.creditAmount), 0)
-          : totalOpeningBalance,
+        closingBalance:
+          entries.length > 0
+            ? totalOpeningBalance +
+              entries.reduce((sum, e) => sum + (e.debitAmount - e.creditAmount), 0)
+            : totalOpeningBalance,
       },
     });
   } catch (error) {
@@ -101,7 +104,7 @@ export const getBankBook = async (req: Request, res: Response) => {
 export const getAccountsReceivable = async (req: Request, res: Response) => {
   try {
     const { startDate, endDate } = req.query;
-    const organizationId = req.user?.organizationId;
+    const organizationId = (req as AuthenticatedRequest).user?.organizationId;
 
     if (!organizationId) {
       return res.status(401).json({ error: 'Organization not found' });
@@ -143,7 +146,7 @@ export const getAccountsReceivable = async (req: Request, res: Response) => {
 export const getAccountsPayable = async (req: Request, res: Response) => {
   try {
     const { startDate, endDate } = req.query;
-    const organizationId = req.user?.organizationId;
+    const organizationId = (req as AuthenticatedRequest).user?.organizationId;
 
     if (!organizationId) {
       return res.status(401).json({ error: 'Organization not found' });

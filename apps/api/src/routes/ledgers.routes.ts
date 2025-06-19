@@ -6,12 +6,16 @@ import {
   getAccountsReceivable,
   getAccountsPayable,
 } from '../controllers/ledgers.controller';
-import { authenticate } from '../middlewares/auth';
+import { authenticate, setOrganizationContext, requireOrganization } from '../middlewares/auth';
 
-const router = Router();
+import type { Router as RouterType } from 'express';
+
+const router: RouterType = Router();
 
 // すべてのルートに認証を要求
 router.use(authenticate);
+router.use(setOrganizationContext);
+router.use(requireOrganization);
 
 // 現金出納帳
 router.get('/cash-book', getCashBook);

@@ -1,9 +1,9 @@
 import { UserRole } from '@prisma/client';
-import bcrypt from 'bcrypt';
 import request from 'supertest';
 
 import app from '../index';
-import { prisma } from '../lib/prisma';
+
+import { createTestUser, cleanupTestData } from './test-helpers';
 
 describe('Auth E2E', () => {
   let adminUser: { email: string; password: string };
@@ -12,17 +12,10 @@ describe('Auth E2E', () => {
     // Create test user
     adminUser = {
       email: 'admin@test.com',
-      password: 'testpassword123',
+      password: 'password', // Default password from test-helpers
     };
 
-    await prisma.user.create({
-      data: {
-        email: adminUser.email,
-        passwordHash: await bcrypt.hash(adminUser.password, 10),
-        name: 'Test Admin',
-        role: UserRole.ADMIN,
-      },
-    });
+    await createTestUser(adminUser.email, 'Test Admin', UserRole.ADMIN, 'TEST-AUTH');
   });
 
   describe('POST /api/v1/auth/login', () => {
@@ -76,5 +69,9 @@ describe('Auth E2E', () => {
       expect(response.body.data).toHaveProperty('token');
       expect(response.body.data).toHaveProperty('refreshToken');
     });
+  });
+
+  afterAll(async () => {
+    await cleanupTestData();
   });
 });

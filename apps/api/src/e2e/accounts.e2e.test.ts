@@ -1,29 +1,26 @@
 import { AccountType, UserRole } from '@prisma/client';
-import bcrypt from 'bcrypt';
 import request from 'supertest';
 
 import app from '../index';
 import { prisma } from '../lib/prisma';
-import { generateTokens } from '../utils/jwt';
 
+import { createTestUser, cleanupTestData } from './test-helpers';
 
 describe('Accounts E2E', () => {
   let adminToken: string;
+  let organizationId: string;
   let parentAccountId: string;
 
   beforeAll(async () => {
-    // Create test user
-    const user = await prisma.user.create({
-      data: {
-        email: 'accounts-admin@test.com',
-        passwordHash: await bcrypt.hash('password', 10),
-        name: 'Accounts Admin',
-        role: UserRole.ADMIN,
-      },
-    });
+    const testUser = await createTestUser(
+      'accounts-admin@test.com',
+      'Accounts Admin',
+      UserRole.ADMIN,
+      'TEST-ACCOUNTS'
+    );
 
-    const tokens = generateTokens(user.id, user.email, user.role);
-    adminToken = tokens.accessToken;
+    adminToken = testUser.token;
+    organizationId = testUser.organization.id;
 
     // Create parent account
     const parentAccount = await prisma.account.create({
@@ -32,6 +29,7 @@ describe('Accounts E2E', () => {
         name: '流動資産',
         accountType: AccountType.ASSET,
         isSystem: true,
+        organizationId,
       },
     });
     parentAccountId = parentAccount.id;
@@ -90,5 +88,9 @@ describe('Accounts E2E', () => {
 
       expect(response.body.error.code).toBe('DUPLICATE_CODE');
     });
+  });
+
+  afterAll(async () => {
+    await cleanupTestData();
   });
 });

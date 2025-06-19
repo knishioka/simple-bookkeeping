@@ -4,10 +4,17 @@ import { Router } from 'express';
 import { z } from 'zod';
 
 import * as accountsController from '../controllers/accounts.controller';
-import { authenticate, authorize, setOrganizationContext, requireOrganization } from '../middlewares/auth';
+import {
+  authenticate,
+  authorize,
+  setOrganizationContext,
+  requireOrganization,
+} from '../middlewares/auth';
 import { validate } from '../middlewares/validation';
 
-const router = Router();
+import type { Router as RouterType } from 'express';
+
+const router: RouterType = Router();
 
 // All routes require authentication and organization context
 router.use(authenticate);

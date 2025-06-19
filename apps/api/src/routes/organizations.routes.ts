@@ -6,7 +6,9 @@ import * as organizationsController from '../controllers/organizations.controlle
 import { authenticate, authorize, setOrganizationContext } from '../middlewares/auth';
 import { validate } from '../middlewares/validation';
 
-const router = Router();
+import type { Router as RouterType } from 'express';
+
+const router: RouterType = Router();
 
 // All routes require authentication
 router.use(authenticate);

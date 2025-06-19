@@ -4,10 +4,17 @@ import { Router } from 'express';
 import { z } from 'zod';
 
 import * as journalEntriesController from '../controllers/journalEntries.controller';
-import { authenticate, authorize, setOrganizationContext, requireOrganization } from '../middlewares/auth';
+import {
+  authenticate,
+  authorize,
+  setOrganizationContext,
+  requireOrganization,
+} from '../middlewares/auth';
 import { validate } from '../middlewares/validation';
 
-const router = Router();
+import type { Router as RouterType } from 'express';
+
+const router: RouterType = Router();
 
 // All routes require authentication and organization context
 router.use(authenticate);
@@ -45,7 +52,11 @@ router.put(
 );
 
 // Delete journal entry (Admin only)
-router.delete('/:id', authorize(UserRole.ADMIN), journalEntriesController.deleteJournalEntry as any);
+router.delete(
+  '/:id',
+  authorize(UserRole.ADMIN),
+  journalEntriesController.deleteJournalEntry as any
+);
 
 // Approve journal entry (Admin/Accountant only)
 router.post(
