@@ -1,0 +1,24 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy project files
+COPY . .
+
+# Install dependencies
+RUN corepack enable
+RUN pnpm install --frozen-lockfile
+
+# Generate Prisma client
+RUN pnpm --filter @simple-bookkeeping/database db:generate
+
+# Build applications
+RUN pnpm build
+
+# Expose ports
+EXPOSE 3000 3001
+
+# Start script
+COPY start-demo.sh /app/
+RUN chmod +x /app/start-demo.sh
+CMD ["/app/start-demo.sh"]

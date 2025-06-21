@@ -1,0 +1,102 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: bookkeeping_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Setup database
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/bookkeeping_test
+        run: |
+          pnpm --filter @simple-bookkeeping/database prisma:generate
+          pnpm --filter @simple-bookkeeping/database prisma:migrate
+
+      - name: Build applications
+        run: pnpm build
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @simple-bookkeeping/web exec playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/bookkeeping_test
+          JWT_SECRET: test-secret-key
+          NEXTAUTH_SECRET: test-nextauth-secret
+          NEXTAUTH_URL: http://localhost:3000
+        run: |
+          # Start API server in background
+          pnpm --filter @simple-bookkeeping/api dev &
+          API_PID=$!
+          
+          # Start web server in background
+          pnpm --filter @simple-bookkeeping/web dev &
+          WEB_PID=$!
+          
+          # Wait for servers to be ready
+          echo "Waiting for servers to start..."
+          sleep 10
+          
+          # Check if servers are running
+          curl -f http://localhost:3001/api/v1/ || exit 1
+          curl -f http://localhost:3000 || exit 1
+          
+          # Run E2E tests
+          pnpm --filter @simple-bookkeeping/web test:e2e:ci
+          
+          # Kill servers
+          kill $API_PID $WEB_PID
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 30
+
+      - name: Upload test videos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-videos
+          path: apps/web/test-results/
+          retention-days: 7

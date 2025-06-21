@@ -52,9 +52,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                   {navigation.map((item) => (
                     item.children ? (
-                      <div key={item.name} className="relative group">
+                      <div key={item.name} className="relative group inline-flex items-center">
                         <button
-                          className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                          className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium h-full ${
                             pathname.startsWith(item.href)
                               ? 'border-indigo-500 text-gray-900'
                               : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
@@ -62,7 +62,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         >
                           {item.name}
                         </button>
-                        <div className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                        <div className="absolute left-0 top-full mt-1 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                           <div className="py-1">
                             {item.children.map((child) => (
                               <Link

@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: sb-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: simple_bookkeeping
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  api:
+    image: simple-bookkeeping-api:latest
+    container_name: sb-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/simple_bookkeeping?schema=public
+      API_PORT: 3001
+      NODE_ENV: production
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN}
+    ports:
+      - '3001:3001'
+    restart: unless-stopped
+
+  web:
+    image: simple-bookkeeping-web:latest
+    container_name: sb-web
+    depends_on:
+      - api
+    environment:
+      NEXT_PUBLIC_API_URL: http://simple-bookkeeping.d-stats.org/api/v1
+      NODE_ENV: production
+    ports:
+      - '3000:3000'
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

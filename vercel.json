@@ -1,5 +1,0 @@
-{
-  "root": "apps/web",
-  "framework": "nextjs",
-  "regions": ["hnd1"]
-}
