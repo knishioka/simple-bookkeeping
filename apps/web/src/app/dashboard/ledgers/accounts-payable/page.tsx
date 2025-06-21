@@ -52,9 +52,7 @@ export default function AccountsPayablePage() {
   const fetchAccountsPayable = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get('/ledgers/accounts-payable', {
-        params: { startDate, endDate },
-      });
+      const response = await apiClient.get(`/ledgers/accounts-payable?startDate=${startDate}&endDate=${endDate}`);
       setData(response.data.data);
     } catch (error) {
       console.error('Failed to fetch accounts payable:', error);
