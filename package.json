@@ -9,6 +9,8 @@
   ],
   "scripts": {
     "dev": "turbo run dev",
+    "dev:start": "./scripts/start-dev.sh",
+    "check:ports": "node scripts/check-ports.js",
     "build": "turbo run build",
     "start": "turbo run start",
     "lint": "turbo run lint",
@@ -28,7 +30,10 @@
     "docker:down": "docker-compose down",
     "docker:build": "docker-compose build",
     "docker:logs": "docker-compose logs -f",
-    "docker:dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up"
+    "docker:dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up",
+    "demo:up": "docker compose -f docker-compose.demo.yml --env-file .env.demo up --build",
+    "demo:down": "docker compose -f docker-compose.demo.yml down --volumes",
+    "demo:logs": "docker compose -f docker-compose.demo.yml logs -f"
   },
   "devDependencies": {
     "@types/node": "^20.19.1",
