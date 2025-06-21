@@ -36,7 +36,7 @@
     "demo:logs": "docker compose -f docker-compose.demo.yml logs -f"
   },
   "devDependencies": {
-    "@types/node": "^20.19.1",
+    "@types/node": "^24.0.3",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
     "eslint": "^8.57.1",
