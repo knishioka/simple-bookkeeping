@@ -18,8 +18,7 @@
     "test:e2e:ci": "playwright test --reporter=list",
     "test:e2e:basic": "./e2e-run-basic.sh",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf .next .turbo node_modules",
-    "postinstall": "cd ../.. && pnpm --filter @simple-bookkeeping/database db:generate"
+    "clean": "rm -rf .next .turbo node_modules"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
