@@ -22,7 +22,7 @@
     "typecheck": "turbo run typecheck",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "prepare": "husky install",
+    "prepare": "if [ \"$NODE_ENV\" != \"production\" ]; then husky install; fi",
     "clean": "turbo run clean && rm -rf node_modules",
     "db:migrate": "turbo run db:migrate",
     "db:seed": "turbo run db:seed",
