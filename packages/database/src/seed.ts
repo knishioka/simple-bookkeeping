@@ -1,5 +1,5 @@
 import { PrismaClient, AccountType, UserRole } from '@prisma/client';
-import bcrypt from 'bcrypt';
+import { hash } from 'bcrypt';
 
 const prisma = new PrismaClient();
 
@@ -16,7 +16,7 @@ async function main() {
   await prisma.organization.deleteMany();
 
   // Create default admin user
-  const hashedPassword = await bcrypt.hash('admin123', 10);
+  const hashedPassword = await hash('admin123', 10);
   const adminUser = await prisma.user.create({
     data: {
       email: 'admin@example.com',

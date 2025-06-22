@@ -1,5 +1,5 @@
 import { PrismaClient, UserRole, AccountType } from '@prisma/client';
-import bcrypt from 'bcrypt';
+import { hash } from 'bcrypt';
 
 const prisma = new PrismaClient();
 
@@ -24,7 +24,7 @@ async function main() {
   // Create test user with random password
   const testPassword =
     process.env.SEED_TEST_PASSWORD || `test${Math.random().toString(36).substring(2, 15)}`;
-  const hashedPassword = await bcrypt.hash(testPassword, 10);
+  const hashedPassword = await hash(testPassword, 10);
   const user = await prisma.user.upsert({
     where: { email: 'test@example.com' },
     update: {},

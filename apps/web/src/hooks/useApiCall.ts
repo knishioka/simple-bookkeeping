@@ -4,13 +4,13 @@ import { toast } from 'react-hot-toast';
 interface ApiError {
   message: string;
   code?: string;
-  details?: any;
+  details?: unknown;
 }
 
-interface UseApiCallOptions {
+interface UseApiCallOptions<T> {
   successMessage?: string;
   errorMessage?: string;
-  onSuccess?: (data: any) => void;
+  onSuccess?: (data: T) => void;
   onError?: (error: ApiError) => void;
 }
 
@@ -18,58 +18,63 @@ interface UseApiCallOptions {
  * API呼び出しの共通フック
  * ローディング状態とエラーハンドリングを管理
  */
-export function useApiCall<T = any>() {
+export function useApiCall<T = unknown>() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const [data, setData] = useState<T | null>(null);
 
-  const execute = useCallback(async (
-    apiCall: () => Promise<any>,
-    options: UseApiCallOptions = {}
-  ) => {
-    setLoading(true);
-    setError(null);
+  const execute = useCallback(
+    async (
+      apiCall: () => Promise<{ data?: { data?: T } | T }>,
+      options: UseApiCallOptions<T> = {}
+    ) => {
+      setLoading(true);
+      setError(null);
 
-    try {
-      const response = await apiCall();
-      const responseData = response.data?.data || response.data;
-      
-      setData(responseData);
-      
-      if (options.successMessage) {
-        toast.success(options.successMessage);
-      }
-      
-      if (options.onSuccess) {
-        options.onSuccess(responseData);
-      }
-      
-      return responseData;
-    } catch (err: any) {
-      let apiError: ApiError = {
-        message: options.errorMessage || 'エラーが発生しました',
-      };
+      try {
+        const response = await apiCall();
+        const responseData = response.data?.data || response.data;
 
-      if (err?.data?.error) {
-        apiError = err.data.error;
-      } else if (err?.data?.message) {
-        apiError.message = err.data.message;
-      } else if (err?.message) {
-        apiError.message = err.message;
-      }
+        setData(responseData);
 
-      setError(apiError);
-      toast.error(apiError.message);
-      
-      if (options.onError) {
-        options.onError(apiError);
+        if (options.successMessage) {
+          toast.success(options.successMessage);
+        }
+
+        if (options.onSuccess) {
+          options.onSuccess(responseData);
+        }
+
+        return responseData;
+      } catch (err) {
+        let apiError: ApiError = {
+          message: options.errorMessage || 'エラーが発生しました',
+        };
+
+        const error = err as { data?: { error?: ApiError; message?: string }; message?: string };
+
+        if (error?.data?.error) {
+          apiError = error.data.error;
+        } else if (error?.data?.message) {
+          apiError.message = error.data.message;
+        } else if (error?.message) {
+          apiError.message = error.message;
+        }
+
+        setError(apiError);
+        toast.error(apiError.message);
+
+        if (options.onError) {
+          options.onError(apiError);
+        }
+
+        throw apiError;
+      } finally {
+        setLoading(false);
       }
-      
-      throw apiError;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    []
+  );
 
   const reset = useCallback(() => {
     setData(null);
