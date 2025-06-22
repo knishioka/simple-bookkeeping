@@ -480,6 +480,139 @@ fix: バグ修正
 
 pre-commitフックは品質保証のために存在します。必ず守ってください。
 
+## 🚨 コード品質に関する厳格なルール
+
+### 1. ESLintルールの遵守
+
+**絶対にやってはいけないこと：**
+
+- `// eslint-disable-next-line` の安易な使用
+- `// @ts-ignore` や `// @ts-nocheck` の使用
+- ESLintのルールを `.eslintrc` で無効化する
+- 警告を無視してコミットする
+
+**正しい対処法：**
+
+```typescript
+// ❌ Bad: ESLintを無視
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const unusedVar = 'test';
+
+// ✅ Good: 使わない変数は削除するか、アンダースコアを付ける
+const _intentionallyUnused = 'test';
+
+// ❌ Bad: any型でごまかす
+const data: any = fetchData();
+
+// ✅ Good: 適切な型を定義
+interface UserData {
+  id: string;
+  name: string;
+}
+const data: UserData = fetchData();
+```
+
+### 2. TypeScriptの型安全性
+
+**厳守事項：**
+
+- `any` 型は絶対に使用しない（既存コードの修正時を除く）
+- `as` によるアサーションは最小限に
+- 型推論で十分な場合は明示的な型注釈を避ける
+- ジェネリクスを適切に使用する
+
+```typescript
+// ❌ Bad: 型を適当に決める
+interface ApiResponse {
+  data: any;
+  status: number;
+}
+
+// ✅ Good: ジェネリクスで型安全性を保つ
+interface ApiResponse<T> {
+  data: T;
+  status: number;
+  error?: {
+    code: string;
+    message: string;
+  };
+}
+
+// 使用例
+const response: ApiResponse<User> = await apiClient.get('/users/123');
+```
+
+### 3. テストの実行義務
+
+**push前の必須確認事項：**
+
+```bash
+# 1. ESLintチェック
+pnpm lint
+
+# 2. TypeScriptの型チェック
+pnpm typecheck
+
+# 3. 単体テストの実行
+pnpm test
+
+# 4. 該当する場合はE2Eテストも実行
+pnpm --filter web test:e2e
+
+# 5. ビルドが通ることを確認
+pnpm build
+```
+
+**テストが失敗した場合：**
+
+1. 必ず失敗の原因を調査する
+2. テストを修正するか、コードを修正する
+3. テストをスキップしたり削除したりしない
+4. `test.skip` や `describe.skip` は使用しない
+
+### 4. エラーハンドリングの徹底
+
+```typescript
+// ❌ Bad: エラーを握りつぶす
+try {
+  await someAsyncOperation();
+} catch (error) {
+  // 何もしない
+}
+
+// ❌ Bad: 型情報を失う
+try {
+  await someAsyncOperation();
+} catch (error: any) {
+  console.log(error.message);
+}
+
+// ✅ Good: 適切なエラーハンドリング
+try {
+  await someAsyncOperation();
+} catch (error) {
+  if (error instanceof ValidationError) {
+    logger.warn('Validation failed', { error });
+    throw new BadRequestError(error.message);
+  }
+
+  logger.error('Unexpected error', { error });
+  throw error;
+}
+```
+
+### 5. コードレビューシミュレーション
+
+**コミット前の自己チェック：**
+
+- [ ] 追加した型定義は適切か？
+- [ ] エラーケースは網羅されているか？
+- [ ] テストケースは十分か？
+- [ ] パフォーマンスへの影響はないか？
+- [ ] セキュリティ上の問題はないか？
+- [ ] ログは適切に出力されているか？
+- [ ] ドキュメントの更新は必要ないか？
+
 ## 実装前のチェックリスト
 
 1. **要件の確認**
