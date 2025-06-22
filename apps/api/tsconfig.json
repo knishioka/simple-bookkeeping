@@ -1,10 +1,10 @@
 {
-  "extends": "@simple-bookkeeping/typescript-config/node.json",
+  "extends": "../../packages/typescript-config/node.json",
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
     "typeRoots": ["./node_modules/@types", "./src/types"]
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts", "src/**/__tests__/**"]
 }
