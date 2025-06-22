@@ -10,13 +10,22 @@
 
 ### 1. Link to Remote Project
 
-First, get your access token from: https://supabase.com/dashboard/account/tokens
+First, set up your credentials:
+
+1. Get your access token from: https://supabase.com/dashboard/account/tokens
+2. Get your database password from: Supabase Dashboard > Settings > Database
+3. Add them to `.env` file:
 
 ```bash
-# Set access token
-export SUPABASE_ACCESS_TOKEN="your-access-token"
+# Copy the example and edit
+cp .env.example .env
+# Edit .env and add your SUPABASE_ACCESS_TOKEN and SUPABASE_DB_PASSWORD
+```
 
-# Link project
+Then link the project:
+
+```bash
+# Link project (will use SUPABASE_ACCESS_TOKEN from .env)
 supabase link --project-ref gmhbtrqstttwlspwvpwm
 ```
 
