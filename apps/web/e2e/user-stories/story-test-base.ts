@@ -16,17 +16,17 @@ export type StoryTestFixtures = {
 
 export const storyTest = base.extend<StoryTestFixtures>({
   story: [
-    async (_context, use) => {
+    async ({ page: _page }, use) => {
       // テスト実行時に動的に設定
-      await use(undefined as any);
+      await use(undefined as unknown as UserStory);
     },
     { scope: 'test' },
   ],
 
   scenario: [
-    async (_context, use) => {
+    async ({ page: _page }, use) => {
       // テスト実行時に動的に設定
-      await use(undefined as any);
+      await use(undefined as unknown as Scenario);
     },
     { scope: 'test' },
   ],
@@ -73,7 +73,7 @@ export class StoryTestHelper {
    * ステップを実行し、結果を記録
    */
   static async executeStep(
-    _page: any,
+    _page: Page,
     step: string,
     action: () => Promise<void>,
     recordStep: (step: string, status: 'passed' | 'failed' | 'skipped') => void
@@ -91,7 +91,7 @@ export class StoryTestHelper {
    * 受け入れ条件を検証
    */
   static async verifyAcceptanceCriteria(
-    _page: any,
+    _page: Page,
     criteria: string,
     verification: () => Promise<void>
   ) {
@@ -125,7 +125,7 @@ export const storyExpect = {
    * ユーザビリティ条件の検証
    */
   async toBeUserFriendly(
-    page: any,
+    page: Page,
     checks: {
       hasProperLabels?: boolean;
       hasHelpText?: boolean;

@@ -923,6 +923,172 @@ vercel project                        # 現在の設定確認
 
 **注意：vercel.jsonに機密情報を記載しない**
 
+## 🚀 RenderとVercel両方でのデプロイメント
+
+### マルチプラットフォーム対応の設定のコツ
+
+本プロジェクトはRender（APIサーバー）とVercel（Webアプリ）の両方にデプロイできるよう設計されています。
+
+#### 1. **package.jsonのビルドスクリプト設定**
+
+```json
+// apps/api/package.json
+{
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts"
+  }
+}
+
+// apps/web/package.json
+{
+  "scripts": {
+    "build": "next build",
+    "start": "next start",
+    "dev": "next dev"
+  }
+}
+```
+
+#### 2. **環境変数の分離**
+
+```bash
+# Render用（APIサーバー）
+DATABASE_URL=postgresql://...
+JWT_SECRET=...
+NODE_ENV=production
+PORT=3001
+
+# Vercel用（Webアプリ）
+NEXT_PUBLIC_API_URL=https://your-api.onrender.com
+```
+
+#### 3. **ビルドコマンドの統一**
+
+```json
+// ルートのpackage.json
+{
+  "scripts": {
+    "build": "pnpm run build:packages && pnpm run build:apps",
+    "build:packages": "pnpm --filter './packages/*' build",
+    "build:apps": "pnpm --filter './apps/*' build",
+    "build:api": "pnpm --filter @simple-bookkeeping/api build",
+    "build:web": "pnpm --filter @simple-bookkeeping/web build"
+  }
+}
+```
+
+#### 4. **Renderでのデプロイ設定（railway.toml）**
+
+```toml
+[build]
+builder = "nixpacks"
+buildCommand = "pnpm install --frozen-lockfile && pnpm --filter @simple-bookkeeping/api... build"
+
+[deploy]
+startCommand = "pnpm --filter @simple-bookkeeping/api start"
+healthcheckPath = "/api/v1/health"
+healthcheckTimeout = 60
+
+[[services]]
+name = "api"
+port = 3001
+```
+
+#### 5. **Vercelでのデプロイ設定（vercel.json）**
+
+```json
+{
+  "buildCommand": "cd ../.. && pnpm install --frozen-lockfile && pnpm --filter @simple-bookkeeping/web... build",
+  "outputDirectory": "apps/web/.next",
+  "installCommand": "echo 'Skipping install'",
+  "framework": "nextjs"
+}
+```
+
+#### 6. **TypeScriptの設定**
+
+両プラットフォームで動作するように、各アプリのtsconfig.jsonを適切に設定：
+
+```json
+// apps/api/tsconfig.json
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src"
+  },
+  "include": ["src/**/*"],
+  "references": [{ "path": "../../packages/database" }, { "path": "../../packages/types" }]
+}
+```
+
+#### 7. **依存関係の解決**
+
+```json
+// 各パッケージのpackage.json
+{
+  "dependencies": {
+    "@simple-bookkeeping/database": "workspace:*",
+    "@simple-bookkeeping/types": "workspace:*"
+  }
+}
+```
+
+#### 8. **ビルド時の注意点**
+
+1. **パッケージの順序**：共通パッケージを先にビルド
+
+   ```bash
+   pnpm --filter './packages/*' build
+   pnpm --filter './apps/*' build
+   ```
+
+2. **Prismaクライアントの生成**：
+
+   ```bash
+   pnpm --filter @simple-bookkeeping/database prisma:generate
+   ```
+
+3. **環境変数の確認**：
+   - Render: ダッシュボードで設定
+   - Vercel: `vercel env add`で設定
+
+#### 9. **トラブルシューティング**
+
+**Renderでビルドが失敗する場合：**
+
+```bash
+# package.jsonに追加
+"engines": {
+  "node": ">=18.0.0",
+  "pnpm": ">=8.0.0"
+}
+```
+
+**Vercelでモノレポが認識されない場合：**
+
+```bash
+# ルートディレクトリを指定
+vercel --cwd apps/web
+```
+
+**型定義が見つからない場合：**
+
+```bash
+# 全パッケージをビルド
+pnpm build:packages
+```
+
+#### 10. **デプロイ前のチェックリスト**
+
+- [ ] ローカルで`pnpm build`が成功する
+- [ ] 環境変数が各プラットフォームに設定されている
+- [ ] データベースマイグレーションが完了している
+- [ ] CORSの設定が正しい（APIサーバー）
+- [ ] APIのURLが正しく設定されている（Webアプリ）
+
 ## 継続的な改善
 
 このガイドラインは生きたドキュメントです。プロジェクトの成長に合わせて、以下の点を定期的に見直してください：

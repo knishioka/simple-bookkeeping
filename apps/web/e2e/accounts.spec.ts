@@ -1,7 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-import { AppHelpers } from './helpers/test-setup';
-// import { AccountHelpers, TestUtils } from './helpers/test-setup';
+import { AppHelpers, TestUtils } from './helpers/test-setup';
 
 /**
  * 勘定科目管理のE2Eテスト
