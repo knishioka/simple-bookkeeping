@@ -47,6 +47,10 @@
       "cache": false,
       "env": ["DATABASE_URL"],
       "dependsOn": ["db:migrate"]
+    },
+    "db:generate": {
+      "cache": false,
+      "outputs": ["node_modules/.prisma/**", "node_modules/@prisma/client/**"]
     }
   }
 }
