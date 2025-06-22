@@ -1,5 +1,5 @@
 {
-  "buildCommand": "pnpm --filter @simple-bookkeeping/database db:generate && pnpm --filter @simple-bookkeeping/web build",
+  "buildCommand": "pnpm --filter @simple-bookkeeping/database db:generate && pnpm --filter @simple-bookkeeping/shared build && pnpm --filter @simple-bookkeeping/web build",
   "outputDirectory": "apps/web/.next",
   "installCommand": "pnpm install --frozen-lockfile",
   "framework": "nextjs"
