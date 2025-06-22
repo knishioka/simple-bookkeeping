@@ -10,10 +10,13 @@ out/
 
 # Environment
 .env
+.env.*
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+!.env.example
+!.env.*.example
 
 # Database
 *.db
@@ -90,3 +93,29 @@ Thumbs.db
 
 # Lock files (keeping package-lock.json)
 yarn.lock
+
+# Security
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+
+# Secrets
+*secret*
+*token*
+*password*
+*credential*
+*.jwt
+!*secret*.example
+!*token*.example
+
+# Railway
+.env.railway
+railway.json
+
+# Supabase
+supabase/.env
+supabase/.env.*
+!supabase/.env.example

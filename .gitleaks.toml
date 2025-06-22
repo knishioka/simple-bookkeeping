@@ -1,0 +1,54 @@
+[extend]
+useDefault = true
+
+# Additional allowlist
+[allowlist]
+paths = [
+  # Examples and documentation
+  '''.env.example''',
+  '''.env.*.example''',
+  '''docs/.*''',
+  '''README.md''',
+  '''CLAUDE.md''',
+  
+  # Test files
+  '''.*\.test\.(ts|js|tsx|jsx)$''',
+  '''.*\.spec\.(ts|js|tsx|jsx)$''',
+  '''.*\.e2e\.(ts|js)$''',
+  
+  # Build outputs
+  '''.next/.*''',
+  '''.vercel/.*''',
+  '''dist/.*''',
+  '''build/.*''',
+  
+  # Lock files
+  '''package-lock.json''',
+  '''pnpm-lock.yaml''',
+  
+  # Config files
+  '''.gitleaks.toml''',
+  '''railway-deploy-steps.md''',
+  '''create-test-user.sql''',
+  '''supabase/project.json''',
+  '''supabase/.*'''
+]
+
+# Test credentials and placeholders
+regexes = [
+  '''test@example\.com''',
+  '''Test1234!''',
+  '''your[-_]?(secret|password|token|key|value)[-_]?here''',
+  '''sk[-_]test''',
+  '''pk[-_]test''',
+  '''dummy[-_]?(secret|password|token|key)''',
+  '''placeholder''',
+  '''example\.com''',
+  '''localhost'''
+]
+
+# Allow specific test tokens
+commits = []
+files = [
+  '''create-test-user.sql'''
+]

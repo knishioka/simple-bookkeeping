@@ -732,6 +732,101 @@ curl -I http://localhost:3001/api/v1/
 curl -s http://localhost:3001/api/v1/ | grep -q "Simple Bookkeeping API"
 ```
 
+## 🔐 セキュリティ対策
+
+### 機密情報の漏洩防止
+
+#### 1. **Gitleaksの使用**
+
+pre-commitフックで自動的に機密情報をチェックします。
+
+```bash
+# Gitleaksのインストール
+brew install gitleaks
+
+# 手動でチェック
+gitleaks detect --source . --verbose
+
+# コミット履歴をチェック
+gitleaks detect --source . --log-opts="--all" --verbose
+```
+
+#### 2. **.gitignoreの重要パターン**
+
+```gitignore
+# 環境変数
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# 認証情報
+*secret*
+*token*
+*password*
+*credential*
+*.jwt
+*.pem
+*.key
+*.cert
+
+# プラットフォーム固有
+railway.json
+.env.railway
+supabase/.env
+```
+
+#### 3. **コミット前確認事項**
+
+- [ ] 環境変数ファイルは.gitignoreに含まれているか
+- [ ] ハードコードされた認証情報はないか
+- [ ] テスト用の認証情報はダミー値か
+- [ ] gitleaksのチェックをパスしたか
+
+#### 4. **漏洩時の対応**
+
+1. **即座にキーを無効化**
+
+   - 該当サービスのダッシュボードでキーを再生成
+   - データベースパスワードの変更
+
+2. **Git履歴から削除**
+
+   ```bash
+   # BFG Repo-Cleanerを使用
+   brew install bfg
+   bfg --delete-files .env
+   git reflog expire --expire=now --all
+   git gc --prune=now --aggressive
+   ```
+
+3. **影響範囲の確認**
+   - アクセスログの確認
+   - 不正アクセスの有無をチェック
+
+### 環境変数管理のベストプラクティス
+
+1. **環境変数ファイルの命名規則**
+
+   - `.env` - ローカル開発用（.gitignore対象）
+   - `.env.example` - サンプル（コミット可）
+   - `.env.local` - Next.jsローカル設定（.gitignore対象）
+   - `.env.production` - 本番環境設定（絶対にコミットしない）
+
+2. **環境変数のテンプレート化**
+
+   ```bash
+   # .env.exampleを常に最新に保つ
+   cp .env .env.example
+   # 値をプレースホルダーに置換
+   sed -i 's/=.*/=your_value_here/' .env.example
+   ```
+
+3. **プラットフォームごとの管理**
+   - Vercel: ダッシュボードまたはCLIで管理
+   - Railway: ダッシュボードまたはCLIで管理
+   - GitHub Actions: Secretsで管理
+
 ## 🔍 トラブルシューティング
 
 ### よくある問題と解決策
@@ -875,3 +970,40 @@ pnpm --filter @simple-bookkeeping/database prisma:studio
 ### サーバー管理に関する重要メモ
 
 - 修正をする開発するときはサーバーの立ち上げっぱなしをなくすために必ずサーバーを落とすようにしてください。
+
+## 🛡️ プロジェクトのセキュリティポリシー
+
+### 必須のセキュリティツール
+
+1. **Gitleaks** - 機密情報の検出
+
+   ```bash
+   brew install gitleaks
+   ```
+
+2. **pre-commitフック** - 自動チェック
+
+   - ESLint
+   - TypeScript
+   - Gitleaks
+   - Prettier
+
+3. **依存関係の脆弱性チェック**
+   ```bash
+   pnpm audit
+   pnpm update --interactive
+   ```
+
+### セキュリティチェックリスト
+
+**毎回のコミット前：**
+
+- [ ] `git diff --staged`で差分を確認
+- [ ] 機密情報が含まれていないか目視確認
+- [ ] pre-commitフックが正常に動作
+
+**定期的に実施：**
+
+- [ ] 依存関係の更新
+- [ ] セキュリティ監査
+- [ ] アクセスログの確認

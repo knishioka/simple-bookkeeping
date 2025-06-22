@@ -1,4 +1,17 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
+# Check for secrets using gitleaks
+if command -v gitleaks >/dev/null 2>&1; then
+  echo "🔍 Checking for secrets with gitleaks..."
+  gitleaks detect --source . --verbose --redact
+  if [ $? -ne 0 ]; then
+    echo "❌ Secrets detected! Please remove them before committing."
+    exit 1
+  fi
+  echo "✅ No secrets detected"
+else
+  echo "⚠️  gitleaks is not installed. Install it with: brew install gitleaks"
+fi
+
 npx lint-staged
