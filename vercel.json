@@ -1,6 +1,6 @@
 {
-  "buildCommand": "pnpm install && cd packages/database && npx prisma generate && cd ../.. && pnpm --filter @simple-bookkeeping/web build",
+  "buildCommand": "cd packages/database && npx prisma generate && cd ../.. && pnpm --filter @simple-bookkeeping/web build",
   "outputDirectory": "apps/web/.next",
-  "installCommand": "pnpm install",
+  "installCommand": "pnpm install --frozen-lockfile",
   "framework": "nextjs"
 }

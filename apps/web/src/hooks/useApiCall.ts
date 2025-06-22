@@ -33,7 +33,15 @@ export function useApiCall<T = unknown>() {
 
       try {
         const response = await apiCall();
-        const responseData = response.data?.data || response.data;
+        let responseData: T | null = null;
+
+        if ('data' in response && response.data) {
+          if (typeof response.data === 'object' && 'data' in response.data) {
+            responseData = (response.data as { data: T }).data;
+          } else {
+            responseData = response.data as T;
+          }
+        }
 
         setData(responseData);
 
@@ -41,7 +49,7 @@ export function useApiCall<T = unknown>() {
           toast.success(options.successMessage);
         }
 
-        if (options.onSuccess) {
+        if (options.onSuccess && responseData !== null) {
           options.onSuccess(responseData);
         }
 
