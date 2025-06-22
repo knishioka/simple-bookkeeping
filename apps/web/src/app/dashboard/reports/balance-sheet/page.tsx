@@ -44,14 +44,9 @@ export default function BalanceSheetPage() {
   const { data, loading, execute } = useApiCall<BalanceSheetData>();
 
   const fetchBalanceSheet = () => {
-    execute(
-      () => apiClient.get('/reports/balance-sheet', {
-        params: { asOfDate },
-      }),
-      {
-        errorMessage: '貸借対照表の取得に失敗しました',
-      }
-    );
+    execute(() => apiClient.get<BalanceSheetData>(`/reports/balance-sheet?asOfDate=${asOfDate}`), {
+      errorMessage: '貸借対照表の取得に失敗しました',
+    });
   };
 
   useEffect(() => {
@@ -64,7 +59,7 @@ export default function BalanceSheetPage() {
 
   // Transform data to ReportItem format
   const transformToReportItems = (accounts: AccountBalance[], level = 1): ReportItem[] => {
-    return accounts.map(account => ({
+    return accounts.map((account) => ({
       id: account.accountId,
       name: account.accountName,
       code: account.accountCode,
@@ -74,63 +69,62 @@ export default function BalanceSheetPage() {
     }));
   };
 
-  const assetItems: ReportItem[] = data ? [
-    { name: '流動資産', amount: 0, isTotal: true },
-    ...transformToReportItems(data.assets.current),
-    { 
-      name: '流動資産合計', 
-      amount: data.assets.current.reduce((sum, acc) => sum + acc.balance, 0),
-      level: 1,
-      isTotal: true 
-    },
-    { name: '固定資産', amount: 0, isTotal: true },
-    ...transformToReportItems(data.assets.fixed),
-    { 
-      name: '固定資産合計', 
-      amount: data.assets.fixed.reduce((sum, acc) => sum + acc.balance, 0),
-      level: 1,
-      isTotal: true 
-    },
-    { name: '資産合計', amount: data.assets.totalAssets, isTotal: true },
-  ] : [];
+  const assetItems: ReportItem[] = data
+    ? [
+        { name: '流動資産', amount: 0, isTotal: true },
+        ...transformToReportItems(data.assets.current),
+        {
+          name: '流動資産合計',
+          amount: data.assets.current.reduce((sum, acc) => sum + acc.balance, 0),
+          level: 1,
+          isTotal: true,
+        },
+        { name: '固定資産', amount: 0, isTotal: true },
+        ...transformToReportItems(data.assets.fixed),
+        {
+          name: '固定資産合計',
+          amount: data.assets.fixed.reduce((sum, acc) => sum + acc.balance, 0),
+          level: 1,
+          isTotal: true,
+        },
+        { name: '資産合計', amount: data.assets.totalAssets, isTotal: true },
+      ]
+    : [];
 
-  const liabilityEquityItems: ReportItem[] = data ? [
-    { name: '流動負債', amount: 0, isTotal: true },
-    ...transformToReportItems(data.liabilities.current),
-    { 
-      name: '流動負債合計', 
-      amount: data.liabilities.current.reduce((sum, acc) => sum + acc.balance, 0),
-      level: 1,
-      isTotal: true 
-    },
-    { name: '固定負債', amount: 0, isTotal: true },
-    ...transformToReportItems(data.liabilities.longTerm),
-    { 
-      name: '固定負債合計', 
-      amount: data.liabilities.longTerm.reduce((sum, acc) => sum + acc.balance, 0),
-      level: 1,
-      isTotal: true 
-    },
-    { name: '負債合計', amount: data.liabilities.totalLiabilities, isTotal: true },
-    { name: '純資産', amount: 0, isTotal: true },
-    ...transformToReportItems(data.equity.items),
-    { name: '純資産合計', amount: data.equity.totalEquity, isTotal: true },
-    { name: '負債・純資産合計', amount: data.totalLiabilitiesAndEquity, isTotal: true },
-  ] : [];
+  const liabilityEquityItems: ReportItem[] = data
+    ? [
+        { name: '流動負債', amount: 0, isTotal: true },
+        ...transformToReportItems(data.liabilities.current),
+        {
+          name: '流動負債合計',
+          amount: data.liabilities.current.reduce((sum, acc) => sum + acc.balance, 0),
+          level: 1,
+          isTotal: true,
+        },
+        { name: '固定負債', amount: 0, isTotal: true },
+        ...transformToReportItems(data.liabilities.longTerm),
+        {
+          name: '固定負債合計',
+          amount: data.liabilities.longTerm.reduce((sum, acc) => sum + acc.balance, 0),
+          level: 1,
+          isTotal: true,
+        },
+        { name: '負債合計', amount: data.liabilities.totalLiabilities, isTotal: true },
+        { name: '純資産', amount: 0, isTotal: true },
+        ...transformToReportItems(data.equity.items),
+        { name: '純資産合計', amount: data.equity.totalEquity, isTotal: true },
+        { name: '負債・純資産合計', amount: data.totalLiabilitiesAndEquity, isTotal: true },
+      ]
+    : [];
 
   return (
-    <ReportLayout
-      title="貸借対照表"
-      subtitle={`基準日: ${asOfDate}`}
-    >
+    <ReportLayout title="貸借対照表" subtitle={`基準日: ${asOfDate}`}>
       <div className="space-y-6">
         <div className="no-print">
           <Card>
             <CardHeader>
               <CardTitle>基準日選択</CardTitle>
-              <CardDescription>
-                貸借対照表の基準日を選択してください
-              </CardDescription>
+              <CardDescription>貸借対照表の基準日を選択してください</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex gap-4 items-end">
@@ -152,7 +146,7 @@ export default function BalanceSheetPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <div className="mt-4 flex justify-end">
             <Button variant="outline" onClick={handleExport}>
               <Download className="mr-2 h-4 w-4" />
@@ -186,9 +180,7 @@ export default function BalanceSheetPage() {
             </Card>
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">
-            データがありません
-          </div>
+          <div className="text-center py-8 text-gray-500">データがありません</div>
         )}
       </div>
     </ReportLayout>

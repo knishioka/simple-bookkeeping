@@ -34,9 +34,10 @@ export default function CashBookPage() {
 
   const fetchCashBook = () => {
     execute(
-      () => apiClient.get('/ledgers/cash-book', {
-        params: { startDate, endDate },
-      }),
+      () =>
+        apiClient.get<{ data: CashBookResponse }>(
+          `/ledgers/cash-book?startDate=${startDate}&endDate=${endDate}`
+        ),
       {
         errorMessage: '現金出納帳の取得に失敗しました',
       }
@@ -52,21 +53,19 @@ export default function CashBookPage() {
   };
 
   // Transform API response to match LedgerEntry interface
-  const transformedEntries: LedgerEntry[] = data?.entries.map((entry) => ({
-    id: entry.id,
-    entryDate: entry.date,
-    description: entry.description,
-    debitAmount: entry.debitAmount,
-    creditAmount: entry.creditAmount,
-    balance: entry.balance,
-    accountName: entry.counterAccountName,
-  })) || [];
+  const transformedEntries: LedgerEntry[] =
+    data?.entries.map((entry) => ({
+      id: entry.id,
+      entryDate: entry.date,
+      description: entry.description,
+      debitAmount: entry.debitAmount,
+      creditAmount: entry.creditAmount,
+      balance: entry.balance,
+      accountName: entry.counterAccountName,
+    })) || [];
 
   return (
-    <ReportLayout
-      title="現金出納帳"
-      subtitle={`${startDate} 〜 ${endDate}`}
-    >
+    <ReportLayout title="現金出納帳" subtitle={`${startDate} 〜 ${endDate}`}>
       <div className="space-y-6">
         <div className="no-print">
           <DateRangePicker
@@ -77,7 +76,7 @@ export default function CashBookPage() {
             onSearch={fetchCashBook}
             loading={loading}
           />
-          
+
           <div className="mt-4 flex justify-end">
             <Button variant="outline" onClick={handleExport}>
               <Download className="mr-2 h-4 w-4" />
@@ -93,30 +92,21 @@ export default function CashBookPage() {
             <div className="mb-4 p-4 bg-gray-50 rounded-lg">
               <div className="flex justify-between">
                 <span className="font-medium">前月繰越</span>
-                <span className="font-medium">
-                  {formatAmount(data.openingBalance)} 円
-                </span>
+                <span className="font-medium">{formatAmount(data.openingBalance)} 円</span>
               </div>
             </div>
 
-            <LedgerTable 
-              entries={transformedEntries}
-              emptyMessage="該当する取引がありません"
-            />
+            <LedgerTable entries={transformedEntries} emptyMessage="該当する取引がありません" />
 
             <div className="mt-4 p-4 bg-gray-50 rounded-lg">
               <div className="flex justify-between">
                 <span className="font-medium">次月繰越</span>
-                <span className="font-medium">
-                  {formatAmount(data.closingBalance)} 円
-                </span>
+                <span className="font-medium">{formatAmount(data.closingBalance)} 円</span>
               </div>
             </div>
           </>
         ) : (
-          <div className="text-center py-8 text-gray-500">
-            データがありません
-          </div>
+          <div className="text-center py-8 text-gray-500">データがありません</div>
         )}
       </div>
     </ReportLayout>

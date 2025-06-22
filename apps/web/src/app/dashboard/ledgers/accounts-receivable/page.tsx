@@ -52,10 +52,12 @@ export default function AccountsReceivablePage() {
   const fetchAccountsReceivable = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get('/ledgers/accounts-receivable', {
-        params: { startDate, endDate },
-      });
-      setData(response.data.data);
+      const response = await apiClient.get<AccountsReceivableData>(
+        `/ledgers/accounts-receivable?startDate=${startDate}&endDate=${endDate}`
+      );
+      if (response.data) {
+        setData(response.data);
+      }
     } catch (error) {
       console.error('Failed to fetch accounts receivable:', error);
       toast.error('売掛金台帳の取得に失敗しました');
@@ -113,9 +115,7 @@ export default function AccountsReceivablePage() {
       <Card>
         <CardHeader>
           <CardTitle>期間選択</CardTitle>
-          <CardDescription>
-            表示する期間を選択してください
-          </CardDescription>
+          <CardDescription>表示する期間を選択してください</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4 items-end">
@@ -165,9 +165,7 @@ export default function AccountsReceivablePage() {
               <div className="mb-4 p-4 bg-gray-50 rounded-lg">
                 <div className="flex justify-between">
                   <span className="font-medium">前月繰越</span>
-                  <span className="font-medium">
-                    {formatAmount(data.openingBalance)} 円
-                  </span>
+                  <span className="font-medium">{formatAmount(data.openingBalance)} 円</span>
                 </div>
               </div>
 
@@ -215,16 +213,12 @@ export default function AccountsReceivablePage() {
               <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                 <div className="flex justify-between">
                   <span className="font-medium">次月繰越</span>
-                  <span className="font-medium">
-                    {formatAmount(data.closingBalance)} 円
-                  </span>
+                  <span className="font-medium">{formatAmount(data.closingBalance)} 円</span>
                 </div>
               </div>
             </>
           ) : (
-            <div className="text-center py-8 text-gray-500">
-              データがありません
-            </div>
+            <div className="text-center py-8 text-gray-500">データがありません</div>
           )}
         </CardContent>
       </Card>

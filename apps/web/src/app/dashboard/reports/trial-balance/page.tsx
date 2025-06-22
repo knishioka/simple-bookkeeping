@@ -43,10 +43,12 @@ export default function TrialBalancePage() {
   const fetchTrialBalance = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get('/reports/trial-balance', {
-        params: { asOfDate },
-      });
-      setData(response.data.data);
+      const response = await apiClient.get<TrialBalanceData>(
+        `/reports/trial-balance?asOfDate=${asOfDate}`
+      );
+      if (response.data) {
+        setData(response.data);
+      }
     } catch (error) {
       console.error('Failed to fetch trial balance:', error);
       toast.error('試算表の取得に失敗しました');
@@ -103,9 +105,7 @@ export default function TrialBalancePage() {
       <Card>
         <CardHeader>
           <CardTitle>基準日選択</CardTitle>
-          <CardDescription>
-            試算表の基準日を選択してください
-          </CardDescription>
+          <CardDescription>試算表の基準日を選択してください</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4 items-end">
@@ -131,9 +131,7 @@ export default function TrialBalancePage() {
       <Card className="print:shadow-none">
         <CardHeader>
           <CardTitle>試算表</CardTitle>
-          <CardDescription>
-            基準日: {asOfDate}
-          </CardDescription>
+          <CardDescription>基準日: {asOfDate}</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -204,9 +202,7 @@ export default function TrialBalancePage() {
               )}
             </>
           ) : (
-            <div className="text-center py-8 text-gray-500">
-              データがありません
-            </div>
+            <div className="text-center py-8 text-gray-500">データがありません</div>
           )}
         </CardContent>
       </Card>

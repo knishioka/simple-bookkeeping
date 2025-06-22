@@ -7,12 +7,7 @@ import { toast } from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { apiClient } from '@/lib/api-client';
 
 interface AccountBalance {
@@ -65,10 +60,12 @@ export default function ProfitLossPage() {
   const fetchProfitLoss = async () => {
     setLoading(true);
     try {
-      const response = await apiClient.get('/reports/profit-loss', {
-        params: { startDate, endDate },
-      });
-      setData(response.data.data);
+      const response = await apiClient.get<ProfitLossData>(
+        `/reports/profit-loss?startDate=${startDate}&endDate=${endDate}`
+      );
+      if (response.data) {
+        setData(response.data);
+      }
     } catch (error) {
       console.error('Failed to fetch profit loss:', error);
       toast.error('損益計算書の取得に失敗しました');
@@ -98,7 +95,7 @@ export default function ProfitLossPage() {
     toast.success('エクスポート機能は開発中です');
   };
 
-  const renderAccountRow = (account: AccountBalance, level = 0) => {
+  const renderAccountRow = (account: AccountBalance, level = 0): React.ReactNode => {
     const paddingLeft = level * 20;
     return (
       <>
@@ -106,9 +103,7 @@ export default function ProfitLossPage() {
           <TableCell style={{ paddingLeft: `${paddingLeft + 16}px` }}>
             {account.accountName}
           </TableCell>
-          <TableCell className="text-right">
-            {formatAmount(account.balance)}
-          </TableCell>
+          <TableCell className="text-right">{formatAmount(account.balance)}</TableCell>
         </TableRow>
         {account.children?.map((child) => renderAccountRow(child, level + 1))}
       </>
@@ -134,9 +129,7 @@ export default function ProfitLossPage() {
       <Card>
         <CardHeader>
           <CardTitle>期間選択</CardTitle>
-          <CardDescription>
-            損益計算書の対象期間を選択してください
-          </CardDescription>
+          <CardDescription>損益計算書の対象期間を選択してください</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4 items-end">
@@ -206,7 +199,9 @@ export default function ProfitLossPage() {
                 <TableRow className="border-t-2">
                   <TableCell className="font-bold pl-8">売上原価合計</TableCell>
                   <TableCell className="text-right font-bold">
-                    {formatAmount(data.expenses.costOfSales.reduce((sum, acc) => sum + acc.balance, 0))}
+                    {formatAmount(
+                      data.expenses.costOfSales.reduce((sum, acc) => sum + acc.balance, 0)
+                    )}
                   </TableCell>
                 </TableRow>
 
@@ -214,7 +209,10 @@ export default function ProfitLossPage() {
                 <TableRow className="border-t-2 bg-gray-50">
                   <TableCell className="font-bold">売上総利益</TableCell>
                   <TableCell className="text-right font-bold">
-                    {formatAmount(data.revenue.totalRevenue - data.expenses.costOfSales.reduce((sum, acc) => sum + acc.balance, 0))}
+                    {formatAmount(
+                      data.revenue.totalRevenue -
+                        data.expenses.costOfSales.reduce((sum, acc) => sum + acc.balance, 0)
+                    )}
                   </TableCell>
                 </TableRow>
 
@@ -224,13 +222,18 @@ export default function ProfitLossPage() {
                   <TableCell></TableCell>
                 </TableRow>
                 {data.expenses.sellingExpenses.map((account) => renderAccountRow(account, 1))}
-                {data.expenses.administrativeExpenses.map((account) => renderAccountRow(account, 1))}
+                {data.expenses.administrativeExpenses.map((account) =>
+                  renderAccountRow(account, 1)
+                )}
                 <TableRow className="border-t-2">
                   <TableCell className="font-bold pl-8">販売費及び一般管理費合計</TableCell>
                   <TableCell className="text-right font-bold">
                     {formatAmount(
                       data.expenses.sellingExpenses.reduce((sum, acc) => sum + acc.balance, 0) +
-                      data.expenses.administrativeExpenses.reduce((sum, acc) => sum + acc.balance, 0)
+                        data.expenses.administrativeExpenses.reduce(
+                          (sum, acc) => sum + acc.balance,
+                          0
+                        )
                     )}
                   </TableCell>
                 </TableRow>
@@ -303,9 +306,7 @@ export default function ProfitLossPage() {
                 {data.incomeTax > 0 && (
                   <TableRow>
                     <TableCell className="pl-8">法人税等</TableCell>
-                    <TableCell className="text-right">
-                      {formatAmount(data.incomeTax)}
-                    </TableCell>
+                    <TableCell className="text-right">{formatAmount(data.incomeTax)}</TableCell>
                   </TableRow>
                 )}
 
@@ -319,9 +320,7 @@ export default function ProfitLossPage() {
               </TableBody>
             </Table>
           ) : (
-            <div className="text-center py-8 text-gray-500">
-              データがありません
-            </div>
+            <div className="text-center py-8 text-gray-500">データがありません</div>
           )}
         </CardContent>
       </Card>
