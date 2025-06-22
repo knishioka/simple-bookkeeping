@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -p ${WEB_PORT:-3000}",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p ${WEB_PORT:-3000}",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "test": "jest --passWithNoTests",
@@ -18,7 +18,8 @@
     "test:e2e:ci": "playwright test --reporter=list",
     "test:e2e:basic": "./e2e-run-basic.sh",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf .next .turbo node_modules"
+    "clean": "rm -rf .next .turbo node_modules",
+    "postinstall": "cd ../.. && pnpm --filter @simple-bookkeeping/database db:generate"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

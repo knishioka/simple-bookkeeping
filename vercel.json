@@ -1,7 +1,6 @@
 {
-  "buildCommand": "pnpm --filter @simple-bookkeeping/database db:generate && pnpm build --filter=@simple-bookkeeping/web",
+  "buildCommand": "pnpm build --filter=@simple-bookkeeping/web",
   "outputDirectory": "apps/web/.next",
-  "installCommand": "pnpm install --frozen-lockfile",
-  "framework": "nextjs",
-  "devCommand": "pnpm dev --filter=@simple-bookkeeping/web"
+  "installCommand": "pnpm install",
+  "framework": "nextjs"
 }
