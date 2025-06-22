@@ -25,6 +25,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate Prisma Client
+        run: pnpm --filter @simple-bookkeeping/database db:generate
+
       - name: Build shared package
         run: pnpm --filter @simple-bookkeeping/shared build
 
@@ -53,7 +56,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma Client
-        run: pnpm --filter @simple-bookkeeping/database prisma generate
+        run: pnpm --filter @simple-bookkeeping/database db:generate
 
       - name: Build shared package
         run: pnpm --filter @simple-bookkeeping/shared build
@@ -99,13 +102,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma Client
-        run: pnpm --filter @simple-bookkeeping/database prisma generate
+        run: pnpm --filter @simple-bookkeeping/database db:generate
 
       - name: Build shared package
         run: pnpm --filter @simple-bookkeeping/shared build
 
       - name: Run database migrations
-        run: pnpm --filter @simple-bookkeeping/database prisma migrate deploy
+        run: pnpm --filter @simple-bookkeeping/database db:migrate:prod
 
       - name: Run tests
         run: pnpm test
@@ -131,7 +134,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma Client
-        run: pnpm --filter @simple-bookkeeping/database prisma generate
+        run: pnpm --filter @simple-bookkeeping/database db:generate
 
       - name: Build shared package first
         run: pnpm --filter @simple-bookkeeping/shared build
