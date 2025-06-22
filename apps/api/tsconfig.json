@@ -1,10 +1,26 @@
 {
-  "extends": "../../packages/typescript-config/node.json",
   "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "commonjs",
     "outDir": "./dist",
     "rootDir": "./src",
-    "typeRoots": ["./node_modules/@types", "./src/types"]
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "types": ["node", "express"]
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts", "src/**/__tests__/**"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "src/**/__tests__/**",
+    "src/e2e/**"
+  ]
 }
