@@ -9,8 +9,8 @@
       "maxDuration": 30
     }
   },
-  "buildCommand": "pnpm install --frozen-lockfile && pnpm --filter @simple-bookkeeping/database prisma:generate && pnpm --filter @simple-bookkeeping/shared build && pnpm --filter @simple-bookkeeping/web build",
+  "buildCommand": "pnpm --filter @simple-bookkeeping/database prisma:generate && pnpm --filter @simple-bookkeeping/shared build && pnpm --filter @simple-bookkeeping/web build",
   "outputDirectory": "apps/web/.next",
   "framework": "nextjs",
-  "installCommand": "pnpm install --frozen-lockfile"
+  "installCommand": "pnpm install --frozen-lockfile --prod=false"
 }
