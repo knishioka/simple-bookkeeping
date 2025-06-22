@@ -185,10 +185,11 @@ export default function DemoJournalEntriesPage() {
   const [selectedMonth, setSelectedMonth] = useState<string>('');
 
   const filteredEntries = entries.filter((entry) => {
-    const matchesSearch = 
+    const matchesSearch =
       entry.entryNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       entry.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (entry.documentNumber && entry.documentNumber.toLowerCase().includes(searchTerm.toLowerCase()));
+      (entry.documentNumber &&
+        entry.documentNumber.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = selectedStatus === 'all' || entry.status === selectedStatus;
     const matchesMonth = !selectedMonth || entry.entryDate.startsWith(selectedMonth);
     return matchesSearch && matchesStatus && matchesMonth;
@@ -211,10 +212,10 @@ export default function DemoJournalEntriesPage() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('ja-JP', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    return date.toLocaleDateString('ja-JP', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
     });
   };
 
@@ -244,9 +245,7 @@ export default function DemoJournalEntriesPage() {
       <Card>
         <CardHeader>
           <CardTitle>仕訳一覧</CardTitle>
-          <CardDescription>
-            登録されている仕訳を確認・編集できます
-          </CardDescription>
+          <CardDescription>登録されている仕訳を確認・編集できます</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4 mb-6">
@@ -282,9 +281,7 @@ export default function DemoJournalEntriesPage() {
           </div>
 
           {filteredEntries.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              仕訳が見つかりません
-            </div>
+            <div className="text-center py-8 text-gray-500">仕訳が見つかりません</div>
           ) : (
             <Table>
               <TableHeader>
@@ -308,7 +305,7 @@ export default function DemoJournalEntriesPage() {
                     <TableCell>
                       <div className="space-y-1">
                         {entry.lines
-                          .filter(line => line.debitAmount > 0)
+                          .filter((line) => line.debitAmount > 0)
                           .map((line, idx) => (
                             <div key={idx} className="text-sm">
                               {line.account.name}
@@ -319,7 +316,7 @@ export default function DemoJournalEntriesPage() {
                     <TableCell>
                       <div className="space-y-1">
                         {entry.lines
-                          .filter(line => line.creditAmount > 0)
+                          .filter((line) => line.creditAmount > 0)
                           .map((line, idx) => (
                             <div key={idx} className="text-sm">
                               {line.account.name}
@@ -327,13 +324,13 @@ export default function DemoJournalEntriesPage() {
                           ))}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">
-                      {formatAmount(entry.totalAmount)}
-                    </TableCell>
+                    <TableCell className="text-right">{formatAmount(entry.totalAmount)}</TableCell>
                     <TableCell>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        statusColors[entry.status]
-                      }`}>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          statusColors[entry.status]
+                        }`}
+                      >
                         {statusLabels[entry.status]}
                       </span>
                     </TableCell>
@@ -341,28 +338,16 @@ export default function DemoJournalEntriesPage() {
                       <div className="flex justify-end space-x-2">
                         {entry.status === 'DRAFT' && (
                           <>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => handleEdit(entry)}
-                            >
+                            <Button variant="ghost" size="sm" onClick={() => handleEdit(entry)}>
                               編集
                             </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => handleApprove(entry)}
-                            >
+                            <Button variant="ghost" size="sm" onClick={() => handleApprove(entry)}>
                               承認
                             </Button>
                           </>
                         )}
                         {entry.status === 'APPROVED' && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleEdit(entry)}
-                          >
+                          <Button variant="ghost" size="sm" onClick={() => handleEdit(entry)}>
                             詳細
                           </Button>
                         )}

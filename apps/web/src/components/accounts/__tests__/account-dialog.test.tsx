@@ -2,9 +2,9 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { toast } from 'react-hot-toast';
 
-import { apiClient } from '@/lib/api-client';
-
 import { AccountDialog } from '../account-dialog';
+
+import { apiClient } from '@/lib/api-client';
 
 // Mock dependencies
 jest.mock('react-hot-toast', () => ({
@@ -39,7 +39,7 @@ describe('AccountDialog - ユーザーインタラクション', () => {
   describe('新規勘定科目作成のユーザーシナリオ', () => {
     it('【シナリオ1】新規スタッフが必須項目を未入力で登録しようとした場合、適切なエラーメッセージが表示される', async () => {
       const user = userEvent.setup();
-      
+
       render(
         <AccountDialog
           open={true}
@@ -65,10 +65,10 @@ describe('AccountDialog - ユーザーインタラクション', () => {
 
     it('【シナリオ2】正しい情報を入力して勘定科目を作成する', async () => {
       const user = userEvent.setup();
-      
+
       // API成功レスポンスをモック
       mockApiClient.post.mockResolvedValue({
-        data: { id: '3', code: '1110', name: '現金', accountType: 'ASSET' }
+        data: { id: '3', code: '1110', name: '現金', accountType: 'ASSET' },
       });
 
       render(
@@ -83,7 +83,7 @@ describe('AccountDialog - ユーザーインタラクション', () => {
       // フォーム入力
       await user.type(screen.getByLabelText('コード'), '1110');
       await user.type(screen.getByLabelText('科目名'), '現金');
-      
+
       // タイプ選択
       await user.click(screen.getByRole('combobox', { name: 'タイプ' }));
       await user.click(screen.getByRole('option', { name: '資産' }));
@@ -94,7 +94,8 @@ describe('AccountDialog - ユーザーインタラクション', () => {
 
       // API呼び出しの確認
       await waitFor(() => {
-        expect(mockApiClient.post).toHaveBeenCalledWith('/accounts', 
+        expect(mockApiClient.post).toHaveBeenCalledWith(
+          '/accounts',
           expect.objectContaining({
             code: '1110',
             name: '現金',
@@ -113,9 +114,9 @@ describe('AccountDialog - ユーザーインタラクション', () => {
 
     it('【シナリオ3】親科目を選択して勘定科目を作成する', async () => {
       const user = userEvent.setup();
-      
+
       mockApiClient.post.mockResolvedValue({
-        data: { id: '4', code: '1111', name: '現金預金', accountType: 'ASSET' }
+        data: { id: '4', code: '1111', name: '現金預金', accountType: 'ASSET' },
       });
 
       render(
@@ -130,7 +131,7 @@ describe('AccountDialog - ユーザーインタラクション', () => {
       // 基本情報入力
       await user.type(screen.getByLabelText('コード'), '1111');
       await user.type(screen.getByLabelText('科目名'), '現金預金');
-      
+
       // タイプ選択（資産）
       await user.click(screen.getByRole('combobox', { name: 'タイプ' }));
       await user.click(screen.getByRole('option', { name: '資産' }));
@@ -154,19 +155,19 @@ describe('AccountDialog - ユーザーインタラクション', () => {
   });
 
   describe('既存勘定科目編集のユーザーシナリオ', () => {
-    const existingAccount = { 
-      id: '5', 
-      code: '1110', 
-      name: '現金', 
-      accountType: 'ASSET' as const, 
-      parentId: null 
+    const existingAccount = {
+      id: '5',
+      code: '1110',
+      name: '現金',
+      accountType: 'ASSET' as const,
+      parentId: null,
     };
 
     it('【シナリオ4】既存勘定科目の名称を変更する', async () => {
       const user = userEvent.setup();
-      
+
       mockApiClient.put.mockResolvedValue({
-        data: { ...existingAccount, name: '現金・小切手' }
+        data: { ...existingAccount, name: '現金・小切手' },
       });
 
       render(
@@ -207,7 +208,7 @@ describe('AccountDialog - ユーザーインタラクション', () => {
   describe('エラーハンドリングのユーザーシナリオ', () => {
     it('【シナリオ5】API通信エラー時に適切なエラーメッセージが表示される', async () => {
       const user = userEvent.setup();
-      
+
       // API エラーをモック
       mockApiClient.post.mockRejectedValue(new Error('Network error'));
 
@@ -241,7 +242,7 @@ describe('AccountDialog - ユーザーインタラクション', () => {
 
     it('【シナリオ6】入力値の文字数制限エラー', async () => {
       const user = userEvent.setup();
-      
+
       render(
         <AccountDialog
           open={true}
@@ -270,7 +271,7 @@ describe('AccountDialog - ユーザーインタラクション', () => {
   describe('ユーザビリティ', () => {
     it('【シナリオ7】キャンセルボタンでダイアログが閉じられる', async () => {
       const user = userEvent.setup();
-      
+
       render(
         <AccountDialog
           open={true}
@@ -292,7 +293,7 @@ describe('AccountDialog - ユーザーインタラクション', () => {
 
     it('【シナリオ8】タイプ変更時に親科目選択肢が適切にフィルタリングされる', async () => {
       const user = userEvent.setup();
-      
+
       render(
         <AccountDialog
           open={true}
@@ -308,7 +309,7 @@ describe('AccountDialog - ユーザーインタラクション', () => {
 
       // 親科目を確認（資産タイプの勘定科目のみ表示されるべき）
       await user.click(screen.getByRole('combobox', { name: '親科目（任意）' }));
-      
+
       expect(screen.getByRole('option', { name: '1000 - 流動資産' })).toBeInTheDocument();
       expect(screen.queryByRole('option', { name: '4000 - 売上' })).not.toBeInTheDocument();
     });

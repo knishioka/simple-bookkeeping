@@ -55,10 +55,8 @@ describe('ApiClient - エラーハンドリングとローディング状態', (
 
     it('【シナリオ2】サーバー応答の長時間待機（タイムアウト相当）', async () => {
       // 長時間の待機をシミュレート
-      mockFetch.mockImplementation(() => 
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout')), 100)
-        )
+      mockFetch.mockImplementation(
+        () => new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 100))
       );
 
       const result = await apiClient.get('/journal-entries');
@@ -97,15 +95,15 @@ describe('ApiClient - エラーハンドリングとローディング状態', (
           error: {
             code: 'VALIDATION_ERROR',
             message: '借方と貸方の合計が一致しません',
-            details: [
-              { field: 'lines', message: 'Balance mismatch' }
-            ],
+            details: [{ field: 'lines', message: 'Balance mismatch' }],
           },
         }),
       } as Response);
 
       const result = await apiClient.post('/journal-entries', {
-        lines: [/* unbalanced data */],
+        lines: [
+          /* unbalanced data */
+        ],
       });
 
       expect(result.error?.code).toBe('VALIDATION_ERROR');
@@ -219,7 +217,7 @@ describe('ApiClient - エラーハンドリングとローディング状態', (
     it('【シナリオ8】組織切り替え後のAPIリクエスト', async () => {
       // 組織を設定
       apiClient.setOrganizationId('new-org-456');
-      
+
       localStorageMock.getItem.mockImplementation((key) => {
         if (key === 'token') return 'valid-token';
         if (key === 'organizationId') return 'new-org-456';
@@ -284,7 +282,7 @@ describe('ApiClient - エラーハンドリングとローディング状態', (
 
       expect(results).toHaveLength(3);
       expect(mockFetch).toHaveBeenCalledTimes(3);
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(result.data).toEqual({ success: true });
       });
     });
@@ -294,14 +292,20 @@ describe('ApiClient - エラーハンドリングとローディング状態', (
     it('【シナリオ11】レスポンス時間の測定（実際のユーザー体験）', async () => {
       const startTime = Date.now();
 
-      mockFetch.mockImplementation(() => 
-        new Promise(resolve => 
-          setTimeout(() => resolve({
-            ok: true,
-            status: 200,
-            json: async () => ({ data: [] }),
-          } as Response), 50) // 50ms の遅延をシミュレート
-        )
+      mockFetch.mockImplementation(
+        () =>
+          new Promise(
+            (resolve) =>
+              setTimeout(
+                () =>
+                  resolve({
+                    ok: true,
+                    status: 200,
+                    json: async () => ({ data: [] }),
+                  } as Response),
+                50
+              ) // 50ms の遅延をシミュレート
+          )
       );
 
       await apiClient.get('/accounts');
@@ -317,20 +321,21 @@ describe('ApiClient - エラーハンドリングとローディング状態', (
     it('【シナリオ12】ユーザーが操作を中断した場合の処理', async () => {
       // リクエストの途中でユーザーが画面を離れる状況をシミュレート
       const abortController = new AbortController();
-      
-      mockFetch.mockImplementation(() => 
-        new Promise((_, reject) => 
-          setTimeout(() => {
-            if (abortController.signal.aborted) {
-              reject(new Error('Request aborted'));
-            }
-          }, 100)
-        )
+
+      mockFetch.mockImplementation(
+        () =>
+          new Promise((_, reject) =>
+            setTimeout(() => {
+              if (abortController.signal.aborted) {
+                reject(new Error('Request aborted'));
+              }
+            }, 100)
+          )
       );
 
       // リクエスト開始
       const requestPromise = apiClient.get('/accounts');
-      
+
       // 50ms後にリクエストを中断
       setTimeout(() => abortController.abort(), 50);
 
@@ -354,7 +359,7 @@ describe('ApiClient - エラーハンドリングとローディング状態', (
 
       // コンソールログにセンシティブな情報が含まれていないことを確認
       expect(consoleSpy).toHaveBeenCalledWith('API request failed:', expect.any(Error));
-      
+
       // パスワードがログに出力されていないことを確認
       const loggedArgs = consoleSpy.mock.calls.flat().join(' ');
       expect(loggedArgs).not.toContain('secret-password');
@@ -378,7 +383,7 @@ describe('ApiClient - エラーハンドリングとローディング状態', (
 
       const call = mockFetch.mock.calls[0];
       const headers = call[1]?.headers as Headers;
-      
+
       // 適切なContent-Typeが設定されていることを確認
       expect(headers.get('Content-Type')).toBe('application/json');
       expect(headers.get('Authorization')).toBe('Bearer valid-token');

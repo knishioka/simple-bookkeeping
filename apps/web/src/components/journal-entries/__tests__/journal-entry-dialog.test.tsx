@@ -2,9 +2,9 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { toast } from 'react-hot-toast';
 
-import { apiClient } from '@/lib/api-client';
-
 import { JournalEntryDialog } from '../journal-entry-dialog';
+
+import { apiClient } from '@/lib/api-client';
 
 // Mock dependencies
 jest.mock('react-hot-toast', () => ({
@@ -33,7 +33,7 @@ const mockToast = toast as jest.Mocked<typeof toast>;
 describe.skip('JournalEntryDialog - ユーザーインタラクション', () => {
   const mockOnOpenChange = jest.fn();
   const mockOnSuccess = jest.fn();
-  
+
   const mockAccounts = [
     { id: '1', code: '1110', name: '現金', accountType: 'ASSET' as const },
     { id: '2', code: '1120', name: '売掛金', accountType: 'ASSET' as const },
@@ -50,17 +50,13 @@ describe.skip('JournalEntryDialog - ユーザーインタラクション', () =>
   describe('経理担当者の日常業務シナリオ', () => {
     it('【シナリオ1】現金売上の仕訳を正しく入力して保存する', async () => {
       const user = userEvent.setup();
-      
+
       mockApiClient.post.mockResolvedValue({
-        data: { id: '1', entryNumber: '202412001', status: 'DRAFT' }
+        data: { id: '1', entryNumber: '202412001', status: 'DRAFT' },
       });
 
       render(
-        <JournalEntryDialog
-          open={true}
-          onOpenChange={mockOnOpenChange}
-          onSuccess={mockOnSuccess}
-        />
+        <JournalEntryDialog open={true} onOpenChange={mockOnOpenChange} onSuccess={mockOnSuccess} />
       );
 
       // 勘定科目が読み込まれるまで待機
@@ -139,17 +135,13 @@ describe.skip('JournalEntryDialog - ユーザーインタラクション', () =>
 
     it('【シナリオ2】複数の明細行を持つ複合仕訳の入力', async () => {
       const user = userEvent.setup();
-      
+
       mockApiClient.post.mockResolvedValue({
-        data: { id: '2', entryNumber: '202412002', status: 'DRAFT' }
+        data: { id: '2', entryNumber: '202412002', status: 'DRAFT' },
       });
 
       render(
-        <JournalEntryDialog
-          open={true}
-          onOpenChange={mockOnOpenChange}
-          onSuccess={mockOnSuccess}
-        />
+        <JournalEntryDialog open={true} onOpenChange={mockOnOpenChange} onSuccess={mockOnSuccess} />
       );
 
       await waitFor(() => {
@@ -209,11 +201,7 @@ describe.skip('JournalEntryDialog - ユーザーインタラクション', () =>
       const user = userEvent.setup();
 
       render(
-        <JournalEntryDialog
-          open={true}
-          onOpenChange={mockOnOpenChange}
-          onSuccess={mockOnSuccess}
-        />
+        <JournalEntryDialog open={true} onOpenChange={mockOnOpenChange} onSuccess={mockOnSuccess} />
       );
 
       await waitFor(() => {
@@ -246,7 +234,7 @@ describe.skip('JournalEntryDialog - ユーザーインタラクション', () =>
 
       // バリデーションエラーメッセージの確認（フォーム送信時）
       await user.click(saveButton);
-      
+
       // API呼び出しがされていないことを確認
       expect(mockApiClient.post).not.toHaveBeenCalled();
     });
@@ -255,11 +243,7 @@ describe.skip('JournalEntryDialog - ユーザーインタラクション', () =>
       const user = userEvent.setup();
 
       render(
-        <JournalEntryDialog
-          open={true}
-          onOpenChange={mockOnOpenChange}
-          onSuccess={mockOnSuccess}
-        />
+        <JournalEntryDialog open={true} onOpenChange={mockOnOpenChange} onSuccess={mockOnSuccess} />
       );
 
       // 何も入力せずに作成ボタンをクリック
@@ -279,11 +263,7 @@ describe.skip('JournalEntryDialog - ユーザーインタラクション', () =>
       const user = userEvent.setup();
 
       render(
-        <JournalEntryDialog
-          open={true}
-          onOpenChange={mockOnOpenChange}
-          onSuccess={mockOnSuccess}
-        />
+        <JournalEntryDialog open={true} onOpenChange={mockOnOpenChange} onSuccess={mockOnSuccess} />
       );
 
       // 摘要入力
@@ -308,7 +288,9 @@ describe.skip('JournalEntryDialog - ユーザーインタラクション', () =>
 
       // バリデーションエラーを確認
       await waitFor(() => {
-        expect(screen.getByText('各行は借方または貸方のどちらか一方のみ入力してください')).toBeInTheDocument();
+        expect(
+          screen.getByText('各行は借方または貸方のどちらか一方のみ入力してください')
+        ).toBeInTheDocument();
       });
     });
   });
@@ -318,11 +300,7 @@ describe.skip('JournalEntryDialog - ユーザーインタラクション', () =>
       const user = userEvent.setup();
 
       render(
-        <JournalEntryDialog
-          open={true}
-          onOpenChange={mockOnOpenChange}
-          onSuccess={mockOnSuccess}
-        />
+        <JournalEntryDialog open={true} onOpenChange={mockOnOpenChange} onSuccess={mockOnSuccess} />
       );
 
       // 初期状態: 2行
@@ -348,19 +326,16 @@ describe.skip('JournalEntryDialog - ユーザーインタラクション', () =>
     });
 
     it('【シナリオ7】最低行数制限（2行未満には削除できない）', async () => {
-
       render(
-        <JournalEntryDialog
-          open={true}
-          onOpenChange={mockOnOpenChange}
-          onSuccess={mockOnSuccess}
-        />
+        <JournalEntryDialog open={true} onOpenChange={mockOnOpenChange} onSuccess={mockOnSuccess} />
       );
 
       // 初期状態: 2行で削除ボタンがないことを確認
       const deleteButtons = screen.queryAllByRole('button', { name: '' });
-      const minusButtons = deleteButtons.filter(btn => 
-        btn.querySelector('svg') && btn.querySelector('svg')?.getAttribute('data-testid') === 'minus'
+      const minusButtons = deleteButtons.filter(
+        (btn) =>
+          btn.querySelector('svg') &&
+          btn.querySelector('svg')?.getAttribute('data-testid') === 'minus'
       );
       expect(minusButtons).toHaveLength(0);
     });
@@ -371,11 +346,7 @@ describe.skip('JournalEntryDialog - ユーザーインタラクション', () =>
       mockApiClient.get.mockRejectedValue(new Error('Network error'));
 
       render(
-        <JournalEntryDialog
-          open={true}
-          onOpenChange={mockOnOpenChange}
-          onSuccess={mockOnSuccess}
-        />
+        <JournalEntryDialog open={true} onOpenChange={mockOnOpenChange} onSuccess={mockOnSuccess} />
       );
 
       // エラートーストが表示されることを確認
@@ -386,15 +357,11 @@ describe.skip('JournalEntryDialog - ユーザーインタラクション', () =>
 
     it('【シナリオ9】仕訳保存失敗時の処理', async () => {
       const user = userEvent.setup();
-      
+
       mockApiClient.post.mockRejectedValue(new Error('Save failed'));
 
       render(
-        <JournalEntryDialog
-          open={true}
-          onOpenChange={mockOnOpenChange}
-          onSuccess={mockOnSuccess}
-        />
+        <JournalEntryDialog open={true} onOpenChange={mockOnOpenChange} onSuccess={mockOnSuccess} />
       );
 
       // 正常な仕訳データを入力
@@ -455,9 +422,9 @@ describe.skip('JournalEntryDialog - ユーザーインタラクション', () =>
 
     it('【シナリオ10】既存仕訳の編集と更新', async () => {
       const user = userEvent.setup();
-      
+
       mockApiClient.put.mockResolvedValue({
-        data: { ...existingEntry, description: '修正された仕訳' }
+        data: { ...existingEntry, description: '修正された仕訳' },
       });
 
       render(
@@ -471,7 +438,7 @@ describe.skip('JournalEntryDialog - ユーザーインタラクション', () =>
 
       // 編集モードであることを確認
       expect(screen.getByText('仕訳の編集')).toBeInTheDocument();
-      
+
       // 既存データが表示されていることを確認
       expect(screen.getByDisplayValue('既存の仕訳')).toBeInTheDocument();
       expect(screen.getByDisplayValue('DOC001')).toBeInTheDocument();
@@ -486,9 +453,12 @@ describe.skip('JournalEntryDialog - ユーザーインタラクション', () =>
 
       // API呼び出しの確認
       await waitFor(() => {
-        expect(mockApiClient.put).toHaveBeenCalledWith('/journal-entries/1', expect.objectContaining({
-          description: '修正された仕訳',
-        }));
+        expect(mockApiClient.put).toHaveBeenCalledWith(
+          '/journal-entries/1',
+          expect.objectContaining({
+            description: '修正された仕訳',
+          })
+        );
         expect(mockToast.success).toHaveBeenCalledWith('仕訳を更新しました');
       });
     });
@@ -497,20 +467,16 @@ describe.skip('JournalEntryDialog - ユーザーインタラクション', () =>
   describe('ローディング状態のユーザーシナリオ', () => {
     it('【シナリオ11】保存中のローディング表示と操作無効化', async () => {
       const user = userEvent.setup();
-      
+
       // 保存API を遅延させる
       let resolvePromise: (value: any) => void;
-      const savePromise = new Promise(resolve => {
+      const savePromise = new Promise((resolve) => {
         resolvePromise = resolve;
       });
       mockApiClient.post.mockReturnValue(savePromise);
 
       render(
-        <JournalEntryDialog
-          open={true}
-          onOpenChange={mockOnOpenChange}
-          onSuccess={mockOnSuccess}
-        />
+        <JournalEntryDialog open={true} onOpenChange={mockOnOpenChange} onSuccess={mockOnSuccess} />
       );
 
       // 正常なデータ入力

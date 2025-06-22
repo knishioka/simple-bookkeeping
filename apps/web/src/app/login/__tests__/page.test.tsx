@@ -2,15 +2,14 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useRouter } from 'next/navigation';
 
-import { useAuth } from '@/contexts/auth-context';
-
 import LoginPage from '../page';
+
+import { useAuth } from '@/contexts/auth-context';
 
 // Mock dependencies
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
 }));
-
 
 jest.mock('@/contexts/auth-context', () => ({
   useAuth: jest.fn(),
@@ -41,7 +40,7 @@ describe.skip('LoginPage - ユーザーエクスペリエンス', () => {
   describe('新規ユーザーのログインシナリオ', () => {
     it('【シナリオ1】正しい認証情報でログインが成功する', async () => {
       const user = userEvent.setup();
-      
+
       render(<LoginPage />);
 
       // ページの基本要素が表示されることを確認
@@ -65,7 +64,7 @@ describe.skip('LoginPage - ユーザーエクスペリエンス', () => {
 
     it('【シナリオ2】必須項目未入力時のHTML5バリデーション', async () => {
       const user = userEvent.setup();
-      
+
       render(<LoginPage />);
 
       // メールアドレス未入力でログイン試行
@@ -80,7 +79,7 @@ describe.skip('LoginPage - ユーザーエクスペリエンス', () => {
 
     it('【シナリオ3】無効なメールアドレス形式の入力', async () => {
       const user = userEvent.setup();
-      
+
       render(<LoginPage />);
 
       const emailInput = screen.getByLabelText('メールアドレス');
@@ -101,7 +100,6 @@ describe.skip('LoginPage - ユーザーエクスペリエンス', () => {
 
   describe('ログイン処理中のユーザーエクスペリエンス', () => {
     it('【シナリオ4】ログイン処理中のローディング表示と操作無効化', async () => {
-      
       // ローディング状態をモック
       mockUseAuth.mockReturnValue({
         login: mockLogin,
@@ -128,7 +126,7 @@ describe.skip('LoginPage - ユーザーエクスペリエンス', () => {
   describe('エラーハンドリングのユーザーシナリオ', () => {
     it('【シナリオ5】認証失敗時の適切なフィードバック', async () => {
       const user = userEvent.setup();
-      
+
       // ログイン失敗をシミュレート
       mockLogin.mockRejectedValue(new Error('Invalid credentials'));
 
@@ -141,7 +139,7 @@ describe.skip('LoginPage - ユーザーエクスペリエンス', () => {
 
       // エラーが発生してもページが正常に動作することを確認
       expect(mockLogin).toHaveBeenCalled();
-      
+
       // フォームが再び入力可能状態になることを確認
       await waitFor(() => {
         expect(screen.getByLabelText('メールアドレス')).not.toBeDisabled();
@@ -184,7 +182,7 @@ describe.skip('LoginPage - ユーザーエクスペリエンス', () => {
 
     it('【シナリオ9】Enterキーでのフォーム送信', async () => {
       const user = userEvent.setup();
-      
+
       render(<LoginPage />);
 
       // フォーム入力
@@ -201,7 +199,7 @@ describe.skip('LoginPage - ユーザーエクスペリエンス', () => {
   describe('実際の使用パターン', () => {
     it('【シナリオ10】経理担当者の毎日のログインフロー', async () => {
       const user = userEvent.setup();
-      
+
       render(<LoginPage />);
 
       // 実際の経理担当者のログインパターンをシミュレート
@@ -210,10 +208,10 @@ describe.skip('LoginPage - ユーザーエクスペリエンス', () => {
 
       // よくある入力パターン: ゆっくりとした入力
       await user.type(emailInput, 'accounting@company.com', { delay: 50 });
-      
+
       // パスワード入力前の一時停止（実際のユーザー行動をシミュレート）
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       await user.type(passwordInput, 'SecurePass2024', { delay: 30 });
 
       // ログイン実行
@@ -224,7 +222,7 @@ describe.skip('LoginPage - ユーザーエクスペリエンス', () => {
 
     it('【シナリオ11】入力途中での画面離脱と復帰', async () => {
       const user = userEvent.setup();
-      
+
       render(<LoginPage />);
 
       // 部分的に入力
@@ -235,7 +233,7 @@ describe.skip('LoginPage - ユーザーエクスペリエンス', () => {
 
       // フォームが初期状態に戻っていることを確認
       expect(screen.getByLabelText('メールアドレス')).toHaveValue('partial@');
-      
+
       // 入力を続行できることを確認
       await user.type(screen.getByLabelText('メールアドレス'), 'example.com');
       await user.type(screen.getByLabelText('パスワード'), 'password123');
@@ -249,11 +247,12 @@ describe.skip('LoginPage - ユーザーエクスペリエンス', () => {
   describe('エッジケースのユーザーシナリオ', () => {
     it('【シナリオ12】長いメールアドレスでの入力', async () => {
       const user = userEvent.setup();
-      
+
       render(<LoginPage />);
 
-      const longEmail = 'very.long.email.address.for.testing.purposes@very-long-domain-name-example.com';
-      
+      const longEmail =
+        'very.long.email.address.for.testing.purposes@very-long-domain-name-example.com';
+
       await user.type(screen.getByLabelText('メールアドレス'), longEmail);
       await user.type(screen.getByLabelText('パスワード'), 'password123');
 
@@ -264,11 +263,11 @@ describe.skip('LoginPage - ユーザーエクスペリエンス', () => {
 
     it('【シナリオ13】特殊文字を含むパスワードでの入力', async () => {
       const user = userEvent.setup();
-      
+
       render(<LoginPage />);
 
       const complexPassword = 'P@ssw0rd!#$%&*()';
-      
+
       await user.type(screen.getByLabelText('メールアドレス'), 'user@example.com');
       await user.type(screen.getByLabelText('パスワード'), complexPassword);
 

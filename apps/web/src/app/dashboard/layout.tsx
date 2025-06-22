@@ -8,29 +8,28 @@ import { OrganizationSwitcher } from '@/components/organization-switcher';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
 
-
 const navigation = [
   { name: 'ダッシュボード', href: '/dashboard' },
   { name: '仕訳入力', href: '/dashboard/journal-entries' },
   { name: '勘定科目', href: '/dashboard/accounts' },
-  { 
-    name: '補助簿', 
+  {
+    name: '補助簿',
     href: '/dashboard/ledgers',
     children: [
       { name: '現金出納帳', href: '/dashboard/ledgers/cash-book' },
       { name: '預金出納帳', href: '/dashboard/ledgers/bank-book' },
       { name: '売掛金台帳', href: '/dashboard/ledgers/accounts-receivable' },
       { name: '買掛金台帳', href: '/dashboard/ledgers/accounts-payable' },
-    ]
+    ],
   },
-  { 
-    name: '帳票', 
+  {
+    name: '帳票',
     href: '/dashboard/reports',
     children: [
       { name: '貸借対照表', href: '/dashboard/reports/balance-sheet' },
       { name: '損益計算書', href: '/dashboard/reports/profit-loss' },
       { name: '試算表', href: '/dashboard/reports/trial-balance' },
-    ]
+    ],
   },
   { name: '設定', href: '/dashboard/settings' },
 ];
@@ -50,7 +49,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <h1 className="text-xl font-bold">Simple Bookkeeping</h1>
                 </div>
                 <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                  {navigation.map((item) => (
+                  {navigation.map((item) =>
                     item.children ? (
                       <div key={item.name} className="relative group inline-flex items-center">
                         <button
@@ -89,7 +88,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         {item.name}
                       </Link>
                     )
-                  ))}
+                  )}
                 </div>
               </div>
               <div className="flex items-center space-x-4">

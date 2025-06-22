@@ -3,6 +3,7 @@
  */
 
 import { Request } from 'express';
+
 import { User } from './auth';
 
 export interface AuthenticatedRequest extends Request {

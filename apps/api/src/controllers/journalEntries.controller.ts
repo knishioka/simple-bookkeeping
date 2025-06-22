@@ -20,12 +20,7 @@ interface JournalEntryQuery {
 
 export const getJournalEntries = async (
   req: AuthenticatedRequest &
-    Request<
-      Record<string, never>,
-      Record<string, never>,
-      Record<string, never>,
-      JournalEntryQuery
-    >,
+    Request<Record<string, never>, Record<string, never>, Record<string, never>, JournalEntryQuery>,
   res: Response
 ) => {
   try {

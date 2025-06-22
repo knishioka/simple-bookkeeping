@@ -86,14 +86,14 @@ export function AccountDialogDemo({
   const onSubmit = async (_data: AccountFormData) => {
     try {
       // デモ用: API呼び出しの代わりに成功メッセージを表示
-      await new Promise(resolve => setTimeout(resolve, 500)); // 擬似的な遅延
-      
+      await new Promise((resolve) => setTimeout(resolve, 500)); // 擬似的な遅延
+
       if (account) {
         toast.success('勘定科目を更新しました（デモ）');
       } else {
         toast.success('勘定科目を作成しました（デモ）');
       }
-      
+
       onSuccess();
       onOpenChange(false);
       form.reset();
@@ -113,9 +113,7 @@ export function AccountDialogDemo({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{account ? '勘定科目の編集' : '勘定科目の新規作成'}</DialogTitle>
-          <DialogDescription>
-            勘定科目の情報を入力してください（デモ版）
-          </DialogDescription>
+          <DialogDescription>勘定科目の情報を入力してください（デモ版）</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -151,8 +149,8 @@ export function AccountDialogDemo({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>タイプ</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
+                  <Select
+                    onValueChange={field.onChange}
                     defaultValue={field.value}
                     disabled={!!account}
                   >
@@ -179,10 +177,7 @@ export function AccountDialogDemo({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>親科目（任意）</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                  >
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="親科目を選択" />
@@ -205,9 +200,7 @@ export function AccountDialogDemo({
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 キャンセル
               </Button>
-              <Button type="submit">
-                {account ? '更新' : '作成'}
-              </Button>
+              <Button type="submit">{account ? '更新' : '作成'}</Button>
             </DialogFooter>
           </form>
         </Form>

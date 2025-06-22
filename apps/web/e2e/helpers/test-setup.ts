@@ -2,7 +2,7 @@ import { Page, expect } from '@playwright/test';
 
 /**
  * E2Eテスト用のヘルパー関数集
- * 
+ *
  * 簿記アプリケーション特有の操作を抽象化し、
  * テストコードの再利用性と可読性を向上させます。
  */
@@ -53,14 +53,14 @@ export class AuthHelpers {
    */
   async login(email: string = 'test@example.com', password: string = 'password') {
     await this.page.goto('/login');
-    
+
     // フォーム入力
     await this.page.fill('input[name="email"]', email);
     await this.page.fill('input[name="password"]', password);
-    
+
     // ログインボタンクリック
     await this.page.click('button[type="submit"]');
-    
+
     // ダッシュボードへのリダイレクトを待機
     await this.page.waitForURL('/dashboard');
   }
@@ -94,22 +94,22 @@ export class AccountHelpers {
    */
   async createAccount(code: string, name: string, type: string, parentId?: string) {
     await this.openCreateDialog();
-    
+
     // 基本情報入力
     await this.page.fill('input[name="code"]', code);
     await this.page.fill('input[name="name"]', name);
-    
+
     // タイプ選択（Radix UI Select）
     await this.selectAccountType(type);
-    
+
     // 親科目選択（任意）
     if (parentId) {
       await this.selectParentAccount(parentId);
     }
-    
+
     // 作成ボタンクリック
     await this.page.click('button:has-text("作成")');
-    
+
     // ダイアログが閉じるまで待機
     await expect(this.page.locator('[role="dialog"]')).toBeHidden();
   }
@@ -120,10 +120,10 @@ export class AccountHelpers {
   async selectAccountType(type: string) {
     // Select trigger をクリック
     await this.page.click('[data-testid="account-type-select"] button[role="combobox"]');
-    
+
     // オプションが表示されるまで待機
     await expect(this.page.locator('[role="option"]').first()).toBeVisible();
-    
+
     // 指定されたタイプを選択
     await this.page.click(`[role="option"]:has-text("${type}")`);
   }
@@ -173,18 +173,18 @@ export class JournalHelpers {
    */
   async createJournalEntry(description: string, lines: JournalLine[]) {
     await this.openCreateDialog();
-    
+
     // 摘要入力
     await this.page.fill('input[name="description"]', description);
-    
+
     // 仕訳明細入力
     for (let i = 0; i < lines.length; i++) {
       await this.setJournalLine(i, lines[i]);
     }
-    
+
     // 作成ボタンクリック
     await this.page.click('button:has-text("作成")');
-    
+
     // ダイアログが閉じるまで待機
     await expect(this.page.locator('[role="dialog"]')).toBeHidden();
   }
@@ -194,11 +194,11 @@ export class JournalHelpers {
    */
   async setJournalLine(lineIndex: number, line: JournalLine) {
     const lineLocator = this.page.locator(`[data-testid="journal-line-${lineIndex}"]`);
-    
+
     // 勘定科目選択
     await lineLocator.locator('button[role="combobox"]').click();
     await this.page.click(`[role="option"]:has-text("${line.accountName}")`);
-    
+
     // 借方・貸方金額入力
     if (line.debitAmount > 0) {
       await lineLocator.locator('input[name*="debit"]').fill(line.debitAmount.toString());
@@ -240,7 +240,9 @@ export class TestUtils {
    * ランダムな文字列生成
    */
   static randomString(length: number = 8): string {
-    return Math.random().toString(36).substring(2, length + 2);
+    return Math.random()
+      .toString(36)
+      .substring(2, length + 2);
   }
 
   /**

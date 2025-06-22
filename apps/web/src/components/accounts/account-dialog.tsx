@@ -91,7 +91,7 @@ export function AccountDialog({
         ...data,
         parentId: data.parentId === 'none' ? undefined : data.parentId,
       };
-      
+
       if (account) {
         // Update existing account
         const response = await apiClient.put(`/accounts/${account.id}`, processedData);
@@ -127,9 +127,7 @@ export function AccountDialog({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{account ? '勘定科目の編集' : '勘定科目の新規作成'}</DialogTitle>
-          <DialogDescription>
-            勘定科目の情報を入力してください
-          </DialogDescription>
+          <DialogDescription>勘定科目の情報を入力してください</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -165,8 +163,8 @@ export function AccountDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>タイプ</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
+                  <Select
+                    onValueChange={field.onChange}
                     defaultValue={field.value}
                     disabled={!!account}
                   >
@@ -193,10 +191,7 @@ export function AccountDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>親科目（任意）</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                  >
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="親科目を選択" />
@@ -219,9 +214,7 @@ export function AccountDialog({
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 キャンセル
               </Button>
-              <Button type="submit">
-                {account ? '更新' : '作成'}
-              </Button>
+              <Button type="submit">{account ? '更新' : '作成'}</Button>
             </DialogFooter>
           </form>
         </Form>

@@ -2,8 +2,9 @@
  * API-specific error classes
  */
 
-import { BaseError } from './base-error';
 import { ValidationError } from '@simple-bookkeeping/types';
+
+import { BaseError } from './base-error';
 
 export class ApiError extends BaseError {
   constructor(message: string, statusCode = 500, code = 'API_ERROR') {
@@ -13,9 +14,7 @@ export class ApiError extends BaseError {
 
 export class NotFoundError extends ApiError {
   constructor(resource: string, id?: string) {
-    const message = id
-      ? `${resource} with id ${id} not found`
-      : `${resource} not found`;
+    const message = id ? `${resource} with id ${id} not found` : `${resource} not found`;
     super(message, 404, 'NOT_FOUND');
   }
 }
@@ -36,7 +35,7 @@ export class ValidationApiError extends ApiError {
   public readonly details: ValidationError[];
 
   constructor(details: ValidationError[]) {
-    const message = details.map(d => d.message).join(', ');
+    const message = details.map((d) => d.message).join(', ');
     super(message, 400, 'VALIDATION_ERROR');
     this.details = details;
   }

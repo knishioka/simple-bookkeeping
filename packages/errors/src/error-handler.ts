@@ -2,10 +2,11 @@
  * Centralized error handling utilities
  */
 
-import { Response } from 'express';
-import { BaseError } from './base-error';
-import { ValidationApiError } from './api-errors';
 import { ApiResponse } from '@simple-bookkeeping/types';
+import { Response } from 'express';
+
+import { ValidationApiError } from './api-errors';
+import { BaseError } from './base-error';
 
 export function handleError(error: Error, res: Response): void {
   if (error instanceof ValidationApiError) {

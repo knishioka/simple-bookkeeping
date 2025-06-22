@@ -71,6 +71,7 @@ describe('バリデーションエラーのユーザーシナリオ', () => {
 ```
 
 **実装のコツ:**
+
 - 実際のユーザーが入力するデータパターンを使用
 - エラー状態の視覚的フィードバックを確認
 - 操作が適切にブロックされることを検証
@@ -83,7 +84,7 @@ describe('バリデーションエラーのユーザーシナリオ', () => {
 describe('API通信エラーのユーザーシナリオ', () => {
   it('【シナリオ5】API通信エラー時に適切なエラーメッセージが表示される', async () => {
     const user = userEvent.setup();
-    
+
     // API エラーをモック
     mockApiClient.post.mockRejectedValue(new Error('Network error'));
 
@@ -108,6 +109,7 @@ describe('API通信エラーのユーザーシナリオ', () => {
 ```
 
 **実装のコツ:**
+
 - 実際に起こりうるネットワークエラーをシミュレート
 - ユーザーへの適切なフィードバックを確認
 - データ損失を防ぐ処理を検証
@@ -120,7 +122,7 @@ describe('API通信エラーのユーザーシナリオ', () => {
 describe('ローディング状態のユーザーシナリオ', () => {
   it('【シナリオ11】保存中のローディング表示と操作無効化', async () => {
     const user = userEvent.setup();
-    
+
     // 保存API を遅延させる
     let resolvePromise: (value: any) => void;
     const savePromise = new Promise(resolve => {
@@ -147,6 +149,7 @@ describe('ローディング状態のユーザーシナリオ', () => {
 ```
 
 **実装のコツ:**
+
 - Promise制御による非同期処理のシミュレート
 - ローディング中のUI状態を詳細に確認
 - ユーザーの操作ミスを防ぐ仕組みを検証
@@ -161,15 +164,15 @@ describe('ローディング状態のユーザーシナリオ', () => {
 // ✅ 実用的なアプローチ
 it('【シナリオ8】タイプ変更時に親科目選択肢が適切にフィルタリングされる', async () => {
   const user = userEvent.setup();
-  
+
   render(<AccountDialog open={true} {...props} />);
 
   // 基本的な操作のみテスト
   await user.click(screen.getByRole('combobox', { name: 'タイプ' }));
-  
+
   // 期待値をテストするが、完全な動作は求めない
   expect(screen.getByRole('option', { name: '1000 - 流動資産' })).toBeInTheDocument();
-  
+
   // コメントで制約を明記
   // Note: Radix UI Select の完全なテストはJSDOM環境では困難
 });
@@ -270,9 +273,12 @@ const realisticFormData = {
 
 ```typescript
 // ✅ 必要最小限の待機
-await waitFor(() => {
-  expect(screen.getByText('エラーメッセージ')).toBeInTheDocument();
-}, { timeout: 1000 });
+await waitFor(
+  () => {
+    expect(screen.getByText('エラーメッセージ')).toBeInTheDocument();
+  },
+  { timeout: 1000 }
+);
 
 // ✅ 並行テスト実行
 describe.concurrent('API Client Tests', () => {
@@ -280,7 +286,7 @@ describe.concurrent('API Client Tests', () => {
 });
 
 // ❌ 不要な待機時間
-await new Promise(resolve => setTimeout(resolve, 2000));
+await new Promise((resolve) => setTimeout(resolve, 2000));
 ```
 
 ## ファイル構成
@@ -346,7 +352,9 @@ describe('AccountDialog Tests', () => {
   const freshProps = () => ({
     open: true,
     onOpenChange: jest.fn(),
-    accounts: [/* fresh data */],
+    accounts: [
+      /* fresh data */
+    ],
     onSuccess: jest.fn(),
   });
 });

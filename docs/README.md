@@ -22,11 +22,13 @@ Frontend (Next.js 14)  ←→  Backend API (Express.js)  ←→  Database (Postg
 ## 🚀 クイックスタート
 
 ### 前提条件
+
 - Node.js 18+
 - pnpm
 - PostgreSQL 15+
 
 ### デモページアクセス（最速）
+
 ```bash
 # リポジトリクローン
 git clone https://github.com/your-username/simple-bookkeeping.git
@@ -41,6 +43,7 @@ pnpm --filter @simple-bookkeeping/web dev
 ```
 
 ### 本格セットアップ
+
 ```bash
 # 環境変数設定
 cp .env.example .env
@@ -59,12 +62,14 @@ docker-compose up -d
 ## 📚 主要機能
 
 ### 1. 勘定科目管理
+
 - 日本の標準的な勘定科目をプリセット
 - カスタム勘定科目の追加・編集
 - 勘定科目の階層管理（親子関係）
 - コード・名称による検索とフィルタリング
 
 ### 2. 仕訳入力
+
 - 複式簿記による正確な仕訳入力
 - 借方・貸方の自動バランス検証
 - 複数行仕訳対応
@@ -72,12 +77,14 @@ docker-compose up -d
 - 証憑番号管理
 
 ### 3. 帳票・レポート
+
 - 貸借対照表（BS）の自動生成
 - 損益計算書（PL）の自動生成
 - 試算表の出力
 - 各種帳簿の出力
 
 ### 4. 青色申告サポート
+
 - 青色申告決算書対応
 - 65万円特別控除要件対応
 - 電子帳簿保存法対応準備
@@ -86,15 +93,16 @@ docker-compose up -d
 
 認証不要でシステムの機能をお試しいただけます：
 
-| ページ | URL | 機能 |
-|--------|-----|------|
-| デモ概要 | `/demo` | 全機能の概要 |
-| 勘定科目管理 | `/demo/accounts` | 勘定科目のCRUD操作 |
-| 仕訳入力 | `/demo/journal-entries` | 複式簿記入力体験 |
+| ページ       | URL                     | 機能               |
+| ------------ | ----------------------- | ------------------ |
+| デモ概要     | `/demo`                 | 全機能の概要       |
+| 勘定科目管理 | `/demo/accounts`        | 勘定科目のCRUD操作 |
+| 仕訳入力     | `/demo/journal-entries` | 複式簿記入力体験   |
 
 ## 🔧 開発者向け情報
 
 ### プロジェクト構造
+
 ```
 simple-bookkeeping/
 ├── apps/
@@ -111,6 +119,7 @@ simple-bookkeeping/
 ### 技術スタック
 
 #### フロントエンド
+
 - **Next.js 14**: App Router、Server Components
 - **TypeScript**: 完全な型安全性
 - **shadcn/ui**: モダンなUIコンポーネント
@@ -118,21 +127,25 @@ simple-bookkeeping/
 - **Zod**: バリデーション
 
 #### バックエンド
+
 - **Express.js**: RESTful API
 - **Prisma**: TypeScript ORM
 - **JWT**: 認証・認可
 - **bcrypt**: パスワードハッシュ化
 
 #### データベース
+
 - **PostgreSQL 15**: メインデータベース
 - **Redis**: セッション管理（オプション）
 
 #### インフラ
+
 - **Docker**: コンテナ化
 - **GitHub Actions**: CI/CD
 - **pnpm**: モノレポ管理
 
 ### 開発コマンド
+
 ```bash
 # 開発サーバー起動
 pnpm dev                    # 全サービス
@@ -167,28 +180,31 @@ pnpm db:studio              # Prisma Studio
 ## 📖 ドキュメント
 
 ### アーキテクチャ・設計
-| ドキュメント | 内容 |
-|-------------|------|
-| [システム構成](../SYSTEM-ARCHITECTURE.md) | システム全体アーキテクチャ |
-| [システム仕様書](./specifications/system-requirements.md) | 機能要件・非機能要件 |
-| [データモデル](./specifications/data-model.md) | ER図・テーブル定義 |
-| [API仕様書](./specifications/api-design.md) | REST API エンドポイント |
+
+| ドキュメント                                              | 内容                       |
+| --------------------------------------------------------- | -------------------------- |
+| [システム構成](../SYSTEM-ARCHITECTURE.md)                 | システム全体アーキテクチャ |
+| [システム仕様書](./specifications/system-requirements.md) | 機能要件・非機能要件       |
+| [データモデル](./specifications/data-model.md)            | ER図・テーブル定義         |
+| [API仕様書](./specifications/api-design.md)               | REST API エンドポイント    |
 
 ### テスト・品質管理
-| ドキュメント | 内容 |
-|-------------|------|
-| [E2Eテスト実装ガイド](./e2e-test-implementation.md) | Playwrightテスト詳細 |
-| [ユーザーストーリーテスト](./user-story-testing-guide.md) | ストーリー駆動テスト |
-| [フロントエンドテスト](./testing/frontend-testing-guide.md) | React Testing Library |
-| [テストアンチパターン](./testing/testing-antipatterns-and-solutions.md) | よくある問題と解決策 |
+
+| ドキュメント                                                            | 内容                  |
+| ----------------------------------------------------------------------- | --------------------- |
+| [E2Eテスト実装ガイド](./e2e-test-implementation.md)                     | Playwrightテスト詳細  |
+| [ユーザーストーリーテスト](./user-story-testing-guide.md)               | ストーリー駆動テスト  |
+| [フロントエンドテスト](./testing/frontend-testing-guide.md)             | React Testing Library |
+| [テストアンチパターン](./testing/testing-antipatterns-and-solutions.md) | よくある問題と解決策  |
 
 ### 開発・運用
-| ドキュメント | 内容 |
-|-------------|------|
-| [実装計画](./implementation-plan/roadmap.md) | 開発ロードマップ |
-| [技術スタック](./implementation-plan/tech-stack.md) | 技術選定理由 |
-| [Dockerセットアップ](./docker-setup.md) | Docker環境構築 |
-| [AIコーディングガイド](../CLAUDE.md) | Claude向けガイドライン |
+
+| ドキュメント                                        | 内容                   |
+| --------------------------------------------------- | ---------------------- |
+| [実装計画](./implementation-plan/roadmap.md)        | 開発ロードマップ       |
+| [技術スタック](./implementation-plan/tech-stack.md) | 技術選定理由           |
+| [Dockerセットアップ](./docker-setup.md)             | Docker環境構築         |
+| [AIコーディングガイド](../CLAUDE.md)                | Claude向けガイドライン |
 
 ## 🔐 セキュリティ
 
@@ -215,12 +231,14 @@ pnpm db:studio              # Prisma Studio
 ## 🧪 テスト戦略
 
 ### テストピラミッド
+
 - **単体テスト**: Jest + React Testing Library (カバレッジ80%以上)
 - **統合テスト**: Supertest (API) + MSW (フロントエンド)
 - **E2Eテスト**: Playwright (ユーザーストーリーベース)
 - **型安全性**: TypeScript strict mode
 
 ### 特徴的なテスト
+
 - **ユーザーストーリーテスト**: 実際の利用シナリオをテスト
 - **パフォーマンステスト**: 1000件のデータ処理、メモリリーク検出
 - **セキュリティテスト**: XSS/CSRF対策、認可チェック
@@ -229,11 +247,13 @@ pnpm db:studio              # Prisma Studio
 ## 🚀 デプロイ
 
 ### 開発環境
+
 ```bash
 docker-compose -f docker-compose.dev.yml up -d
 ```
 
 ### 本番環境
+
 ```bash
 # 環境変数設定
 export NODE_ENV=production
@@ -253,6 +273,7 @@ docker-compose -f docker-compose.prod.yml up -d
 5. プルリクエストを作成
 
 ### 開発ルール
+
 - [CLAUDE.md](../CLAUDE.md) の開発ガイドラインに従う
 - TypeScript strict mode使用
 - ESLint・Prettierルール遵守
@@ -271,6 +292,7 @@ docker-compose -f docker-compose.prod.yml up -d
 ## 🙏 謝辞
 
 このプロジェクトは以下のオープンソースプロジェクトの恩恵を受けています：
+
 - Next.js
 - Prisma
 - shadcn/ui

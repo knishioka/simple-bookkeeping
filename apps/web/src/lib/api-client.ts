@@ -87,10 +87,7 @@ class ApiClient {
     }
   }
 
-  async request<T>(
-    path: string,
-    options: RequestInit = {}
-  ): Promise<ApiResponse<T>> {
+  async request<T>(path: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
     const url = `${this.config.baseUrl}${path}`;
     const headers = this.getHeaders();
 

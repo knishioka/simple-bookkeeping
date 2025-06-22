@@ -79,28 +79,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (response.data) {
         apiClient.setToken(response.data.token, response.data.refreshToken);
-        
+
         // Get user's organizations
         const orgsResponse = await apiClient.get<Organization[]>('/organizations/mine');
         if (orgsResponse.data) {
           const organizations = orgsResponse.data;
-          const defaultOrg = organizations.find(org => org.isDefault) || organizations[0];
-          
+          const defaultOrg = organizations.find((org) => org.isDefault) || organizations[0];
+
           const fullUser: User = {
             ...response.data.user,
             organizations,
             currentOrganization: defaultOrg,
           };
-          
+
           setUser(fullUser);
           setCurrentOrganization(defaultOrg);
-          
+
           // Set default organization in API client headers
           if (defaultOrg) {
             apiClient.setOrganizationId(defaultOrg.id);
           }
         }
-        
+
         toast.success('ログインしました');
         router.push('/dashboard');
       }
@@ -134,7 +134,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const switchOrganization = async (organizationId: string) => {
     if (!user) return;
 
-    const organization = user.organizations.find(org => org.id === organizationId);
+    const organization = user.organizations.find((org) => org.id === organizationId);
     if (!organization) {
       toast.error('組織が見つかりません');
       return;
@@ -145,12 +145,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       ...user,
       currentOrganization: organization,
     });
-    
+
     // Update API client with new organization
     apiClient.setOrganizationId(organizationId);
-    
+
     toast.success(`${organization.name} に切り替えました`);
-    
+
     // Refresh the current page to reload data
     router.refresh();
   };

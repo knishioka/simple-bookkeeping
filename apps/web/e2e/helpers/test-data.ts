@@ -1,6 +1,6 @@
 /**
  * E2Eテスト用のテストデータ管理
- * 
+ *
  * 一貫性のあるテストデータを提供し、
  * テスト間でのデータ競合を避けます。
  */
@@ -18,7 +18,7 @@ export const TEST_USERS = {
     role: 'ADMIN' as const,
   },
   accountant: {
-    email: 'accountant@test.local', 
+    email: 'accountant@test.local',
     password: 'AccountantTest123!',
     name: '経理担当テスト',
     role: 'ACCOUNTANT' as const,
@@ -26,7 +26,7 @@ export const TEST_USERS = {
   viewer: {
     email: 'viewer@test.local',
     password: 'ViewerTest123!',
-    name: '閲覧者テスト', 
+    name: '閲覧者テスト',
     role: 'VIEWER' as const,
   },
 } as const;
@@ -39,19 +39,19 @@ export const STANDARD_ACCOUNTS = {
   cash: { code: '1110', name: '現金', type: 'ASSET' },
   bank: { code: '1120', name: '普通預金', type: 'ASSET' },
   receivables: { code: '1130', name: '売掛金', type: 'ASSET' },
-  
+
   // 負債
   payables: { code: '2110', name: '買掛金', type: 'LIABILITY' },
   shortTermLoans: { code: '2120', name: '短期借入金', type: 'LIABILITY' },
-  
+
   // 純資産
   capital: { code: '3110', name: '資本金', type: 'EQUITY' },
   retainedEarnings: { code: '3120', name: '繰越利益剰余金', type: 'EQUITY' },
-  
+
   // 収益
   sales: { code: '4110', name: '売上高', type: 'REVENUE' },
   otherIncome: { code: '4120', name: 'その他の収益', type: 'REVENUE' },
-  
+
   // 費用
   purchases: { code: '5110', name: '仕入高', type: 'EXPENSE' },
   rent: { code: '5120', name: '地代家賃', type: 'EXPENSE' },
@@ -70,7 +70,7 @@ export const JOURNAL_PATTERNS = {
       { account: STANDARD_ACCOUNTS.sales, debit: 0, credit: amount },
     ],
   }),
-  
+
   // 掛売上
   creditSales: (amount: number) => ({
     description: '掛売上',
@@ -79,7 +79,7 @@ export const JOURNAL_PATTERNS = {
       { account: STANDARD_ACCOUNTS.sales, debit: 0, credit: amount },
     ],
   }),
-  
+
   // 売掛金回収
   collectReceivables: (amount: number) => ({
     description: '売掛金回収',
@@ -88,7 +88,7 @@ export const JOURNAL_PATTERNS = {
       { account: STANDARD_ACCOUNTS.receivables, debit: 0, credit: amount },
     ],
   }),
-  
+
   // 現金仕入
   cashPurchase: (amount: number) => ({
     description: '現金仕入',
@@ -97,7 +97,7 @@ export const JOURNAL_PATTERNS = {
       { account: STANDARD_ACCOUNTS.cash, debit: 0, credit: amount },
     ],
   }),
-  
+
   // 掛仕入
   creditPurchase: (amount: number) => ({
     description: '掛仕入',
@@ -106,7 +106,7 @@ export const JOURNAL_PATTERNS = {
       { account: STANDARD_ACCOUNTS.payables, debit: 0, credit: amount },
     ],
   }),
-  
+
   // 家賃支払い
   rentPayment: (amount: number) => ({
     description: '家賃支払い',
@@ -125,7 +125,9 @@ export class TestDataBuilder {
    * ユニークな勘定科目コードを生成
    */
   static generateUniqueAccountCode(baseCode: string = '9999'): string {
-    const suffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    const suffix = Math.floor(Math.random() * 1000)
+      .toString()
+      .padStart(3, '0');
     return `${baseCode}${suffix}`;
   }
 
@@ -146,7 +148,7 @@ export class TestDataBuilder {
    */
   static createTestJournalEntry(overrides: Partial<JournalEntryData> = {}): JournalEntryData {
     const amount = Math.floor(Math.random() * 100000) + 10000;
-    
+
     return {
       description: `テスト仕訳_${TestUtils.randomString(6)}`,
       entryDate: TestUtils.getCurrentDate(),
@@ -231,9 +233,9 @@ export class TestCleanup {
    */
   static isTestData(data: { code?: string; email?: string; name?: string }): boolean {
     return !!(
-      (data.code?.startsWith(this.TEST_PREFIX)) ||
-      (data.email?.endsWith(this.TEST_EMAIL_DOMAIN)) ||
-      (data.name?.includes('テスト'))
+      data.code?.startsWith(this.TEST_PREFIX) ||
+      data.email?.endsWith(this.TEST_EMAIL_DOMAIN) ||
+      data.name?.includes('テスト')
     );
   }
 }

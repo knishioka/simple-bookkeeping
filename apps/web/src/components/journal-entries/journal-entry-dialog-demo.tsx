@@ -37,20 +37,25 @@ const journalEntrySchema = z.object({
   entryDate: z.string().min(1, '日付は必須です'),
   description: z.string().min(1, '摘要は必須です').max(100, '摘要は100文字以内で入力してください'),
   documentNumber: z.string().optional(),
-  lines: z.array(z.object({
-    accountId: z.string().min(1, '勘定科目を選択してください'),
-    debitAmount: z.number().min(0),
-    creditAmount: z.number().min(0),
-    description: z.string().optional(),
-    taxRate: z.number().optional(),
-  })).min(2, '仕訳明細は最低2行必要です').refine(
-    (lines) => {
-      const totalDebit = lines.reduce((sum, line) => sum + line.debitAmount, 0);
-      const totalCredit = lines.reduce((sum, line) => sum + line.creditAmount, 0);
-      return totalDebit === totalCredit && totalDebit > 0;
-    },
-    { message: '借方と貸方の合計が一致していません' }
-  ),
+  lines: z
+    .array(
+      z.object({
+        accountId: z.string().min(1, '勘定科目を選択してください'),
+        debitAmount: z.number().min(0),
+        creditAmount: z.number().min(0),
+        description: z.string().optional(),
+        taxRate: z.number().optional(),
+      })
+    )
+    .min(2, '仕訳明細は最低2行必要です')
+    .refine(
+      (lines) => {
+        const totalDebit = lines.reduce((sum, line) => sum + line.debitAmount, 0);
+        const totalCredit = lines.reduce((sum, line) => sum + line.creditAmount, 0);
+        return totalDebit === totalCredit && totalDebit > 0;
+      },
+      { message: '借方と貸方の合計が一致していません' }
+    ),
 });
 
 type JournalEntryFormData = z.infer<typeof journalEntrySchema>;
@@ -120,14 +125,14 @@ export function JournalEntryDialogDemo({
   const onSubmit = async (_data: JournalEntryFormData) => {
     try {
       // デモ用: API呼び出しの代わりに成功メッセージを表示
-      await new Promise(resolve => setTimeout(resolve, 500)); // 擬似的な遅延
-      
+      await new Promise((resolve) => setTimeout(resolve, 500)); // 擬似的な遅延
+
       if (entry) {
         toast.success('仕訳を更新しました（デモ）');
       } else {
         toast.success('仕訳を作成しました（デモ）');
       }
-      
+
       onSuccess();
       onOpenChange(false);
       form.reset();
@@ -147,9 +152,7 @@ export function JournalEntryDialogDemo({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{entry ? '仕訳の編集' : '仕訳の新規作成'}</DialogTitle>
-          <DialogDescription>
-            仕訳の情報を入力してください（デモ版）
-          </DialogDescription>
+          <DialogDescription>仕訳の情報を入力してください（デモ版）</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -174,8 +177,8 @@ export function JournalEntryDialogDemo({
                   <FormItem className="col-span-2">
                     <FormLabel>摘要</FormLabel>
                     <FormControl>
-                      <Textarea 
-                        {...field} 
+                      <Textarea
+                        {...field}
                         placeholder="仕訳の摘要を入力"
                         className="resize-none"
                         rows={1}
@@ -208,7 +211,15 @@ export function JournalEntryDialogDemo({
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => append({ accountId: '', debitAmount: 0, creditAmount: 0, description: '', taxRate: 0 })}
+                  onClick={() =>
+                    append({
+                      accountId: '',
+                      debitAmount: 0,
+                      creditAmount: 0,
+                      description: '',
+                      taxRate: 0,
+                    })
+                  }
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   行を追加
@@ -303,8 +314,8 @@ export function JournalEntryDialogDemo({
                       name={`lines.${index}.taxRate`}
                       render={({ field }) => (
                         <FormItem className="col-span-1">
-                          <Select 
-                            onValueChange={(value) => field.onChange(Number(value))} 
+                          <Select
+                            onValueChange={(value) => field.onChange(Number(value))}
                             defaultValue={String(field.value || 0)}
                           >
                             <FormControl>

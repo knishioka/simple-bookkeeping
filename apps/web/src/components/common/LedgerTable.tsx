@@ -28,17 +28,13 @@ interface LedgerTableProps {
   emptyMessage?: string;
 }
 
-export function LedgerTable({ 
-  entries, 
+export function LedgerTable({
+  entries,
   showAccount = false,
-  emptyMessage = 'データがありません'
+  emptyMessage = 'データがありません',
 }: LedgerTableProps) {
   if (entries.length === 0) {
-    return (
-      <div className="text-center py-8 text-gray-500">
-        {emptyMessage}
-      </div>
-    );
+    return <div className="text-center py-8 text-gray-500">{emptyMessage}</div>;
   }
 
   return (
@@ -68,18 +64,14 @@ export function LedgerTable({
                 <TableCell>{entry.accountName}</TableCell>
               </>
             )}
-            <TableCell>
-              {entry.journalEntry?.description || entry.description}
-            </TableCell>
+            <TableCell>{entry.journalEntry?.description || entry.description}</TableCell>
             <TableCell className="text-right">
               {entry.debitAmount > 0 ? formatAmount(entry.debitAmount) : '-'}
             </TableCell>
             <TableCell className="text-right">
               {entry.creditAmount > 0 ? formatAmount(entry.creditAmount) : '-'}
             </TableCell>
-            <TableCell className="text-right font-medium">
-              {formatAmount(entry.balance)}
-            </TableCell>
+            <TableCell className="text-right font-medium">{formatAmount(entry.balance)}</TableCell>
           </TableRow>
         ))}
       </TableBody>

@@ -39,16 +39,15 @@ export default function DemoPage() {
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Simple Bookkeeping - 機能デモ
-          </h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Simple Bookkeeping - 機能デモ</h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             日本の確定申告に対応した複式簿記システムの機能をご確認いただけます。
             各デモページでは実際のUIと操作感を体験できます。
           </p>
           <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg max-w-4xl mx-auto">
             <p className="text-sm text-yellow-800">
-              <strong>注意:</strong> これらはデモページです。データの保存や実際の処理は行われません。
+              <strong>注意:</strong>{' '}
+              これらはデモページです。データの保存や実際の処理は行われません。
               本格的な利用には認証とデータベースの設定が必要です。
             </p>
           </div>
@@ -59,9 +58,7 @@ export default function DemoPage() {
             <Card key={page.href} className="h-full">
               <CardHeader>
                 <CardTitle className="text-2xl">{page.title}</CardTitle>
-                <CardDescription className="text-base">
-                  {page.description}
-                </CardDescription>
+                <CardDescription className="text-base">{page.description}</CardDescription>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
                 <div className="flex-1">
@@ -77,9 +74,7 @@ export default function DemoPage() {
                 </div>
                 <div className="mt-auto">
                   <Link href={page.href}>
-                    <Button className="w-full">
-                      {page.title}のデモを見る
-                    </Button>
+                    <Button className="w-full">{page.title}のデモを見る</Button>
                   </Link>
                 </div>
               </CardContent>
@@ -122,9 +117,7 @@ export default function DemoPage() {
 
         <div className="text-center mt-12">
           <Link href="/">
-            <Button variant="outline">
-              メインページに戻る
-            </Button>
+            <Button variant="outline">メインページに戻る</Button>
           </Link>
         </div>
       </div>

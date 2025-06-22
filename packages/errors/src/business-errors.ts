@@ -21,19 +21,13 @@ export class InsufficientBalanceError extends BusinessError {
 
 export class UnbalancedEntryError extends BusinessError {
   constructor(debitTotal: number, creditTotal: number) {
-    super(
-      `借方合計(${debitTotal})と貸方合計(${creditTotal})が一致しません`,
-      'UNBALANCED_ENTRY'
-    );
+    super(`借方合計(${debitTotal})と貸方合計(${creditTotal})が一致しません`, 'UNBALANCED_ENTRY');
   }
 }
 
 export class ClosedPeriodError extends BusinessError {
   constructor(periodName: string) {
-    super(
-      `会計期間「${periodName}」は既に締められています`,
-      'CLOSED_PERIOD'
-    );
+    super(`会計期間「${periodName}」は既に締められています`, 'CLOSED_PERIOD');
   }
 }
 
@@ -48,9 +42,6 @@ export class InvalidAccountTypeError extends BusinessError {
 
 export class DuplicateEntryError extends BusinessError {
   constructor(field: string, value: string) {
-    super(
-      `${field}「${value}」は既に存在します`,
-      'DUPLICATE_ENTRY'
-    );
+    super(`${field}「${value}」は既に存在します`, 'DUPLICATE_ENTRY');
   }
 }

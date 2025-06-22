@@ -29,10 +29,14 @@ interface ProfitLossData {
 }
 
 export class ReportsService {
-  async getBalanceSheet(accountingPeriodId: string, asOfDate: Date, organizationId: string): Promise<BalanceSheetData> {
+  async getBalanceSheet(
+    accountingPeriodId: string,
+    asOfDate: Date,
+    organizationId: string
+  ): Promise<BalanceSheetData> {
     // 会計期間の検証
     const accountingPeriod = await prisma.accountingPeriod.findFirst({
-      where: { 
+      where: {
         id: accountingPeriodId,
         organizationId,
       },
@@ -140,7 +144,7 @@ export class ReportsService {
   ): Promise<ProfitLossData> {
     // 会計期間の検証
     const accountingPeriod = await prisma.accountingPeriod.findFirst({
-      where: { 
+      where: {
         id: accountingPeriodId,
         organizationId,
       },

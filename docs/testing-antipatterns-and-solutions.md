@@ -45,7 +45,7 @@ describe('AccountDialog - ユーザーインタラクション', () => {
   it('【シナリオ1】必須項目未入力時に適切なエラーメッセージが表示される', async () => {
     const user = userEvent.setup();
     const mockOnSuccess = jest.fn();
-    
+
     render(
       <AccountDialog
         open={true}
@@ -135,7 +135,7 @@ jest.mock('@/lib/api-client', () => ({
 describe('AccountDialog Integration', () => {
   it('【シナリオ2】正しい情報入力で勘定科目が作成される', async () => {
     const user = userEvent.setup();
-    
+
     mockApiClient.post.mockResolvedValue({
       data: { id: '1', code: '1110', name: '現金' }
     });
@@ -145,7 +145,7 @@ describe('AccountDialog Integration', () => {
     // 実際のフォームコンポーネントとの統合をテスト
     await user.type(screen.getByLabelText('コード'), '1110');
     await user.type(screen.getByLabelText('科目名'), '現金');
-    
+
     // 実際のSelectコンポーネントとの統合をテスト
     await user.click(screen.getByRole('combobox'));
     await user.click(screen.getByRole('option', { name: '資産' }));
@@ -181,7 +181,7 @@ describe('Complex Radix UI Select', () => {
     await user.click(screen.getByRole('option', { name: 'Option 1' }));
     await user.keyboard('{ArrowDown}');
     await user.keyboard('{Enter}');
-    
+
     // scrollIntoViewが存在しないためエラーになる
     expect(screen.getByDisplayValue('Option 2')).toBeInTheDocument();
   });
@@ -201,16 +201,16 @@ describe('Complex Radix UI Select', () => {
 describe('Select Component - 実用的テスト', () => {
   it('【シナリオ8】タイプ変更時に親科目選択肢が適切にフィルタリングされる', async () => {
     const user = userEvent.setup();
-    
+
     render(<AccountDialog {...props} />);
 
     // 基本的な操作のみテスト（制約を受け入れる）
     await user.click(screen.getByRole('combobox', { name: 'タイプ' }));
-    
+
     // 期待される要素が存在するかのみ確認
     expect(screen.getByRole('option', { name: '1000 - 流動資産' })).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: '4000 - 売上' })).not.toBeInTheDocument();
-    
+
     // 制約について明確にコメント
     // Note: Radix UI Selectの完全なインタラクションはJSDOM環境では制限があります
     // ブラウザでの手動テストまたはE2Eテストで補完してください
@@ -227,13 +227,13 @@ describe('Select Component - 実用的テスト', () => {
 describe('API Integration', () => {
   it('should save account successfully', () => {
     const user = userEvent.setup();
-    
+
     render(<AccountDialog {...props} />);
-    
+
     // 非同期の入力操作を同期的に実行
     user.type(screen.getByLabelText('コード'), '1110');
     user.click(screen.getByRole('button', { name: '作成' }));
-    
+
     // すぐに結果を期待（非同期処理を待機していない）
     expect(mockApiClient.post).toHaveBeenCalled();
     expect(screen.getByText('作成しました')).toBeInTheDocument();
@@ -254,23 +254,23 @@ describe('API Integration', () => {
 describe('API Integration - 適切な非同期処理', () => {
   it('【シナリオ2】正しい情報入力で勘定科目が作成される', async () => {
     const user = userEvent.setup();
-    
+
     mockApiClient.post.mockResolvedValue({
       data: { id: '1', code: '1110', name: '現金' }
     });
 
     render(<AccountDialog {...props} />);
-    
+
     // 非同期操作を適切に待機
     await user.type(screen.getByLabelText('コード'), '1110');
     await user.type(screen.getByLabelText('科目名'), '現金');
     await user.click(screen.getByRole('button', { name: '作成' }));
-    
+
     // 非同期結果を適切に待機
     await waitFor(() => {
       expect(mockApiClient.post).toHaveBeenCalled();
     });
-    
+
     await waitFor(() => {
       expect(mockToast.success).toHaveBeenCalledWith('勘定科目を作成しました');
     });
@@ -324,7 +324,7 @@ describe('Journal Entry Validation', () => {
         taxRate: 10,
       },
       {
-        accountId: 'sales-account-id', 
+        accountId: 'sales-account-id',
         accountCode: '4000',
         accountName: '売上高',
         debitAmount: 0,
@@ -347,10 +347,10 @@ describe('Journal Entry Validation', () => {
   it('【シナリオ1】消費税込みの売上仕訳が正しく処理される', async () => {
     // 実際の会計業務で発生するデータパターンをテスト
     render(<JournalEntryDialog entry={realisticJournalEntry} {...props} />);
-    
+
     // 借方・貸方の合計が一致していることを確認
     expect(screen.getByText('差額: ¥0')).toBeInTheDocument();
-    
+
     // 税額計算が正しいことを確認
     expect(screen.getByDisplayValue('8000')).toBeInTheDocument();
   });
@@ -366,27 +366,27 @@ describe('Journal Entry Validation', () => {
 describe('Account Management', () => {
   it('should handle complete account lifecycle', async () => {
     const user = userEvent.setup();
-    
+
     // アカウント作成
     render(<AccountDialog {...createProps} />);
     await user.type(screen.getByLabelText('コード'), '1110');
     await user.type(screen.getByLabelText('科目名'), '現金');
     await user.click(screen.getByRole('button', { name: '作成' }));
-    
+
     // アカウント一覧表示
     render(<AccountList />);
     expect(screen.getByText('現金')).toBeInTheDocument();
-    
+
     // アカウント編集
     await user.click(screen.getByRole('button', { name: '編集' }));
     render(<AccountDialog {...editProps} />);
     await user.clear(screen.getByLabelText('科目名'));
     await user.type(screen.getByLabelText('科目名'), '現金・小切手');
     await user.click(screen.getByRole('button', { name: '更新' }));
-    
+
     // アカウント削除
     await user.click(screen.getByRole('button', { name: '削除' }));
-    
+
     // 複数のアサーション
     expect(mockApiClient.post).toHaveBeenCalledTimes(1);
     expect(mockApiClient.put).toHaveBeenCalledTimes(1);
@@ -409,7 +409,7 @@ describe('Account Management', () => {
 describe('Account Dialog - 作成機能', () => {
   it('【シナリオ2】正しい情報入力で勘定科目が作成される', async () => {
     const user = userEvent.setup();
-    
+
     mockApiClient.post.mockResolvedValue({
       data: { id: '1', code: '1110', name: '現金' }
     });
@@ -435,14 +435,14 @@ describe('Account Dialog - 作成機能', () => {
 describe('Account Dialog - 編集機能', () => {
   it('【シナリオ4】既存勘定科目の名称を変更する', async () => {
     const user = userEvent.setup();
-    const existingAccount = { 
-      id: '1', 
-      code: '1110', 
-      name: '現金', 
-      accountType: 'ASSET' as const, 
-      parentId: null 
+    const existingAccount = {
+      id: '1',
+      code: '1110',
+      name: '現金',
+      accountType: 'ASSET' as const,
+      parentId: null
     };
-    
+
     mockApiClient.put.mockResolvedValue({
       data: { ...existingAccount, name: '現金・小切手' }
     });
@@ -475,10 +475,10 @@ describe('Account Dialog - 編集機能', () => {
 describe('Async Operations', () => {
   it('should load data after delay', async () => {
     render(<DataComponent />);
-    
+
     // 固定的な待機（環境により動作が不安定）
     await new Promise(resolve => setTimeout(resolve, 2000));
-    
+
     expect(screen.getByText('データが読み込まれました')).toBeInTheDocument();
   });
 });
@@ -497,21 +497,21 @@ describe('Async Operations', () => {
 describe('Async Operations - 効率的な待機', () => {
   it('【シナリオ1】データ読み込み完了を適切に待機する', async () => {
     render(<DataComponent />);
-    
+
     // 条件ベースの待機（最適な時間で完了）
     await waitFor(() => {
       expect(screen.getByText('データが読み込まれました')).toBeInTheDocument();
     }, { timeout: 5000 });
-    
+
     // ローディング状態が終了していることも確認
     expect(screen.queryByText('読み込み中...')).not.toBeInTheDocument();
   });
 
   it('【シナリオ2】エラー時の適切な処理', async () => {
     mockApiClient.get.mockRejectedValue(new Error('Network error'));
-    
+
     render(<DataComponent />);
-    
+
     // エラーメッセージの表示を待機
     await waitFor(() => {
       expect(screen.getByText('データの読み込みに失敗しました')).toBeInTheDocument();

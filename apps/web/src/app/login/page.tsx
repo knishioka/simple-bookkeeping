@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useState } from 'react';
 
-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -25,9 +24,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">ログイン</CardTitle>
-          <CardDescription className="text-center">
-            Simple Bookkeepingへようこそ
-          </CardDescription>
+          <CardDescription className="text-center">Simple Bookkeepingへようこそ</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

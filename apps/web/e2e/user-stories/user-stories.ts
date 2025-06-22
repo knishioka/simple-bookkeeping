@@ -1,6 +1,6 @@
 /**
  * ユーザーストーリー定義
- * 
+ *
  * 各ストーリーにはID、ペルソナ、シナリオ、受け入れ条件を定義
  */
 
@@ -32,7 +32,7 @@ export const userStories: UserStory[] = [
     persona: {
       name: '田中さん',
       role: 'フリーランスデザイナー',
-      background: '独立2年目、Excel管理から移行'
+      background: '独立2年目、Excel管理から移行',
     },
     scenarios: [
       {
@@ -42,9 +42,9 @@ export const userStories: UserStory[] = [
           'ダッシュボードにアクセス',
           '前日の売上高を確認',
           '月累計売上を確認',
-          '前年同月比を確認'
+          '前年同月比を確認',
         ],
-        testFiles: ['e2e/user-stories/freelancer/daily-dashboard.spec.ts']
+        testFiles: ['e2e/user-stories/freelancer/daily-dashboard.spec.ts'],
       },
       {
         id: 'US001-S02',
@@ -55,9 +55,9 @@ export const userStories: UserStory[] = [
           '借方：普通預金 100,000円',
           '貸方：売掛金 100,000円',
           '摘要：〇〇デザイン料入金',
-          '保存して仕訳一覧で確認'
+          '保存して仕訳一覧で確認',
         ],
-        testFiles: ['e2e/user-stories/freelancer/payment-entry.spec.ts']
+        testFiles: ['e2e/user-stories/freelancer/payment-entry.spec.ts'],
       },
       {
         id: 'US001-S03',
@@ -69,19 +69,19 @@ export const userStories: UserStory[] = [
           '金額：3,000円を入力',
           '貸方：現金を選択',
           '摘要：文房具購入',
-          '保存'
+          '保存',
         ],
-        testFiles: ['e2e/user-stories/freelancer/expense-entry-mobile.spec.ts']
-      }
+        testFiles: ['e2e/user-stories/freelancer/expense-entry-mobile.spec.ts'],
+      },
     ],
     acceptanceCriteria: [
       'ダッシュボードが3秒以内に表示される',
       '仕訳入力が1分以内に完了できる',
       'スマホでも問題なく入力できる',
-      '入力ミスを防ぐバリデーションが機能する'
+      '入力ミスを防ぐバリデーションが機能する',
     ],
     priority: 'high',
-    status: 'not-started'
+    status: 'not-started',
   },
   {
     id: 'US002',
@@ -89,7 +89,7 @@ export const userStories: UserStory[] = [
     persona: {
       name: '佐藤さん',
       role: 'カフェオーナー',
-      background: '夫婦で経営、5席の小さなカフェ'
+      background: '夫婦で経営、5席の小さなカフェ',
     },
     scenarios: [
       {
@@ -100,9 +100,9 @@ export const userStories: UserStory[] = [
           '実際の現金を数える',
           'システム上の残高と照合',
           '差異があれば調整仕訳を入力',
-          '前日の売上仕訳を入力'
+          '前日の売上仕訳を入力',
         ],
-        testFiles: ['e2e/user-stories/cafe/cash-reconciliation.spec.ts']
+        testFiles: ['e2e/user-stories/cafe/cash-reconciliation.spec.ts'],
       },
       {
         id: 'US002-S02',
@@ -111,18 +111,18 @@ export const userStories: UserStory[] = [
           '買掛金一覧を開く',
           '支払い対象の仕入先を選択',
           '支払い仕訳を入力',
-          '買掛金残高が減少することを確認'
+          '買掛金残高が減少することを確認',
         ],
-        testFiles: ['e2e/user-stories/cafe/supplier-payment.spec.ts']
-      }
+        testFiles: ['e2e/user-stories/cafe/supplier-payment.spec.ts'],
+      },
     ],
     acceptanceCriteria: [
       '現金残高が常に正確に把握できる',
       '買掛金の支払い漏れを防げる',
-      '日次の売上集計が簡単にできる'
+      '日次の売上集計が簡単にできる',
     ],
     priority: 'high',
-    status: 'not-started'
+    status: 'not-started',
   },
   {
     id: 'US003',
@@ -130,7 +130,7 @@ export const userStories: UserStory[] = [
     persona: {
       name: '山田さん',
       role: '経理担当',
-      background: '従業員30名の製造業'
+      background: '従業員30名の製造業',
     },
     scenarios: [
       {
@@ -141,9 +141,9 @@ export const userStories: UserStory[] = [
           '未承認仕訳をフィルタ',
           '各仕訳の内容を確認',
           '問題なければ承認',
-          '修正が必要なら編集'
+          '修正が必要なら編集',
         ],
-        testFiles: ['e2e/user-stories/sme/monthly-review.spec.ts']
+        testFiles: ['e2e/user-stories/sme/monthly-review.spec.ts'],
       },
       {
         id: 'US003-S02',
@@ -154,39 +154,37 @@ export const userStories: UserStory[] = [
           '試算表を生成',
           '前月比較を表示',
           '異常値をチェック',
-          'PDFエクスポート'
+          'PDFエクスポート',
         ],
-        testFiles: ['e2e/user-stories/sme/trial-balance-report.spec.ts']
-      }
+        testFiles: ['e2e/user-stories/sme/trial-balance-report.spec.ts'],
+      },
     ],
     acceptanceCriteria: [
       '月次決算が5営業日以内に完了できる',
       '試算表の自動生成ができる',
       '前期比較が簡単にできる',
-      '役員向けレポートが作成できる'
+      '役員向けレポートが作成できる',
     ],
     priority: 'medium',
-    status: 'not-started'
-  }
+    status: 'not-started',
+  },
 ];
 
 /**
  * ストーリーIDからテストファイルを取得
  */
 export function getTestFilesForStory(storyId: string): string[] {
-  const story = userStories.find(s => s.id === storyId);
+  const story = userStories.find((s) => s.id === storyId);
   if (!story) return [];
-  
-  return story.scenarios.flatMap(s => s.testFiles || []);
+
+  return story.scenarios.flatMap((s) => s.testFiles || []);
 }
 
 /**
  * テストファイルから関連するストーリーを取得
  */
 export function getStoriesForTestFile(testFile: string): UserStory[] {
-  return userStories.filter(story => 
-    story.scenarios.some(scenario => 
-      scenario.testFiles?.includes(testFile)
-    )
+  return userStories.filter((story) =>
+    story.scenarios.some((scenario) => scenario.testFiles?.includes(testFile))
   );
 }

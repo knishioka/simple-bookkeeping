@@ -43,29 +43,42 @@ const journalEntryLineSchema = z.object({
   taxRate: z.number().min(0).max(100).optional(),
 });
 
-const journalEntrySchema = z.object({
-  entryDate: z.string().min(1, '日付は必須です'),
-  description: z.string().min(1, '摘要は必須です').max(200, '摘要は200文字以内で入力してください'),
-  documentNumber: z.string().optional(),
-  lines: z.array(journalEntryLineSchema).min(2, '最低2行の仕訳明細が必要です'),
-}).refine((data) => {
-  // Validate that debits equal credits
-  const totalDebits = data.lines.reduce((sum, line) => sum + line.debitAmount, 0);
-  const totalCredits = data.lines.reduce((sum, line) => sum + line.creditAmount, 0);
-  return Math.abs(totalDebits - totalCredits) < 0.01;
-}, {
-  message: '借方合計と貸方合計が一致しません',
-  path: ['lines'],
-}).refine((data) => {
-  // Validate that each line has either debit or credit (not both)
-  return data.lines.every(line => 
-    (line.debitAmount > 0 && line.creditAmount === 0) || 
-    (line.debitAmount === 0 && line.creditAmount > 0)
+const journalEntrySchema = z
+  .object({
+    entryDate: z.string().min(1, '日付は必須です'),
+    description: z
+      .string()
+      .min(1, '摘要は必須です')
+      .max(200, '摘要は200文字以内で入力してください'),
+    documentNumber: z.string().optional(),
+    lines: z.array(journalEntryLineSchema).min(2, '最低2行の仕訳明細が必要です'),
+  })
+  .refine(
+    (data) => {
+      // Validate that debits equal credits
+      const totalDebits = data.lines.reduce((sum, line) => sum + line.debitAmount, 0);
+      const totalCredits = data.lines.reduce((sum, line) => sum + line.creditAmount, 0);
+      return Math.abs(totalDebits - totalCredits) < 0.01;
+    },
+    {
+      message: '借方合計と貸方合計が一致しません',
+      path: ['lines'],
+    }
+  )
+  .refine(
+    (data) => {
+      // Validate that each line has either debit or credit (not both)
+      return data.lines.every(
+        (line) =>
+          (line.debitAmount > 0 && line.creditAmount === 0) ||
+          (line.debitAmount === 0 && line.creditAmount > 0)
+      );
+    },
+    {
+      message: '各行は借方または貸方のどちらか一方のみ入力してください',
+      path: ['lines'],
+    }
   );
-}, {
-  message: '各行は借方または貸方のどちらか一方のみ入力してください',
-  path: ['lines'],
-});
 
 type JournalEntryFormData = z.infer<typeof journalEntrySchema>;
 
@@ -120,7 +133,7 @@ export function JournalEntryDialog({
       entryDate: entry?.entryDate || new Date().toISOString().split('T')[0],
       description: entry?.description || '',
       documentNumber: entry?.documentNumber || '',
-      lines: entry?.lines.map(line => ({
+      lines: entry?.lines.map((line) => ({
         accountId: line.accountId,
         debitAmount: line.debitAmount,
         creditAmount: line.creditAmount,
@@ -147,7 +160,7 @@ export function JournalEntryDialog({
           entryDate: entry.entryDate,
           description: entry.description,
           documentNumber: entry.documentNumber || '',
-          lines: entry.lines.map(line => ({
+          lines: entry.lines.map((line) => ({
             accountId: line.accountId,
             debitAmount: line.debitAmount,
             creditAmount: line.creditAmount,
@@ -268,9 +281,11 @@ export function JournalEntryDialog({
                 )}
               />
               <div className="flex items-end">
-                <div className={`text-sm p-2 rounded ${
-                  isBalanced ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                }`}>
+                <div
+                  className={`text-sm p-2 rounded ${
+                    isBalanced ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}
+                >
                   差額: ¥{Math.abs(totalDebits - totalCredits).toLocaleString()}
                 </div>
               </div>
@@ -308,7 +323,7 @@ export function JournalEntryDialog({
                   <div className="col-span-1 text-center">税率</div>
                   <div className="col-span-1"></div>
                 </div>
-                
+
                 {fields.map((field, index) => (
                   <div key={field.id} className="grid grid-cols-12 gap-2 p-4 border-t">
                     <div className="col-span-3">

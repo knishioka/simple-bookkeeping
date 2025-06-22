@@ -7,23 +7,27 @@ Simple Bookkeepingプロジェクトへの貢献に興味を持っていただ�
 ### 開発環境のセットアップ
 
 1. **リポジトリのフォーク & クローン**
+
    ```bash
    git clone https://github.com/YOUR_USERNAME/simple-bookkeeping.git
    cd simple-bookkeeping
    ```
 
 2. **依存関係のインストール**
+
    ```bash
    pnpm install
    ```
 
 3. **環境変数の設定**
+
    ```bash
    cp .env.example .env
    # .envファイルを編集してデータベース接続情報を設定
    ```
 
 4. **データベースのセットアップ**
+
    ```bash
    pnpm db:migrate
    pnpm db:seed
@@ -51,6 +55,7 @@ git checkout -b fix/bug-description
 ```
 
 命名規則：
+
 - `feature/` - 新機能
 - `fix/` - バグ修正
 - `docs/` - ドキュメント
@@ -62,6 +67,7 @@ git checkout -b fix/bug-description
 **必ず[CLAUDE.md](./CLAUDE.md)のガイドラインに従ってください**
 
 重要なポイント：
+
 - TypeScript strict modeを使用
 - 共通型定義は`@simple-bookkeeping/types`から import
 - エラーは`@simple-bookkeeping/errors`のクラスを使用
@@ -81,6 +87,7 @@ pnpm test:all
 ```
 
 新機能には必ずテストを追加してください：
+
 - ユニットテスト（コンポーネント、関数）
 - 統合テスト（API）
 - E2Eテスト（重要なユーザーフロー）
@@ -88,6 +95,7 @@ pnpm test:all
 ### 5. コミット
 
 コミットメッセージの形式：
+
 ```
 <type>: <subject>
 
@@ -97,6 +105,7 @@ pnpm test:all
 ```
 
 例：
+
 ```
 feat: 仕訳テンプレート機能を追加
 
@@ -108,6 +117,7 @@ Closes #123
 ```
 
 タイプ：
+
 - `feat`: 新機能
 - `fix`: バグ修正
 - `docs`: ドキュメントのみの変更
@@ -123,23 +133,29 @@ git push origin feature/your-feature-name
 ```
 
 PRテンプレート：
+
 ```markdown
 ## 概要
+
 変更の概要を記載
 
 ## 変更内容
+
 - [ ] 実装した機能1
 - [ ] 実装した機能2
 
 ## テスト
+
 - [ ] ユニットテストを追加
 - [ ] E2Eテストを追加
 - [ ] 手動テスト完了
 
 ## スクリーンショット
+
 （UIの変更がある場合）
 
 ## 関連Issue
+
 Closes #XXX
 ```
 
@@ -148,15 +164,18 @@ Closes #XXX
 レビュアーは以下の点を確認します：
 
 1. **コード品質**
+
    - TypeScriptの型が適切に定義されているか
    - エラーハンドリングが適切か
    - パフォーマンスへの影響
 
 2. **テスト**
+
    - 十分なテストカバレッジがあるか
    - エッジケースが考慮されているか
 
 3. **セキュリティ**
+
    - 入力値の検証
    - 認証・認可の適切な実装
    - SQLインジェクション対策
@@ -172,15 +191,17 @@ Closes #XXX
 
 ```markdown
 ## 環境
-- OS: 
-- ブラウザ: 
-- Node.js: 
-- pnpm: 
+
+- OS:
+- ブラウザ:
+- Node.js:
+- pnpm:
 
 ## 再現手順
-1. 
-2. 
-3. 
+
+1.
+2.
+3.
 
 ## 期待される動作
 

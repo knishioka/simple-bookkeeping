@@ -1,11 +1,13 @@
 # データモデル仕様書
 
 ## 1. 概要
+
 複式簿記システムのデータベース設計とエンティティの関連を定義する。
 
 ## 2. 主要エンティティ
 
 ### 2.1 会計期間（AccountingPeriod）
+
 ```
 - id: UUID
 - name: string (例: "2024年度")
@@ -17,6 +19,7 @@
 ```
 
 ### 2.2 勘定科目（Account）
+
 ```
 - id: UUID
 - code: string (勘定科目コード)
@@ -30,6 +33,7 @@
 ```
 
 ### 2.3 仕訳（JournalEntry）
+
 ```
 - id: UUID
 - entry_date: date (仕訳日付)
@@ -44,6 +48,7 @@
 ```
 
 ### 2.4 仕訳明細（JournalEntryLine）
+
 ```
 - id: UUID
 - journal_entry_id: UUID
@@ -56,6 +61,7 @@
 ```
 
 ### 2.5 取引先（Partner）
+
 ```
 - id: UUID
 - code: string (取引先コード)
@@ -72,6 +78,7 @@
 ```
 
 ### 2.6 固定資産（FixedAsset）
+
 ```
 - id: UUID
 - asset_code: string (資産コード)
@@ -89,6 +96,7 @@
 ```
 
 ### 2.7 減価償却（Depreciation）
+
 ```
 - id: UUID
 - fixed_asset_id: UUID
@@ -101,6 +109,7 @@
 ```
 
 ### 2.8 消費税設定（TaxSetting）
+
 ```
 - id: UUID
 - name: string (例: "標準税率")
@@ -112,6 +121,7 @@
 ```
 
 ### 2.9 銀行口座（BankAccount）
+
 ```
 - id: UUID
 - bank_name: string
@@ -124,6 +134,7 @@
 ```
 
 ### 2.10 ユーザー（User）
+
 ```
 - id: UUID
 - email: string (unique)
@@ -137,6 +148,7 @@
 ```
 
 ### 2.11 監査ログ（AuditLog）
+
 ```
 - id: UUID
 - user_id: UUID
@@ -153,6 +165,7 @@
 ## 3. リレーションシップ
 
 ### 3.1 主要な関連
+
 - JournalEntry 1:N JournalEntryLine
 - Account 1:N JournalEntryLine
 - Account 1:N Account (親子関係)
@@ -162,6 +175,7 @@
 - Partner 1:N JournalEntry (through JournalEntryLine)
 
 ### 3.2 制約
+
 - JournalEntryの借方合計と貸方合計は一致する必要がある
 - AccountingPeriodは重複してはいけない
 - 仕訳日付は対応するAccountingPeriod内である必要がある
@@ -170,6 +184,7 @@
 ## 4. インデックス設計
 
 ### 4.1 主要インデックス
+
 - journal_entries.entry_date
 - journal_entries.accounting_period_id
 - journal_entry_lines.account_id
@@ -179,6 +194,7 @@
 - users.email (unique)
 
 ### 4.2 複合インデックス
+
 - (accounting_period_id, entry_date) on journal_entries
 - (journal_entry_id, line_number) on journal_entry_lines
 - (account_id, entry_date) for 元帳検索
@@ -186,27 +202,33 @@
 ## 5. ビュー定義
 
 ### 5.1 試算表ビュー（TrialBalanceView）
+
 勘定科目ごとの借方・貸方合計を集計
 
 ### 5.2 総勘定元帳ビュー（GeneralLedgerView）
+
 勘定科目別の仕訳明細と残高推移
 
 ### 5.3 仕訳帳ビュー（JournalBookView）
+
 日付順の仕訳一覧（明細含む）
 
 ## 6. データ整合性
 
 ### 6.1 トランザクション管理
+
 - 仕訳の登録・更新・削除は必ずトランザクション内で実行
 - 関連する明細行も同一トランザクション内で処理
 
 ### 6.2 バリデーションルール
+
 - 借方・貸方の合計チェック
 - 勘定科目の有効性チェック
 - 会計期間の妥当性チェック
 - 消費税計算の整合性チェック
 
 ### 6.3 監査証跡
+
 - すべての変更操作をAuditLogに記録
 - 仕訳の承認フローを実装
 - 決算確定後の仕訳はロック（修正不可）

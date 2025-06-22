@@ -24,45 +24,39 @@ interface ReportTableProps {
   emptyMessage?: string;
 }
 
-export function ReportTable({ 
-  items, 
+export function ReportTable({
+  items,
   showCode = true,
-  emptyMessage = 'データがありません'
+  emptyMessage = 'データがありません',
 }: ReportTableProps) {
   if (items.length === 0) {
-    return (
-      <div className="text-center py-8 text-gray-500">
-        {emptyMessage}
-      </div>
-    );
+    return <div className="text-center py-8 text-gray-500">{emptyMessage}</div>;
   }
 
   const renderRow = (item: ReportItem, index: number) => {
     const indentStyle = item.level ? { paddingLeft: `${item.level * 20}px` } : {};
-    
+
     return (
       <TableRow key={item.id || index} className={item.isTotal ? 'font-bold bg-gray-50' : ''}>
         {showCode && <TableCell>{item.code || ''}</TableCell>}
         <TableCell style={indentStyle}>{item.name}</TableCell>
-        <TableCell className="text-right">
-          {formatAmount(item.amount)}
-        </TableCell>
+        <TableCell className="text-right">{formatAmount(item.amount)}</TableCell>
       </TableRow>
     );
   };
 
   const renderRows = (items: ReportItem[]): JSX.Element[] => {
     const rows: JSX.Element[] = [];
-    
+
     items.forEach((item, index) => {
       rows.push(renderRow(item, index));
-      
+
       if (item.children && item.children.length > 0) {
         const childRows = renderRows(item.children);
         rows.push(...childRows);
       }
     });
-    
+
     return rows;
   };
 
@@ -75,9 +69,7 @@ export function ReportTable({
           <TableHead className="text-right w-40">金額</TableHead>
         </TableRow>
       </TableHeader>
-      <TableBody>
-        {renderRows(items)}
-      </TableBody>
+      <TableBody>{renderRows(items)}</TableBody>
     </Table>
   );
 }

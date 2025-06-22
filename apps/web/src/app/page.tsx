@@ -7,7 +7,6 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
 
-
 export default function HomePage() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
@@ -97,9 +96,7 @@ export default function HomePage() {
                 </div>
               </div>
               <h3 className="mt-4 text-lg font-medium">確定申告書類の出力</h3>
-              <p className="mt-2 text-gray-500">
-                青色申告に必要な書類をPDF形式で出力できます。
-              </p>
+              <p className="mt-2 text-gray-500">青色申告に必要な書類をPDF形式で出力できます。</p>
             </div>
           </div>
         </div>

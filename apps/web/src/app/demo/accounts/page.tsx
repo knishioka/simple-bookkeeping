@@ -54,12 +54,33 @@ const mockAccounts: Account[] = [
   { id: '2', code: '1120', name: '当座預金', accountType: 'ASSET', parentId: null, isActive: true },
   { id: '3', code: '1130', name: '普通預金', accountType: 'ASSET', parentId: null, isActive: true },
   { id: '4', code: '1140', name: '売掛金', accountType: 'ASSET', parentId: null, isActive: true },
-  { id: '5', code: '2110', name: '買掛金', accountType: 'LIABILITY', parentId: null, isActive: true },
-  { id: '6', code: '2120', name: '未払金', accountType: 'LIABILITY', parentId: null, isActive: true },
+  {
+    id: '5',
+    code: '2110',
+    name: '買掛金',
+    accountType: 'LIABILITY',
+    parentId: null,
+    isActive: true,
+  },
+  {
+    id: '6',
+    code: '2120',
+    name: '未払金',
+    accountType: 'LIABILITY',
+    parentId: null,
+    isActive: true,
+  },
   { id: '7', code: '3110', name: '資本金', accountType: 'EQUITY', parentId: null, isActive: true },
   { id: '8', code: '4110', name: '売上高', accountType: 'REVENUE', parentId: null, isActive: true },
   { id: '9', code: '5110', name: '仕入高', accountType: 'EXPENSE', parentId: null, isActive: true },
-  { id: '10', code: '5210', name: '給料手当', accountType: 'EXPENSE', parentId: null, isActive: true },
+  {
+    id: '10',
+    code: '5210',
+    name: '給料手当',
+    accountType: 'EXPENSE',
+    parentId: null,
+    isActive: true,
+  },
 ];
 
 export default function DemoAccountsPage() {
@@ -70,7 +91,7 @@ export default function DemoAccountsPage() {
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
 
   const filteredAccounts = accounts.filter((account) => {
-    const matchesSearch = 
+    const matchesSearch =
       account.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
       account.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = selectedType === 'all' || account.accountType === selectedType;
@@ -106,9 +127,7 @@ export default function DemoAccountsPage() {
       <Card>
         <CardHeader>
           <CardTitle>勘定科目一覧</CardTitle>
-          <CardDescription>
-            システムに登録されている勘定科目を管理します
-          </CardDescription>
+          <CardDescription>システムに登録されている勘定科目を管理します</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4 mb-6">
@@ -137,9 +156,7 @@ export default function DemoAccountsPage() {
           </div>
 
           {filteredAccounts.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              勘定科目が見つかりません
-            </div>
+            <div className="text-center py-8 text-gray-500">勘定科目が見つかりません</div>
           ) : (
             <Table>
               <TableHeader>
@@ -172,20 +189,18 @@ export default function DemoAccountsPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        account.isActive 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          account.isActive
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}
+                      >
                         {account.isActive ? '有効' : '無効'}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleEdit(account)}
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => handleEdit(account)}>
                         編集
                       </Button>
                     </TableCell>

@@ -9,10 +9,7 @@ interface AccountQuery {
   active?: string;
 }
 
-export const getAccounts = async (
-  req: AuthenticatedRequest,
-  res: Response
-): Promise<void> => {
+export const getAccounts = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { type, active } = req.query as AccountQuery;
     const organizationId = req.user?.organizationId;
@@ -106,7 +103,7 @@ export const getAccount = async (
     const organizationId = req.user?.organizationId;
 
     const account = await prisma.account.findFirst({
-      where: { 
+      where: {
         id,
         organizationId,
       },
@@ -158,7 +155,7 @@ export const createAccount = async (
     }
 
     const existingAccount = await prisma.account.findUnique({
-      where: { 
+      where: {
         organizationId_code: {
           organizationId,
           code,
@@ -178,7 +175,7 @@ export const createAccount = async (
     // Validate parent account if provided
     if (parentId) {
       const parentAccount = await prisma.account.findFirst({
-        where: { 
+        where: {
           id: parentId,
           organizationId,
         },
@@ -240,7 +237,7 @@ export const updateAccount = async (
 
     const organizationId = req.user?.organizationId;
     const account = await prisma.account.findFirst({
-      where: { 
+      where: {
         id,
         organizationId,
       },
@@ -298,7 +295,7 @@ export const deleteAccount = async (
 
     const organizationId = req.user?.organizationId;
     const account = await prisma.account.findFirst({
-      where: { 
+      where: {
         id,
         organizationId,
       },

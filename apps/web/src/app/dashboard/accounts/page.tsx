@@ -78,7 +78,7 @@ export default function AccountsPage() {
   };
 
   const filteredAccounts = accounts.filter((account) => {
-    const matchesSearch = 
+    const matchesSearch =
       account.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
       account.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = selectedType === 'all' || account.accountType === selectedType;
@@ -108,9 +108,7 @@ export default function AccountsPage() {
       <Card>
         <CardHeader>
           <CardTitle>勘定科目一覧</CardTitle>
-          <CardDescription>
-            システムに登録されている勘定科目を管理します
-          </CardDescription>
+          <CardDescription>システムに登録されている勘定科目を管理します</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4 mb-6">
@@ -141,9 +139,7 @@ export default function AccountsPage() {
           {loading ? (
             <div className="text-center py-8">読み込み中...</div>
           ) : filteredAccounts.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              勘定科目が見つかりません
-            </div>
+            <div className="text-center py-8 text-gray-500">勘定科目が見つかりません</div>
           ) : (
             <Table>
               <TableHeader>
@@ -176,20 +172,18 @@ export default function AccountsPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        account.isActive 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          account.isActive
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}
+                      >
                         {account.isActive ? '有効' : '無効'}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        onClick={() => handleEdit(account)}
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => handleEdit(account)}>
                         編集
                       </Button>
                     </TableCell>

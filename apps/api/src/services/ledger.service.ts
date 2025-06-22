@@ -37,7 +37,7 @@ export class LedgerService {
   async getBankBook(query: LedgerQuery): Promise<LedgerEntry[]> {
     // 預金関連の勘定科目コード（普通預金、当座預金など）
     const bankAccountCodes = ['1120', '1130'];
-    
+
     const entries: LedgerEntry[] = [];
     for (const code of bankAccountCodes) {
       const bankEntries = await this.getLedgerByAccount({
@@ -46,7 +46,7 @@ export class LedgerService {
       });
       entries.push(...bankEntries);
     }
-    
+
     // 日付順にソート
     return entries.sort((a, b) => a.date.getTime() - b.date.getTime());
   }
@@ -129,7 +129,7 @@ export class LedgerService {
     for (const line of journalLines) {
       const debitAmount = Number(line.debitAmount);
       const creditAmount = Number(line.creditAmount);
-      
+
       // 残高を計算
       if (account.accountType === 'ASSET' || account.accountType === 'EXPENSE') {
         balance += debitAmount - creditAmount;
@@ -161,17 +161,17 @@ export class LedgerService {
   private getCounterAccount(line: any): any {
     const journalEntry = line.journalEntry;
     const otherLines = journalEntry.lines.filter((l: any) => l.id !== line.id);
-    
+
     // 単純な2行仕訳の場合
     if (otherLines.length === 1) {
       return otherLines[0].account;
     }
-    
+
     // 複数行の場合は「諸口」として扱う
     if (otherLines.length > 1) {
       return { name: '諸口' };
     }
-    
+
     return null;
   }
 

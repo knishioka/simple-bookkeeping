@@ -10,7 +10,8 @@ describe('JWT Utils', () => {
   // Set up test environment variables
   beforeAll(() => {
     process.env.JWT_SECRET = 'test-jwt-secret-with-sufficient-length-for-security-purposes';
-    process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-with-sufficient-length-for-security-purposes';
+    process.env.JWT_REFRESH_SECRET =
+      'test-refresh-secret-with-sufficient-length-for-security-purposes';
   });
 
   describe('generateTokens', () => {
@@ -21,10 +22,7 @@ describe('JWT Utils', () => {
       expect(refreshToken).toBeTruthy();
 
       // Verify access token
-      const decodedAccess = jwt.verify(
-        accessToken,
-        process.env.JWT_SECRET as string
-      ) as any;
+      const decodedAccess = jwt.verify(accessToken, process.env.JWT_SECRET as string) as any;
       expect(decodedAccess.sub).toBe(userId);
       expect(decodedAccess.email).toBe(email);
       expect(decodedAccess.role).toBe(role);
@@ -39,11 +37,11 @@ describe('JWT Utils', () => {
 
     it('should throw error when JWT_SECRET is not set', () => {
       delete process.env.JWT_SECRET;
-      
+
       expect(() => {
         generateTokens(userId, email, role);
       }).toThrow('JWT_SECRET environment variable is required');
-      
+
       // Restore for other tests
       process.env.JWT_SECRET = 'test-jwt-secret-with-sufficient-length-for-security-purposes';
     });

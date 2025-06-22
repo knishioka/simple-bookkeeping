@@ -39,7 +39,11 @@ export const getBalanceSheet = async (req: AuthenticatedRequest, res: Response) 
       });
     }
 
-    const balanceSheet = await reportsService.getBalanceSheet(accountingPeriodId, date, organizationId);
+    const balanceSheet = await reportsService.getBalanceSheet(
+      accountingPeriodId,
+      date,
+      organizationId
+    );
 
     res.json({
       data: balanceSheet,
@@ -100,7 +104,12 @@ export const getProfitLoss = async (req: AuthenticatedRequest, res: Response) =>
       });
     }
 
-    const profitLoss = await reportsService.getProfitLoss(accountingPeriodId, start, end, organizationId);
+    const profitLoss = await reportsService.getProfitLoss(
+      accountingPeriodId,
+      start,
+      end,
+      organizationId
+    );
 
     res.json({
       data: profitLoss,

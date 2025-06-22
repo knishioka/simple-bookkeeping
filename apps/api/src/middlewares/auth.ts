@@ -68,11 +68,7 @@ export const authorize = (...roles: UserRole[]) => {
 };
 
 // Middleware to set organization context from header or query parameter
-export const setOrganizationContext = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const setOrganizationContext = async (req: Request, res: Response, next: NextFunction) => {
   const authReq = req as AuthenticatedRequest;
   const user = authReq.user;
 
@@ -82,9 +78,8 @@ export const setOrganizationContext = async (
 
   try {
     // Get organization ID from header or query parameter
-    const organizationId = 
-      req.headers['x-organization-id'] as string ||
-      req.query.organizationId as string;
+    const organizationId =
+      (req.headers['x-organization-id'] as string) || (req.query.organizationId as string);
 
     if (organizationId) {
       // Verify user has access to this organization
@@ -156,11 +151,7 @@ export const setOrganizationContext = async (
 };
 
 // Middleware to require organization context
-export const requireOrganization = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const requireOrganization = (req: Request, res: Response, next: NextFunction) => {
   const authReq = req as AuthenticatedRequest;
   const user = authReq.user;
 
