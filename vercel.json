@@ -3,14 +3,5 @@
     "deploymentEnabled": {
       "main": true
     }
-  },
-  "functions": {
-    "apps/web/pages/api/**/*.ts": {
-      "maxDuration": 30
-    }
-  },
-  "buildCommand": "pnpm --filter @simple-bookkeeping/database prisma:generate && pnpm --filter @simple-bookkeeping/shared build && pnpm --filter @simple-bookkeeping/web build",
-  "outputDirectory": "apps/web/.next",
-  "framework": "nextjs",
-  "installCommand": "pnpm install --frozen-lockfile --prod=false"
+  }
 }
