@@ -10,6 +10,18 @@ import type { Router as RouterType } from 'express';
 
 const router: RouterType = Router();
 
+// Register
+const registerSchema = z.object({
+  body: z.object({
+    email: z.string().email('有効なメールアドレスを入力してください'),
+    password: z.string().min(8, 'パスワードは8文字以上で入力してください'),
+    name: z.string().min(1, '名前を入力してください'),
+    organizationName: z.string().min(1, '組織名を入力してください'),
+  }),
+});
+
+router.post('/register', validate(registerSchema), authController.register);
+
 // Login
 router.post('/login', validate(z.object({ body: loginSchema })), authController.login);
 

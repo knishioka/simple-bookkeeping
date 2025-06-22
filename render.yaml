@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: simple-bookkeeping-api
+    runtime: node
+    buildCommand: pnpm install && pnpm --filter @simple-bookkeeping/database db:generate && pnpm --filter @simple-bookkeeping/api build
+    startCommand: cd apps/api && node dist/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: simple-bookkeeping-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 30d
+      - key: CORS_ORIGIN
+        value: https://simple-bookkeeping-kens-projects-924cd1a9.vercel.app
+
+databases:
+  - name: simple-bookkeeping-db
+    plan: free
+    databaseName: simple_bookkeeping
+    user: simple_bookkeeping_user

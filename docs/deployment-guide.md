@@ -3,46 +3,53 @@
 ## 事前準備
 
 ### 1. 環境変数の準備
+
 以下の環境変数を設定する必要があります：
 
-#### API側 (.env)
-```env
-# Database
-DATABASE_URL="postgresql://user:password@host:5432/dbname"
+#### Render APIサービス
 
-# JWT
-JWT_SECRET="your-super-secret-jwt-key"
-JWT_REFRESH_SECRET="your-super-secret-refresh-key"
-JWT_EXPIRES_IN="1h"
-JWT_REFRESH_EXPIRES_IN="7d"
+```env
+# Database (Renderで自動設定)
+DATABASE_URL="自動で設定されます"
+
+# JWT (自動生成または手動設定)
+JWT_SECRET="render.yamlで自動生成"
+JWT_REFRESH_SECRET="render.yamlで自動生成"
+JWT_EXPIRES_IN="7d"
+JWT_REFRESH_EXPIRES_IN="30d"
 
 # API設定
-API_PORT=3001
 NODE_ENV=production
 
 # CORS設定
-CORS_ORIGIN="https://your-frontend-domain.com"
+CORS_ORIGIN="https://your-vercel-app.vercel.app"
 ```
 
-#### Frontend側 (.env.local)
+#### Vercel Frontend
+
 ```env
 # API URL
-NEXT_PUBLIC_API_URL="https://your-api-domain.com/api/v1"
+API_URL="https://your-app-api.onrender.com"
 
 # その他の設定
 NEXT_PUBLIC_APP_NAME="Simple Bookkeeping"
 ```
 
 ### 2. データベースの準備
+
+Renderデプロイ後、Dashboardのシェルから：
+
 ```bash
 # Prismaマイグレーションの実行
-pnpm --filter @simple-bookkeeping/database prisma:migrate:prod
+cd packages/database
+pnpm prisma migrate deploy
 
 # 初期データの投入（必要に応じて）
-pnpm --filter @simple-bookkeeping/database db:seed
+pnpm prisma db seed
 ```
 
-### 3. ビルドの確認
+### 3. ローカルでのビルド確認
+
 ```bash
 # 全体のビルド
 pnpm build
@@ -52,46 +59,79 @@ pnpm --filter @simple-bookkeeping/web build
 pnpm --filter @simple-bookkeeping/api build
 ```
 
+**注意**: Renderでは`render.yaml`に定義されたビルドコマンドが自動的に実行されます。
+
 ## デプロイ方法
 
-### 方法1: Vercel + Supabase (推奨)
+### 方法1: Vercel + Render (推奨)
 
-#### 1. Supabaseのセットアップ
-1. [Supabase](https://supabase.com)でアカウント作成
-2. 新しいプロジェクトを作成
-3. Database URLを取得
-4. SQLエディタでスキーマを実行：
+この方法では、フロントエンドをVercelに、APIサーバーとデータベースをRenderにデプロイします。
+
+#### ステップ1: RenderでのAPIサーバーとデータベースのデプロイ
+
+1. **Renderアカウント作成**
+
+   - [Render.com](https://render.com)でアカウントを作成
+   - GitHubアカウントを連携
+
+2. **Blueprintデプロイ**
+
+   - "New +" → "Blueprint" を選択
+   - GitHubリポジトリを選択
+   - `render.yaml`が自動的に検出される
+   - "Apply" をクリック
+
+3. **環境変数の確認**
+   - CORS_ORIGINをVercelのURLに更新
+   - JWTシークレットが自動生成されていることを確認
+
+#### ステップ2: データベースの初期化
+
+デプロイ完了後、Render Dashboardから：
+
+1. "simple-bookkeeping-api" サービスを選択
+2. "Shell" タブを開く
+3. 以下のコマンドを実行：
+
 ```bash
-# ローカルでスキーマを生成
-pnpm --filter @simple-bookkeeping/database prisma:generate
+cd packages/database
+pnpm prisma migrate deploy
+pnpm prisma db seed
 ```
 
-#### 2. バックエンドAPI (Railway.appまたはRender.com)
-1. [Railway](https://railway.app)または[Render](https://render.com)でアカウント作成
-2. GitHubリポジトリを接続
-3. 環境変数を設定
-4. ビルドコマンドを設定：
-```
-cd apps/api && npm install && npm run build
-```
-5. スタートコマンドを設定：
-```
-cd apps/api && npm start
-```
+#### ステップ3: Vercelでのフロントエンドデプロイ
 
-#### 3. フロントエンド (Vercel)
-1. [Vercel](https://vercel.com)でアカウント作成
-2. GitHubリポジトリをインポート
-3. ビルド設定：
-   - Framework Preset: Next.js
+1. **Vercelアカウント作成**
+
+   - [Vercel.com](https://vercel.com)でアカウントを作成
+   - GitHubと連携
+
+2. **プロジェクトインポート**
+
+   - "Import Project" をクリック
+   - GitHubリポジトリを選択
+
+3. **ビルド設定**
+
+   - Framework Preset: `Next.js`
    - Root Directory: `apps/web`
-   - Build Command: `cd ../.. && pnpm install && pnpm --filter @simple-bookkeeping/web build`
-   - Output Directory: `apps/web/.next`
-4. 環境変数を設定
+   - Build Command: デフォルトのまま
+   - Output Directory: デフォルトのまま
 
-### 方法2: VPSへのデプロイ
+4. **環境変数の設定**
+
+   ```
+   API_URL=https://simple-bookkeeping-api.onrender.com
+   ```
+
+   (RenderのURLに合わせて変更)
+
+5. "Deploy" をクリック
+
+### 方法2: VPSへのデプロイ（上級者向け）
 
 #### 1. サーバーの準備
+
 ```bash
 # Ubuntu 22.04 LTSの場合
 sudo apt update
@@ -109,6 +149,7 @@ nvm use 20
 ```
 
 #### 2. PostgreSQLのセットアップ
+
 ```bash
 # PostgreSQLにログイン
 sudo -u postgres psql
@@ -121,6 +162,7 @@ GRANT ALL PRIVILEGES ON DATABASE simple_bookkeeping TO bookkeeping;
 ```
 
 #### 3. アプリケーションのデプロイ
+
 ```bash
 # コードのクローン
 git clone https://github.com/your-username/simple-bookkeeping.git
@@ -148,6 +190,7 @@ pm2 startup
 ```
 
 #### 4. Nginxの設定
+
 ```nginx
 # /etc/nginx/sites-available/simple-bookkeeping
 server {
@@ -184,148 +227,134 @@ sudo systemctl restart nginx
 ```
 
 #### 5. SSL証明書の設定（Let's Encrypt）
+
 ```bash
 sudo apt install certbot python3-certbot-nginx
 sudo certbot --nginx -d your-domain.com
 ```
 
-### 方法3: Dockerを使用したデプロイ
+### 方法3: ローカル開発用Docker
 
-#### 1. Docker Composeファイルの修正
-```yaml
-# docker-compose.prod.yml
-version: '3.8'
+**重要**: Docker構成はローカル開発専用です。本番環境ではRenderを使用してください。
 
-services:
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_USER: bookkeeping
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: simple_bookkeeping
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
-
-  api:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
-    environment:
-      DATABASE_URL: postgresql://bookkeeping:${DB_PASSWORD}@postgres:5432/simple_bookkeeping
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
-      NODE_ENV: production
-    depends_on:
-      - postgres
-    restart: unless-stopped
-
-  web:
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
-    environment:
-      NEXT_PUBLIC_API_URL: https://api.your-domain.com
-    restart: unless-stopped
-
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-      - ./ssl:/etc/nginx/ssl
-    depends_on:
-      - api
-      - web
-    restart: unless-stopped
-
-volumes:
-  postgres_data:
-```
-
-#### 2. デプロイコマンド
 ```bash
-# 本番環境用のビルドと起動
-docker-compose -f docker-compose.prod.yml up -d
+# ローカル開発環境の起動
+docker-compose up -d
 
 # ログの確認
-docker-compose -f docker-compose.prod.yml logs -f
+docker-compose logs -f
 
-# 再起動
-docker-compose -f docker-compose.prod.yml restart
+# 停止
+docker-compose down
 ```
+
+詳細は[Dockerセットアップガイド](./docker-setup.md)を参照してください。
 
 ## セキュリティ対策
 
 ### 1. 環境変数の管理
+
 - 本番環境の環境変数は絶対にGitにコミットしない
-- AWS Secrets Manager、HashiCorp Vault等を使用
+- Render Dashboardで環境変数を管理
+- Vercel Dashboardで環境変数を管理
+- Gitleaksを使用したpre-commitフックで機密情報の漏洩を防止
 
-### 2. ファイアウォールの設定
+### 2. HTTPSとセキュリティヘッダー
+
+- RenderとVercelではHTTPSが自動的に有効化
+- APIサーバーでHelmet.jsを使用してセキュリティヘッダーを設定
+- CORS設定で許可されたオリジンのみを指定
+
+### 3. バックアップ戦略
+
+#### Render無料プランの場合
+
 ```bash
-# UFWを使用した基本的な設定
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow ssh
-sudo ufw allow http
-sudo ufw allow https
-sudo ufw enable
+# Renderシェルから手動バックアップ
+pg_dump $DATABASE_URL > backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
-### 3. 定期的なバックアップ
-```bash
-# PostgreSQLのバックアップスクリプト
-#!/bin/bash
-BACKUP_DIR="/backup/postgres"
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-pg_dump -U bookkeeping simple_bookkeeping > "$BACKUP_DIR/backup_$TIMESTAMP.sql"
+#### Render有料プランの場合
 
-# 古いバックアップの削除（30日以上）
-find $BACKUP_DIR -name "backup_*.sql" -mtime +30 -delete
-```
+- 自動バックアップが有効
+- ポイントインタイムリカバリも利用可能
 
 ### 4. 監視とログ
-- PM2のログ監視
-- Nginxのアクセスログ
-- PostgreSQLのスローログ
-- アプリケーションエラーログ
+
+- Render Dashboard: リアルタイムログとメトリクス
+- Vercel Dashboard: 関数の実行ログとパフォーマンス
+- エラー監視（Sentry等）の統合を推奨
 
 ## トラブルシューティング
 
-### 1. ポート競合
-```bash
-# 使用中のポートを確認
-sudo lsof -i :3000
-sudo lsof -i :3001
-```
+### Renderデプロイメントの問題
 
-### 2. メモリ不足
-```bash
-# PM2のメモリ制限設定
-pm2 start app.js --max-memory-restart 1G
-```
+#### 1. APIサーバーが起動しない
 
-### 3. データベース接続エラー
-- DATABASE_URLの形式を確認
-- PostgreSQLのログを確認
-- ファイアウォール設定を確認
+- Render Dashboardでビルドログを確認
+- 環境変数が正しく設定されているか確認
+- Node.jsバージョンが`render.yaml`で指定されているか確認
+
+#### 2. データベース接続エラー
+
+- DATABASE_URLが自動的に設定されているか確認
+- PostgreSQLサービスがActiveか確認
+- マイグレーションが実行されているか確認
+
+#### 3. CORSエラー
+
+- CORS_ORIGINがVercelのURLと完全に一致しているか確認
+- プロトコル（https://）を含めて設定
+
+### Vercelデプロイメントの問題
+
+#### 1. APIエンドポイントに接続できない
+
+- API_URL環境変数が正しく設定されているか確認
+- Render無料プランの場合、スリープからの復帰を待つ
+
+#### 2. ビルドエラー
+
+- pnpmのバージョンを確認
+- 依存関係のインストールエラーを確認
 
 ## 運用のベストプラクティス
 
-1. **CI/CDの設定**
-   - GitHub Actionsでの自動デプロイ
-   - テスト自動実行
+### 1. CI/CDの設定
 
-2. **モニタリング**
-   - Datadogやその他のAPMツール
-   - エラー監視（Sentry等）
+- GitHubとRender/Vercelの連携による自動デプロイ
+- mainブランチへのプッシュで自動デプロイ
+- GitHub Actionsでテストを自動実行
 
-3. **スケーリング**
-   - ロードバランサーの設定
-   - データベースのレプリケーション
+### 2. モニタリング
 
-4. **定期メンテナンス**
-   - セキュリティアップデート
-   - パフォーマンスチューニング
+- **Render**: Dashboardでリアルタイムメトリクス
+- **Vercel**: Analyticsでパフォーマンス監視
+- **エラー監視**: SentryやRollbarを統合
+- **アップタイム監視**: UptimeRobotで外部監視
+
+### 3. スケーリング戦略
+
+- **Render**:
+  - 水平スケーリング（インスタンス数の調整）
+  - 垂直スケーリング（スペックの変更）
+- **Vercel**: エッジロケーションで自動スケーリング
+
+### 4. 定期メンテナンス
+
+- 依存関係の更新（`pnpm update`）
+- セキュリティパッチの適用
+- データベースの最適化
+- ログのアーカイブ
+
+### 5. コスト最適化
+
+- Render無料プランからの移行タイミング
+- リソース使用量の監視
+- 不要なサービスの削除
+
+## 関連ドキュメント
+
+- [クイックデプロイガイド](./quick-deploy-guide.md) - 初心者向け簡易ガイド
+- [Render移行ガイド](./render-migration-guide.md) - Renderへの詳細な移行手順
+- [Dockerセットアップ](./docker-setup.md) - ローカル開発環境

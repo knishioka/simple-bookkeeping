@@ -122,6 +122,89 @@ export const refreshToken = async (req: Request, res: Response) => {
   }
 };
 
+export const register = async (req: Request, res: Response) => {
+  try {
+    const { email, password, name, organizationName } = req.body;
+
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        error: {
+          code: 'USER_EXISTS',
+          message: 'このメールアドレスは既に使用されています',
+        },
+      });
+    }
+
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Create organization and user in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Create organization
+      const organization = await tx.organization.create({
+        data: {
+          name: organizationName,
+          code: `ORG-${Date.now()}`,
+          isActive: true,
+        },
+      });
+
+      // Create user
+      const user = await tx.user.create({
+        data: {
+          email,
+          passwordHash,
+          name,
+          isActive: true,
+        },
+      });
+
+      // Link user to organization
+      await tx.userOrganization.create({
+        data: {
+          userId: user.id,
+          organizationId: organization.id,
+          role: UserRole.ADMIN,
+          isDefault: true,
+        },
+      });
+
+      return { user, organization };
+    });
+
+    const tokens = generateTokens(result.user.id, result.user.email, UserRole.ADMIN);
+
+    res.status(201).json({
+      data: {
+        user: {
+          id: result.user.id,
+          email: result.user.email,
+          name: result.user.name,
+        },
+        organization: {
+          id: result.organization.id,
+          name: result.organization.name,
+        },
+        token: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      },
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'ユーザー登録中にエラーが発生しました',
+      },
+    });
+  }
+};
+
 export const logout = async (_req: Request, res: Response) => {
   // In a stateless JWT setup, logout is handled client-side
   // Here we just return a success response
