@@ -25,6 +25,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build shared package
+        run: pnpm --filter @simple-bookkeeping/shared build
+
       - name: Run linting
         run: pnpm lint
 
@@ -51,6 +54,9 @@ jobs:
 
       - name: Generate Prisma Client
         run: pnpm --filter @simple-bookkeeping/database prisma generate
+
+      - name: Build shared package
+        run: pnpm --filter @simple-bookkeeping/shared build
 
       - name: Run type checking
         run: pnpm typecheck
@@ -95,6 +101,9 @@ jobs:
       - name: Generate Prisma Client
         run: pnpm --filter @simple-bookkeeping/database prisma generate
 
+      - name: Build shared package
+        run: pnpm --filter @simple-bookkeeping/shared build
+
       - name: Run database migrations
         run: pnpm --filter @simple-bookkeeping/database prisma migrate deploy
 
@@ -123,6 +132,9 @@ jobs:
 
       - name: Generate Prisma Client
         run: pnpm --filter @simple-bookkeeping/database prisma generate
+
+      - name: Build shared package first
+        run: pnpm --filter @simple-bookkeeping/shared build
 
       - name: Build packages
         run: pnpm build

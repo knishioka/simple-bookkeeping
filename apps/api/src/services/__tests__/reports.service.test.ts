@@ -30,7 +30,7 @@ jest.mock('@prisma/client', () => {
   };
 });
 
-import { AccountType } from '@prisma/client';
+import { AccountType } from '@simple-bookkeeping/database';
 
 import { ReportsService } from '../reports.service';
 
