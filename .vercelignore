@@ -1,0 +1,51 @@
+# Vercel ignore file
+
+# Development dependencies
+node_modules
+.pnpm-store
+*.log
+
+# Test files
+**/__tests__
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+e2e
+playwright-report
+test-results
+
+# Development files
+.env.local
+.env.development
+.env.test
+.env*.local
+*.local
+
+# Build outputs (except the one we need)
+**/dist
+**/.next
+!apps/web/.next
+
+# Documentation
+docs
+*.md
+!README.md
+
+# Git
+.git
+.gitignore
+.gitleaks.toml
+
+# IDE
+.vscode
+.idea
+
+# CI/CD
+.github
+.husky
+
+# Other
+coverage
+.turbo
+.DS_Store

@@ -1,7 +1,16 @@
 {
-  "buildCommand": "pnpm --filter @simple-bookkeeping/database db:generate && pnpm --filter @simple-bookkeeping/shared build && pnpm --filter @simple-bookkeeping/web build",
+  "git": {
+    "deploymentEnabled": {
+      "main": true
+    }
+  },
+  "functions": {
+    "apps/web/pages/api/**/*.ts": {
+      "maxDuration": 30
+    }
+  },
+  "buildCommand": "pnpm install --frozen-lockfile && pnpm --filter @simple-bookkeeping/database db:generate && pnpm --filter @simple-bookkeeping/shared build && pnpm --filter @simple-bookkeeping/web build",
   "outputDirectory": "apps/web/.next",
-  "installCommand": "pnpm install --frozen-lockfile",
   "framework": "nextjs",
-  "root": "."
+  "installCommand": "pnpm install --frozen-lockfile"
 }
