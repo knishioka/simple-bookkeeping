@@ -1,12 +1,13 @@
 /**
  * ユーザーストーリーカバレッジレポート生成
- * 
+ *
  * 各ストーリーのテスト実装状況を可視化
  */
 
-import { userStories } from './user-stories';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
+
+import { userStories } from './user-stories';
 
 interface TestResult {
   storyId: string;
@@ -38,19 +39,19 @@ export class StoryCoverageReporter {
 
     for (const story of userStories) {
       let storyHasTests = false;
-      
+
       for (const scenario of story.scenarios) {
         if (scenario.testFiles && scenario.testFiles.length > 0) {
           let scenarioHasTests = false;
-          
+
           for (const testFile of scenario.testFiles) {
             const testPath = join(__dirname, '..', '..', testFile);
             const exists = existsSync(testPath);
-            
+
             if (exists) {
               scenarioHasTests = true;
               storyHasTests = true;
-              
+
               // テスト結果を読み取る（Playwright の reporter 出力から）
               const result = await this.getTestResult(testFile, testResultsPath);
               testResults.push({
@@ -59,24 +60,24 @@ export class StoryCoverageReporter {
                 testFile,
                 status: result.status,
                 duration: result.duration,
-                failureReason: result.failureReason
+                failureReason: result.failureReason,
               });
             } else {
               testResults.push({
                 storyId: story.id,
                 scenarioId: scenario.id,
                 testFile,
-                status: 'not-implemented'
+                status: 'not-implemented',
               });
             }
           }
-          
+
           if (scenarioHasTests) {
             implementedScenarios++;
           }
         }
       }
-      
+
       if (storyHasTests) {
         implementedStories++;
       }
@@ -93,7 +94,7 @@ export class StoryCoverageReporter {
       implementedScenarios,
       testResults,
       coveragePercentage,
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
     };
   }
 
@@ -101,7 +102,7 @@ export class StoryCoverageReporter {
    * 個別のテスト結果を取得
    */
   private static async getTestResult(
-    testFile: string, 
+    testFile: string,
     testResultsPath: string
   ): Promise<{ status: TestResult['status']; duration?: number; failureReason?: string }> {
     // Playwright の JSON reporter 出力を読み取る
@@ -109,24 +110,24 @@ export class StoryCoverageReporter {
       const resultsFile = join(testResultsPath, 'results.json');
       if (existsSync(resultsFile)) {
         const results = JSON.parse(readFileSync(resultsFile, 'utf-8'));
-        
+
         // テストファイルに対応する結果を探す
-        const testResult = results.suites?.find((suite: any) => 
+        const testResult = results.suites?.find((suite: any) =>
           suite.file?.includes(testFile.replace('e2e/', ''))
         );
-        
+
         if (testResult) {
           const status = testResult.specs?.[0]?.tests?.[0]?.status || 'skipped';
           const duration = testResult.specs?.[0]?.tests?.[0]?.duration;
           const failureReason = testResult.specs?.[0]?.tests?.[0]?.error?.message;
-          
+
           return { status, duration, failureReason };
         }
       }
     } catch (error) {
       console.error(`Failed to read test results for ${testFile}:`, error);
     }
-    
+
     return { status: 'skipped' };
   }
 
@@ -291,7 +292,7 @@ export class StoryCoverageReporter {
     </div>
 
     <div class="stories">
-      ${userStories.map(story => this.renderStory(story, coverage)).join('')}
+      ${userStories.map((story) => this.renderStory(story, coverage)).join('')}
     </div>
 
     <div class="last-updated">
@@ -301,18 +302,18 @@ export class StoryCoverageReporter {
 </body>
 </html>
     `;
-    
+
     return html;
   }
 
   private static renderStory(story: any, coverage: CoverageReport): string {
-    const storyResults = coverage.testResults.filter(r => r.storyId === story.id);
-    const implementedCount = storyResults.filter(r => r.status !== 'not-implemented').length;
+    const storyResults = coverage.testResults.filter((r) => r.storyId === story.id);
+    const implementedCount = storyResults.filter((r) => r.status !== 'not-implemented').length;
     const totalCount = story.scenarios.length;
-    
+
     let statusClass = 'pending';
     let statusText = '未実装';
-    
+
     if (implementedCount === totalCount) {
       statusClass = 'completed';
       statusText = '完了';
@@ -335,19 +336,23 @@ export class StoryCoverageReporter {
   }
 
   private static renderScenario(scenario: any, results: TestResult[]): string {
-    const result = results.find(r => r.scenarioId === scenario.id);
+    const result = results.find((r) => r.scenarioId === scenario.id);
     const statusClass = result ? result.status.replace('-', '') : 'not-implemented';
-    
+
     return `
       <div class="scenario ${statusClass}">
         <div class="scenario-title">${scenario.id}: ${scenario.description}</div>
-        ${scenario.testFiles ? `
+        ${
+          scenario.testFiles
+            ? `
           <div class="test-info">
             テストファイル: <span class="test-file">${scenario.testFiles[0] || 'なし'}</span>
             ${result && result.duration ? ` | 実行時間: ${result.duration}ms` : ''}
             ${result && result.status === 'failed' ? ` | エラー: ${result.failureReason}` : ''}
           </div>
-        ` : ''}
+        `
+            : ''
+        }
       </div>
     `;
   }
@@ -371,44 +376,44 @@ export class StoryCoverageReporter {
 `;
 
     for (const story of userStories) {
-      const storyResults = coverage.testResults.filter(r => r.storyId === story.id);
-      const implementedCount = storyResults.filter(r => r.status !== 'not-implemented').length;
-      
+      const storyResults = coverage.testResults.filter((r) => r.storyId === story.id);
+      const implementedCount = storyResults.filter((r) => r.status !== 'not-implemented').length;
+
       markdown += `### ${story.id}: ${story.title}\n\n`;
       markdown += `- **ペルソナ**: ${story.persona.name} (${story.persona.role})\n`;
       markdown += `- **実装状況**: ${implementedCount}/${story.scenarios.length} シナリオ\n`;
       markdown += `- **優先度**: ${story.priority}\n\n`;
-      
+
       markdown += `#### シナリオ一覧\n\n`;
-      
+
       for (const scenario of story.scenarios) {
-        const result = storyResults.find(r => r.scenarioId === scenario.id);
+        const result = storyResults.find((r) => r.scenarioId === scenario.id);
         const status = result ? result.status : 'not-implemented';
         const statusEmoji = {
-          'passed': '✅',
-          'failed': '❌',
-          'skipped': '⏭️',
-          'not-implemented': '📝'
+          passed: '✅',
+          failed: '❌',
+          skipped: '⏭️',
+          'not-implemented': '📝',
         }[status];
-        
+
         markdown += `- ${statusEmoji} **${scenario.id}**: ${scenario.description}\n`;
-        
+
         if (scenario.testFiles && scenario.testFiles.length > 0) {
           markdown += `  - テストファイル: \`${scenario.testFiles[0]}\`\n`;
         }
-        
+
         if (result && result.status === 'failed' && result.failureReason) {
           markdown += `  - ❌ エラー: ${result.failureReason}\n`;
         }
-        
+
         markdown += '\n';
       }
-      
+
       markdown += `#### 受け入れ条件\n\n`;
       for (const criteria of story.acceptanceCriteria) {
         markdown += `- [ ] ${criteria}\n`;
       }
-      
+
       markdown += '\n---\n\n';
     }
 
@@ -418,26 +423,24 @@ export class StoryCoverageReporter {
 
 // CLIとして実行された場合
 if (require.main === module) {
-  const reporter = new StoryCoverageReporter();
-  
   // レポート生成
   StoryCoverageReporter.generateReport('./playwright-report')
-    .then(coverage => {
+    .then((coverage) => {
       // HTML レポート
       const htmlReport = StoryCoverageReporter.generateHTMLReport(coverage);
       writeFileSync('./story-coverage.html', htmlReport);
       console.log('HTML report generated: story-coverage.html');
-      
+
       // Markdown レポート
       const markdownReport = StoryCoverageReporter.generateMarkdownReport(coverage);
       writeFileSync('./story-coverage.md', markdownReport);
       console.log('Markdown report generated: story-coverage.md');
-      
+
       // コンソール出力
       console.log(`\nカバレッジ: ${coverage.coveragePercentage.toFixed(1)}%`);
       console.log(`実装済み: ${coverage.implementedScenarios}/${coverage.totalScenarios} シナリオ`);
     })
-    .catch(error => {
+    .catch((error) => {
       console.error('Failed to generate report:', error);
       process.exit(1);
     });
