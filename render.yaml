@@ -3,7 +3,7 @@ services:
     name: simple-bookkeeping-api
     runtime: node
     plan: free # 無料プランを明示的に指定
-    buildCommand: pnpm install && cd packages/database && npx prisma generate && cd ../.. && cd apps/api && pnpm build
+    buildCommand: pnpm install && cd packages/database && npx prisma generate && cd ../.. && cd packages/shared && pnpm build && cd ../.. && cd apps/api && pnpm build
     startCommand: cd apps/api && node dist/index.js
     envVars:
       - key: NODE_ENV
