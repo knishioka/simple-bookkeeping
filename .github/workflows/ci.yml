@@ -26,7 +26,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma Client
-        run: pnpm --filter @simple-bookkeeping/database db:generate
+        run: pnpm --filter @simple-bookkeeping/database prisma:generate
+
+      - name: Build database package
+        run: pnpm --filter @simple-bookkeeping/database build
+
+      - name: Build core package
+        run: pnpm --filter @simple-bookkeeping/core build
 
       - name: Build shared package
         run: pnpm --filter @simple-bookkeeping/shared build
@@ -56,7 +62,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma Client
-        run: pnpm --filter @simple-bookkeeping/database db:generate
+        run: pnpm --filter @simple-bookkeeping/database prisma:generate
+
+      - name: Build database package
+        run: pnpm --filter @simple-bookkeeping/database build
+
+      - name: Build core package
+        run: pnpm --filter @simple-bookkeeping/core build
 
       - name: Build shared package
         run: pnpm --filter @simple-bookkeeping/shared build
@@ -102,7 +114,13 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma Client
-        run: pnpm --filter @simple-bookkeeping/database db:generate
+        run: pnpm --filter @simple-bookkeeping/database prisma:generate
+
+      - name: Build database package
+        run: pnpm --filter @simple-bookkeeping/database build
+
+      - name: Build core package
+        run: pnpm --filter @simple-bookkeeping/core build
 
       - name: Build shared package
         run: pnpm --filter @simple-bookkeeping/shared build
@@ -134,9 +152,15 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma Client
-        run: pnpm --filter @simple-bookkeeping/database db:generate
+        run: pnpm --filter @simple-bookkeeping/database prisma:generate
 
-      - name: Build shared package first
+      - name: Build database package
+        run: pnpm --filter @simple-bookkeeping/database build
+
+      - name: Build core package
+        run: pnpm --filter @simple-bookkeeping/core build
+
+      - name: Build shared package
         run: pnpm --filter @simple-bookkeeping/shared build
 
       - name: Build packages
