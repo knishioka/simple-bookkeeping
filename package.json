@@ -31,7 +31,9 @@
     "db:seed": "turbo run db:seed",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
-    "docker:logs": "docker-compose logs -f"
+    "docker:logs": "docker-compose logs -f",
+    "render:status": "./scripts/render-status.sh",
+    "deploy:check": "pnpm render:status"
   },
   "devDependencies": {
     "@types/node": "^20.19.1",
