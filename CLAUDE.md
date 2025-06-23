@@ -1244,27 +1244,68 @@ pnpm install --shamefully-hoist
 
 ### Render CLI を使用したデプロイ確認
 
+#### 初回セットアップ
+
+1. **Render CLIのインストール**
+
+   ```bash
+   # macOS
+   brew install render
+
+   # または公式サイトからダウンロード
+   # https://render.com/docs/cli
+   ```
+
+2. **認証**
+
+   ```bash
+   render login
+   # ブラウザが開き、認証コードが表示される
+   ```
+
+3. **サービスID設定**
+
+   ```bash
+   # テンプレートをコピー
+   cp .render/services.json.example .render/services.json
+
+   # .render/services.jsonを編集してサービスIDを設定
+   # サービスIDはRenderダッシュボードのURLから確認可能
+   # https://dashboard.render.com/web/srv-xxxxxxxxxxxxxxxxxx
+   ```
+
+#### デプロイ状況の確認
+
 サービスIDは `.render/services.json` に保存されています：
 
 ```bash
 # サービスIDを取得
 SERVICE_ID=$(cat .render/services.json | jq -r '.services.api.id')
 
-# 最新のデプロイ状況を確認
-render deploys list $SERVICE_ID -o json | jq -r '.[] | select(.status == "live") | .createdAt' | head -1
+# 最新のデプロイ状況を詳細確認
+render deploys list $SERVICE_ID -o json | jq -r '.[0] | {status, createdAt, commit: .commit.id, message: .commit.message}'
 
 # デプロイ履歴を確認（最新5件）
-render deploys list $SERVICE_ID -o json | jq -r '.[] | "\(.createdAt) - \(.status)"' | head -5
+render deploys list $SERVICE_ID -o json | jq -r '.[:5][] | "\(.createdAt) - \(.status)"'
 
 # 現在のライブデプロイを確認
-render deploys list $SERVICE_ID -o json | jq -r '.[] | select(.status == "live") | {createdAt, commit: .commit.id}'
+render deploys list $SERVICE_ID -o json | jq -r '.[] | select(.status == "live") | {createdAt, commit: .commit.id}' | head -1
 
 # ビルドエラーの確認
-render deploys list $SERVICE_ID -o json | jq -r '.[] | select(.status == "build_failed")'
+render deploys list $SERVICE_ID -o json | jq -r '.[] | select(.status == "build_failed" or .status == "deploy_failed")'
 
 # スクリプトを使用した簡単な確認
 pnpm render:status
 ```
+
+#### デプロイステータスの意味
+
+- `build_in_progress` / `update_in_progress`: ビルド・更新中
+- `live`: 稼働中（成功）
+- `deactivated`: 非アクティブ（新しいデプロイに置き換えられた）
+- `build_failed`: ビルド失敗
+- `deploy_failed`: デプロイ失敗
+- `canceled`: キャンセルされた
 
 ### サービスIDの取得方法
 
