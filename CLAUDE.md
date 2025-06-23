@@ -979,31 +979,53 @@ NEXT_PUBLIC_API_URL=https://your-api.onrender.com
 }
 ```
 
-#### 4. **Renderでのデプロイ設定（railway.toml）**
+#### 4. **Renderでのデプロイ設定（render.yaml）**
 
-```toml
-[build]
-builder = "nixpacks"
-buildCommand = "pnpm install --frozen-lockfile && pnpm --filter @simple-bookkeeping/api... build"
+```yaml
+services:
+  - type: web
+    name: simple-bookkeeping-api
+    runtime: node
+    plan: free
+    buildCommand: pnpm install --prod=false && cd packages/database && npx prisma generate && cd ../.. && pnpm --filter @simple-bookkeeping/database build && pnpm --filter @simple-bookkeeping/core build && pnpm --filter @simple-bookkeeping/shared build && pnpm --filter @simple-bookkeeping/api build
+    startCommand: cd apps/api && node dist/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: simple-bookkeeping-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: https://your-web-app.vercel.app
 
-[deploy]
-startCommand = "pnpm --filter @simple-bookkeeping/api start"
-healthcheckPath = "/api/v1/health"
-healthcheckTimeout = 60
-
-[[services]]
-name = "api"
-port = 3001
+databases:
+  - name: simple-bookkeeping-db
+    plan: free
+    databaseName: simple_bookkeeping
+    user: simple_bookkeeping_user
 ```
 
 #### 5. **Vercelでのデプロイ設定（vercel.json）**
 
 ```json
+// ルートのvercel.json（Gitデプロイメント設定のみ）
 {
-  "buildCommand": "cd ../.. && pnpm install --frozen-lockfile && pnpm --filter @simple-bookkeeping/web... build",
-  "outputDirectory": "apps/web/.next",
-  "installCommand": "echo 'Skipping install'",
-  "framework": "nextjs"
+  "git": {
+    "deploymentEnabled": {
+      "main": true
+    }
+  }
+}
+
+// apps/web/vercel.json（実際のビルド設定）
+{
+  "buildCommand": "cd ../.. && pnpm build:web",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "installCommand": "cd ../.. && pnpm install --frozen-lockfile --prod=false"
 }
 ```
 
@@ -1097,11 +1119,29 @@ port = 3001
 # apps/web/vercel.json
 {
   "outputDirectory": ".next",
-  "buildCommand": "cd ../.. && pnpm --filter @simple-bookkeeping/database prisma:generate && pnpm --filter @simple-bookkeeping/shared build && pnpm --filter @simple-bookkeeping/web build"
+  "buildCommand": "cd ../.. && pnpm build:web"
 }
 ```
 
-**3. Prismaクライアント生成エラー**
+**3. buildCommandの文字数制限（256文字）**
+
+問題：Vercelのschema validationエラー
+
+```bash
+# ❌ 長すぎるbuildCommand
+"buildCommand": "cd ../.. && pnpm --filter @simple-bookkeeping/database prisma:generate && pnpm --filter @simple-bookkeeping/database build && ..."
+
+# ✅ 解決策：ルートのpackage.jsonにスクリプトを追加
+// package.json
+"scripts": {
+  "build:web": "pnpm --filter @simple-bookkeeping/database prisma:generate && pnpm build:packages && pnpm --filter @simple-bookkeeping/web build"
+}
+
+// apps/web/vercel.json
+"buildCommand": "cd ../.. && pnpm build:web"
+```
+
+**4. Prismaクライアント生成エラー**
 
 問題：`Cannot find module '.prisma/client'`
 
@@ -1110,9 +1150,36 @@ port = 3001
 pnpm --filter @simple-bookkeeping/database prisma:generate
 ```
 
-##### Render特有の問題
+##### Render特有の問題と解決策
 
-**Renderでビルドが失敗する場合：**
+**1. Node.js型定義エラー**
+
+問題：`Cannot find type definition file for 'node'`、`Cannot find name 'global'`
+
+```bash
+# ❌ エラーが発生する設定（render.yaml）
+buildCommand: pnpm install && ...
+
+# ✅ 解決策1：devDependenciesもインストール
+buildCommand: pnpm install --prod=false && ...
+
+# ✅ 解決策2：tsconfig.jsonから"types": ["node"]を削除
+# TypeScriptが自動的に@types/nodeを検出
+```
+
+**2. seed.tsの配置場所**
+
+問題：seed.tsがsrcディレクトリにあるとビルドエラー
+
+```bash
+# ❌ 間違った配置
+packages/database/src/seed.ts
+
+# ✅ 正しい配置
+packages/database/prisma/seed.ts
+```
+
+**3. Renderでビルドが失敗する場合：**
 
 ```bash
 # package.jsonに追加
@@ -1164,9 +1231,26 @@ pnpm install --shamefully-hoist
    - 共有パッケージのビルドを忘れない
 
 3. **よくある落とし穴の回避**
+
    - `db:generate`ではなく`prisma:generate`を使用
    - outputDirectoryは相対パスで指定
-   - installCommandでdevDependenciesを含める
+   - installCommandでdevDependenciesを含める（`--prod=false`）
+   - buildCommandは256文字以内に収める
+   - seed.tsはprismaディレクトリに配置
+
+4. **プラットフォーム別の注意点**
+
+   **Vercel:**
+
+   - apps/web内に独自のvercel.jsonを配置
+   - ルートのvercel.jsonはGit設定のみ
+   - buildCommandが長い場合はpackage.jsonにスクリプト化
+
+   **Render:**
+
+   - render.yamlでbuildCommandに`--prod=false`を指定
+   - TypeScript関連のエラーはdevDependenciesの問題が多い
+   - データベース接続はfromDatabaseプロパティで自動設定
 
 ## 継続的な改善
 
