@@ -24,7 +24,8 @@ export type StoryTestFixtures = {
 
 export const storyTest = base.extend<StoryTestFixtures>({
   story: [
-    async (_, use) => {
+    // eslint-disable-next-line no-empty-pattern
+    async ({}, use) => {
       // テスト実行時に動的に設定
       await use(undefined as unknown as UserStory);
     },
@@ -32,7 +33,8 @@ export const storyTest = base.extend<StoryTestFixtures>({
   ],
 
   scenario: [
-    async (_, use) => {
+    // eslint-disable-next-line no-empty-pattern
+    async ({}, use) => {
       // テスト実行時に動的に設定
       await use(undefined as unknown as Scenario);
     },
