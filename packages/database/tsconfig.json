@@ -1,5 +1,4 @@
 {
-  "extends": "@simple-bookkeeping/typescript-config/base.json",
   "compilerOptions": {
     "lib": ["ES2022"],
     "target": "ES2022",
@@ -8,7 +7,13 @@
     "declaration": true,
     "declarationMap": true,
     "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "types": ["node"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "prisma"]
