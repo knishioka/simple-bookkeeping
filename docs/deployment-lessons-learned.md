@@ -224,8 +224,58 @@ render deploys list $SERVICE_ID -o json | jq -r '.[:10][] | "\(.createdAt) - \(.
    - workspace:\*の解決に注意
    - 共有パッケージのビルドを忘れない
 
+### Vercel CLIでのデプロイ確認
+
+**Vercel CLIの特徴：**
+
+- JSON出力オプションがない（表形式のみ）
+- `vercel list`でデプロイメント一覧を確認
+- `vercel inspect <url>`で詳細確認
+- `vercel logs`でビルドログ確認
+
+**Vercel REST APIの活用（推奨）：**
+
+Vercel CLIの制限を回避するため、REST APIを直接使用：
+
+1. **APIトークンの取得**
+
+   ```bash
+   # https://vercel.com/account/tokens でトークンを作成
+   # .env.localに保存
+   VERCEL_TOKEN=your-token-here
+   ```
+
+2. **APIエンドポイント**
+   - Base URL: `https://api.vercel.com`
+   - Deployments: `/v6/deployments`
+   - 認証: `Authorization: Bearer <token>`
+
+3. **スクリプトの機能**
+   - `scripts/vercel-api-status.sh`
+   - JSON形式でデプロイメント情報を取得
+   - ステータスによる色分け表示
+   - デプロイメント統計の表示
+   - Production URLのヘルスチェック
+
+```bash
+# API版のVercelデプロイ状況確認
+pnpm vercel:api-status
+
+# 両プラットフォームの確認（API版）
+pnpm deploy:check
+```
+
+**APIの利点：**
+
+- 詳細なデプロイメント情報の取得
+- プログラマティックな処理が可能
+- CI/CDパイプラインでの活用
+- 統計情報の集計
+
 ## 📚 参考リンク
 
 - [Vercel Monorepo Guide](https://vercel.com/docs/monorepos)
 - [Render Node.js Deploy Guide](https://render.com/docs/deploy-node-express-app)
 - [pnpm Workspace](https://pnpm.io/workspaces)
+- [Render CLI Documentation](https://render.com/docs/cli)
+- [Vercel CLI Documentation](https://vercel.com/docs/cli)

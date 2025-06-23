@@ -1321,11 +1321,80 @@ export RENDER_API_SERVICE_ID=$(cat .render/services.json | jq -r '.services.api.
 
 ```bash
 # APIの稼働状況を確認
-curl -s -o /dev/null -w "%{http_code}\n" https://simple-bookkeeping-api.onrender.com/api/v1/
+curl -s -o /dev/null -w "%{http_code}\n" https://your-api.onrender.com/api/v1/
 
 # より詳細な確認
-curl -s https://simple-bookkeeping-api.onrender.com/api/v1/ | jq
+curl -s https://your-api.onrender.com/api/v1/ | jq
 ```
+
+### Vercel CLIでのデプロイ確認
+
+#### 基本的な使い方（CLI）
+
+```bash
+# 初回セットアップ
+npm i -g vercel
+vercel login
+
+# デプロイ状況確認（表形式）
+pnpm vercel:status
+
+# 特定のデプロイメントの詳細確認
+vercel inspect <deployment-url>
+
+# ビルドログの確認
+vercel logs
+
+# 新しいデプロイ
+vercel          # プレビューデプロイ
+vercel --prod   # 本番デプロイ
+```
+
+#### Vercel API を使った詳細確認（推奨）
+
+1. **APIトークンの取得**
+   - https://vercel.com/account/tokens にアクセス
+   - 「Create Token」をクリック
+   - トークン名を入力して作成
+   - トークンをコピー（一度しか表示されない）
+
+   **既存のトークンを確認（macOS）:**
+
+   ```bash
+   # Vercel CLIの認証情報は以下に保存
+   cat ~/Library/Application\ Support/com.vercel.cli/auth.json | jq -r '.token'
+   ```
+
+2. **環境変数の設定**
+
+   ```bash
+   # .env.localに追加
+   echo "VERCEL_TOKEN=your-token-here" >> .env.local
+
+   # または環境変数として設定
+   export VERCEL_TOKEN="your-token-here"
+   ```
+
+3. **APIステータス確認**
+
+   ```bash
+   # Vercel APIを使った詳細なステータス確認
+   pnpm vercel:api-status
+
+   # 両方のデプロイ状況を確認（API版）
+   pnpm deploy:check
+   ```
+
+#### Vercel APIスクリプトの機能
+
+- デプロイメント一覧を時系列で表示
+- ステータスによる色分け表示
+  - 🟢 Ready (Production)
+  - 🔵 Ready (Preview)
+  - 🔴 Error/Failed
+  - 🟡 Building/Deploying
+- 最新のProduction URLでヘルスチェック
+- デプロイメント統計（成功/失敗/ビルド中）
 
 ## 継続的な改善
 

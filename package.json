@@ -33,7 +33,9 @@
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
     "render:status": "./scripts/render-status.sh",
-    "deploy:check": "pnpm render:status"
+    "vercel:status": "./scripts/vercel-status.sh",
+    "vercel:api-status": "./scripts/vercel-api-status.sh",
+    "deploy:check": "pnpm render:status && pnpm vercel:api-status"
   },
   "devDependencies": {
     "@types/node": "^20.19.1",
