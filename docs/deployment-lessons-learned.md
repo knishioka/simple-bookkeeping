@@ -272,6 +272,167 @@ pnpm deploy:check
 - CI/CDパイプラインでの活用
 - 統計情報の集計
 
+## 🔗 VercelとRenderの連携設定
+
+### CORS設定とAPI URL更新の手順
+
+**問題**: VercelのフロントエンドからRenderのAPIにアクセスする際のCORSエラー
+
+```
+Access to fetch at 'https://api-url' from origin 'https://frontend-url' has been blocked by CORS policy
+```
+
+### 1. Vercel環境変数の更新（API経由）
+
+**既存のトークンを利用**:
+
+```bash
+# macOSの場合、Vercel CLIトークンは以下に保存
+TOKEN=$(cat ~/Library/Application\ Support/com.vercel.cli/auth.json | jq -r '.token')
+PROJECT_ID=$(cat .vercel/project.json | jq -r '.projectId')
+TEAM_ID=$(cat .vercel/project.json | jq -r '.orgId')
+```
+
+**環境変数の更新**:
+
+```bash
+# 既存の環境変数を削除
+curl -X DELETE \
+  -H "Authorization: Bearer $TOKEN" \
+  "https://api.vercel.com/v9/projects/$PROJECT_ID/env/<env-id>?teamId=$TEAM_ID"
+
+# 新しい環境変数を追加
+curl -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  "https://api.vercel.com/v10/projects/$PROJECT_ID/env?teamId=$TEAM_ID" \
+  -d '{
+    "key": "NEXT_PUBLIC_API_URL",
+    "value": "https://simple-bookkeeping-api.onrender.com/api/v1",
+    "type": "plain",
+    "target": ["production"]
+  }'
+```
+
+### 2. Render CORS設定の更新（API経由）
+
+**Render APIキーの取得**:
+
+```bash
+# Render CLIの設定ファイルから取得
+API_KEY=$(cat ~/.render/cli.yaml | grep "key:" | awk '{print $2}')
+SERVICE_ID=$(cat .render/services.json | jq -r '.services.api.id')
+```
+
+**現在の環境変数を取得**:
+
+```bash
+curl -s -H "Authorization: Bearer $API_KEY" \
+  "https://api.render.com/v1/services/$SERVICE_ID/env-vars" | jq
+```
+
+**環境変数の更新（全置換方式）**:
+
+```bash
+# 注意: Render APIは全ての環境変数を置き換えるため、
+# 既存の環境変数も含めて全て送信する必要がある
+curl -X PUT \
+  -H "Authorization: Bearer $API_KEY" \
+  -H "Content-Type: application/json" \
+  "https://api.render.com/v1/services/$SERVICE_ID/env-vars" \
+  -d '[
+    {
+      "key": "NODE_ENV",
+      "value": "production"
+    },
+    {
+      "key": "DATABASE_URL",
+      "value": "postgresql://..."
+    },
+    {
+      "key": "CORS_ORIGIN",
+      "value": "https://your-app.vercel.app,https://another-url.vercel.app,http://localhost:3000"
+    }
+    // 他の環境変数も全て含める
+  ]'
+```
+
+**デプロイのトリガー**:
+
+```bash
+# 環境変数の変更は自動デプロイされないため、手動でトリガー
+curl -X POST \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  "https://api.render.com/v1/services/$SERVICE_ID/deploys" \
+  -d '{"clearCache": "do_not_clear"}'
+```
+
+### 3. 循環依存の解決
+
+**問題**: `@simple-bookkeeping/shared`パッケージがPrisma型を再エクスポートしようとしてビルドエラー
+
+```
+error TS2307: Cannot find module '@simple-bookkeeping/database' or its corresponding type declarations.
+```
+
+**解決策**:
+
+- sharedパッケージからPrisma型の再エクスポートを削除
+- 各パッケージで必要なPrisma型は直接`@simple-bookkeeping/database`からインポート
+
+### 4. トラブルシューティングのコツ
+
+**CORSヘッダーの確認**:
+
+```bash
+curl -I -X OPTIONS https://your-api.onrender.com/api/v1/auth/login \
+  -H "Origin: https://your-frontend.vercel.app" \
+  -H "Access-Control-Request-Method: POST" \
+  -H "Access-Control-Request-Headers: Content-Type"
+```
+
+正常な場合のレスポンス:
+
+```
+access-control-allow-origin: https://your-frontend.vercel.app
+access-control-allow-methods: GET,HEAD,PUT,PATCH,POST,DELETE
+access-control-allow-credentials: true
+```
+
+### 5. デプロイ後の確認手順
+
+1. **API側（Render）の確認**:
+
+   ```bash
+   pnpm render:status
+   # ステータスが"live"になるまで待つ
+   ```
+
+2. **Frontend側（Vercel）の確認**:
+
+   ```bash
+   pnpm vercel:api-status
+   # 最新のProduction URLを確認
+   ```
+
+3. **統合テスト**:
+   - ブラウザでVercel URLにアクセス
+   - ログイン機能をテスト
+   - ブラウザの開発者ツールでCORSエラーがないことを確認
+
+### 6. セキュリティ上の注意
+
+- **APIキーの管理**:
+  - Render APIキー: `~/.render/cli.yaml`に保存
+  - Vercel Token: `~/Library/Application Support/com.vercel.cli/auth.json`に保存
+  - これらのファイルは絶対にコミットしない
+
+- **CORS設定**:
+  - 本番環境では`*`を使用しない
+  - 具体的なドメインを指定する
+  - 開発環境用に`http://localhost:3000`も含める
+
 ## 📚 参考リンク
 
 - [Vercel Monorepo Guide](https://vercel.com/docs/monorepos)
