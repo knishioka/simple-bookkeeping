@@ -1,360 +1,556 @@
-# デプロイメントガイド
+# Deployment Guide - Simple Bookkeeping
 
-## 事前準備
+This guide documents the deployment process for the Simple Bookkeeping monorepo application, including lessons learned from deploying to Vercel (frontend) and Render (backend).
 
-### 1. 環境変数の準備
+## Overview
 
-以下の環境変数を設定する必要があります：
+- **Frontend (Next.js)**: Deployed to Vercel
+- **Backend (Express.js)**: Deployed to Render
+- **Database**: Supabase (PostgreSQL)
+- **Architecture**: pnpm workspace monorepo
 
-#### Render APIサービス
+## Table of Contents
 
-```env
-# Database (Renderで自動設定)
-DATABASE_URL="自動で設定されます"
+1. [Monorepo Deployment Challenges](#monorepo-deployment-challenges)
+2. [Vercel Deployment (Frontend)](#vercel-deployment-frontend)
+3. [Render Deployment (Backend)](#render-deployment-backend)
+4. [Environment Variable Management](#environment-variable-management)
+5. [TypeScript Build Issues and Solutions](#typescript-build-issues-and-solutions)
+6. [Platform-Specific Configurations](#platform-specific-configurations)
+7. [Troubleshooting Guide](#troubleshooting-guide)
+8. [Best Practices](#best-practices)
 
-# JWT (自動生成または手動設定)
-JWT_SECRET="render.yamlで自動生成"
-JWT_REFRESH_SECRET="render.yamlで自動生成"
-JWT_EXPIRES_IN="7d"
-JWT_REFRESH_EXPIRES_IN="30d"
+## Monorepo Deployment Challenges
 
-# API設定
-NODE_ENV=production
+### 1. Shared Dependencies
 
-# CORS設定
-CORS_ORIGIN="https://your-vercel-app.vercel.app"
-```
+**Challenge**: Both frontend and backend depend on shared packages (`@simple-bookkeeping/database`, `@simple-bookkeeping/types`, etc.)
 
-#### Vercel Frontend
+**Solution**:
 
-```env
-# API URL
-API_URL="https://your-app-api.onrender.com"
+- Ensure all shared packages are built before the main applications
+- Use proper build commands that respect dependency order
+- Include workspace root in deployment context
 
-# その他の設定
-NEXT_PUBLIC_APP_NAME="Simple Bookkeeping"
-```
+### 2. Build Context
 
-### 2. データベースの準備
+**Challenge**: Deployment platforms need access to the entire monorepo structure
 
-Renderデプロイ後、Dashboardのシェルから：
+**Solution**:
 
-```bash
-# Prismaマイグレーションの実行
-cd packages/database
-pnpm prisma migrate deploy
-
-# 初期データの投入（必要に応じて）
-pnpm prisma db seed
-```
-
-### 3. ローカルでのビルド確認
-
-```bash
-# 全体のビルド
-pnpm build
-
-# 個別のビルド
-pnpm --filter @simple-bookkeeping/web build
-pnpm --filter @simple-bookkeeping/api build
-```
-
-**注意**: Renderでは`render.yaml`に定義されたビルドコマンドが自動的に実行されます。
-
-## デプロイ方法
-
-### 方法1: Vercel + Render (推奨)
-
-この方法では、フロントエンドをVercelに、APIサーバーとデータベースをRenderにデプロイします。
-
-#### ステップ1: RenderでのAPIサーバーとデータベースのデプロイ
-
-1. **Renderアカウント作成**
-
-   - [Render.com](https://render.com)でアカウントを作成
-   - GitHubアカウントを連携
-
-2. **Blueprintデプロイ**
-
-   - "New +" → "Blueprint" を選択
-   - GitHubリポジトリを選択
-   - `render.yaml`が自動的に検出される
-   - "Apply" をクリック
-
-3. **環境変数の確認**
-   - CORS_ORIGINをVercelのURLに更新
-   - JWTシークレットが自動生成されていることを確認
-
-#### ステップ2: データベースの初期化
-
-デプロイ完了後、Render Dashboardから：
-
-1. "simple-bookkeeping-api" サービスを選択
-2. "Shell" タブを開く
-3. 以下のコマンドを実行：
-
-```bash
-cd packages/database
-pnpm prisma migrate deploy
-pnpm prisma db seed
-```
-
-#### ステップ3: Vercelでのフロントエンドデプロイ
-
-1. **Vercelアカウント作成**
-
-   - [Vercel.com](https://vercel.com)でアカウントを作成
-   - GitHubと連携
-
-2. **プロジェクトインポート**
-
-   - "Import Project" をクリック
-   - GitHubリポジトリを選択
-
-3. **ビルド設定**
-
-   - Framework Preset: `Next.js`
-   - Root Directory: `apps/web`
-   - Build Command: デフォルトのまま
-   - Output Directory: デフォルトのまま
-
-4. **環境変数の設定**
-
-   ```
-   API_URL=https://simple-bookkeeping-api.onrender.com
-   ```
-
-   (RenderのURLに合わせて変更)
-
-5. "Deploy" をクリック
-
-### 方法2: VPSへのデプロイ（上級者向け）
-
-#### 1. サーバーの準備
-
-```bash
-# Ubuntu 22.04 LTSの場合
-sudo apt update
-sudo apt upgrade -y
-
-# 必要なソフトウェアのインストール
-sudo apt install -y nodejs npm nginx postgresql postgresql-contrib
-sudo npm install -g pnpm pm2
-
-# Node.jsのバージョン管理（nvm）
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
-source ~/.bashrc
-nvm install 20
-nvm use 20
-```
-
-#### 2. PostgreSQLのセットアップ
-
-```bash
-# PostgreSQLにログイン
-sudo -u postgres psql
-
-# データベースとユーザーの作成
-CREATE USER bookkeeping WITH PASSWORD 'your-password';
-CREATE DATABASE simple_bookkeeping OWNER bookkeeping;
-GRANT ALL PRIVILEGES ON DATABASE simple_bookkeeping TO bookkeeping;
-\q
-```
-
-#### 3. アプリケーションのデプロイ
-
-```bash
-# コードのクローン
-git clone https://github.com/your-username/simple-bookkeeping.git
-cd simple-bookkeeping
-
-# 依存関係のインストール
-pnpm install
-
-# 環境変数の設定
-cp apps/api/.env.example apps/api/.env
-cp apps/web/.env.example apps/web/.env.local
-# 各ファイルを編集して適切な値を設定
-
-# データベースのマイグレーション
-pnpm --filter @simple-bookkeeping/database prisma:migrate:prod
-
-# ビルド
-pnpm build
-
-# PM2でアプリケーションを起動
-pm2 start apps/api/dist/index.js --name bookkeeping-api
-pm2 start npm --name bookkeeping-web -- start --prefix apps/web
-pm2 save
-pm2 startup
-```
-
-#### 4. Nginxの設定
-
-```nginx
-# /etc/nginx/sites-available/simple-bookkeeping
-server {
-    listen 80;
-    server_name your-domain.com;
-
-    # フロントエンド
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-
-    # API
-    location /api {
-        proxy_pass http://localhost:3001;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
+```json
+// vercel.json
+{
+  "buildCommand": "cd ../.. && pnpm build --filter=@simple-bookkeeping/web",
+  "outputDirectory": "apps/web/.next",
+  "installCommand": "cd ../.. && pnpm install --frozen-lockfile"
 }
 ```
 
-```bash
-# Nginxの設定を有効化
-sudo ln -s /etc/nginx/sites-available/simple-bookkeeping /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl restart nginx
+### 3. Package Manager Compatibility
+
+**Challenge**: pnpm's unique node_modules structure can cause issues
+
+**Solution**:
+
+- Always use `pnpm install --frozen-lockfile` in production
+- Ensure pnpm version consistency across environments
+- Some platforms may require `--shamefully-hoist` flag
+
+## Vercel Deployment (Frontend)
+
+### Setup Process
+
+1. **Initial Configuration**:
+
+   ```bash
+   cd apps/web
+   vercel link
+   ```
+
+2. **vercel.json Configuration**:
+
+   ```json
+   {
+     "buildCommand": "cd ../.. && pnpm build --filter=@simple-bookkeeping/web",
+     "outputDirectory": "apps/web/.next",
+     "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
+     "framework": "nextjs",
+     "devCommand": "pnpm dev --filter=@simple-bookkeeping/web"
+   }
+   ```
+
+3. **Root Directory Setting**:
+   - Set to `apps/web` in Vercel dashboard
+   - This ensures correct context for Next.js
+
+### Key Learnings
+
+1. **Build Commands Must Reference Root**:
+
+   - Always `cd ../..` to workspace root before running pnpm commands
+   - This ensures access to all workspace packages
+
+2. **Environment Variables**:
+
+   ```bash
+   # Required for Vercel
+   NEXT_PUBLIC_API_URL=https://your-api.onrender.com
+   NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   ```
+
+3. **TypeScript Path Resolution**:
+   - Vercel automatically handles Next.js path aliases
+   - No additional configuration needed for `@/` imports
+
+## Render Deployment (Backend)
+
+### Setup Process
+
+1. **Create Web Service**:
+
+   - Connect GitHub repository
+   - Set root directory to repository root (not `apps/api`)
+
+2. **Build Configuration**:
+
+   ```yaml
+   # Build Command
+   pnpm install --frozen-lockfile && pnpm build --filter=@simple-bookkeeping/api
+
+   # Start Command
+   node apps/api/dist/index.js
+   ```
+
+3. **Environment Variables**:
+   ```bash
+   NODE_ENV=production
+   PORT=3001
+   DATABASE_URL=your-supabase-connection-string
+   JWT_SECRET=your-jwt-secret
+   CORS_ORIGIN=https://your-frontend.vercel.app
+   ```
+
+### Key Learnings
+
+1. **Root Directory Must Be Repository Root**:
+
+   - Unlike Vercel, Render needs the full monorepo context
+   - Setting root to `apps/api` will fail due to missing workspace packages
+
+2. **Build Command Complexity**:
+
+   - Must install dependencies AND build in one command
+   - Use `&&` to chain commands
+
+3. **TypeScript Compilation**:
+   - Ensure `tsconfig.json` outputs to correct directory
+   - Check that all type imports are resolved during build
+
+## Environment Variable Management
+
+### Best Practices
+
+1. **Use Platform-Specific Tools**:
+
+   ```bash
+   # Vercel
+   vercel env add DATABASE_URL
+   vercel env pull .env.local
+
+   # Render
+   # Use dashboard or render.yaml
+   ```
+
+2. **Environment-Specific Variables**:
+
+   ```bash
+   # Development (.env.local)
+   DATABASE_URL=postgresql://localhost:5432/bookkeeping_dev
+
+   # Production (Platform Dashboard)
+   DATABASE_URL=postgresql://production-url
+   ```
+
+3. **Variable Naming Conventions**:
+   - Frontend: Use `NEXT_PUBLIC_` prefix for client-side variables
+   - Backend: Standard naming without prefix
+   - Never commit `.env` files
+
+### Security Considerations
+
+1. **Separate Secrets by Environment**:
+
+   - Different JWT secrets for dev/staging/prod
+   - Rotate keys regularly
+
+2. **Use Platform Secret Management**:
+   - Vercel: Environment Variables in dashboard
+   - Render: Environment tab in service settings
+
+## TypeScript Build Issues and Solutions
+
+### Common Issues
+
+1. **Module Resolution Errors**:
+
+   ```
+   Error: Cannot find module '@simple-bookkeeping/types'
+   ```
+
+   **Solution**:
+
+   - Ensure shared packages are built first
+   - Check `tsconfig.json` references configuration
+   - Verify package.json exports
+
+2. **Type Import Errors**:
+
+   ```
+   Error: Module '"@simple-bookkeeping/types"' has no exported member 'User'
+   ```
+
+   **Solution**:
+
+   ```json
+   // packages/types/package.json
+   {
+     "main": "./dist/index.js",
+     "types": "./dist/index.d.ts",
+     "exports": {
+       ".": {
+         "require": "./dist/index.js",
+         "import": "./dist/index.js",
+         "types": "./dist/index.d.ts"
+       }
+     }
+   }
+   ```
+
+3. **Build Order Dependencies**:
+   ```json
+   // Root package.json
+   {
+     "scripts": {
+       "build": "pnpm run -r build",
+       "build:deps": "pnpm --filter='./packages/*' build",
+       "build:apps": "pnpm --filter='./apps/*' build"
+     }
+   }
+   ```
+
+### TypeScript Configuration
+
+1. **Workspace References**:
+
+   ```json
+   // apps/api/tsconfig.json
+   {
+     "references": [
+       { "path": "../../packages/types" },
+       { "path": "../../packages/database" },
+       { "path": "../../packages/errors" }
+     ]
+   }
+   ```
+
+2. **Composite Projects**:
+   ```json
+   // packages/types/tsconfig.json
+   {
+     "compilerOptions": {
+       "composite": true,
+       "declaration": true,
+       "declarationMap": true
+     }
+   }
+   ```
+
+## Platform-Specific Configurations
+
+### Vercel
+
+1. **vercel.json**:
+
+   ```json
+   {
+     "buildCommand": "cd ../.. && pnpm build --filter=@simple-bookkeeping/web",
+     "outputDirectory": "apps/web/.next",
+     "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
+     "framework": "nextjs"
+   }
+   ```
+
+2. **Headers and Redirects**:
+   ```json
+   {
+     "headers": [
+       {
+         "source": "/api/(.*)",
+         "headers": [{ "key": "Access-Control-Allow-Origin", "value": "*" }]
+       }
+     ]
+   }
+   ```
+
+### Render
+
+1. **render.yaml** (Optional):
+
+   ```yaml
+   services:
+     - type: web
+       name: simple-bookkeeping-api
+       env: node
+       buildCommand: pnpm install --frozen-lockfile && pnpm build --filter=@simple-bookkeeping/api
+       startCommand: node apps/api/dist/index.js
+       envVars:
+         - key: NODE_ENV
+           value: production
+         - key: DATABASE_URL
+           fromDatabase:
+             name: bookkeeping-db
+             property: connectionString
+   ```
+
+2. **Health Check Configuration**:
+   - Path: `/api/v1/health`
+   - Add health endpoint to prevent service sleeping
+
+## Troubleshooting Guide
+
+### Vercel Issues
+
+1. **Build Fails with "Module not found"**:
+
+   - Check if build command includes `cd ../..`
+   - Verify all workspace packages are included
+   - Check Node.js version compatibility
+
+2. **Environment Variables Not Working**:
+
+   - Frontend variables must have `NEXT_PUBLIC_` prefix
+   - Redeploy after adding new variables
+   - Use `vercel env pull` to sync locally
+
+3. **404 Errors on Routes**:
+   - Check Next.js dynamic routes configuration
+   - Verify `getStaticPaths` for static generation
+   - Ensure API routes are properly exported
+
+### Render Issues
+
+1. **Build Timeout**:
+
+   - Increase build timeout in settings
+   - Optimize build process (cache dependencies)
+   - Consider pre-building locally and deploying dist
+
+2. **Service Keeps Restarting**:
+
+   - Check logs for uncaught exceptions
+   - Verify all environment variables are set
+   - Ensure health check endpoint returns 200
+
+3. **CORS Errors**:
+   - Verify CORS_ORIGIN environment variable
+   - Check Express CORS middleware configuration
+   - Ensure preflight requests are handled
+
+### Database Connection Issues
+
+1. **Connection Timeout**:
+
+   ```bash
+   # Add connection parameters
+   DATABASE_URL="postgresql://user:pass@host:5432/db?sslmode=require&connect_timeout=10"
+   ```
+
+2. **SSL Certificate Errors**:
+   ```javascript
+   // For Supabase connections
+   const databaseUrl = process.env.DATABASE_URL + '?sslmode=require';
+   ```
+
+## Best Practices
+
+### 1. Deployment Checklist
+
+- [ ] All tests passing locally
+- [ ] Environment variables documented
+- [ ] Build tested with production settings
+- [ ] Database migrations prepared
+- [ ] Health endpoints implemented
+- [ ] CORS configured correctly
+- [ ] Error monitoring setup
+
+### 2. CI/CD Recommendations
+
+1. **Automated Testing**:
+
+   ```yaml
+   # .github/workflows/test.yml
+   - name: Run tests
+     run: |
+       pnpm install --frozen-lockfile
+       pnpm test
+       pnpm build
+   ```
+
+2. **Preview Deployments**:
+   - Use Vercel preview deployments for PRs
+   - Set up Render preview environments
+
+### 3. Monitoring and Logging
+
+1. **Application Monitoring**:
+
+   - Implement structured logging
+   - Use services like Sentry or LogRocket
+   - Monitor API response times
+
+2. **Health Checks**:
+   ```typescript
+   // Health endpoint implementation
+   app.get('/api/v1/health', (req, res) => {
+     res.json({
+       status: 'healthy',
+       timestamp: new Date().toISOString(),
+       version: process.env.npm_package_version,
+     });
+   });
+   ```
+
+### 4. Security Best Practices
+
+1. **Environment Variables**:
+
+   - Never commit secrets to repository
+   - Use different secrets per environment
+   - Rotate secrets regularly
+
+2. **API Security**:
+   - Implement rate limiting
+   - Use HTTPS everywhere
+   - Validate all inputs
+
+### 5. Performance Optimization
+
+1. **Frontend (Vercel)**:
+
+   - Enable ISR for dynamic content
+   - Optimize images with Next.js Image
+   - Use Edge Functions for geo-distributed logic
+
+2. **Backend (Render)**:
+   - Implement caching strategies
+   - Use connection pooling for database
+   - Monitor memory usage
+
+## Specific Challenges and Solutions
+
+### 1. Monorepo Build Context Issues
+
+**Challenge**: Vercel couldn't find workspace packages when root directory was set to `apps/web`
+
+**Solution**: Use `cd ../..` in build commands to access workspace root:
+
+```json
+{
+  "buildCommand": "cd ../.. && pnpm build --filter=@simple-bookkeeping/web"
+}
 ```
 
-#### 5. SSL証明書の設定（Let's Encrypt）
+### 2. TypeScript Declaration Files
 
-```bash
-sudo apt install certbot python3-certbot-nginx
-sudo certbot --nginx -d your-domain.com
+**Challenge**: Type imports failed in production builds despite working locally
+
+**Solution**: Ensure all shared packages have proper TypeScript configuration:
+
+- Set `"composite": true` in shared package tsconfig
+- Export types in package.json
+- Build shared packages before apps
+
+### 3. Render Build Timeouts
+
+**Challenge**: Initial builds on Render's free tier would timeout
+
+**Solution**:
+
+- Optimize build process by caching dependencies
+- Split build and start commands
+- Consider upgrading to paid tier for longer timeouts
+
+### 4. Database Connection Pool Exhaustion
+
+**Challenge**: Too many connections to Supabase from serverless functions
+
+**Solution**:
+
+```javascript
+// Use connection pooling
+import { Pool } from 'pg';
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
+});
 ```
 
-### 方法3: ローカル開発用Docker
+### 5. CORS Preflight Failures
 
-**重要**: Docker構成はローカル開発専用です。本番環境ではRenderを使用してください。
+**Challenge**: Complex CORS issues with authentication headers
 
-```bash
-# ローカル開発環境の起動
-docker-compose up -d
+**Solution**:
 
-# ログの確認
-docker-compose logs -f
-
-# 停止
-docker-compose down
+```javascript
+// Comprehensive CORS configuration
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: ['X-Total-Count'],
+  })
+);
 ```
 
-詳細は[Dockerセットアップガイド](./docker-setup.md)を参照してください。
+## Migration Guide
 
-## セキュリティ対策
+### From Railway to Render
 
-### 1. 環境変数の管理
+1. **Export environment variables from Railway**
+2. **Update database connection strings**
+3. **Modify build commands for Render format**
+4. **Update CORS origins**
+5. **Test thoroughly before switching DNS**
 
-- 本番環境の環境変数は絶対にGitにコミットしない
-- Render Dashboardで環境変数を管理
-- Vercel Dashboardで環境変数を管理
-- Gitleaksを使用したpre-commitフックで機密情報の漏洩を防止
+### From Heroku to Render
 
-### 2. HTTPSとセキュリティヘッダー
+1. **Use Render's Heroku migration tool**
+2. **Update Procfile to render.yaml**
+3. **Migrate add-ons to Render services**
+4. **Update environment variables**
 
-- RenderとVercelではHTTPSが自動的に有効化
-- APIサーバーでHelmet.jsを使用してセキュリティヘッダーを設定
-- CORS設定で許可されたオリジンのみを指定
+## Conclusion
 
-### 3. バックアップ戦略
+Deploying a monorepo application requires careful attention to build processes, dependency management, and platform-specific configurations. The key to success is understanding how each platform handles the build context and ensuring all shared dependencies are properly resolved.
 
-#### Render無料プランの場合
+Remember to:
 
-```bash
-# Renderシェルから手動バックアップ
-pg_dump $DATABASE_URL > backup_$(date +%Y%m%d_%H%M%S).sql
-```
+- Always test builds locally first
+- Document all environment variables
+- Monitor deployments closely after changes
+- Keep platform configurations in version control
+- Maintain separate environments for development and production
 
-#### Render有料プランの場合
+For additional help, consult the platform documentation:
 
-- 自動バックアップが有効
-- ポイントインタイムリカバリも利用可能
-
-### 4. 監視とログ
-
-- Render Dashboard: リアルタイムログとメトリクス
-- Vercel Dashboard: 関数の実行ログとパフォーマンス
-- エラー監視（Sentry等）の統合を推奨
-
-## トラブルシューティング
-
-### Renderデプロイメントの問題
-
-#### 1. APIサーバーが起動しない
-
-- Render Dashboardでビルドログを確認
-- 環境変数が正しく設定されているか確認
-- Node.jsバージョンが`render.yaml`で指定されているか確認
-
-#### 2. データベース接続エラー
-
-- DATABASE_URLが自動的に設定されているか確認
-- PostgreSQLサービスがActiveか確認
-- マイグレーションが実行されているか確認
-
-#### 3. CORSエラー
-
-- CORS_ORIGINがVercelのURLと完全に一致しているか確認
-- プロトコル（https://）を含めて設定
-
-### Vercelデプロイメントの問題
-
-#### 1. APIエンドポイントに接続できない
-
-- API_URL環境変数が正しく設定されているか確認
-- Render無料プランの場合、スリープからの復帰を待つ
-
-#### 2. ビルドエラー
-
-- pnpmのバージョンを確認
-- 依存関係のインストールエラーを確認
-
-## 運用のベストプラクティス
-
-### 1. CI/CDの設定
-
-- GitHubとRender/Vercelの連携による自動デプロイ
-- mainブランチへのプッシュで自動デプロイ
-- GitHub Actionsでテストを自動実行
-
-### 2. モニタリング
-
-- **Render**: Dashboardでリアルタイムメトリクス
-- **Vercel**: Analyticsでパフォーマンス監視
-- **エラー監視**: SentryやRollbarを統合
-- **アップタイム監視**: UptimeRobotで外部監視
-
-### 3. スケーリング戦略
-
-- **Render**:
-  - 水平スケーリング（インスタンス数の調整）
-  - 垂直スケーリング（スペックの変更）
-- **Vercel**: エッジロケーションで自動スケーリング
-
-### 4. 定期メンテナンス
-
-- 依存関係の更新（`pnpm update`）
-- セキュリティパッチの適用
-- データベースの最適化
-- ログのアーカイブ
-
-### 5. コスト最適化
-
-- Render無料プランからの移行タイミング
-- リソース使用量の監視
-- 不要なサービスの削除
-
-## 関連ドキュメント
-
-- [クイックデプロイガイド](./quick-deploy-guide.md) - 初心者向け簡易ガイド
-- [Render移行ガイド](./render-migration-guide.md) - Renderへの詳細な移行手順
-- [Dockerセットアップ](./docker-setup.md) - ローカル開発環境
+- [Vercel Documentation](https://vercel.com/docs)
+- [Render Documentation](https://render.com/docs)
+- [pnpm Workspaces](https://pnpm.io/workspaces)
+- [Supabase Documentation](https://supabase.com/docs)

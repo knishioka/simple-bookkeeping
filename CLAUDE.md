@@ -1052,10 +1052,65 @@ port = 3001
    ```
 
 3. **環境変数の確認**：
+
    - Render: ダッシュボードで設定
    - Vercel: `vercel env add`で設定
 
+4. **Vercel特有の設定**：
+
+   - apps/web内に専用のvercel.jsonを配置する
+   - ルートのvercel.jsonはGitデプロイメント設定のみに使用
+   - buildCommandでは必ず`cd ../..`でモノレポルートに移動
+
+5. **デバッグのコツ**：
+   - Vercel CLIで`vercel logs`コマンドを活用
+   - ビルドエラーは`vercel inspect`で詳細確認
+   - ローカルで`vercel dev`を使って環境を再現
+
 #### 9. **トラブルシューティング**
+
+##### Vercel特有の問題と解決策
+
+**1. TypeScriptコンパイルエラー（`tsc: command not found`）**
+
+問題：本番ビルドでTypeScriptがdevDependenciesにあるため利用できない
+
+```bash
+# ❌ エラーが発生する設定
+"installCommand": "pnpm install --frozen-lockfile"
+
+# ✅ 解決策：devDependenciesも含める
+"installCommand": "pnpm install --frozen-lockfile --prod=false"
+```
+
+**2. outputDirectoryパスエラー**
+
+問題：`routes-manifest.json`が見つからない
+
+```bash
+# ❌ モノレポルートからの相対パスは問題を起こす
+{
+  "outputDirectory": "apps/web/.next"
+}
+
+# ✅ 解決策：apps/web内にvercel.jsonを配置
+# apps/web/vercel.json
+{
+  "outputDirectory": ".next",
+  "buildCommand": "cd ../.. && pnpm --filter @simple-bookkeeping/database prisma:generate && pnpm --filter @simple-bookkeeping/shared build && pnpm --filter @simple-bookkeeping/web build"
+}
+```
+
+**3. Prismaクライアント生成エラー**
+
+問題：`Cannot find module '.prisma/client'`
+
+```bash
+# ✅ buildCommandに必ず含める
+pnpm --filter @simple-bookkeeping/database prisma:generate
+```
+
+##### Render特有の問題
 
 **Renderでビルドが失敗する場合：**
 
@@ -1067,18 +1122,20 @@ port = 3001
 }
 ```
 
-**Vercelでモノレポが認識されない場合：**
-
-```bash
-# ルートディレクトリを指定
-vercel --cwd apps/web
-```
+##### 共通の問題
 
 **型定義が見つからない場合：**
 
 ```bash
 # 全パッケージをビルド
 pnpm build:packages
+```
+
+**モノレポの依存関係エラー：**
+
+```bash
+# workspace:* の解決に失敗する場合
+pnpm install --shamefully-hoist
 ```
 
 #### 10. **デプロイ前のチェックリスト**
@@ -1088,6 +1145,28 @@ pnpm build:packages
 - [ ] データベースマイグレーションが完了している
 - [ ] CORSの設定が正しい（APIサーバー）
 - [ ] APIのURLが正しく設定されている（Webアプリ）
+- [ ] TypeScriptのdevDependenciesが本番でも利用可能（`--prod=false`）
+- [ ] Vercelの場合、apps/web/vercel.jsonが存在する
+- [ ] Prismaクライアント生成がbuildCommandに含まれている
+
+#### 11. **デプロイメント成功の鍵**
+
+1. **段階的なデバッグ**
+
+   - まずローカルでプロダクションビルドを確認
+   - Vercel CLIで`vercel`コマンドでプレビューデプロイ
+   - 問題があれば`vercel logs`で詳細確認
+
+2. **モノレポ構造の理解**
+
+   - ビルドコマンドは常にモノレポルートから実行
+   - 各アプリケーションは自身のディレクトリにvercel.jsonを配置
+   - 共有パッケージのビルドを忘れない
+
+3. **よくある落とし穴の回避**
+   - `db:generate`ではなく`prisma:generate`を使用
+   - outputDirectoryは相対パスで指定
+   - installCommandでdevDependenciesを含める
 
 ## 継続的な改善
 
