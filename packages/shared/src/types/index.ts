@@ -23,16 +23,5 @@ export interface DateRange {
   to: Date;
 }
 
-// Re-export Prisma types that are commonly used
-export type {
-  User,
-  Account,
-  AccountType,
-  JournalEntry,
-  JournalStatus,
-  JournalEntryLine,
-  Partner,
-  PartnerType,
-  AccountingPeriod,
-  UserRole,
-} from '@simple-bookkeeping/database';
+// Note: Prisma types should be imported directly from @simple-bookkeeping/database
+// to avoid circular dependencies and build issues
