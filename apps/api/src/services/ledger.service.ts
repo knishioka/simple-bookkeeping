@@ -114,6 +114,7 @@ export class LedgerService {
         },
       },
       include: {
+        account: true,
         journalEntry: {
           include: {
             lines: {
@@ -167,7 +168,7 @@ export class LedgerService {
   /**
    * 相手勘定を特定する
    */
-  private getCounterAccount(line: JournalEntryLineWithRelations): Account | undefined {
+  private getCounterAccount(line: JournalEntryLineWithRelations): { name: string } | undefined {
     const journalEntry = line.journalEntry;
     const otherLines = journalEntry.lines.filter((l) => l.id !== line.id);
 
@@ -181,7 +182,7 @@ export class LedgerService {
       return { name: '諸口' };
     }
 
-    return null;
+    return undefined;
   }
 
   /**
