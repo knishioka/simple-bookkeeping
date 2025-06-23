@@ -172,7 +172,7 @@ export function AccountDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>親科目（任意）</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value ?? undefined}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="親科目を選択" />
