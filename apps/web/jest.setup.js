@@ -39,7 +39,7 @@ global.ResizeObserver = class ResizeObserver {
 // Mock Radix UI Dialog component
 jest.mock('@/components/ui/dialog', () => ({
   Dialog: ({ children, open }) => (open ? <div>{children}</div> : null),
-  DialogContent: ({ children }) => <div>{children}</div>,
+  DialogContent: ({ children }) => <div role="dialog">{children}</div>,
   DialogDescription: ({ children }) => <div>{children}</div>,
   DialogFooter: ({ children }) => <div>{children}</div>,
   DialogHeader: ({ children }) => <div>{children}</div>,
@@ -47,25 +47,39 @@ jest.mock('@/components/ui/dialog', () => ({
 }));
 
 // Simplified Select mock for testing
-global.mockSelectValue = null;
-
 jest.mock('@/components/ui/select', () => {
   const React = require('react');
 
+  // Store callbacks for each Select instance
+  const selectCallbacks = new Map();
+  let selectIdCounter = 0;
+
   return {
     Select: ({ children, onValueChange, defaultValue, value, ...props }) => {
+      const selectId = React.useRef(`select-${selectIdCounter++}`).current;
+
       React.useEffect(() => {
-        global.mockSelectOnValueChange = onValueChange;
-      }, [onValueChange]);
+        if (onValueChange) {
+          selectCallbacks.set(selectId, onValueChange);
+        }
+        return () => {
+          selectCallbacks.delete(selectId);
+        };
+      }, [onValueChange, selectId]);
 
       return React.createElement(
         'div',
         {
           'data-testid': 'mock-select',
+          'data-select-id': selectId,
           'data-value': value || defaultValue || '',
           ...props,
         },
-        children
+        React.Children.map(children, (child) =>
+          React.isValidElement(child)
+            ? React.cloneElement(child, { 'data-select-id': selectId })
+            : child
+        )
       );
     },
 
@@ -94,6 +108,18 @@ jest.mock('@/components/ui/select', () => {
     },
 
     SelectItem: ({ children, value, ...props }) => {
+      const handleClick = (event) => {
+        // Find the parent select element
+        const selectElement = event.currentTarget.closest('[data-select-id]');
+        if (selectElement) {
+          const selectId = selectElement.getAttribute('data-select-id');
+          const callback = selectCallbacks.get(selectId);
+          if (callback) {
+            callback(value);
+          }
+        }
+      };
+
       return React.createElement(
         'button',
         {
@@ -102,11 +128,7 @@ jest.mock('@/components/ui/select', () => {
           'data-value': value,
           role: 'option',
           type: 'button',
-          onClick: () => {
-            if (global.mockSelectOnValueChange) {
-              global.mockSelectOnValueChange(value);
-            }
-          },
+          onClick: handleClick,
         },
         children
       );

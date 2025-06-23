@@ -1,5 +1,6 @@
 'use client';
 
+import { Account, AccountType, AccountTypeLabels } from '@simple-bookkeeping/core';
 import { Plus, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
@@ -24,31 +25,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { apiClient } from '@/lib/api-client';
-
-interface Account {
-  id: string;
-  code: string;
-  name: string;
-  accountType: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE';
-  parentId: string | null;
-  parent?: {
-    id: string;
-    code: string;
-    name: string;
-  };
-  isActive: boolean;
-  _count?: {
-    children: number;
-  };
-}
-
-const accountTypeLabels = {
-  ASSET: '資産',
-  LIABILITY: '負債',
-  EQUITY: '純資産',
-  REVENUE: '収益',
-  EXPENSE: '費用',
-};
 
 export default function AccountsPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -127,11 +103,21 @@ export default function AccountsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">すべて</SelectItem>
-                <SelectItem value="ASSET">資産</SelectItem>
-                <SelectItem value="LIABILITY">負債</SelectItem>
-                <SelectItem value="EQUITY">純資産</SelectItem>
-                <SelectItem value="REVENUE">収益</SelectItem>
-                <SelectItem value="EXPENSE">費用</SelectItem>
+                <SelectItem value={AccountType.ASSET}>
+                  {AccountTypeLabels[AccountType.ASSET]}
+                </SelectItem>
+                <SelectItem value={AccountType.LIABILITY}>
+                  {AccountTypeLabels[AccountType.LIABILITY]}
+                </SelectItem>
+                <SelectItem value={AccountType.EQUITY}>
+                  {AccountTypeLabels[AccountType.EQUITY]}
+                </SelectItem>
+                <SelectItem value={AccountType.REVENUE}>
+                  {AccountTypeLabels[AccountType.REVENUE]}
+                </SelectItem>
+                <SelectItem value={AccountType.EXPENSE}>
+                  {AccountTypeLabels[AccountType.EXPENSE]}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -159,7 +145,7 @@ export default function AccountsPage() {
                     <TableCell>{account.name}</TableCell>
                     <TableCell>
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {accountTypeLabels[account.accountType]}
+                        {AccountTypeLabels[account.accountType]}
                       </span>
                     </TableCell>
                     <TableCell>

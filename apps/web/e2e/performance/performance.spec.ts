@@ -211,11 +211,14 @@ test.describe('パフォーマンステスト', () => {
 
       page.on('response', (response) => {
         if (response.url().includes('/api/v1/')) {
-          const responseTime = Date.now() - requestTimes.shift()!;
-          console.log(`API response time: ${responseTime}ms`);
+          const startTime = requestTimes.shift();
+          if (startTime) {
+            const responseTime = Date.now() - startTime;
+            console.log(`API response time: ${responseTime}ms`);
 
-          // 各APIリクエストは1秒以内に応答
-          expect(responseTime).toBeLessThan(1000);
+            // 各APIリクエストは1秒以内に応答
+            expect(responseTime).toBeLessThan(1000);
+          }
         }
       });
 

@@ -6,6 +6,7 @@ import * as organizationsController from '../controllers/organizations.controlle
 import { authenticate, authorize, setOrganizationContext } from '../middlewares/auth';
 import { validate } from '../middlewares/validation';
 
+import type { RouteHandler } from '../types/express';
 import type { Router as RouterType } from 'express';
 
 const router: RouterType = Router();
@@ -15,10 +16,10 @@ router.use(authenticate);
 router.use(setOrganizationContext);
 
 // Get user's organizations
-router.get('/mine', organizationsController.getMyOrganizations as any);
+router.get('/mine', organizationsController.getMyOrganizations as RouteHandler);
 
 // Get organization details (requires organization context)
-router.get('/current', organizationsController.getCurrentOrganization as any);
+router.get('/current', organizationsController.getCurrentOrganization as RouteHandler);
 
 // Create organization (any authenticated user can create)
 router.post(
@@ -35,7 +36,7 @@ router.post(
       }),
     })
   ),
-  organizationsController.createOrganization as any
+  organizationsController.createOrganization as RouteHandler
 );
 
 // Update organization (Admin only within the organization)
@@ -53,7 +54,7 @@ router.put(
       }),
     })
   ),
-  organizationsController.updateOrganization as any
+  organizationsController.updateOrganization as RouteHandler
 );
 
 // Invite user to organization (Admin only)
@@ -68,14 +69,14 @@ router.post(
       }),
     })
   ),
-  organizationsController.inviteUser as any
+  organizationsController.inviteUser as RouteHandler
 );
 
 // Remove user from organization (Admin only)
 router.delete(
   '/:id/users/:userId',
   authorize(UserRole.ADMIN),
-  organizationsController.removeUser as any
+  organizationsController.removeUser as RouteHandler
 );
 
 export default router;

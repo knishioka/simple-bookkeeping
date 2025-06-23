@@ -1,6 +1,6 @@
 import { toast } from 'react-hot-toast';
 
-import apiClient from '../api-client';
+import { apiClient } from '../api-client';
 
 // Mock dependencies
 jest.mock('react-hot-toast', () => ({

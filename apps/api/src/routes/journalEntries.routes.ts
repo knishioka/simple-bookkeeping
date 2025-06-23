@@ -12,6 +12,7 @@ import {
 } from '../middlewares/auth';
 import { validate } from '../middlewares/validation';
 
+import type { RouteHandler } from '../types/express';
 import type { Router as RouterType } from 'express';
 
 const router: RouterType = Router();
@@ -22,17 +23,17 @@ router.use(setOrganizationContext);
 router.use(requireOrganization);
 
 // Get all journal entries
-router.get('/', journalEntriesController.getJournalEntries as any);
+router.get('/', journalEntriesController.getJournalEntries as RouteHandler);
 
 // Get single journal entry
-router.get('/:id', journalEntriesController.getJournalEntry as any);
+router.get('/:id', journalEntriesController.getJournalEntry as RouteHandler);
 
 // Create journal entry (Admin/Accountant only)
 router.post(
   '/',
   authorize(UserRole.ADMIN, UserRole.ACCOUNTANT),
   validate(z.object({ body: createJournalEntrySchema })),
-  journalEntriesController.createJournalEntry as any
+  journalEntriesController.createJournalEntry as RouteHandler
 );
 
 // Update journal entry (Admin/Accountant only)
@@ -48,21 +49,21 @@ router.put(
       }),
     })
   ),
-  journalEntriesController.updateJournalEntry as any
+  journalEntriesController.updateJournalEntry as RouteHandler
 );
 
 // Delete journal entry (Admin only)
 router.delete(
   '/:id',
   authorize(UserRole.ADMIN),
-  journalEntriesController.deleteJournalEntry as any
+  journalEntriesController.deleteJournalEntry as RouteHandler
 );
 
 // Approve journal entry (Admin/Accountant only)
 router.post(
   '/:id/approve',
   authorize(UserRole.ADMIN, UserRole.ACCOUNTANT),
-  journalEntriesController.approveJournalEntry as any
+  journalEntriesController.approveJournalEntry as RouteHandler
 );
 
 export default router;

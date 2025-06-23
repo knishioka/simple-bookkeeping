@@ -8,8 +8,10 @@
 import { storyTest, StoryTestHelper, storyExpect } from '../story-test-base';
 import { userStories } from '../user-stories';
 
-const story = userStories.find((s) => s.id === 'US001')!;
-const scenario = story.scenarios.find((s) => s.id === 'US001-S01')!;
+const story = userStories.find((s) => s.id === 'US001');
+if (!story) throw new Error('Story US001 not found');
+const _scenario = story.scenarios.find((s) => s.id === 'US001-S01');
+if (!_scenario) throw new Error('Scenario US001-S01 not found');
 
 storyTest.describe('US001-S01: 朝一番の売上確認', () => {
   storyTest.beforeEach(async ({ page }) => {
@@ -150,7 +152,8 @@ storyTest.describe('US001-S01: 朝一番の売上確認', () => {
     // 田中さんの満足度チェック
     await StoryTestHelper.verifyAcceptanceCriteria(page, '必要な情報が一目でわかる', async () => {
       // スクロールなしで主要情報が見える
-      const viewport = page.viewportSize()!;
+      const viewport = page.viewportSize();
+      if (!viewport) throw new Error('Viewport size not available');
       const importantElements = [
         '.dashboard-card:has-text("昨日の売上")',
         '.dashboard-card:has-text("今月の売上")',

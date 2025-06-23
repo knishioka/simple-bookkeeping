@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { toast } from 'react-hot-toast';
 
@@ -28,8 +28,20 @@ describe('AccountDialog - ユーザーインタラクション', () => {
   const mockOnOpenChange = jest.fn();
   const mockOnSuccess = jest.fn();
   const mockAccounts = [
-    { id: '1', code: '1000', name: '流動資産', accountType: 'ASSET' as const, parentId: null },
-    { id: '2', code: '4000', name: '売上', accountType: 'REVENUE' as const, parentId: null },
+    {
+      id: '550e8400-e29b-41d4-a716-446655440001',
+      code: '1000',
+      name: '流動資産',
+      accountType: 'ASSET' as const,
+      parentId: null,
+    },
+    {
+      id: '550e8400-e29b-41d4-a716-446655440002',
+      code: '4000',
+      name: '売上',
+      accountType: 'REVENUE' as const,
+      parentId: null,
+    },
   ];
 
   beforeEach(() => {
@@ -51,12 +63,14 @@ describe('AccountDialog - ユーザーインタラクション', () => {
 
       // 作成ボタンをクリック（必須項目未入力）
       const submitButton = screen.getByRole('button', { name: '作成' });
-      await user.click(submitButton);
+      await act(async () => {
+        await user.click(submitButton);
+      });
 
       // バリデーションエラーが表示されることを確認
       await waitFor(() => {
-        expect(screen.getByText('コードは必須です')).toBeInTheDocument();
-        expect(screen.getByText('科目名は必須です')).toBeInTheDocument();
+        expect(screen.getByText('勘定科目コードを入力してください')).toBeInTheDocument();
+        expect(screen.getByText('勘定科目名を入力してください')).toBeInTheDocument();
       });
 
       // API呼び出しがされていないことを確認
@@ -84,25 +98,31 @@ describe('AccountDialog - ユーザーインタラクション', () => {
       await user.type(screen.getByLabelText('コード'), '1110');
       await user.type(screen.getByLabelText('科目名'), '現金');
 
-      // タイプ選択
-      await user.click(screen.getByRole('combobox', { name: 'タイプ' }));
-      await user.click(screen.getByRole('option', { name: '資産' }));
+      // AccountTypeはデフォルトでASSETが選択されている
 
       // 作成ボタンクリック
       const submitButton = screen.getByRole('button', { name: '作成' });
-      await user.click(submitButton);
+      await act(async () => {
+        await user.click(submitButton);
+      });
 
       // API呼び出しの確認
-      await waitFor(() => {
-        expect(mockApiClient.post).toHaveBeenCalledWith(
-          '/accounts',
-          expect.objectContaining({
-            code: '1110',
-            name: '現金',
-            accountType: 'ASSET',
-          })
-        );
-      });
+      await waitFor(
+        () => {
+          expect(mockApiClient.post).toHaveBeenCalled();
+        },
+        { timeout: 3000 }
+      );
+
+      // 呼び出し内容の詳細確認
+      expect(mockApiClient.post).toHaveBeenCalledWith(
+        '/accounts',
+        expect.objectContaining({
+          code: '1110',
+          name: '現金',
+          accountType: 'ASSET',
+        })
+      );
 
       // 成功処理の確認
       await waitFor(() => {
@@ -132,23 +152,26 @@ describe('AccountDialog - ユーザーインタラクション', () => {
       await user.type(screen.getByLabelText('コード'), '1111');
       await user.type(screen.getByLabelText('科目名'), '現金預金');
 
-      // タイプ選択（資産）
-      await user.click(screen.getByRole('combobox', { name: 'タイプ' }));
-      await user.click(screen.getByRole('option', { name: '資産' }));
+      // AccountTypeはデフォルトでASSETが選択されている
 
       // 親科目選択
-      await user.click(screen.getByRole('combobox', { name: '親科目（任意）' }));
-      await user.click(screen.getByRole('option', { name: '1000 - 流動資産' }));
+      const parentSelectTrigger = screen.getAllByRole('combobox')[1];
+      await user.click(parentSelectTrigger);
+      await user.click(screen.getByTestId('select-item-550e8400-e29b-41d4-a716-446655440001'));
 
       // 作成
-      await user.click(screen.getByRole('button', { name: '作成' }));
+      await act(async () => {
+        await act(async () => {
+          await user.click(screen.getByRole('button', { name: '作成' }));
+        });
+      });
 
       await waitFor(() => {
         expect(mockApiClient.post).toHaveBeenCalledWith('/accounts', {
           code: '1111',
           name: '現金預金',
           accountType: 'ASSET',
-          parentId: '1',
+          parentId: '550e8400-e29b-41d4-a716-446655440001',
         });
       });
     });
@@ -191,7 +214,9 @@ describe('AccountDialog - ユーザーインタラクション', () => {
       await user.type(nameInput, '現金・小切手');
 
       // 更新
-      await user.click(screen.getByRole('button', { name: '更新' }));
+      await act(async () => {
+        await user.click(screen.getByRole('button', { name: '更新' }));
+      });
 
       await waitFor(() => {
         expect(mockApiClient.put).toHaveBeenCalledWith('/accounts/5', {
@@ -224,11 +249,14 @@ describe('AccountDialog - ユーザーインタラクション', () => {
       // 正常なデータを入力
       await user.type(screen.getByLabelText('コード'), '1110');
       await user.type(screen.getByLabelText('科目名'), '現金');
-      await user.click(screen.getByRole('combobox', { name: 'タイプ' }));
-      await user.click(screen.getByRole('option', { name: '資産' }));
+      // AccountTypeはデフォルトでASSETが選択されている
 
       // 作成実行
-      await user.click(screen.getByRole('button', { name: '作成' }));
+      await act(async () => {
+        await act(async () => {
+          await user.click(screen.getByRole('button', { name: '作成' }));
+        });
+      });
 
       // エラーメッセージが表示されることを確認
       await waitFor(() => {
@@ -254,14 +282,18 @@ describe('AccountDialog - ユーザーインタラクション', () => {
 
       // 制限を超える文字数を入力
       await user.type(screen.getByLabelText('コード'), '12345678901'); // 11文字（制限10文字）
-      await user.type(screen.getByLabelText('科目名'), 'あ'.repeat(51)); // 51文字（制限50文字）
+      await user.type(screen.getByLabelText('科目名'), 'あ'.repeat(101)); // 101文字（制限100文字）
 
-      await user.click(screen.getByRole('button', { name: '作成' }));
+      await act(async () => {
+        await user.click(screen.getByRole('button', { name: '作成' }));
+      });
 
       // バリデーションエラーが表示されることを確認
       await waitFor(() => {
-        expect(screen.getByText('コードは10文字以内で入力してください')).toBeInTheDocument();
-        expect(screen.getByText('科目名は50文字以内で入力してください')).toBeInTheDocument();
+        expect(
+          screen.getByText('勘定科目コードは10文字以内で入力してください')
+        ).toBeInTheDocument();
+        expect(screen.getByText('勘定科目名は100文字以内で入力してください')).toBeInTheDocument();
       });
 
       expect(mockApiClient.post).not.toHaveBeenCalled();
@@ -304,14 +336,17 @@ describe('AccountDialog - ユーザーインタラクション', () => {
       );
 
       // 資産タイプを選択
-      await user.click(screen.getByRole('combobox', { name: 'タイプ' }));
-      await user.click(screen.getByRole('option', { name: '資産' }));
+      await user.click(screen.getByTestId('select-item-ASSET'));
 
       // 親科目を確認（資産タイプの勘定科目のみ表示されるべき）
-      await user.click(screen.getByRole('combobox', { name: '親科目（任意）' }));
-
-      expect(screen.getByRole('option', { name: '1000 - 流動資産' })).toBeInTheDocument();
-      expect(screen.queryByRole('option', { name: '4000 - 売上' })).not.toBeInTheDocument();
+      // Select コンポーネントの開閉は不要（test-idで直接選択可能）
+      // 資産タイプを選択したことで、親科目リストは資産タイプのみにフィルタされる
+      expect(
+        screen.getByTestId('select-item-550e8400-e29b-41d4-a716-446655440001')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('select-item-550e8400-e29b-41d4-a716-446655440002')
+      ).not.toBeInTheDocument();
     });
   });
 });

@@ -1,11 +1,11 @@
-import { CreateAccountInput } from '@simple-bookkeeping/shared';
+import { CreateAccountInput, AccountType } from '@simple-bookkeeping/core';
 import { Response } from 'express';
 
 import { prisma } from '../lib/prisma';
 import { AuthenticatedRequest } from '../middlewares/auth';
 
 interface AccountQuery {
-  type?: string;
+  type?: AccountType;
   active?: string;
 }
 
@@ -97,7 +97,7 @@ export const getAccountTree = async (req: AuthenticatedRequest, res: Response): 
 export const getAccount = async (
   req: AuthenticatedRequest,
   res: Response
-): Promise<Response<any, Record<string, any>> | undefined> => {
+): Promise<Response | undefined> => {
   try {
     const { id } = req.params as { id: string };
     const organizationId = req.user?.organizationId;
@@ -139,7 +139,7 @@ export const getAccount = async (
 export const createAccount = async (
   req: AuthenticatedRequest,
   res: Response
-): Promise<Response<any, Record<string, any>> | undefined> => {
+): Promise<Response | undefined> => {
   try {
     const { code, name, accountType, parentId } = req.body as CreateAccountInput;
 
@@ -230,7 +230,7 @@ export const createAccount = async (
 export const updateAccount = async (
   req: AuthenticatedRequest,
   res: Response
-): Promise<Response<any, Record<string, any>> | undefined> => {
+): Promise<Response | undefined> => {
   try {
     const { id } = req.params as { id: string };
     const { name, parentId } = req.body as Partial<CreateAccountInput>;
@@ -289,7 +289,7 @@ export const updateAccount = async (
 export const deleteAccount = async (
   req: AuthenticatedRequest,
   res: Response
-): Promise<Response<any, Record<string, any>> | undefined> => {
+): Promise<Response | undefined> => {
   try {
     const { id } = req.params as { id: string };
 

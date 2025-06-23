@@ -2,10 +2,11 @@
   "name": "@simple-bookkeeping/database",
   "version": "0.1.0",
   "private": true,
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
-    "db:generate": "prisma generate",
+    "build": "tsc",
+    "prisma:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:migrate:prod": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
@@ -13,7 +14,7 @@
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf node_modules .turbo"
+    "clean": "rm -rf node_modules .turbo dist"
   },
   "dependencies": {
     "@prisma/client": "^6.10.1"

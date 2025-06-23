@@ -1,9 +1,15 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import {
+  Account,
+  AccountType,
+  AccountTypeLabels,
+  createAccountSchema,
+  CreateAccountInput,
+} from '@simple-bookkeeping/core';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
-import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -32,24 +38,7 @@ import {
 } from '@/components/ui/select';
 import { apiClient } from '@/lib/api-client';
 
-const accountSchema = z.object({
-  code: z.string().min(1, 'コードは必須です').max(10, 'コードは10文字以内で入力してください'),
-  name: z.string().min(1, '科目名は必須です').max(50, '科目名は50文字以内で入力してください'),
-  accountType: z.enum(['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'], {
-    required_error: 'タイプを選択してください',
-  }),
-  parentId: z.string().optional(),
-});
-
-type AccountFormData = z.infer<typeof accountSchema>;
-
-interface Account {
-  id: string;
-  code: string;
-  name: string;
-  accountType: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE';
-  parentId: string | null;
-}
+type AccountFormData = CreateAccountInput;
 
 interface AccountDialogProps {
   open: boolean;
@@ -59,14 +48,6 @@ interface AccountDialogProps {
   onSuccess: () => void;
 }
 
-const accountTypeLabels = {
-  ASSET: '資産',
-  LIABILITY: '負債',
-  EQUITY: '純資産',
-  REVENUE: '収益',
-  EXPENSE: '費用',
-};
-
 export function AccountDialog({
   open,
   onOpenChange,
@@ -75,11 +56,11 @@ export function AccountDialog({
   onSuccess,
 }: AccountDialogProps) {
   const form = useForm<AccountFormData>({
-    resolver: zodResolver(accountSchema),
+    resolver: zodResolver(createAccountSchema),
     defaultValues: {
       code: account?.code || '',
       name: account?.name || '',
-      accountType: account?.accountType || 'ASSET',
+      accountType: account?.accountType || AccountType.ASSET,
       parentId: account?.parentId || undefined,
     },
   });
@@ -174,7 +155,7 @@ export function AccountDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {Object.entries(accountTypeLabels).map(([value, label]) => (
+                      {Object.entries(AccountTypeLabels).map(([value, label]) => (
                         <SelectItem key={value} value={value}>
                           {label}
                         </SelectItem>

@@ -51,6 +51,10 @@
     "db:generate": {
       "cache": false,
       "outputs": ["node_modules/.prisma/**", "node_modules/@prisma/client/**"]
+    },
+    "prisma:generate": {
+      "cache": false,
+      "outputs": ["node_modules/.prisma/**", "node_modules/@prisma/client/**"]
     }
   }
 }

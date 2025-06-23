@@ -197,7 +197,7 @@ export const createJournalEntry = async (
     }
 
     // Validate that all accounts belong to the organization
-    const accountIds = lines.map((line: any) => line.accountId);
+    const accountIds = lines.map((line) => line.accountId);
     const accountCount = await prisma.account.count({
       where: {
         id: { in: accountIds },
@@ -323,7 +323,7 @@ export const updateJournalEntry = async (
 
     // Validate that all accounts belong to the organization if lines are provided
     if (lines) {
-      const accountIds = lines.map((line: any) => line.accountId);
+      const accountIds = lines.map((line) => line.accountId);
       const accountCount = await prisma.account.count({
         where: {
           id: { in: accountIds },

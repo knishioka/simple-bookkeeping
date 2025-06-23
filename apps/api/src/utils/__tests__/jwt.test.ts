@@ -1,6 +1,12 @@
-import jwt from 'jsonwebtoken';
+import { verify } from 'jsonwebtoken';
 
 import { generateTokens, verifyRefreshToken } from '../jwt';
+
+interface JWTPayload {
+  sub: string;
+  email?: string;
+  role?: string;
+}
 
 describe('JWT Utils', () => {
   const userId = 'test-user-id';
@@ -22,16 +28,16 @@ describe('JWT Utils', () => {
       expect(refreshToken).toBeTruthy();
 
       // Verify access token
-      const decodedAccess = jwt.verify(accessToken, process.env.JWT_SECRET as string) as any;
+      const decodedAccess = verify(accessToken, process.env.JWT_SECRET as string) as JWTPayload;
       expect(decodedAccess.sub).toBe(userId);
       expect(decodedAccess.email).toBe(email);
       expect(decodedAccess.role).toBe(role);
 
       // Verify refresh token
-      const decodedRefresh = jwt.verify(
+      const decodedRefresh = verify(
         refreshToken,
         process.env.JWT_REFRESH_SECRET as string
-      ) as any;
+      ) as JWTPayload;
       expect(decodedRefresh.sub).toBe(userId);
     });
 

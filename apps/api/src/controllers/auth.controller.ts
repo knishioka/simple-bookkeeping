@@ -1,6 +1,5 @@
-import { UserRole } from '@simple-bookkeeping/database';
-import { LoginInput } from '@simple-bookkeeping/shared';
-import bcrypt from 'bcrypt';
+import { LoginInput, UserRole } from '@simple-bookkeeping/core';
+import { hash, compare } from 'bcrypt';
 import { Request, Response } from 'express';
 
 import { prisma } from '../lib/prisma';
@@ -26,7 +25,7 @@ export const login = async (
       });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    const isPasswordValid = await compare(password, user.passwordHash);
 
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -141,7 +140,7 @@ export const register = async (req: Request, res: Response) => {
     }
 
     // Hash password
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await hash(password, 10);
 
     // Create organization and user in a transaction
     const result = await prisma.$transaction(async (tx) => {

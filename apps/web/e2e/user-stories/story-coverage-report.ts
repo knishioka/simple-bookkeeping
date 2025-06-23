@@ -9,6 +9,37 @@ import { join } from 'path';
 
 import { userStories } from './user-stories';
 
+interface TestSuite {
+  file?: string;
+  specs?: Array<{
+    title: string;
+    tests?: Array<{
+      title: string;
+      results?: Array<{
+        status: string;
+        error?: unknown;
+      }>;
+    }>;
+  }>;
+}
+
+interface TestResults {
+  suites?: TestSuite[];
+}
+
+interface Scenario {
+  id: string;
+  title?: string;
+  description?: string;
+  testFiles?: string[];
+}
+
+interface UserStory {
+  id: string;
+  title: string;
+  scenarios: Scenario[];
+}
+
 interface TestResult {
   storyId: string;
   scenarioId: string;
@@ -109,10 +140,10 @@ export class StoryCoverageReporter {
     try {
       const resultsFile = join(testResultsPath, 'results.json');
       if (existsSync(resultsFile)) {
-        const results = JSON.parse(readFileSync(resultsFile, 'utf-8'));
+        const results: TestResults = JSON.parse(readFileSync(resultsFile, 'utf-8'));
 
         // テストファイルに対応する結果を探す
-        const testResult = results.suites?.find((suite: any) =>
+        const testResult = results.suites?.find((suite: TestSuite) =>
           suite.file?.includes(testFile.replace('e2e/', ''))
         );
 
@@ -306,7 +337,7 @@ export class StoryCoverageReporter {
     return html;
   }
 
-  private static renderStory(story: any, coverage: CoverageReport): string {
+  private static renderStory(story: UserStory, coverage: CoverageReport): string {
     const storyResults = coverage.testResults.filter((r) => r.storyId === story.id);
     const implementedCount = storyResults.filter((r) => r.status !== 'not-implemented').length;
     const totalCount = story.scenarios.length;
@@ -329,13 +360,13 @@ export class StoryCoverageReporter {
           <div class="story-status status-${statusClass}">${statusText}</div>
         </div>
         <div class="scenarios">
-          ${story.scenarios.map((scenario: any) => this.renderScenario(scenario, storyResults)).join('')}
+          ${story.scenarios.map((scenario) => this.renderScenario(scenario, storyResults)).join('')}
         </div>
       </div>
     `;
   }
 
-  private static renderScenario(scenario: any, results: TestResult[]): string {
+  private static renderScenario(scenario: Scenario, results: TestResult[]): string {
     const result = results.find((r) => r.scenarioId === scenario.id);
     const statusClass = result ? result.status.replace('-', '') : 'not-implemented';
 

@@ -14,6 +14,12 @@ test.describe('勘定科目管理 - E2Eテスト', () => {
     // デモページにアクセス（認証不要）
     await page.goto('/demo/accounts');
     await new AppHelpers(page).waitForPageLoad();
+
+    // ページが完全に読み込まれるまで待機
+    await page.waitForLoadState('networkidle');
+
+    // 新規作成ボタンが表示されるまで待機
+    await page.waitForSelector('button:has-text("新規作成")', { state: 'visible' });
   });
 
   test.describe('基本的な勘定科目管理', () => {
@@ -34,13 +40,14 @@ test.describe('勘定科目管理 - E2Eテスト', () => {
       await page.fill('input[name="name"]', testName);
 
       // 3. Radix UI Select でタイプを選択
-      await page.locator('[role="dialog"] [role="combobox"]').first().click();
+      // Selectトリガーをクリック
+      await page.locator('[role="dialog"] button[role="combobox"]').first().click();
 
       // オプションが表示されるまで待機
-      await expect(page.locator('[role="option"]').first()).toBeVisible();
+      await page.waitForSelector('[role="listbox"]', { state: 'visible' });
 
       // 「資産」タイプを選択
-      await page.click('[role="option"]:has-text("資産")');
+      await page.locator('[role="option"][data-value="ASSET"]').click();
 
       // Selectが閉じることを確認
       await expect(page.locator('[role="option"]').first()).toBeHidden();
@@ -73,7 +80,8 @@ test.describe('勘定科目管理 - E2Eテスト', () => {
       // 3. タイプ選択（資産）
       const typeSelect = page.locator('[role="dialog"] [role="combobox"]').first();
       await typeSelect.click();
-      await page.click('[role="option"]:has-text("資産")');
+      await page.waitForSelector('[role="listbox"]', { state: 'visible' });
+      await page.locator('[role="option"][data-value="ASSET"]').click();
 
       // 4. 親科目選択（2つ目のSelect）
       await page.waitForTimeout(500); // UI更新待機
@@ -84,10 +92,11 @@ test.describe('勘定科目管理 - E2Eテスト', () => {
       await parentSelect.click();
 
       // 親科目オプションが表示されることを確認
+      await page.waitForSelector('[role="listbox"]', { state: 'visible' });
       await expect(page.locator('[role="option"]').first()).toBeVisible();
 
       // 「現金」を親科目として選択
-      await page.click('[role="option"]:has-text("現金")');
+      await page.locator('[role="option"][data-value="1111"]').click();
 
       // 作成ボタンをクリック
       await page.click('button:has-text("作成")');
@@ -107,7 +116,8 @@ test.describe('勘定科目管理 - E2Eテスト', () => {
       await expect(page.locator('[role="option"]').first()).toBeVisible();
 
       // 3. 「資産」でフィルタ
-      await page.click('[role="option"]:has-text("資産")');
+      await page.waitForSelector('[role="listbox"]', { state: 'visible' });
+      await page.locator('[role="option"][data-value="ASSET"]').click();
 
       // 4. フィルタが適用されることを確認
       // テーブル内に資産科目のみが表示されていることを確認
@@ -115,7 +125,8 @@ test.describe('勘定科目管理 - E2Eテスト', () => {
 
       // 5. 「すべて」に戻す
       await filterSelect.click();
-      await page.click('[role="option"]:has-text("すべて")');
+      await page.waitForSelector('[role="listbox"]', { state: 'visible' });
+      await page.locator('[role="option"][data-value="ALL"]').click();
     });
   });
 
@@ -127,7 +138,8 @@ test.describe('勘定科目管理 - E2Eテスト', () => {
       // 2. まず「負債」タイプを選択
       const typeSelect = page.locator('[role="dialog"] [role="combobox"]').first();
       await typeSelect.click();
-      await page.click('[role="option"]:has-text("負債")');
+      await page.waitForSelector('[role="listbox"]', { state: 'visible' });
+      await page.locator('[role="option"][data-value="LIABILITY"]').click();
 
       // 3. 親科目Selectが負債タイプの科目のみ表示することを確認
       await page.waitForTimeout(500);
@@ -140,7 +152,8 @@ test.describe('勘定科目管理 - E2Eテスト', () => {
       // 4. タイプを「収益」に変更
       await page.press('body', 'Escape'); // Selectを閉じる
       await typeSelect.click();
-      await page.click('[role="option"]:has-text("収益")');
+      await page.waitForSelector('[role="listbox"]', { state: 'visible' });
+      await page.locator('[role="option"][data-value="REVENUE"]').click();
 
       // 5. 親科目選択肢が更新されることを確認
       await page.waitForTimeout(500);
@@ -228,7 +241,8 @@ test.describe('勘定科目管理 - E2Eテスト', () => {
 
       // 4. タイプを変更
       await typeSelect.click();
-      await page.click('[role="option"]:has-text("費用")');
+      await page.waitForSelector('[role="listbox"]', { state: 'visible' });
+      await page.locator('[role="option"][data-value="EXPENSE"]').click();
 
       // 5. 更新ボタンをクリック
       await page.click('button:has-text("更新")');
@@ -277,7 +291,7 @@ test.describe('勘定科目管理 - E2Eテスト', () => {
       await expect(page.locator('[role="option"]').first()).toBeVisible();
 
       // 4. タップで選択
-      await page.click('[role="option"]:has-text("資産")');
+      await page.locator('[role="option"][data-value="ASSET"]').click();
 
       // 5. Selectが閉じることを確認
       await expect(page.locator('[role="option"]').first()).toBeHidden();

@@ -128,7 +128,7 @@ test.describe('認証フロー統合テスト', () => {
   });
 
   test.describe('セッション管理', () => {
-    test('長時間操作なしでのセッションタイムアウト', async ({ page, context }) => {
+    test('長時間操作なしでのセッションタイムアウト', async ({ page, context: _context }) => {
       // ログイン
       await page.goto('/login');
       await page.fill('input[name="email"]', 'test@example.com');

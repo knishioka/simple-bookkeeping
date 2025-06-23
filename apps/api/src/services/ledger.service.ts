@@ -1,4 +1,13 @@
-import { PrismaClient } from '@prisma/client';
+import { Account, JournalEntry, JournalEntryLine, PrismaClient } from '@prisma/client';
+
+type JournalEntryLineWithRelations = JournalEntryLine & {
+  journalEntry: JournalEntry & {
+    lines: (JournalEntryLine & {
+      account: Account;
+    })[];
+  };
+  account: Account;
+};
 
 const prisma = new PrismaClient();
 
@@ -158,9 +167,9 @@ export class LedgerService {
   /**
    * 相手勘定を特定する
    */
-  private getCounterAccount(line: any): any {
+  private getCounterAccount(line: JournalEntryLineWithRelations): Account | undefined {
     const journalEntry = line.journalEntry;
-    const otherLines = journalEntry.lines.filter((l: any) => l.id !== line.id);
+    const otherLines = journalEntry.lines.filter((l) => l.id !== line.id);
 
     // 単純な2行仕訳の場合
     if (otherLines.length === 1) {

@@ -1,4 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
+import { AxeBuilder } from '@axe-core/playwright';
 import { test, expect } from '@playwright/test';
 
 /**
@@ -375,7 +375,8 @@ test.describe('ユーザビリティテスト', () => {
 
       // 削除操作
       const firstRow = page.locator('table tbody tr').first();
-      const accountName = await firstRow.locator('td').nth(1).textContent();
+      // アカウント名を取得（将来の拡張用）
+      await firstRow.locator('td').nth(1).textContent();
 
       await firstRow.locator('button[aria-label="削除"]').click();
 

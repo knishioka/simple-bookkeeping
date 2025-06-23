@@ -12,6 +12,7 @@ import {
 } from '../middlewares/auth';
 import { validate } from '../middlewares/validation';
 
+import type { RouteHandler } from '../types/express';
 import type { Router as RouterType } from 'express';
 
 const router: RouterType = Router();
@@ -22,20 +23,20 @@ router.use(setOrganizationContext);
 router.use(requireOrganization);
 
 // Get all accounts
-router.get('/', accountsController.getAccounts as any);
+router.get('/', accountsController.getAccounts as RouteHandler);
 
 // Get account tree
-router.get('/tree', accountsController.getAccountTree as any);
+router.get('/tree', accountsController.getAccountTree as RouteHandler);
 
 // Get single account
-router.get('/:id', accountsController.getAccount as any);
+router.get('/:id', accountsController.getAccount as RouteHandler);
 
 // Create account (Admin/Accountant only)
 router.post(
   '/',
   authorize(UserRole.ADMIN, UserRole.ACCOUNTANT),
   validate(z.object({ body: createAccountSchema })),
-  accountsController.createAccount as any
+  accountsController.createAccount as RouteHandler
 );
 
 // Update account (Admin/Accountant only)
@@ -50,10 +51,10 @@ router.put(
       }),
     })
   ),
-  accountsController.updateAccount as any
+  accountsController.updateAccount as RouteHandler
 );
 
 // Delete account (Admin only)
-router.delete('/:id', authorize(UserRole.ADMIN), accountsController.deleteAccount as any);
+router.delete('/:id', authorize(UserRole.ADMIN), accountsController.deleteAccount as RouteHandler);
 
 export default router;

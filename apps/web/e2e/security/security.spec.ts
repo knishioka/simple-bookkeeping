@@ -187,7 +187,7 @@ test.describe('セキュリティテスト', () => {
   });
 
   test.describe('CSRF対策', () => {
-    test('CSRFトークンの検証', async ({ page, context }) => {
+    test('CSRFトークンの検証', async ({ page, context: _context }) => {
       await page.goto('/demo/accounts');
 
       // CSRFトークンなしでPOSTリクエスト

@@ -1,13 +1,13 @@
 import cors from 'cors';
-import dotenv from 'dotenv';
-import express, { Express } from 'express';
+import { config } from 'dotenv';
+import express, { Express, json, urlencoded } from 'express';
 import helmet from 'helmet';
 import passport from 'passport';
 
 import { jwtStrategy } from './config/passport';
 import routes from './routes';
 
-dotenv.config();
+config();
 
 const app: Express = express();
 const PORT = process.env.PORT || process.env.API_PORT || 3001;
@@ -39,8 +39,8 @@ const corsOptions = {
 // Middleware
 app.use(helmet());
 app.use(cors(corsOptions));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(json());
+app.use(urlencoded({ extended: true }));
 
 // Passport
 passport.use(jwtStrategy);

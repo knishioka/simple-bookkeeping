@@ -30,6 +30,7 @@
     "@radix-ui/react-select": "^2.2.5",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-toast": "^1.2.14",
+    "@simple-bookkeeping/core": "workspace:*",
     "@simple-bookkeeping/database": "workspace:*",
     "@simple-bookkeeping/shared": "workspace:*",
     "@tanstack/react-query": "^5.80.7",

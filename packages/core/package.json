@@ -1,0 +1,31 @@
+{
+  "name": "@simple-bookkeeping/core",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist node_modules .turbo",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix"
+  },
+  "dependencies": {
+    "@simple-bookkeeping/database": "workspace:*",
+    "zod": "^3.25.67"
+  },
+  "devDependencies": {
+    "@simple-bookkeeping/typescript-config": "workspace:*",
+    "@types/node": "^20.19.1",
+    "typescript": "^5.8.3"
+  }
+}

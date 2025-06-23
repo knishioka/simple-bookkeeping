@@ -1,5 +1,5 @@
 import { UserRole } from '@prisma/client';
-import bcrypt from 'bcrypt';
+import { hash } from 'bcrypt';
 
 import { prisma } from '../lib/prisma';
 import { generateTokens } from '../utils/jwt';
@@ -29,7 +29,7 @@ export async function createTestUser(
   const user = await prisma.user.create({
     data: {
       email,
-      passwordHash: await bcrypt.hash('password', 10),
+      passwordHash: await hash('password', 10),
       name,
     },
   });
