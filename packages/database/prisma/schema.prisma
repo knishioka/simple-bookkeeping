@@ -78,17 +78,26 @@ enum AccountType {
   EXPENSE   // 費用
 }
 
+// 組織タイプ
+enum OrganizationType {
+  SOLE_PROPRIETOR // 個人事業主
+  CORPORATION     // 法人
+  BOTH           // 両方
+}
+
 // 勘定科目
 model Account {
-  id          String      @id @default(uuid())
-  code        String      @unique // 勘定科目コード
-  name        String      // 勘定科目名
-  accountType AccountType @map("account_type")
-  parentId    String?     @map("parent_id")
-  isSystem    Boolean     @default(false) @map("is_system") // システム標準科目
-  isActive    Boolean     @default(true) @map("is_active")
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
+  id               String           @id @default(uuid())
+  code             String           @unique // 勘定科目コード
+  name             String           // 勘定科目名
+  description      String?          // 勘定科目の説明（AIエージェント連携用）
+  accountType      AccountType      @map("account_type")
+  organizationType OrganizationType @default(BOTH) @map("organization_type") // 適用組織タイプ
+  parentId         String?          @map("parent_id")
+  isSystem         Boolean          @default(false) @map("is_system") // システム標準科目
+  isActive         Boolean          @default(true) @map("is_active")
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
 
   organizationId String   @map("organization_id")
   
@@ -99,6 +108,7 @@ model Account {
 
   @@unique([organizationId, code])
   @@index([accountType])
+  @@index([organizationType])
   @@index([parentId])
   @@index([organizationId])
   @@map("accounts")
