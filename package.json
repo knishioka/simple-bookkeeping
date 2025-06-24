@@ -33,11 +33,14 @@
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
     "render:status": "./scripts/render-status.sh",
+    "render:api-status": "./scripts/render-api-status.sh",
     "render:psql": "./scripts/render-psql.sh",
     "render:insert-accounts": "./scripts/render-insert-accounts.sh",
+    "render:env": "./scripts/render-api-env.sh",
     "vercel:status": "./scripts/vercel-status.sh",
     "vercel:api-status": "./scripts/vercel-api-status.sh",
-    "deploy:check": "pnpm render:status && pnpm vercel:api-status"
+    "vercel:env": "./scripts/vercel-api-env.sh",
+    "deploy:check": "pnpm render:api-status && pnpm vercel:api-status"
   },
   "devDependencies": {
     "@types/node": "^20.19.1",
