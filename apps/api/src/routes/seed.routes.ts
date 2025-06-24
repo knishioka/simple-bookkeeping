@@ -560,33 +560,8 @@ router.post('/reset', async (req: Request, res: Response) => {
       });
     }
 
-    // Create sample partners
-    const partners = await Promise.all([
-      prisma.partner.create({
-        data: {
-          code: 'C001',
-          name: '株式会社サンプル商事',
-          nameKana: 'カブシキガイシャサンプルショウジ',
-          partnerType: 'CUSTOMER',
-          address: '東京都千代田区丸の内1-1-1',
-          phone: '03-1234-5678',
-          email: 'info@sample-shoji.co.jp',
-          organizationId: organization.id,
-        },
-      }),
-      prisma.partner.create({
-        data: {
-          code: 'V001',
-          name: 'オフィスサプライ株式会社',
-          nameKana: 'オフィスサプライカブシキガイシャ',
-          partnerType: 'VENDOR',
-          address: '東京都新宿区西新宿2-2-2',
-          phone: '03-2345-6789',
-          email: 'sales@office-supply.co.jp',
-          organizationId: organization.id,
-        },
-      }),
-    ]);
+    // Create sample partners - temporarily disabled due to schema sync issues
+    const partners: any[] = [];
 
     res.status(200).json({
       data: {
