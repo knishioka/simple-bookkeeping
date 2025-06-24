@@ -603,12 +603,13 @@ router.post('/reset', async (req: Request, res: Response) => {
         },
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Seed error:', error);
     res.status(500).json({
       error: {
         code: 'INTERNAL_SERVER_ERROR',
         message: 'seedデータの登録中にエラーが発生しました',
+        details: error.message || error.toString(),
       },
     });
   }
