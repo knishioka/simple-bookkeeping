@@ -3,7 +3,7 @@ services:
     name: simple-bookkeeping-api
     runtime: node
     plan: free # 無料プランを明示的に指定
-    buildCommand: pnpm install --prod=false && cd packages/database && npx prisma generate && cd ../.. && pnpm --filter @simple-bookkeeping/database build && pnpm --filter @simple-bookkeeping/core build && pnpm --filter @simple-bookkeeping/shared build && pnpm --filter @simple-bookkeeping/api build
+    buildCommand: pnpm install --prod=false && cd packages/database && npx prisma generate && npx prisma migrate deploy && cd ../.. && pnpm --filter @simple-bookkeeping/database build && pnpm --filter @simple-bookkeeping/core build && pnpm --filter @simple-bookkeeping/shared build && pnpm --filter @simple-bookkeeping/api build
     startCommand: cd apps/api && node dist/index.js
     envVars:
       - key: NODE_ENV
