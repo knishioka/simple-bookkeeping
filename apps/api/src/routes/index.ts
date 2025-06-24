@@ -2,6 +2,7 @@ import { Router } from 'express';
 
 import accountsRoutes from './accounts.routes';
 import authRoutes from './auth.routes';
+import devRoutes from './dev.routes';
 import journalEntriesRoutes from './journalEntries.routes';
 import ledgersRoutes from './ledgers.routes';
 import organizationsRoutes from './organizations.routes';
@@ -20,6 +21,7 @@ router.use('/journal-entries', journalEntriesRoutes);
 router.use('/reports', reportsRoutes);
 router.use('/ledgers', ledgersRoutes);
 router.use('/seed', seedRoutes);
+router.use('/dev', devRoutes);
 
 // Base route
 router.get('/', (_req, res) => {
