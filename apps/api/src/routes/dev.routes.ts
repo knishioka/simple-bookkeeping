@@ -21,6 +21,19 @@ router.get('/check-schema', async (_req: Request, res: Response) => {
       },
     });
 
+    // Test partner schema
+    let partnerTest = null;
+    try {
+      partnerTest = await prisma.partner.findFirst({
+        select: {
+          id: true,
+          nameKana: true,
+        },
+      });
+    } catch (partnerError: any) {
+      partnerTest = { error: partnerError.message };
+    }
+
     // Get database statistics
     const counts = await Promise.all([
       prisma.user.count(),
@@ -40,6 +53,7 @@ router.get('/check-schema', async (_req: Request, res: Response) => {
           accountingPeriods: counts[3],
         },
         sampleAccount: testAccount,
+        partnerTest,
         organizationTypes: Object.values(OrganizationType),
       },
     });
