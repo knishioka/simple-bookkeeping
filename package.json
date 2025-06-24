@@ -33,6 +33,8 @@
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
     "render:status": "./scripts/render-status.sh",
+    "render:psql": "./scripts/render-psql.sh",
+    "render:insert-accounts": "./scripts/render-insert-accounts.sh",
     "vercel:status": "./scripts/vercel-status.sh",
     "vercel:api-status": "./scripts/vercel-api-status.sh",
     "deploy:check": "pnpm render:status && pnpm vercel:api-status"
