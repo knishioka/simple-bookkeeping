@@ -1,0 +1,121 @@
+/**
+ * API Configuration Constants
+ */
+
+// Server Ports
+export const DEFAULT_API_PORT = 3001;
+export const DEFAULT_WEB_PORT = 3000;
+
+// Pagination
+export const DEFAULT_PAGE_SIZE = 50;
+export const MAX_PAGE_SIZE = 100;
+export const DEFAULT_PAGE_NUMBER = 1;
+
+// Request Limits
+export const REQUEST_BODY_SIZE_LIMIT = '10mb';
+export const FILE_UPLOAD_SIZE_LIMIT = 10 * 1024 * 1024; // 10MB in bytes
+
+// Numeric Precision
+export const FLOATING_POINT_TOLERANCE = 0.01;
+export const DEFAULT_TAX_RATE = 0.1; // 10%
+
+// Journal Entry
+export const ENTRY_NUMBER_SEQUENCE_LENGTH = 4;
+export const ENTRY_NUMBER_FORMAT = 'YYYYMMNNNN'; // Year, Month, Sequence
+
+// Account Code
+export const ACCOUNT_CODE_MAX_LENGTH = 10;
+export const ACCOUNT_NAME_MAX_LENGTH = 100;
+
+// Session & Auth
+export const JWT_TOKEN_EXPIRY = '7d';
+export const REFRESH_TOKEN_EXPIRY = '30d';
+export const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+
+// CSV Import
+export const CSV_MAX_RECORDS = 1000;
+export const CSV_BATCH_SIZE = 100;
+
+// Report Generation
+export const REPORT_CACHE_TTL = 300; // 5 minutes
+export const REPORT_MAX_DATE_RANGE_DAYS = 365;
+
+// Error Codes
+export const ERROR_CODES = {
+  // Common
+  INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
+  VALIDATION_ERROR: 'VALIDATION_ERROR',
+  NOT_FOUND: 'NOT_FOUND',
+  UNAUTHORIZED: 'UNAUTHORIZED',
+  FORBIDDEN: 'FORBIDDEN',
+
+  // Organization
+  ORGANIZATION_REQUIRED: 'ORGANIZATION_REQUIRED',
+  ORGANIZATION_NOT_FOUND: 'ORGANIZATION_NOT_FOUND',
+
+  // Account
+  DUPLICATE_CODE: 'DUPLICATE_CODE',
+  INVALID_PARENT: 'INVALID_PARENT',
+  TYPE_MISMATCH: 'TYPE_MISMATCH',
+  SYSTEM_ACCOUNT: 'SYSTEM_ACCOUNT',
+  ACCOUNT_IN_USE: 'ACCOUNT_IN_USE',
+  HAS_CHILDREN: 'HAS_CHILDREN',
+  INVALID_ACCOUNT: 'INVALID_ACCOUNT',
+
+  // Journal Entry
+  UNBALANCED_ENTRY: 'UNBALANCED_ENTRY',
+  NO_ACCOUNTING_PERIOD: 'NO_ACCOUNTING_PERIOD',
+  ENTRY_NOT_DELETABLE: 'ENTRY_NOT_DELETABLE',
+  ENTRY_NOT_EDITABLE: 'ENTRY_NOT_EDITABLE',
+
+  // CSV Import
+  CSV_INVALID_COLUMN_NAME: 'CSV_INVALID_COLUMN_NAME',
+  CSV_PARSE_ERROR: 'CSV_PARSE_ERROR',
+  CSV_IMPORT_ERROR: 'CSV_IMPORT_ERROR',
+
+  // Auth
+  INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
+  TOKEN_EXPIRED: 'TOKEN_EXPIRED',
+  TOKEN_INVALID: 'TOKEN_INVALID',
+
+  // Rate Limiting
+  RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
+
+  // File Upload
+  FILE_TOO_LARGE: 'FILE_TOO_LARGE',
+  INVALID_FILE_TYPE: 'INVALID_FILE_TYPE',
+} as const;
+
+export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
+
+// HTTP Status Codes
+export const HTTP_STATUS = {
+  OK: 200,
+  CREATED: 201,
+  NO_CONTENT: 204,
+  BAD_REQUEST: 400,
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  CONFLICT: 409,
+  UNPROCESSABLE_ENTITY: 422,
+  TOO_MANY_REQUESTS: 429,
+  INTERNAL_SERVER_ERROR: 500,
+  SERVICE_UNAVAILABLE: 503,
+} as const;
+
+// Date Formats
+export const DATE_FORMAT = {
+  ISO: 'YYYY-MM-DD',
+  JP: 'YYYY年MM月DD日',
+  DISPLAY: 'YYYY/MM/DD',
+  ENTRY_NUMBER: 'YYYYMM',
+} as const;
+
+// Regex Patterns
+export const REGEX_PATTERNS = {
+  EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+  DATE_ISO: /^\d{4}-\d{2}-\d{2}$/,
+  ACCOUNT_CODE: /^[0-9]{1,10}$/,
+  AMOUNT: /^\d+(\.\d{1,2})?$/,
+} as const;
