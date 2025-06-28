@@ -1,5 +1,14 @@
 import { JournalStatus } from '@simple-bookkeeping/database';
-import { CreateJournalEntryInput } from '@simple-bookkeeping/shared';
+import {
+  CreateJournalEntryInput,
+  JournalEntryLine,
+  DEFAULT_PAGE_SIZE,
+  MAX_PAGE_SIZE,
+  DEFAULT_PAGE_NUMBER,
+  Logger,
+} from '@simple-bookkeeping/shared';
+import { JournalEntryWhereInput, JournalEntryQueryParams } from '@simple-bookkeeping/types';
+import { parse } from 'csv-parse/sync';
 import { Request, Response } from 'express';
 
 import { prisma } from '../lib/prisma';
@@ -8,23 +17,29 @@ import {
   generateEntryNumber,
   getAccountingPeriod,
   validateJournalEntryBalance,
+  createJournalEntriesFromCsv,
 } from '../services/journalEntry.service';
 
-interface JournalEntryQuery {
-  from?: string;
-  to?: string;
-  status?: string;
-  page?: string;
-  limit?: string;
-}
+const logger = new Logger({ component: 'JournalEntriesController' });
 
 export const getJournalEntries = async (
   req: AuthenticatedRequest &
-    Request<Record<string, never>, Record<string, never>, Record<string, never>, JournalEntryQuery>,
+    Request<
+      Record<string, never>,
+      Record<string, never>,
+      Record<string, never>,
+      JournalEntryQueryParams
+    >,
   res: Response
 ) => {
   try {
-    const { from, to, status, page = '1', limit = '50' } = req.query;
+    const {
+      from,
+      to,
+      status,
+      page = String(DEFAULT_PAGE_NUMBER),
+      limit = String(DEFAULT_PAGE_SIZE),
+    } = req.query;
     const organizationId = req.user?.organizationId;
 
     if (!organizationId) {
@@ -37,10 +52,9 @@ export const getJournalEntries = async (
     }
 
     const pageNum = parseInt(page);
-    const limitNum = Math.min(parseInt(limit), 100);
+    const limitNum = Math.min(parseInt(limit), MAX_PAGE_SIZE);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {
+    const where: JournalEntryWhereInput = {
       organizationId,
     };
     if (from || to) {
@@ -96,7 +110,7 @@ export const getJournalEntries = async (
       },
     });
   } catch (error) {
-    console.error('Get journal entries error:', error);
+    logger.error('Get journal entries error', error);
     res.status(500).json({
       error: {
         code: 'INTERNAL_SERVER_ERROR',
@@ -157,7 +171,7 @@ export const getJournalEntry = async (
       data: entry,
     });
   } catch (error) {
-    console.error('Get journal entry error:', error);
+    logger.error('Get journal entry error', error);
     res.status(500).json({
       error: {
         code: 'INTERNAL_SERVER_ERROR',
@@ -197,7 +211,7 @@ export const createJournalEntry = async (
     }
 
     // Validate that all accounts belong to the organization
-    const accountIds = lines.map((line: { accountId: string }) => line.accountId);
+    const accountIds = lines.map((line: JournalEntryLine) => line.accountId);
     const accountCount = await prisma.account.count({
       where: {
         id: { in: accountIds },
@@ -243,8 +257,7 @@ export const createJournalEntry = async (
           createdById: userId,
           status: JournalStatus.DRAFT,
           lines: {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            create: lines.map((line: any, index: number) => ({
+            create: lines.map((line: JournalEntryLine, index: number) => ({
               accountId: line.accountId,
               debitAmount: line.debitAmount,
               creditAmount: line.creditAmount,
@@ -270,7 +283,7 @@ export const createJournalEntry = async (
       data: entry,
     });
   } catch (error) {
-    console.error('Create journal entry error:', error);
+    logger.error('Create journal entry error', error);
     res.status(500).json({
       error: {
         code: 'INTERNAL_SERVER_ERROR',
@@ -371,8 +384,7 @@ export const updateJournalEntry = async (
 
         // Create new lines
         await tx.journalEntryLine.createMany({
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          data: lines.map((line: any, index: number) => ({
+          data: lines.map((line: JournalEntryLine, index: number) => ({
             journalEntryId: id,
             accountId: line.accountId,
             debitAmount: line.debitAmount,
@@ -401,7 +413,7 @@ export const updateJournalEntry = async (
       data: updated,
     });
   } catch (error) {
-    console.error('Update journal entry error:', error);
+    logger.error('Update journal entry error', error);
     res.status(500).json({
       error: {
         code: 'INTERNAL_SERVER_ERROR',
@@ -471,7 +483,7 @@ export const deleteJournalEntry = async (
       },
     });
   } catch (error) {
-    console.error('Delete journal entry error:', error);
+    logger.error('Delete journal entry error', error);
     res.status(500).json({
       error: {
         code: 'INTERNAL_SERVER_ERROR',
@@ -531,11 +543,72 @@ export const approveJournalEntry = async (
       data: updated,
     });
   } catch (error) {
-    console.error('Approve journal entry error:', error);
+    logger.error('Approve journal entry error', error);
     res.status(500).json({
       error: {
         code: 'INTERNAL_SERVER_ERROR',
         message: '仕訳の承認中にエラーが発生しました',
+      },
+    });
+  }
+};
+
+// ... (rest of the imports)
+
+// ... (other controller functions)
+
+// ... (rest of the controller)
+
+export const importJournalEntries = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const organizationId = req.user?.organizationId;
+    const userId = req.user?.id || '';
+
+    if (!organizationId) {
+      return res.status(400).json({
+        error: {
+          code: 'ORGANIZATION_REQUIRED',
+          message: '組織の選択が必要です',
+        },
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        error: {
+          code: 'FILE_REQUIRED',
+          message: 'ファイルが必要です',
+        },
+      });
+    }
+
+    const buffer = req.file.buffer;
+    const records = parse(buffer, {
+      columns: true,
+      skip_empty_lines: true,
+    });
+
+    const createdEntries = await createJournalEntriesFromCsv(records, organizationId, userId);
+
+    res.status(201).json({
+      message: `${createdEntries.length}件の仕訳をインポートしました。`,
+      data: createdEntries,
+    });
+  } catch (error) {
+    logger.error('Import journal entries error', error);
+    if (error instanceof Error && (error as any).code === 'CSV_INVALID_COLUMN_NAME') {
+      return res.status(400).json({
+        error: {
+          code: 'INVALID_CSV_HEADER',
+          message: 'CSVヘッダーが不正です。期待されるヘッダー: 日付,貸方勘定,借方勘定,金額,摘要',
+        },
+      });
+    }
+    res.status(500).json({
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message:
+          error instanceof Error ? error.message : '仕訳のインポート中にエラーが発生しました',
       },
     });
   }

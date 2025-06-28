@@ -1,7 +1,12 @@
 import { UserRole } from '@simple-bookkeeping/database';
-import { createJournalEntrySchema } from '@simple-bookkeeping/shared';
+import {
+  FILE_UPLOAD_SIZE_LIMIT,
+  createJournalEntrySchema,
+  updateJournalEntrySchema,
+  journalEntryQuerySchema,
+} from '@simple-bookkeeping/shared';
 import { Router } from 'express';
-import { z } from 'zod';
+import multer from 'multer';
 
 import * as journalEntriesController from '../controllers/journalEntries.controller';
 import {
@@ -10,12 +15,16 @@ import {
   setOrganizationContext,
   requireOrganization,
 } from '../middlewares/auth';
-import { validate } from '../middlewares/validation';
+import { validate, validateFile } from '../middlewares/validation.middleware';
 
 import type { RouteHandler } from '../types/express';
 import type { Router as RouterType } from 'express';
 
 const router: RouterType = Router();
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: FILE_UPLOAD_SIZE_LIMIT },
+});
 
 // All routes require authentication and organization context
 router.use(authenticate);
@@ -23,7 +32,11 @@ router.use(setOrganizationContext);
 router.use(requireOrganization);
 
 // Get all journal entries
-router.get('/', journalEntriesController.getJournalEntries as RouteHandler);
+router.get(
+  '/',
+  validate(journalEntryQuerySchema, 'query'),
+  journalEntriesController.getJournalEntries as RouteHandler
+);
 
 // Get single journal entry
 router.get('/:id', journalEntriesController.getJournalEntry as RouteHandler);
@@ -32,7 +45,7 @@ router.get('/:id', journalEntriesController.getJournalEntry as RouteHandler);
 router.post(
   '/',
   authorize(UserRole.ADMIN, UserRole.ACCOUNTANT),
-  validate(z.object({ body: createJournalEntrySchema })),
+  validate(createJournalEntrySchema, 'body'),
   journalEntriesController.createJournalEntry as RouteHandler
 );
 
@@ -40,15 +53,7 @@ router.post(
 router.put(
   '/:id',
   authorize(UserRole.ADMIN, UserRole.ACCOUNTANT),
-  validate(
-    z.object({
-      body: z.object({
-        description: z.string().min(1).optional(),
-        documentNumber: z.string().optional(),
-        lines: createJournalEntrySchema.shape.lines.optional(),
-      }),
-    })
-  ),
+  validate(updateJournalEntrySchema, 'body'),
   journalEntriesController.updateJournalEntry as RouteHandler
 );
 
@@ -64,6 +69,19 @@ router.post(
   '/:id/approve',
   authorize(UserRole.ADMIN, UserRole.ACCOUNTANT),
   journalEntriesController.approveJournalEntry as RouteHandler
+);
+
+// Import journal entries from CSV
+router.post(
+  '/import',
+  authorize(UserRole.ADMIN, UserRole.ACCOUNTANT),
+  upload.single('file'),
+  validateFile({
+    required: true,
+    maxSize: FILE_UPLOAD_SIZE_LIMIT,
+    allowedTypes: ['text/csv', 'application/csv'],
+  }),
+  journalEntriesController.importJournalEntries as RouteHandler
 );
 
 export default router;

@@ -13,7 +13,7 @@ export interface AuthenticatedRequest extends Request {
 export interface ValidationError {
   field: string;
   message: string;
-  value?: any;
+  value?: unknown;
 }
 
 export interface ApiValidationError {
@@ -37,3 +37,6 @@ export interface ApiServerError {
   code: 'INTERNAL_SERVER_ERROR';
   message: string;
 }
+
+// Export API subdirectory types
+export * from './api/journal-entries';
