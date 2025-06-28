@@ -1,3 +1,3 @@
-import { PrismaClient } from '@simple-bookkeeping/database';
-
-export const prisma = new PrismaClient();
+// Re-export the optimized Prisma client
+export { prisma, checkDatabaseHealth, getConnectionPoolMetrics } from './database-client';
+export * from './database-utils';

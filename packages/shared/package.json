@@ -4,6 +4,40 @@
   "private": true,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./cache": {
+      "require": "./dist/cache/index.js",
+      "types": "./dist/cache/index.d.ts"
+    },
+    "./constants": {
+      "require": "./dist/constants/index.js",
+      "types": "./dist/constants/index.d.ts"
+    },
+    "./logger": {
+      "require": "./dist/logger/index.js",
+      "types": "./dist/logger/index.d.ts"
+    },
+    "./monitoring": {
+      "require": "./dist/monitoring/index.js",
+      "types": "./dist/monitoring/index.d.ts"
+    },
+    "./schemas": {
+      "require": "./dist/schemas/index.js",
+      "types": "./dist/schemas/index.d.ts"
+    },
+    "./schemas/validation": {
+      "require": "./dist/schemas/validation/index.js",
+      "types": "./dist/schemas/validation/index.d.ts"
+    },
+    "./monitoring/database-monitor": {
+      "require": "./dist/monitoring/database-monitor.js",
+      "types": "./dist/monitoring/database-monitor.d.ts"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "lint": "eslint . --ext .ts",
@@ -16,10 +50,14 @@
   },
   "dependencies": {
     "@simple-bookkeeping/database": "workspace:*",
+    "prom-client": "^15.1.0",
+    "redis": "^4.6.12",
+    "winston": "^3.11.0",
     "zod": "^3.25.67"
   },
   "devDependencies": {
     "@simple-bookkeeping/typescript-config": "workspace:*",
+    "@types/express": "^4.17.23",
     "@types/jest": "^29.5.14",
     "@types/node": "^20.19.1",
     "jest": "^29.7.0",

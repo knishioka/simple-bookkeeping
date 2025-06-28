@@ -1,16 +1,39 @@
+import {
+  DEFAULT_API_PORT,
+  REQUEST_BODY_SIZE_LIMIT,
+  defaultLogger,
+  metricsMiddleware,
+  databaseMonitor,
+  performDatabaseHealthCheck,
+} from '@simple-bookkeeping/shared';
 import cors from 'cors';
 import { config } from 'dotenv';
 import express, { Express, json, urlencoded } from 'express';
 import helmet from 'helmet';
 import passport from 'passport';
+import swaggerUi from 'swagger-ui-express';
 
 import { jwtStrategy } from './config/passport';
+import { swaggerSpec } from './config/swagger';
+import { databaseMetricsMiddleware } from './middlewares/database.middleware';
+import {
+  requestLoggingMiddleware,
+  errorLoggingMiddleware,
+  performanceMiddleware,
+} from './middlewares/logging.middleware';
+import {
+  rateLimiters,
+  speedLimiters,
+  securityHeaders,
+  sanitizeInput,
+  sqlInjectionProtection,
+} from './middlewares/security.middleware';
 import routes from './routes';
 
 config();
 
 const app: Express = express();
-const PORT = process.env.PORT || process.env.API_PORT || 3001;
+const PORT = process.env.PORT || process.env.API_PORT || DEFAULT_API_PORT;
 
 // CORS configuration
 const corsOptions = {
@@ -36,30 +59,81 @@ const corsOptions = {
   optionsSuccessStatus: 200,
 };
 
-// Middleware
+// Security middleware
 app.use(helmet());
+app.use(securityHeaders);
 app.use(cors(corsOptions));
-app.use(json());
-app.use(urlencoded({ extended: true }));
+
+// Rate limiting
+app.use('/api/v1/auth', rateLimiters.auth, speedLimiters.auth);
+app.use('/api/v1', rateLimiters.api);
+
+// Logging middleware (before body parsing)
+app.use(requestLoggingMiddleware);
+app.use(performanceMiddleware);
+app.use(metricsMiddleware);
+app.use(databaseMetricsMiddleware);
+
+// Body parsing middleware
+app.use(json({ limit: REQUEST_BODY_SIZE_LIMIT }));
+app.use(urlencoded({ extended: true, limit: REQUEST_BODY_SIZE_LIMIT }));
+
+// Input sanitization and validation
+app.use(sanitizeInput);
+app.use(sqlInjectionProtection);
 
 // Passport
 passport.use(jwtStrategy);
 app.use(passport.initialize());
 
 // Health check endpoints
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/health', async (_req, res) => {
+  const { checkDatabaseHealth, getConnectionPoolMetrics } = await import('./lib/prisma');
+  const dbHealth = await performDatabaseHealthCheck(checkDatabaseHealth, getConnectionPoolMetrics);
+
+  res.json({
+    status: dbHealth.connected ? 'ok' : 'unhealthy',
+    timestamp: new Date().toISOString(),
+    database: dbHealth,
+  });
 });
-app.get('/api/v1/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+
+app.get('/api/v1/health', async (_req, res) => {
+  const { checkDatabaseHealth, getConnectionPoolMetrics } = await import('./lib/prisma');
+  const dbHealth = await performDatabaseHealthCheck(checkDatabaseHealth, getConnectionPoolMetrics);
+
+  res.json({
+    status: dbHealth.connected ? 'ok' : 'unhealthy',
+    timestamp: new Date().toISOString(),
+    database: dbHealth,
+  });
 });
+
+// API Documentation
+if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_SWAGGER === 'true') {
+  app.use(
+    '/api-docs',
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec, {
+      customCss: '.swagger-ui .topbar { display: none }',
+      customSiteTitle: 'Simple Bookkeeping API Documentation',
+    })
+  );
+  app.get('/api-docs.json', (_req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerSpec);
+  });
+  defaultLogger.info('Swagger documentation available at /api-docs');
+}
 
 // API routes
 app.use('/api/v1', routes);
 
+// Error logging middleware (before error handler)
+app.use(errorLoggingMiddleware);
+
 // Error handling middleware
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error(err.stack);
   res.status(500).json({
     error: {
       code: 'INTERNAL_SERVER_ERROR',
@@ -70,9 +144,28 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 
 // Start server
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
-    // eslint-disable-next-line no-console
-    console.log(`Server is running on port ${PORT}`);
+  app.listen(PORT, async () => {
+    defaultLogger.info(`Server is running on port ${PORT}`, {
+      env: process.env.NODE_ENV,
+      port: PORT,
+      cors: corsOptions.origin,
+    });
+
+    // Configure and start database monitoring
+    const { checkDatabaseHealth, getConnectionPoolMetrics, warmupConnectionPool } = await import(
+      './lib/prisma'
+    );
+    databaseMonitor.configure(checkDatabaseHealth, getConnectionPoolMetrics);
+    databaseMonitor.start();
+
+    // Warmup database connections
+    await warmupConnectionPool();
+  });
+
+  // Graceful shutdown
+  process.on('SIGTERM', () => {
+    defaultLogger.info('SIGTERM received, shutting down gracefully...');
+    databaseMonitor.stop();
   });
 }
 
