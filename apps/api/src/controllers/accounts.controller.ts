@@ -1,14 +1,54 @@
 import { CreateAccountInput, AccountType } from '@simple-bookkeeping/core';
+import { Logger } from '@simple-bookkeeping/shared';
 import { Response } from 'express';
 
 import { prisma } from '../lib/prisma';
 import { AuthenticatedRequest } from '../middlewares/auth';
+
+const logger = new Logger({ component: 'AccountsController' });
 
 interface AccountQuery {
   type?: AccountType;
   active?: string;
 }
 
+/**
+ * @swagger
+ * /api/v1/accounts:
+ *   get:
+ *     summary: Get all accounts
+ *     description: Retrieve all accounts for the current organization with optional filtering
+ *     tags: [Accounts]
+ *     parameters:
+ *       - $ref: '#/components/parameters/organizationId'
+ *       - name: type
+ *         in: query
+ *         description: Filter by account type
+ *         schema:
+ *           type: string
+ *           enum: [ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE]
+ *       - name: active
+ *         in: query
+ *         description: Filter by active status
+ *         schema:
+ *           type: boolean
+ *     responses:
+ *       200:
+ *         description: List of accounts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Account'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
+ */
 export const getAccounts = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { type, active } = req.query as AccountQuery;
@@ -49,7 +89,7 @@ export const getAccounts = async (req: AuthenticatedRequest, res: Response): Pro
       data: accounts,
     });
   } catch (error) {
-    console.error('Get accounts error:', error);
+    logger.error('Get accounts error:', error);
     res.status(500).json({
       error: {
         code: 'INTERNAL_SERVER_ERROR',
@@ -84,7 +124,7 @@ export const getAccountTree = async (req: AuthenticatedRequest, res: Response): 
       data: accounts,
     });
   } catch (error) {
-    console.error('Get account tree error:', error);
+    logger.error('Get account tree error:', error);
     res.status(500).json({
       error: {
         code: 'INTERNAL_SERVER_ERROR',
@@ -126,7 +166,7 @@ export const getAccount = async (
       data: account,
     });
   } catch (error) {
-    console.error('Get account error:', error);
+    logger.error('Get account error:', error);
     res.status(500).json({
       error: {
         code: 'INTERNAL_SERVER_ERROR',
@@ -217,7 +257,7 @@ export const createAccount = async (
       data: account,
     });
   } catch (error) {
-    console.error('Create account error:', error);
+    logger.error('Create account error:', error);
     res.status(500).json({
       error: {
         code: 'INTERNAL_SERVER_ERROR',
@@ -276,7 +316,7 @@ export const updateAccount = async (
       data: updated,
     });
   } catch (error) {
-    console.error('Update account error:', error);
+    logger.error('Update account error:', error);
     res.status(500).json({
       error: {
         code: 'INTERNAL_SERVER_ERROR',
@@ -358,7 +398,7 @@ export const deleteAccount = async (
       },
     });
   } catch (error) {
-    console.error('Delete account error:', error);
+    logger.error('Delete account error:', error);
     res.status(500).json({
       error: {
         code: 'INTERNAL_SERVER_ERROR',
