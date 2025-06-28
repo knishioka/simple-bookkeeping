@@ -2,10 +2,15 @@
 
 import { Account, AccountType, AccountTypeLabels } from '@simple-bookkeeping/core';
 import { Plus, Search } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
-import { AccountDialog } from '@/components/accounts/account-dialog';
+// Lazy load the account dialog
+const AccountDialog = lazy(() =>
+  import('@/components/accounts/account-dialog').then((mod) => ({
+    default: mod.AccountDialog,
+  }))
+);
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -181,13 +186,15 @@ export default function AccountsPage() {
         </CardContent>
       </Card>
 
-      <AccountDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        account={editingAccount}
-        accounts={accounts}
-        onSuccess={fetchAccounts}
-      />
+      <Suspense fallback={<div className="fixed inset-0 bg-black/50" />}>
+        <AccountDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          account={editingAccount}
+          accounts={accounts}
+          onSuccess={fetchAccounts}
+        />
+      </Suspense>
     </div>
   );
 }

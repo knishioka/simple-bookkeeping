@@ -18,7 +18,8 @@
     "test:e2e:ci": "playwright test --reporter=list",
     "test:e2e:basic": "./e2e-run-basic.sh",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf .next .turbo node_modules"
+    "clean": "rm -rf .next .turbo node_modules",
+    "analyze": "ANALYZE=true next build"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -51,8 +52,10 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",
+    "@next/bundle-analyzer": "^15.3.4",
     "@playwright/test": "^1.53.1",
     "@simple-bookkeeping/typescript-config": "workspace:*",
+    "@size-limit/preset-app": "^11.2.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^14.3.1",
     "@testing-library/user-event": "^14.6.1",
@@ -65,7 +68,20 @@
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "postcss": "^8.5.6",
+    "size-limit": "^11.2.0",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3"
-  }
+  },
+  "size-limit": [
+    {
+      "name": "Main Bundle",
+      "path": ".next/static/chunks/pages/*.js",
+      "limit": "250 KB"
+    },
+    {
+      "name": "First Load JS",
+      "path": ".next/static/chunks/main*.js",
+      "limit": "100 KB"
+    }
+  ]
 }

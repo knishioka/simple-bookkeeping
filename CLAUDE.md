@@ -29,17 +29,31 @@ packages/
 
 ```bash
 # 開発サーバー起動
-pnpm --filter @simple-bookkeeping/web dev
-pnpm --filter @simple-bookkeeping/api dev
+pnpm dev                     # 全サービス同時起動
+pnpm --filter web dev        # フロントエンドのみ
+pnpm --filter api dev        # バックエンドのみ
+
+# ビルド
+pnpm build                   # 全体ビルド
+pnpm build:web              # Vercel用Webアプリビルド
 
 # テスト実行
 pnpm test                    # 全テスト
-pnpm --filter web test:e2e   # E2Eテスト
+pnpm test:e2e               # E2Eテスト
+pnpm test:coverage          # カバレッジ付きテスト
 
 # DB操作
-pnpm db:migrate   # マイグレーション
-pnpm db:studio    # Prisma Studio
+pnpm db:init                # DB初期化（マイグレーション＋シード）
+pnpm db:migrate             # マイグレーション
+pnpm db:studio              # Prisma Studio
+
+# デプロイメント監視
+pnpm deploy:check           # 両プラットフォーム状態確認
+pnpm render:logs runtime    # Renderログ確認
+pnpm vercel:logs build      # Vercelビルドログ確認
 ```
+
+詳細は [npm-scripts-guide.md](./docs/npm-scripts-guide.md) を参照してください。
 
 ## 基本原則
 
@@ -965,11 +979,10 @@ NEXT_PUBLIC_API_URL=https://your-api.onrender.com
 // ルートのpackage.json
 {
   "scripts": {
-    "build": "pnpm run build:packages && pnpm run build:apps",
-    "build:packages": "pnpm --filter './packages/*' build",
-    "build:apps": "pnpm --filter './apps/*' build",
-    "build:api": "pnpm --filter @simple-bookkeeping/api build",
-    "build:web": "pnpm --filter @simple-bookkeeping/web build"
+    "build": "turbo run build",
+    "build:packages": "turbo run build --filter='./packages/*'",
+    "build:apps": "turbo run build --filter='./apps/*'",
+    "build:web": "pnpm --filter @simple-bookkeeping/database prisma:generate && pnpm build:packages && pnpm --filter @simple-bookkeeping/web build"
   }
 }
 ```
@@ -1242,159 +1255,90 @@ pnpm install --shamefully-hoist
 
 ## 🚀 デプロイメント状況の確認
 
-### Render CLI を使用したデプロイ確認
-
-#### 初回セットアップ
-
-1. **Render CLIのインストール**
-
-   ```bash
-   # macOS
-   brew install render
-
-   # または公式サイトからダウンロード
-   # https://render.com/docs/cli
-   ```
-
-2. **認証**
-
-   ```bash
-   render login
-   # ブラウザが開き、認証コードが表示される
-   ```
-
-3. **サービスID設定**
-
-   ```bash
-   # テンプレートをコピー
-   cp .render/services.json.example .render/services.json
-
-   # .render/services.jsonを編集してサービスIDを設定
-   # サービスIDはRenderダッシュボードのURLから確認可能
-   # https://dashboard.render.com/web/srv-xxxxxxxxxxxxxxxxxx
-   ```
-
-#### デプロイ状況の確認
-
-サービスIDは `.render/services.json` に保存されています：
+### デプロイメント監視コマンド
 
 ```bash
-# サービスIDを取得
-SERVICE_ID=$(cat .render/services.json | jq -r '.services.api.id')
+# 両プラットフォームの状態を一度に確認
+pnpm deploy:check
 
-# 最新のデプロイ状況を詳細確認
-render deploys list $SERVICE_ID -o json | jq -r '.[0] | {status, createdAt, commit: .commit.id, message: .commit.message}'
-
-# デプロイ履歴を確認（最新5件）
-render deploys list $SERVICE_ID -o json | jq -r '.[:5][] | "\(.createdAt) - \(.status)"'
-
-# 現在のライブデプロイを確認
-render deploys list $SERVICE_ID -o json | jq -r '.[] | select(.status == "live") | {createdAt, commit: .commit.id}' | head -1
-
-# ビルドエラーの確認
-render deploys list $SERVICE_ID -o json | jq -r '.[] | select(.status == "build_failed" or .status == "deploy_failed")'
-
-# スクリプトを使用した簡単な確認
+# Renderの状態確認（API版）
 pnpm render:status
-```
 
-#### デプロイステータスの意味
+# Renderのログ確認
+pnpm render:logs runtime    # ランタイムログ
+pnpm render:logs build      # ビルドログ
+pnpm render:logs errors     # エラーログのみ
 
-- `build_in_progress` / `update_in_progress`: ビルド・更新中
-- `live`: 稼働中（成功）
-- `deactivated`: 非アクティブ（新しいデプロイに置き換えられた）
-- `build_failed`: ビルド失敗
-- `deploy_failed`: デプロイ失敗
-- `canceled`: キャンセルされた
-
-### サービスIDの取得方法
-
-```bash
-# .render/services.jsonからAPIサービスIDを取得
-cat .render/services.json | jq -r '.services.api.id'
-
-# 環境変数として設定
-export RENDER_API_SERVICE_ID=$(cat .render/services.json | jq -r '.services.api.id')
-```
-
-### ヘルスチェック
-
-```bash
-# APIの稼働状況を確認
-curl -s -o /dev/null -w "%{http_code}\n" https://your-api.onrender.com/api/v1/
-
-# より詳細な確認
-curl -s https://your-api.onrender.com/api/v1/ | jq
-```
-
-### Vercel CLIでのデプロイ確認
-
-#### 基本的な使い方（CLI）
-
-```bash
-# 初回セットアップ
-npm i -g vercel
-vercel login
-
-# デプロイ状況確認（表形式）
+# Vercelの状態確認（API版）
 pnpm vercel:status
 
-# 特定のデプロイメントの詳細確認
-vercel inspect <deployment-url>
-
-# ビルドログの確認
-vercel logs
-
-# 新しいデプロイ
-vercel          # プレビューデプロイ
-vercel --prod   # 本番デプロイ
+# Vercelのログ確認
+pnpm vercel:logs build      # ビルドログ
+pnpm vercel:logs runtime    # ランタイムログ
 ```
 
-#### Vercel API を使った詳細確認（推奨）
+### Render APIのセットアップ
 
-1. **APIトークンの取得**
-   - https://vercel.com/account/tokens にアクセス
-   - 「Create Token」をクリック
-   - トークン名を入力して作成
-   - トークンをコピー（一度しか表示されない）
-
-   **既存のトークンを確認（macOS）:**
-
-   ```bash
-   # Vercel CLIの認証情報は以下に保存
-   cat ~/Library/Application\ Support/com.vercel.cli/auth.json | jq -r '.token'
-   ```
+1. **APIキーの取得**
+   - https://dashboard.render.com/u/settings にアクセス
+   - API Keysセクションで新しいキーを作成
 
 2. **環境変数の設定**
 
    ```bash
    # .env.localに追加
-   echo "VERCEL_TOKEN=your-token-here" >> .env.local
-
-   # または環境変数として設定
-   export VERCEL_TOKEN="your-token-here"
+   RENDER_API_KEY=rnd_xxxxxxxxxxxxxxxxxxxxxxxxxx
    ```
 
-3. **APIステータス確認**
-
+3. **サービス設定（オプション）**
    ```bash
-   # Vercel APIを使った詳細なステータス確認
-   pnpm vercel:api-status
-
-   # 両方のデプロイ状況を確認（API版）
-   pnpm deploy:check
+   # .render/services.jsonを作成してサービスIDを保存
+   {
+     "services": {
+       "api": {
+         "id": "srv-xxxxxxxxxxxxxxxxxx",
+         "name": "simple-bookkeeping-api"
+       }
+     }
+   }
    ```
 
-#### Vercel APIスクリプトの機能
+### Vercel APIのセットアップ
 
-- デプロイメント一覧を時系列で表示
-- ステータスによる色分け表示
-  - 🟢 Ready (Production)
-  - 🔵 Ready (Preview)
-  - 🔴 Error/Failed
-  - 🟡 Building/Deploying
-- 最新のProduction URLでヘルスチェック
-- デプロイメント統計（成功/失敗/ビルド中）
+1. **APIトークンの取得**
+   - https://vercel.com/account/tokens にアクセス
+   - 「Create Token」をクリック
+
+2. **環境変数の設定**
+   ```bash
+   # .env.localに追加
+   VERCEL_TOKEN=xxxxxxxxxxxxxxxxxxxx
+   ```
+
+### デプロイメントステータスの意味
+
+**Render:**
+
+- `live`: 稼働中（成功）
+- `build_in_progress` / `update_in_progress`: ビルド・更新中
+- `build_failed`: ビルド失敗
+- `deploy_failed`: デプロイ失敗
+
+**Vercel:**
+
+- 🟢 Ready (Production)
+- 🔵 Ready (Preview)
+- 🔴 Error/Failed
+- 🟡 Building/Deploying
+
+### デプロイメントドキュメント
+
+詳細なデプロイメント手順やトラブルシューティングについては、[docs/deployment/](./docs/deployment/) を参照してください：
+
+- [README.md](./docs/deployment/README.md) - クイックスタート
+- [detailed-guide.md](./docs/deployment/detailed-guide.md) - 詳細手順
+- [troubleshooting.md](./docs/deployment/troubleshooting.md) - トラブルシューティング
+- [scripts-reference.md](./docs/deployment/scripts-reference.md) - スクリプトリファレンス
 
 ## 継続的な改善
 
@@ -1412,6 +1356,9 @@ vercel --prod   # 本番デプロイ
 - [SYSTEM-ARCHITECTURE.md](./SYSTEM-ARCHITECTURE.md) - システム構成とポート番号
 - [docs/e2e-test-implementation.md](./docs/e2e-test-implementation.md) - E2Eテストの実装方法
 - [docs/user-story-testing-guide.md](./docs/user-story-testing-guide.md) - ユーザーストーリーテスト
+- [docs/npm-scripts-guide.md](./docs/npm-scripts-guide.md) - npmスクリプトの一覧と説明
+- [docs/direnv-setup.md](./docs/direnv-setup.md) - direnvを使用した環境変数管理
+- [docs/deployment/](./docs/deployment/) - デプロイメントガイド
 
 ### API仕様
 

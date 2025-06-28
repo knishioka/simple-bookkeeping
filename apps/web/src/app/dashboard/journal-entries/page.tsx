@@ -1,10 +1,20 @@
 'use client';
 
-import { Calendar, Plus, Search } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Calendar, Plus, Search, Upload } from 'lucide-react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
-import { JournalEntryDialog } from '@/components/journal-entries/journal-entry-dialog';
+// Lazy load heavy dialog components
+const JournalEntryDialog = lazy(() =>
+  import('@/components/journal-entries/journal-entry-dialog').then((mod) => ({
+    default: mod.JournalEntryDialog,
+  }))
+);
+const JournalEntryImportDialog = lazy(() =>
+  import('@/components/journal-entries/journal-entry-import-dialog').then((mod) => ({
+    default: mod.JournalEntryImportDialog,
+  }))
+);
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -70,11 +80,20 @@ export default function JournalEntriesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>('');
 
   useEffect(() => {
     fetchJournalEntries();
+
+    // Preload heavy components in the background after initial render
+    const timer = setTimeout(() => {
+      import('@/components/journal-entries/journal-entry-dialog');
+      import('@/components/journal-entries/journal-entry-import-dialog');
+    }, 1000);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const fetchJournalEntries = async () => {
@@ -146,10 +165,16 @@ export default function JournalEntriesPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">仕訳入力</h1>
-        <Button onClick={handleCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          新規作成
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            CSVインポート
+          </Button>
+          <Button onClick={handleCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            新規作成
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -273,12 +298,21 @@ export default function JournalEntriesPage() {
         </CardContent>
       </Card>
 
-      <JournalEntryDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        entry={editingEntry}
-        onSuccess={fetchJournalEntries}
-      />
+      <Suspense fallback={<div className="fixed inset-0 bg-black/50" />}>
+        <JournalEntryDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          entry={editingEntry}
+          onSuccess={fetchJournalEntries}
+        />
+      </Suspense>
+      <Suspense fallback={<div className="fixed inset-0 bg-black/50" />}>
+        <JournalEntryImportDialog
+          open={importDialogOpen}
+          onOpenChange={setImportDialogOpen}
+          onSuccess={fetchJournalEntries}
+        />
+      </Suspense>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import accountsRoutes from './accounts.routes';
 import authRoutes from './auth.routes';
 import journalEntriesRoutes from './journalEntries.routes';
 import ledgersRoutes from './ledgers.routes';
+import monitoringRoutes from './monitoring.routes';
 import organizationsRoutes from './organizations.routes';
 import reportsRoutes from './reports.routes';
 import seedRoutes from './seed.routes';
@@ -20,6 +21,9 @@ router.use('/journal-entries', journalEntriesRoutes);
 router.use('/reports', reportsRoutes);
 router.use('/ledgers', ledgersRoutes);
 router.use('/seed', seedRoutes);
+
+// Monitoring routes (no auth required)
+router.use('/', monitoringRoutes);
 
 // Base route
 router.get('/', (_req, res) => {
