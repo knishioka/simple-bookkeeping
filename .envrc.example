@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+# direnv configuration example
+# Copy this file to .envrc and customize as needed
+
+# Load base environment variables
+if [ -f .env ]; then
+  dotenv .env
+fi
+
+# Load local environment overrides
+if [ -f .env.local ]; then
+  dotenv .env.local
+fi
+
+# Node version management (if using nvm)
+if has nvm; then
+  nvm use
+fi
+
+# pnpm setup
+export PNPM_HOME="$HOME/.local/share/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+
+# Project-specific environment variables
+export NODE_ENV="${NODE_ENV:-development}"
+export LOG_LEVEL="${LOG_LEVEL:-info}"
+
+# Database URLs (development defaults)
+if [ -z "$DATABASE_URL" ] && [ -f .env.local ]; then
+  export DATABASE_URL=$(grep -E "^DATABASE_URL=" .env.local | cut -d '=' -f2-)
+fi
+
+# API URLs
+export NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-http://localhost:3001}"
+
+# Deployment tools configuration
+export RENDER_SERVICES_CONFIG=".render/services.json"
+export VERCEL_PROJECT_CONFIG=".vercel/project.json"
+
+# Helper functions
+render_service_id() {
+  if [ -f "$RENDER_SERVICES_CONFIG" ]; then
+    cat "$RENDER_SERVICES_CONFIG" | jq -r '.services.api.id' 2>/dev/null
+  fi
+}
+
+render_db_id() {
+  if [ -f "$RENDER_SERVICES_CONFIG" ]; then
+    cat "$RENDER_SERVICES_CONFIG" | jq -r '.databases.postgres.id' 2>/dev/null
+  fi
+}
+
+# Export service IDs if available
+if [ -f "$RENDER_SERVICES_CONFIG" ]; then
+  export RENDER_API_SERVICE_ID=$(render_service_id)
+  export RENDER_DB_ID=$(render_db_id)
+fi
+
+# Development shortcuts
+alias dev="pnpm dev"
+alias build="pnpm build"
+alias test="pnpm test"
+alias db:migrate="pnpm db:migrate"
+alias db:studio="pnpm db:studio"
+
+# Deployment shortcuts
+alias render:status="./scripts/render-api-status.sh"
+alias render:logs="./scripts/render-logs.sh"
+alias vercel:status="./scripts/vercel-api-status.sh"
+alias vercel:logs="./scripts/vercel-logs.sh"
+alias deploy:check="./scripts/check-deployments.sh"
+
+# Git hooks setup
+if [ -f .husky/install.mjs ]; then
+  node .husky/install.mjs > /dev/null 2>&1 || true
+fi
+
+# Show loaded environment
+echo "✅ direnv: Loaded environment for simple-bookkeeping"
+echo "   Node.js: $(node -v 2>/dev/null || echo 'not found')"
+echo "   pnpm: $(pnpm -v 2>/dev/null || echo 'not found')"
+if [ -n "$RENDER_API_KEY" ]; then
+  echo "   Render API: configured ✓"
+else
+  echo "   Render API: not configured (set RENDER_API_KEY)"
+fi
+if [ -n "$VERCEL_TOKEN" ]; then
+  echo "   Vercel API: configured ✓"
+else
+  echo "   Vercel API: not configured (set VERCEL_TOKEN)"
+fi
