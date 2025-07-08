@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@simple-bookkeeping/database": "workspace:*",
-    "zod": "^3.25.67"
+    "zod": "^3.25.75"
   },
   "devDependencies": {
     "@simple-bookkeeping/typescript-config": "workspace:*",
