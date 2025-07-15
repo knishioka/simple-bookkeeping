@@ -23,7 +23,7 @@
   "devDependencies": {
     "@simple-bookkeeping/typescript-config": "workspace:*",
     "@types/bcrypt": "^5.0.2",
-    "@types/node": "^20.19.1",
+    "@types/node": "^24.0.13",
     "prisma": "^6.10.1",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3"
