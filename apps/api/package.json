@@ -25,7 +25,7 @@
     "@types/express": "^4.17.23",
     "@types/jest": "^29.5.14",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^20.19.1",
+    "@types/node": "^24.1.0",
     "@types/passport": "^1.0.17",
     "@types/passport-jwt": "^4.0.1",
     "@types/swagger-jsdoc": "^6.0.4",
@@ -54,7 +54,7 @@
   },
   "devDependencies": {
     "@simple-bookkeeping/typescript-config": "workspace:*",
-    "@types/express-serve-static-core": "^5.0.6",
+    "@types/express-serve-static-core": "^5.0.7",
     "@types/multer": "^1.4.13",
     "@types/supertest": "^6.0.3",
     "jest": "^29.7.0",
