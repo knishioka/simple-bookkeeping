@@ -136,9 +136,9 @@ export async function getConnectionPoolMetrics() {
   try {
     const metrics = await prisma.$queryRaw<
       Array<{
-        active: number;
-        idle: number;
-        total: number;
+        active: bigint;
+        idle: bigint;
+        total: bigint;
       }>
     >`
       SELECT 
@@ -150,7 +150,12 @@ export async function getConnectionPoolMetrics() {
         AND pid != pg_backend_pid()
     `;
 
-    return metrics[0] || { active: 0, idle: 0, total: 0 };
+    const result = metrics[0] || { active: 0n, idle: 0n, total: 0n };
+    return {
+      active: Number(result.active),
+      idle: Number(result.idle),
+      total: Number(result.total),
+    };
   } catch (error) {
     logger.error('Failed to get connection pool metrics', error as Error);
     return { active: 0, idle: 0, total: 0 };

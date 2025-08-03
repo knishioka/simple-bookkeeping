@@ -281,6 +281,18 @@ export const updateAccount = async (
         id,
         organizationId,
       },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        accountType: true,
+        parentId: true,
+        isSystem: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        organizationId: true,
+      },
     });
 
     if (!account) {
@@ -339,7 +351,17 @@ export const deleteAccount = async (
         id,
         organizationId,
       },
-      include: {
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        accountType: true,
+        parentId: true,
+        isSystem: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        organizationId: true,
         _count: {
           select: {
             lines: true,

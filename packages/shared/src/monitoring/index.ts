@@ -163,8 +163,10 @@ export class MetricsCollector {
 
     if (statusCode >= 400) {
       this.httpRequestErrors.inc({
-        ...labels,
+        method,
+        route,
         error_code: this.getErrorCode(statusCode),
+        organization_id: organizationId || 'unknown',
       });
     }
   }
