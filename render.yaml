@@ -3,6 +3,7 @@ services:
     name: simple-bookkeeping-api
     runtime: node
     plan: free # 無料プランを明示的に指定
+    region: singapore
     buildCommand: pnpm install --prod=false && cd packages/database && npx prisma generate && npx prisma migrate deploy && cd ../.. && pnpm --filter @simple-bookkeeping/database build && pnpm --filter @simple-bookkeeping/core build && pnpm --filter @simple-bookkeeping/shared build && pnpm --filter @simple-bookkeeping/api build
     startCommand: cd apps/api && node dist/index.js
     envVars:
@@ -26,5 +27,6 @@ services:
 databases:
   - name: simple-bookkeeping-db
     plan: free
+    region: singapore
     databaseName: simple_bookkeeping
     user: simple_bookkeeping_user
