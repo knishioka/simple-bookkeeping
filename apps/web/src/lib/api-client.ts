@@ -89,7 +89,6 @@ class ApiClient {
 
   async request<T>(path: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
     const url = `${this.config.baseUrl}${path}`;
-    console.log('Making request to:', url);
     const headers = this.getHeaders();
 
     try {
@@ -120,7 +119,7 @@ class ApiClient {
       if (data && typeof data === 'object' && 'data' in data) {
         return { data: data.data };
       }
-      
+
       // Otherwise return the data directly
       return { data };
     } catch (error) {
@@ -182,9 +181,8 @@ class ApiClient {
   }
 }
 
-// Temporarily hardcode the URL while debugging env variable issue
-const baseUrl = 'http://localhost:3001/api/v1';
-console.log('API Base URL (hardcoded):', baseUrl);
+// Use environment variable for API URL, fallback to localhost for development
+const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
 export const apiClient = new ApiClient({
   baseUrl,

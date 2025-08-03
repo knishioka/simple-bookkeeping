@@ -8,6 +8,7 @@ import monitoringRoutes from './monitoring.routes';
 import organizationsRoutes from './organizations.routes';
 import reportsRoutes from './reports.routes';
 import seedRoutes from './seed.routes';
+import setupRoutes from './setup.routes';
 
 import type { Router as RouterType } from 'express';
 
@@ -15,6 +16,7 @@ const router: RouterType = Router();
 
 // Mount routes
 router.use('/auth', authRoutes);
+router.use('/setup', setupRoutes);
 router.use('/organizations', organizationsRoutes);
 router.use('/accounts', accountsRoutes);
 router.use('/journal-entries', journalEntriesRoutes);
