@@ -20,10 +20,10 @@
     "lint:fix": "eslint . --ext .ts --fix"
   },
   "dependencies": {
-    "@simple-bookkeeping/database": "workspace:*",
     "zod": "^3.25.67"
   },
   "devDependencies": {
+    "@simple-bookkeeping/database": "workspace:*",
     "@simple-bookkeeping/typescript-config": "workspace:*",
     "@types/node": "^20.19.1",
     "typescript": "^5.8.3"
