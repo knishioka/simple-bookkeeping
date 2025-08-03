@@ -14,4 +14,13 @@ else
   echo "⚠️  gitleaks is not installed. Install it with: brew install gitleaks"
 fi
 
+# Run build checks for dependency issues
+if [ -f "./scripts/check-build.sh" ]; then
+  bash ./scripts/check-build.sh
+  if [ $? -ne 0 ]; then
+    echo "❌ Build checks failed! Please fix the issues before committing."
+    exit 1
+  fi
+fi
+
 npx lint-staged
