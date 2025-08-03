@@ -20,7 +20,7 @@
     "lint:fix": "eslint . --ext .ts --fix"
   },
   "dependencies": {
-    "zod": "^3.25.67"
+    "zod": "^4.0.14"
   },
   "devDependencies": {
     "@simple-bookkeeping/database": "workspace:*",
