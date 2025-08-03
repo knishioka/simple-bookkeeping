@@ -17,10 +17,10 @@ import {
 
 export function RouteErrorBoundary() {
   // This is a placeholder for Next.js - react-router-dom hooks don't work here
-  const error = null;
+  const error: unknown = null;
 
   let errorMessage = '予期しないエラーが発生しました';
-  const errorStatus = 500;
+  const errorStatus: number = 500;
   let errorDetails = '';
 
   // Simplified error handling for Next.js

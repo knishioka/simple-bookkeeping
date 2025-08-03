@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { apiClient } from '@/lib/api-client';
+// import { apiClient } from '@/lib/api-client';
 
 interface JournalEntryImportDialogProps {
   open: boolean;
@@ -47,19 +47,31 @@ export function JournalEntryImportDialog({
     formData.append('file', file);
 
     try {
-      const response = await apiClient.post('/journal-entries/import', formData, {
+      // TODO: Implement file upload using fetch API directly
+      const token = localStorage.getItem('token');
+      const orgId = localStorage.getItem('selectedOrganizationId');
+
+      const response = await fetch('http://localhost:3001/api/v1/journal-entries/import', {
+        method: 'POST',
         headers: {
-          'Content-Type': 'multipart/form-data',
+          Authorization: token ? `Bearer ${token}` : '',
+          'X-Organization-Id': orgId || '',
         },
+        body: formData,
       });
-      if (response.data) {
-        toast.success(response.data.message);
+
+      if (response.ok) {
+        const data = await response.json();
+        toast.success(data.message || 'インポートが完了しました');
         onSuccess();
         onOpenChange(false);
+      } else {
+        throw new Error('Upload failed');
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to import journal entries:', error);
-      const errorMessage = error.response?.data?.error?.message || 'インポートに失敗しました';
+      const errorMessage =
+        (error as any).response?.data?.error?.message || 'インポートに失敗しました';
       toast.error(errorMessage);
     } finally {
       setLoading(false);

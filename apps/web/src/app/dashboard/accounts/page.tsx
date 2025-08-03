@@ -1,6 +1,4 @@
 'use client';
-
-import { Account, AccountType, AccountTypeLabels } from '@simple-bookkeeping/core';
 import { Plus, Search } from 'lucide-react';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
@@ -30,6 +28,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { apiClient } from '@/lib/api-client';
+import { Account, AccountType, AccountTypeLabels } from '@/types/account';
 
 export default function AccountsPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -154,13 +153,8 @@ export default function AccountsPage() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      {account.parent ? (
-                        <span className="text-sm">
-                          {account.parent.code} - {account.parent.name}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
+                      {/* TODO: Implement parent account display */}
+                      <span className="text-gray-400">-</span>
                     </TableCell>
                     <TableCell>
                       <span

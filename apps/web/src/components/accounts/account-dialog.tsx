@@ -1,13 +1,6 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  Account,
-  AccountType,
-  AccountTypeLabels,
-  createAccountSchema,
-  CreateAccountInput,
-} from '@simple-bookkeeping/core';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 
@@ -37,6 +30,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { apiClient } from '@/lib/api-client';
+import { Account, AccountType, AccountTypeLabels } from '@/types/account';
+import { createAccountSchema, CreateAccountInput } from '@/types/schemas';
 
 type AccountFormData = CreateAccountInput;
 

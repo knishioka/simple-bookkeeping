@@ -1,8 +1,9 @@
 'use client';
 
-import { Account } from '@simple-bookkeeping/core';
 import { Minus, Plus } from 'lucide-react';
 import { FieldArrayWithId, UseFieldArrayRemove, UseFormReturn } from 'react-hook-form';
+
+import type { Account } from '@/types/account';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

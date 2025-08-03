@@ -14,4 +14,5 @@ export * from './journal';
 export * from './api';
 
 // Prismaの型も再エクスポート（必要に応じて）
-export type { Prisma, Partner, AuditLog } from '@simple-bookkeeping/database';
+// TODO: Restore Prisma type re-exports after build issues are resolved
+// export type { Prisma, Partner, AuditLog } from '@simple-bookkeeping/database';

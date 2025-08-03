@@ -4,10 +4,23 @@
 
 import { AccountType } from './enums';
 
-import type { Account as PrismaAccount } from '@simple-bookkeeping/database';
+// import type { Account as PrismaAccount } from '@simple-bookkeeping/database';
 
 // 基本的な勘定科目型（Prismaの型を拡張）
-export interface Account extends PrismaAccount {
+// TODO: Restore PrismaAccount extension after build issues are resolved
+export interface Account {
+  id: string;
+  code: string;
+  name: string;
+  accountType: AccountType;
+  parentId?: string | null;
+  organizationId: string;
+  isActive: boolean;
+  isSystem: boolean;
+  description?: string | null;
+  organizationType?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
   // Prismaの型に追加のプロパティが必要な場合はここに追加
   parent?: Account | null;
   children?: Account[];

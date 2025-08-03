@@ -4,18 +4,33 @@
 
 import { UserRole } from './enums';
 
-import type {
-  User as PrismaUser,
-  Organization as PrismaOrganization,
-} from '@simple-bookkeeping/database';
+// import type {
+//   User as PrismaUser,
+//   Organization as PrismaOrganization,
+// } from '@simple-bookkeeping/database';
 
 // ユーザー型（Prismaの型を拡張）
-export interface User extends PrismaUser {
+// TODO: Restore PrismaUser extension after build issues are resolved
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  password: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
   organizations?: UserOrganization[];
 }
 
 // 組織型（Prismaの型を拡張）
-export interface Organization extends PrismaOrganization {
+// TODO: Restore PrismaOrganization extension after build issues are resolved
+export interface Organization {
+  id: string;
+  name: string;
+  fiscalYearStart: Date;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
   // 必要に応じて追加のプロパティ
 }
 

@@ -5,19 +5,38 @@
 import { Account } from './account';
 import { JournalEntryStatus } from './enums';
 
-import type {
-  JournalEntry as PrismaJournalEntry,
-  JournalEntryLine as PrismaJournalEntryLine,
-  AccountingPeriod as PrismaAccountingPeriod,
-} from '@simple-bookkeeping/database';
+// import type {
+//   JournalEntry as PrismaJournalEntry,
+//   JournalEntryLine as PrismaJournalEntryLine,
+//   AccountingPeriod as PrismaAccountingPeriod,
+// } from '@simple-bookkeeping/database';
 
 // 会計期間
-export interface AccountingPeriod extends PrismaAccountingPeriod {
+// TODO: Restore PrismaAccountingPeriod extension after build issues are resolved
+export interface AccountingPeriod {
+  id: string;
+  organizationId: string;
+  name: string;
+  startDate: Date;
+  endDate: Date;
+  isClosed: boolean;
+  createdAt: Date;
+  updatedAt: Date;
   // 必要に応じて拡張
 }
 
 // 仕訳伝票
-export interface JournalEntry extends PrismaJournalEntry {
+// TODO: Restore PrismaJournalEntry extension after build issues are resolved
+export interface JournalEntry {
+  id: string;
+  entryDate: Date;
+  description: string;
+  status: JournalEntryStatus;
+  accountingPeriodId: string;
+  organizationId: string;
+  createdById: string;
+  createdAt: Date;
+  updatedAt: Date;
   lines?: JournalEntryLine[];
   accountingPeriod?: AccountingPeriod;
   _count?: {
@@ -26,7 +45,17 @@ export interface JournalEntry extends PrismaJournalEntry {
 }
 
 // 仕訳明細
-export interface JournalEntryLine extends PrismaJournalEntryLine {
+// TODO: Restore PrismaJournalEntryLine extension after build issues are resolved
+export interface JournalEntryLine {
+  id: string;
+  journalEntryId: string;
+  accountId: string;
+  debitAmount: number;
+  creditAmount: number;
+  description?: string | null;
+  lineNumber: number;
+  createdAt: Date;
+  updatedAt: Date;
   account?: Account;
   journalEntry?: JournalEntry;
 }
