@@ -74,22 +74,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           id: string;
           email: string;
           name: string;
+          role: string;
+          organizationId?: string;
+          organization?: {
+            id: string;
+            name: string;
+            code: string;
+          };
         };
       }>('/auth/login', { email, password });
 
       if (response.data) {
         apiClient.setToken(response.data.token, response.data.refreshToken);
 
-        // TODO: Get user's organizations
-        // For now, just set the user without organizations
+        // Set organization ID if available
+        if (response.data.user.organizationId) {
+          apiClient.setOrganizationId(response.data.user.organizationId);
+        }
+
+        // Create organization object from response
+        const organization: Organization | undefined = response.data.user.organization
+          ? {
+              id: response.data.user.organization.id,
+              name: response.data.user.organization.name,
+              code: response.data.user.organization.code,
+              role: response.data.user.role as 'ADMIN' | 'ACCOUNTANT' | 'VIEWER',
+              isDefault: true,
+            }
+          : undefined;
+
         const fullUser: User = {
-          ...response.data.user,
-          organizations: [],
-          currentOrganization: undefined,
+          id: response.data.user.id,
+          email: response.data.user.email,
+          name: response.data.user.name,
+          organizations: organization ? [organization] : [],
+          currentOrganization: organization,
         };
 
         setUser(fullUser);
-        
+        setCurrentOrganization(organization || null);
+
         toast.success('ログインしました');
         router.push('/dashboard');
       }

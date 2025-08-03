@@ -36,8 +36,28 @@ export const login = async (
       });
     }
 
+    // Get user's default organization
+    const defaultOrg = await prisma.userOrganization.findFirst({
+      where: {
+        userId: user.id,
+        isDefault: true,
+      },
+      include: {
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+      },
+    });
+
+    const organizationId = defaultOrg?.organizationId;
+    const organizationRole = defaultOrg?.role || UserRole.VIEWER;
+
     // TODO: Remove hardcoded role when fully migrated to organization-based roles
-    const { accessToken, refreshToken } = generateTokens(user.id, user.email, UserRole.ADMIN);
+    const { accessToken, refreshToken } = generateTokens(user.id, user.email, organizationRole);
 
     // Update last login
     await prisma.user.update({
@@ -53,8 +73,9 @@ export const login = async (
           id: user.id,
           email: user.email,
           name: user.name,
-          // TODO: Get role from user's default organization
-          role: UserRole.ADMIN,
+          role: organizationRole,
+          organizationId,
+          organization: defaultOrg?.organization,
         },
       },
     });
