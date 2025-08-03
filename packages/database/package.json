@@ -18,11 +18,11 @@
   },
   "dependencies": {
     "@prisma/client": "^6.10.1",
-    "bcrypt": "^5.1.1"
+    "bcryptjs": "^2.4.3"
   },
   "devDependencies": {
     "@simple-bookkeeping/typescript-config": "workspace:*",
-    "@types/bcrypt": "^5.0.2",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.19.1",
     "prisma": "^6.10.1",
     "tsx": "^4.20.3",

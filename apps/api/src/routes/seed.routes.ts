@@ -1,5 +1,5 @@
-import { AccountType, UserRole } from '@simple-bookkeeping/database';
-import { hash } from 'bcrypt';
+import { AccountType, UserRole } from '@prisma/client';
+import { hash } from 'bcryptjs';
 import { Router, Request, Response } from 'express';
 
 import { prisma } from '../lib/prisma';
@@ -71,7 +71,15 @@ router.post('/reset', async (req: Request, res: Response) => {
     });
 
     // Create standard accounts (標準勘定科目)
-    const accounts = [
+    interface AccountData {
+      code: string;
+      name: string;
+      accountType: AccountType;
+      parentId?: null;
+      parentCode?: string;
+    }
+
+    const accounts: AccountData[] = [
       // ========== 資産 (Assets) ==========
 
       // 流動資産 (Current Assets)
@@ -444,7 +452,7 @@ router.post('/reset', async (req: Request, res: Response) => {
           code: account.code,
           name: account.name,
           accountType: account.accountType,
-          parentId: parentAccounts.get((account as any).parentCode || ''),
+          parentId: parentAccounts.get(account.parentCode || ''),
           isSystem: true,
           organizationId: organization.id,
         },
@@ -494,13 +502,14 @@ router.post('/reset', async (req: Request, res: Response) => {
         },
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Seed error:', error);
+    const errorDetails = error instanceof Error ? error.message : String(error);
     res.status(500).json({
       error: {
         code: 'INTERNAL_SERVER_ERROR',
         message: 'seedデータの登録中にエラーが発生しました',
-        details: error.message || error.toString(),
+        details: errorDetails,
       },
     });
   }

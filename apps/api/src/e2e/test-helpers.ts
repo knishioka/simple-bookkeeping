@@ -1,5 +1,5 @@
 import { UserRole } from '@prisma/client';
-import { hash } from 'bcrypt';
+import { hash } from 'bcryptjs';
 
 import { prisma } from '../lib/prisma';
 import { generateTokens } from '../utils/jwt';
