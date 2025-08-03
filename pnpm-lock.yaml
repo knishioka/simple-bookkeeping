@@ -343,13 +343,13 @@ importers:
 
   packages/core:
     dependencies:
-      '@simple-bookkeeping/database':
-        specifier: workspace:*
-        version: link:../database
       zod:
         specifier: ^3.25.67
         version: 3.25.67
     devDependencies:
+      '@simple-bookkeeping/database':
+        specifier: workspace:*
+        version: link:../database
       '@simple-bookkeeping/typescript-config':
         specifier: workspace:*
         version: link:../typescript-config
