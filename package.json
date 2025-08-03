@@ -13,7 +13,7 @@
     "build": "turbo run build",
     "build:packages": "turbo run build --filter='./packages/*'",
     "build:apps": "turbo run build --filter='./apps/*'",
-    "build:web": "pnpm --filter @simple-bookkeeping/database prisma:generate && pnpm build:packages && pnpm --filter @simple-bookkeeping/web build",
+    "build:web": "pnpm --filter @simple-bookkeeping/database prisma:generate && pnpm build:packages && NODE_ENV=production pnpm --filter @simple-bookkeeping/web build",
     "start": "turbo run start",
     "lint": "turbo run lint",
     "lint:fix": "turbo run lint:fix",
@@ -46,7 +46,7 @@
     "check:all": "pnpm check:deps && pnpm check:types && pnpm check:imports",
     "precommit:check": "./scripts/check-build.sh",
     "prepush:check": "./scripts/check-full-build.sh",
-    "build:check": "pnpm build:packages && pnpm --filter @simple-bookkeeping/web build && pnpm --filter @simple-bookkeeping/api build"
+    "build:check": "pnpm build:packages && NODE_ENV=production pnpm --filter @simple-bookkeeping/web build && pnpm --filter @simple-bookkeeping/api build"
   },
   "devDependencies": {
     "@types/node": "^20.19.1",
@@ -70,5 +70,14 @@
     "node": ">=18.0.0",
     "pnpm": ">=6.0.0"
   },
-  "packageManager": "pnpm@10.12.3"
+  "packageManager": "pnpm@10.12.3",
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,jsx,json,md}": [
+      "prettier --write"
+    ]
+  }
 }

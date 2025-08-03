@@ -5,15 +5,16 @@
     "module": "commonjs",
     "outDir": "./dist",
     "rootDir": "./src",
-    "composite": true,
+    "composite": false,
     "declaration": true,
     "declarationMap": true,
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "emitDeclarationOnly": false
   },
   "include": ["src/**/*"],
-  "references": [{ "path": "../database" }]
+  "exclude": ["node_modules", "dist"]
 }

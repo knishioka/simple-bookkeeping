@@ -16,7 +16,7 @@ ERRORS=0
 
 # Check Web app build (Vercel)
 echo -e "${YELLOW}🔨 Building Web application (Vercel)...${NC}"
-if pnpm --filter @simple-bookkeeping/web build; then
+if NODE_ENV=production pnpm --filter @simple-bookkeeping/web build; then
     echo -e "${GREEN}✅ Web app build successful${NC}"
 else
     echo -e "${RED}❌ Web app build failed!${NC}"

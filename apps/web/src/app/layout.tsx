@@ -1,22 +1,23 @@
-'use client';
-
 import { Inter } from 'next/font/google';
-import { Toaster } from 'react-hot-toast';
 
-import { AuthProvider } from '@/contexts/auth-context';
+import type { Metadata } from 'next';
+
+import { Providers } from '@/components/providers';
 
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
 
+export const metadata: Metadata = {
+  title: 'Simple Bookkeeping - 簡単帳簿',
+  description: '日本の個人事業主・中小企業向け複式簿記システム',
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja">
       <body className={inter.className}>
-        <AuthProvider>
-          {children}
-          <Toaster position="top-right" />
-        </AuthProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
