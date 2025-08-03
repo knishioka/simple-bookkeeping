@@ -88,11 +88,9 @@ enum OrganizationType {
 // 勘定科目
 model Account {
   id               String           @id @default(uuid())
-  code             String           @unique // 勘定科目コード
+  code             String           // 勘定科目コード
   name             String           // 勘定科目名
-  description      String?          // 勘定科目の説明（AIエージェント連携用）
   accountType      AccountType      @map("account_type")
-  organizationType OrganizationType @default(BOTH) @map("organization_type") // 適用組織タイプ
   parentId         String?          @map("parent_id")
   isSystem         Boolean          @default(false) @map("is_system") // システム標準科目
   isActive         Boolean          @default(true) @map("is_active")
@@ -108,7 +106,6 @@ model Account {
 
   @@unique([organizationId, code])
   @@index([accountType])
-  @@index([organizationType])
   @@index([parentId])
   @@index([organizationId])
   @@map("accounts")
@@ -180,7 +177,7 @@ model Partner {
   id          String      @id @default(uuid())
   code        String      // 取引先コード
   name        String      // 取引先名
-  nameKana    String      @map("name_kana") // フリガナ
+  nameKana    String?     @map("name_kana") // フリガナ
   partnerType PartnerType @map("partner_type")
   address     String?
   phone       String?

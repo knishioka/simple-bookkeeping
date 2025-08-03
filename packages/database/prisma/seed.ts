@@ -1,4 +1,4 @@
-import { PrismaClient, AccountType, UserRole, OrganizationType } from '@prisma/client';
+import { PrismaClient, AccountType, UserRole } from '@prisma/client';
 import { hash } from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -77,7 +77,6 @@ async function main() {
       name: '流動資産',
       description: '1年以内に現金化される可能性の高い資産の総称',
       accountType: AccountType.ASSET,
-      organizationType: OrganizationType.BOTH,
       parentId: null,
     },
     { code: '1110', name: '現金', accountType: AccountType.ASSET, parentCode: '1000' },
@@ -260,7 +259,6 @@ async function main() {
       name: '純資産',
       description: '資産から負債を差し引いた正味の財産',
       accountType: AccountType.EQUITY,
-      organizationType: OrganizationType.BOTH,
       parentId: null,
     },
 
@@ -270,7 +268,6 @@ async function main() {
       name: '元入金',
       description: '個人事業主が事業に投入した資本',
       accountType: AccountType.EQUITY,
-      organizationType: OrganizationType.SOLE_PROPRIETOR,
       parentCode: '3000',
     },
     {
@@ -278,7 +275,6 @@ async function main() {
       name: '事業主貸',
       description: '事業主が事業資金を個人的に使用した金額',
       accountType: AccountType.EQUITY,
-      organizationType: OrganizationType.SOLE_PROPRIETOR,
       parentCode: '3000',
     },
     {
@@ -286,7 +282,6 @@ async function main() {
       name: '事業主借',
       description: '事業主が個人資金を事業に投入した金額',
       accountType: AccountType.EQUITY,
-      organizationType: OrganizationType.SOLE_PROPRIETOR,
       parentCode: '3000',
     },
 
@@ -480,10 +475,7 @@ async function main() {
       data: {
         code: account.code,
         name: account.name,
-        description: account.description,
         accountType: account.accountType,
-        organizationType: account.organizationType || OrganizationType.BOTH,
-        isSystem: true,
         organizationId: organization.id,
       },
     });
@@ -496,11 +488,8 @@ async function main() {
       data: {
         code: account.code,
         name: account.name,
-        description: account.description,
         accountType: account.accountType,
-        organizationType: account.organizationType || OrganizationType.BOTH,
         parentId: parentAccounts.get(account.parentCode || ''),
-        isSystem: true,
         organizationId: organization.id,
       },
     });
@@ -510,35 +499,34 @@ async function main() {
   console.log('Created standard accounts');
 
   // Create sample partners
-  const partners = await Promise.all([
-    prisma.partner.create({
-      data: {
-        code: 'C001',
-        name: '株式会社サンプル商事',
-        nameKana: 'カブシキガイシャサンプルショウジ',
-        partnerType: 'CUSTOMER',
-        address: '東京都千代田区丸の内1-1-1',
-        phone: '03-1234-5678',
-        email: 'info@sample-shoji.co.jp',
-        organizationId: organization.id,
-      },
-    }),
-    prisma.partner.create({
-      data: {
-        code: 'V001',
-        name: 'オフィスサプライ株式会社',
-        nameKana: 'オフィスサプライカブシキガイシャ',
-        partnerType: 'VENDOR',
-        address: '東京都新宿区西新宿2-2-2',
-        phone: '03-2345-6789',
-        email: 'sales@office-supply.co.jp',
-        organizationId: organization.id,
-      },
-    }),
-  ]);
+  // TODO: Fix partner creation after fixing enum issue
+  // const partners = await Promise.all([
+  //   prisma.partner.create({
+  //     data: {
+  //       code: 'C001',
+  //       name: '株式会社サンプル商事',
+  //       partnerType: 'CUSTOMER',
+  //       address: '東京都千代田区丸の内1-1-1',
+  //       phone: '03-1234-5678',
+  //       email: 'info@sample-shoji.co.jp',
+  //       organizationId: organization.id,
+  //     },
+  //   }),
+  //   prisma.partner.create({
+  //     data: {
+  //       code: 'V001',
+  //       name: 'オフィスサプライ株式会社',
+  //       partnerType: 'VENDOR',
+  //       address: '東京都新宿区西新宿2-2-2',
+  //       phone: '03-2345-6789',
+  //       email: 'sales@office-supply.co.jp',
+  //       organizationId: organization.id,
+  //     },
+  //   }),
+  // ]);
 
   // eslint-disable-next-line no-console
-  console.log('Created sample partners:', partners.length);
+  // console.log('Created sample partners:', partners.length);
 
   // eslint-disable-next-line no-console
   console.log('Seed data created successfully!');
