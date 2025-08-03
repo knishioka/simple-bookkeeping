@@ -1,0 +1,34 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🚀 Running pre-push checks..."
+
+# Check if we're pushing to main or production branches
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+PROTECTED_BRANCHES="main master production"
+
+if echo "$PROTECTED_BRANCHES" | grep -w "$BRANCH" > /dev/null; then
+  echo "📋 Pushing to protected branch '$BRANCH', running full build checks..."
+  
+  # Run Vercel build check
+  echo "🔨 Checking Vercel build (Web app)..."
+  if ! pnpm --filter @simple-bookkeeping/web build; then
+    echo "❌ Vercel build failed! Please fix build errors before pushing."
+    echo "💡 Run 'pnpm --filter @simple-bookkeeping/web build' to see detailed errors"
+    exit 1
+  fi
+  echo "✅ Vercel build passed"
+  
+  # Run Render build check (API server)
+  echo "🔨 Checking Render build (API server)..."
+  if ! pnpm --filter @simple-bookkeeping/api build; then
+    echo "❌ Render build failed! Please fix build errors before pushing."
+    echo "💡 Run 'pnpm --filter @simple-bookkeeping/api build' to see detailed errors"
+    exit 1
+  fi
+  echo "✅ Render build passed"
+  
+  echo "✅ All pre-push checks passed!"
+else
+  echo "📝 Pushing to feature branch '$BRANCH', skipping full build checks"
+fi

@@ -1426,3 +1426,50 @@ pnpm --filter @simple-bookkeeping/database prisma:studio
 - [ ] 依存関係の更新
 - [ ] セキュリティ監査
 - [ ] アクセスログの確認
+
+## 🏗️ ビルドチェックの重要性
+
+**本プロジェクトのビルドチェック体制：**
+
+1. **pre-commit時（軽量チェック）**
+   - ESLint + Prettier
+   - 変更されたパッケージの型チェック
+   - Gitleaksによる機密情報チェック
+
+2. **pre-push時（完全ビルドチェック）**
+   - Vercel用Webアプリの完全ビルド
+   - Render用APIサーバーの完全ビルド
+   - 共有パッケージのビルド
+
+**ローカルでのビルドチェック方法：**
+
+```bash
+# 軽量チェック（commit前）
+pnpm check:types        # TypeScriptの型チェック
+pnpm lint              # ESLintチェック
+
+# 完全ビルドチェック（push前）
+pnpm build:check       # Vercel/Render両方のビルドチェック
+pnpm prepush:check     # pre-pushフックと同じチェック
+
+# 個別のビルドチェック
+pnpm --filter @simple-bookkeeping/web build    # Vercel (Web)
+pnpm --filter @simple-bookkeeping/api build    # Render (API)
+```
+
+**ビルドエラーが発生した場合：**
+
+1. **まずエラーメッセージを確認**
+2. **依存関係の問題の場合**：
+   ```bash
+   pnpm install
+   pnpm --filter @simple-bookkeeping/database prisma:generate
+   ```
+3. **型エラーの場合**：
+   - 該当ファイルを修正
+   - 必要に応じて型定義を更新
+4. **それでも解決しない場合**：
+   - `pnpm clean && pnpm install`
+   - `.next`や`dist`ディレクトリを削除
+
+**重要：デプロイメント前には必ずローカルでビルドが成功することを確認してください。**

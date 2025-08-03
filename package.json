@@ -44,7 +44,9 @@
     "check:imports": "turbo run lint -- --rule 'import/no-unresolved: error'",
     "check:unused": "depcheck",
     "check:all": "pnpm check:deps && pnpm check:types && pnpm check:imports",
-    "precommit:check": "./scripts/check-build.sh"
+    "precommit:check": "./scripts/check-build.sh",
+    "prepush:check": "./scripts/check-full-build.sh",
+    "build:check": "pnpm build:packages && pnpm --filter @simple-bookkeeping/web build && pnpm --filter @simple-bookkeeping/api build"
   },
   "devDependencies": {
     "@types/node": "^20.19.1",
