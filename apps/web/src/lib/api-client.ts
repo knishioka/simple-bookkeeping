@@ -89,6 +89,7 @@ class ApiClient {
 
   async request<T>(path: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
     const url = `${this.config.baseUrl}${path}`;
+    console.log('Making request to:', url);
     const headers = this.getHeaders();
 
     try {
@@ -115,7 +116,13 @@ class ApiClient {
         }
       }
 
-      return { data: data.data };
+      // Check if response has a data wrapper
+      if (data && typeof data === 'object' && 'data' in data) {
+        return { data: data.data };
+      }
+      
+      // Otherwise return the data directly
+      return { data };
     } catch (error) {
       console.error('API request failed:', error);
       toast.error('通信エラーが発生しました');
@@ -175,8 +182,12 @@ class ApiClient {
   }
 }
 
+// Temporarily hardcode the URL while debugging env variable issue
+const baseUrl = 'http://localhost:3001/api/v1';
+console.log('API Base URL (hardcoded):', baseUrl);
+
 export const apiClient = new ApiClient({
-  baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1',
+  baseUrl,
 });
 
 export default apiClient;

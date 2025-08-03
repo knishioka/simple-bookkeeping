@@ -13,6 +13,12 @@ export default function LoginPage() {
   const { login, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  
+  // Debug: Check environment variable
+  console.log('Environment check:', {
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+    nodeEnv: process.env.NODE_ENV
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

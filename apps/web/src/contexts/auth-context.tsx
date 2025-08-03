@@ -80,32 +80,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (response.data) {
         apiClient.setToken(response.data.token, response.data.refreshToken);
 
-        // Get user's organizations
-        const orgsResponse = await apiClient.get<Organization[]>('/organizations/mine');
-        if (orgsResponse.data) {
-          const organizations = orgsResponse.data;
-          const defaultOrg = organizations.find((org) => org.isDefault) || organizations[0];
+        // TODO: Get user's organizations
+        // For now, just set the user without organizations
+        const fullUser: User = {
+          ...response.data.user,
+          organizations: [],
+          currentOrganization: undefined,
+        };
 
-          const fullUser: User = {
-            ...response.data.user,
-            organizations,
-            currentOrganization: defaultOrg,
-          };
-
-          setUser(fullUser);
-          setCurrentOrganization(defaultOrg);
-
-          // Set default organization in API client headers
-          if (defaultOrg) {
-            apiClient.setOrganizationId(defaultOrg.id);
-          }
-        }
-
+        setUser(fullUser);
+        
         toast.success('ログインしました');
         router.push('/dashboard');
       }
     } catch (error) {
       console.error('Login failed:', error);
+      if (error instanceof Error) {
+        toast.error(`ログインエラー: ${error.message}`);
+      } else {
+        toast.error('ログインに失敗しました');
+      }
     } finally {
       setLoading(false);
     }
