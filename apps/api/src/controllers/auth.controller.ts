@@ -1,5 +1,5 @@
 import { LoginInput, UserRole } from '@simple-bookkeeping/core';
-import { hash, compare } from 'bcrypt';
+import { hash, compare } from 'bcryptjs';
 import { Request, Response } from 'express';
 
 import { prisma } from '../lib/prisma';
