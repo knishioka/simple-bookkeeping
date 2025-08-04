@@ -80,6 +80,7 @@ interface Account {
   id: string;
   code: string;
   name: string;
+  nameKana?: string;
   accountType: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE';
 }
 

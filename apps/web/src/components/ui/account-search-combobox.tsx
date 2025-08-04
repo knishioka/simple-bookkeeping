@@ -74,39 +74,45 @@ export function AccountSearchCombobox({
   const filteredAccounts = React.useMemo(() => {
     if (!searchValue) return accounts;
 
-    const normalizedSearch = normalizeSearchText(searchValue);
-    const hiraganaSearch = katakanaToHiragana(normalizedSearch);
-    const katakanaSearch = hiraganaToKatakana(normalizedSearch);
+    try {
+      const normalizedSearch = normalizeSearchText(searchValue);
+      const hiraganaSearch = katakanaToHiragana(normalizedSearch);
+      const katakanaSearch = hiraganaToKatakana(normalizedSearch);
 
-    // Convert romaji to hiragana and katakana for search
-    const romajiToHiragana = wanakana.toHiragana(searchValue);
-    const romajiToKatakana = wanakana.toKatakana(searchValue);
-    const normalizedRomajiHiragana = normalizeSearchText(romajiToHiragana);
-    const normalizedRomajiKatakana = normalizeSearchText(romajiToKatakana);
+      // Convert romaji to hiragana and katakana for search
+      const romajiToHiragana = wanakana.toHiragana(searchValue);
+      const romajiToKatakana = wanakana.toKatakana(searchValue);
+      const normalizedRomajiHiragana = normalizeSearchText(romajiToHiragana);
+      const normalizedRomajiKatakana = normalizeSearchText(romajiToKatakana);
 
-    return accounts.filter((account) => {
-      // Normalize account fields
-      const normalizedCode = normalizeSearchText(account.code);
-      const normalizedName = normalizeSearchText(account.name);
-      const normalizedNameKana = account.nameKana ? normalizeSearchText(account.nameKana) : '';
+      return accounts.filter((account) => {
+        // Normalize account fields
+        const normalizedCode = normalizeSearchText(account.code);
+        const normalizedName = normalizeSearchText(account.name);
+        const normalizedNameKana = account.nameKana ? normalizeSearchText(account.nameKana) : '';
 
-      // Check if search matches any field
-      const codeMatch = normalizedCode.includes(normalizedSearch);
-      const nameMatch =
-        normalizedName.includes(normalizedSearch) ||
-        normalizedName.includes(hiraganaSearch) ||
-        normalizedName.includes(katakanaSearch) ||
-        normalizedName.includes(normalizedRomajiHiragana) ||
-        normalizedName.includes(normalizedRomajiKatakana);
-      const kanaMatch =
-        normalizedNameKana.includes(normalizedSearch) ||
-        normalizedNameKana.includes(hiraganaSearch) ||
-        normalizedNameKana.includes(katakanaSearch) ||
-        normalizedNameKana.includes(normalizedRomajiHiragana) ||
-        normalizedNameKana.includes(normalizedRomajiKatakana);
+        // Check if search matches any field
+        const codeMatch = normalizedCode.includes(normalizedSearch);
+        const nameMatch =
+          normalizedName.includes(normalizedSearch) ||
+          normalizedName.includes(hiraganaSearch) ||
+          normalizedName.includes(katakanaSearch) ||
+          normalizedName.includes(normalizedRomajiHiragana) ||
+          normalizedName.includes(normalizedRomajiKatakana);
+        const kanaMatch =
+          normalizedNameKana &&
+          (normalizedNameKana.includes(normalizedSearch) ||
+            normalizedNameKana.includes(hiraganaSearch) ||
+            normalizedNameKana.includes(katakanaSearch) ||
+            normalizedNameKana.includes(normalizedRomajiHiragana) ||
+            normalizedNameKana.includes(normalizedRomajiKatakana));
 
-      return codeMatch || nameMatch || kanaMatch;
-    });
+        return codeMatch || nameMatch || kanaMatch;
+      });
+    } catch (error) {
+      console.error('Error in account search:', error);
+      return accounts;
+    }
   }, [accounts, searchValue]);
 
   const accountTypeLabels: Record<string, string> = {
