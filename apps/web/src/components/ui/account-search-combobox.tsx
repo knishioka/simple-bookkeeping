@@ -2,6 +2,7 @@
 
 import { Check, ChevronsUpDown } from 'lucide-react';
 import * as React from 'react';
+import * as wanakana from 'wanakana';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -77,6 +78,10 @@ export function AccountSearchCombobox({
     const hiraganaSearch = katakanaToHiragana(normalizedSearch);
     const katakanaSearch = hiraganaToKatakana(normalizedSearch);
 
+    // Convert romaji to hiragana for search
+    const romajiToHiragana = wanakana.toHiragana(searchValue);
+    const normalizedRomajiSearch = normalizeSearchText(romajiToHiragana);
+
     return accounts.filter((account) => {
       // Normalize account fields
       const normalizedCode = normalizeSearchText(account.code);
@@ -88,11 +93,13 @@ export function AccountSearchCombobox({
       const nameMatch =
         normalizedName.includes(normalizedSearch) ||
         normalizedName.includes(hiraganaSearch) ||
-        normalizedName.includes(katakanaSearch);
+        normalizedName.includes(katakanaSearch) ||
+        normalizedName.includes(normalizedRomajiSearch);
       const kanaMatch =
         normalizedNameKana.includes(normalizedSearch) ||
         normalizedNameKana.includes(hiraganaSearch) ||
-        normalizedNameKana.includes(katakanaSearch);
+        normalizedNameKana.includes(katakanaSearch) ||
+        normalizedNameKana.includes(normalizedRomajiSearch);
 
       return codeMatch || nameMatch || kanaMatch;
     });
@@ -137,7 +144,7 @@ export function AccountSearchCombobox({
       <PopoverContent className="w-[400px] p-0" align="start">
         <Command shouldFilter={false}>
           <CommandInput
-            placeholder="コード、名前、カナで検索..."
+            placeholder="コード、名前、カナ、ローマ字で検索..."
             value={searchValue}
             onValueChange={setSearchValue}
           />
