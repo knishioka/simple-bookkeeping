@@ -110,7 +110,10 @@ class ApiClient {
         }
 
         if (data.error) {
-          toast.error(data.error.message || 'エラーが発生しました');
+          // Only show toast for non-organization errors
+          if (data.error.code !== 'ORGANIZATION_REQUIRED' && data.error.code !== 'FORBIDDEN') {
+            toast.error(data.error.message || 'エラーが発生しました');
+          }
           return { error: data.error };
         }
       }
