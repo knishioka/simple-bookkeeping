@@ -105,7 +105,11 @@ export default function JournalEntriesPage() {
       }
     } catch (error) {
       console.error('Failed to fetch journal entries:', error);
-      toast.error('仕訳の取得に失敗しました');
+      if (error instanceof Error) {
+        console.error('Error details:', error.message);
+      }
+      // Continue without showing error toast since we're moving to the page anyway
+      // toast.error('仕訳の取得に失敗しました');
     } finally {
       setLoading(false);
     }
