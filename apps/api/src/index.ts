@@ -38,7 +38,12 @@ const PORT = process.env.PORT || process.env.API_PORT || DEFAULT_API_PORT;
 // CORS configuration
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    const allowedOrigins = process.env.CORS_ORIGIN?.split(',').map((o) => o.trim()) || ['*'];
+    // In development, allow all origins
+    if (process.env.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+
+    const allowedOrigins = process.env.CORS_ORIGIN?.split(',').map((o) => o.trim()) || [];
 
     // Allow requests with no origin (mobile apps, etc.)
     if (!origin) return callback(null, true);
@@ -53,8 +58,14 @@ const corsOptions = {
       return callback(null, true);
     }
 
-    // Allow Vercel preview deployments
+    // Allow Vercel deployments
     if (origin.includes('vercel.app')) {
+      return callback(null, true);
+    }
+
+    // If CORS_ORIGIN is not set, allow Vercel deployments as fallback
+    if (!process.env.CORS_ORIGIN && origin.includes('vercel.app')) {
+      defaultLogger.info('CORS_ORIGIN not set, allowing Vercel deployment', { origin });
       return callback(null, true);
     }
 
@@ -65,6 +76,7 @@ const corsOptions = {
   optionsSuccessStatus: 200,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Organization-Id'],
+  exposedHeaders: ['X-Total-Count'],
 };
 
 // Security middleware
