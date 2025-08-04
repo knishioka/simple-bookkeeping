@@ -21,6 +21,7 @@ export interface Account extends PrismaAccount {
 export interface CreateAccountDto {
   code: string;
   name: string;
+  nameKana?: string;
   accountType: AccountType;
   parentId?: string | null;
   organizationId?: string; // APIでは自動設定されるが、型としては含める
@@ -30,6 +31,7 @@ export interface CreateAccountDto {
 export interface UpdateAccountDto {
   code?: string;
   name?: string;
+  nameKana?: string;
   accountType?: AccountType;
   parentId?: string | null;
   isActive?: boolean;

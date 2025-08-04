@@ -90,6 +90,7 @@ model Account {
   id               String           @id @default(uuid())
   code             String           // 勘定科目コード
   name             String           // 勘定科目名
+  nameKana         String?          @map("name_kana") // 勘定科目名カナ
   accountType      AccountType      @map("account_type")
   parentId         String?          @map("parent_id")
   isSystem         Boolean          @default(false) @map("is_system") // システム標準科目

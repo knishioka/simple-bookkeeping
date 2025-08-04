@@ -7,6 +7,7 @@ import { useFieldArray, useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { z } from 'zod';
 
+import { AccountSearchCombobox } from '@/components/ui/account-search-combobox';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -25,13 +26,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { apiClient } from '@/lib/api-client';
 
@@ -332,20 +326,14 @@ export function JournalEntryDialog({
                         name={`lines.${index}.accountId`}
                         render={({ field }) => (
                           <FormItem>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="勘定科目を選択" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {accounts.map((account) => (
-                                  <SelectItem key={account.id} value={account.id}>
-                                    {account.code} - {account.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <FormControl>
+                              <AccountSearchCombobox
+                                accounts={accounts}
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                placeholder="勘定科目を選択"
+                              />
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}

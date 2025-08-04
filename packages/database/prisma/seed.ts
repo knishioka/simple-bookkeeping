@@ -68,7 +68,15 @@ async function main() {
   console.log('Created accounting period:', accountingPeriod.name);
 
   // Create standard accounts (標準勘定科目)
-  const accounts = [
+  const accounts: Array<{
+    code: string;
+    name: string;
+    nameKana?: string;
+    description?: string;
+    accountType: AccountType;
+    parentId?: null;
+    parentCode?: string;
+  }> = [
     // ========== 資産 (Assets) ==========
 
     // 流動資産 (Current Assets)
@@ -79,14 +87,62 @@ async function main() {
       accountType: AccountType.ASSET,
       parentId: null,
     },
-    { code: '1110', name: '現金', accountType: AccountType.ASSET, parentCode: '1000' },
-    { code: '1120', name: '小口現金', accountType: AccountType.ASSET, parentCode: '1000' },
-    { code: '1130', name: '普通預金', accountType: AccountType.ASSET, parentCode: '1000' },
-    { code: '1131', name: '当座預金', accountType: AccountType.ASSET, parentCode: '1000' },
-    { code: '1132', name: '定期預金', accountType: AccountType.ASSET, parentCode: '1000' },
-    { code: '1133', name: '外貨預金', accountType: AccountType.ASSET, parentCode: '1000' },
-    { code: '1140', name: '売掛金', accountType: AccountType.ASSET, parentCode: '1000' },
-    { code: '1141', name: '受取手形', accountType: AccountType.ASSET, parentCode: '1000' },
+    {
+      code: '1110',
+      name: '現金',
+      nameKana: 'ゲンキン',
+      accountType: AccountType.ASSET,
+      parentCode: '1000',
+    },
+    {
+      code: '1120',
+      name: '小口現金',
+      nameKana: 'コグチゲンキン',
+      accountType: AccountType.ASSET,
+      parentCode: '1000',
+    },
+    {
+      code: '1130',
+      name: '普通預金',
+      nameKana: 'フツウヨキン',
+      accountType: AccountType.ASSET,
+      parentCode: '1000',
+    },
+    {
+      code: '1131',
+      name: '当座預金',
+      nameKana: 'トウザヨキン',
+      accountType: AccountType.ASSET,
+      parentCode: '1000',
+    },
+    {
+      code: '1132',
+      name: '定期預金',
+      nameKana: 'テイキヨキン',
+      accountType: AccountType.ASSET,
+      parentCode: '1000',
+    },
+    {
+      code: '1133',
+      name: '外貨預金',
+      nameKana: 'ガイカヨキン',
+      accountType: AccountType.ASSET,
+      parentCode: '1000',
+    },
+    {
+      code: '1140',
+      name: '売掛金',
+      nameKana: 'ウリカケキン',
+      accountType: AccountType.ASSET,
+      parentCode: '1000',
+    },
+    {
+      code: '1141',
+      name: '受取手形',
+      nameKana: 'ウケトリテガタ',
+      accountType: AccountType.ASSET,
+      parentCode: '1000',
+    },
     { code: '1142', name: '電子記録債権', accountType: AccountType.ASSET, parentCode: '1000' },
     { code: '1150', name: '商品', accountType: AccountType.ASSET, parentCode: '1000' },
     { code: '1151', name: '製品', accountType: AccountType.ASSET, parentCode: '1000' },
@@ -475,6 +531,7 @@ async function main() {
       data: {
         code: account.code,
         name: account.name,
+        nameKana: account.nameKana,
         accountType: account.accountType,
         organizationId: organization.id,
       },
@@ -488,6 +545,7 @@ async function main() {
       data: {
         code: account.code,
         name: account.name,
+        nameKana: account.nameKana,
         accountType: account.accountType,
         parentId: parentAccounts.get(account.parentCode || ''),
         organizationId: organization.id,
