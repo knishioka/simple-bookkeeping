@@ -22,7 +22,7 @@ services:
       - key: JWT_REFRESH_EXPIRES_IN
         value: 30d
       - key: CORS_ORIGIN
-        value: https://simple-bookkeeping-kens-projects-924cd1a9.vercel.app
+        value: https://simple-bookkeeping-mu.vercel.app
 
 databases:
   - name: simple-bookkeeping-db
