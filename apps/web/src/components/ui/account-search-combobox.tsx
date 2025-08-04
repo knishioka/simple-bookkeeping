@@ -78,9 +78,11 @@ export function AccountSearchCombobox({
     const hiraganaSearch = katakanaToHiragana(normalizedSearch);
     const katakanaSearch = hiraganaToKatakana(normalizedSearch);
 
-    // Convert romaji to hiragana for search
+    // Convert romaji to hiragana and katakana for search
     const romajiToHiragana = wanakana.toHiragana(searchValue);
-    const normalizedRomajiSearch = normalizeSearchText(romajiToHiragana);
+    const romajiToKatakana = wanakana.toKatakana(searchValue);
+    const normalizedRomajiHiragana = normalizeSearchText(romajiToHiragana);
+    const normalizedRomajiKatakana = normalizeSearchText(romajiToKatakana);
 
     return accounts.filter((account) => {
       // Normalize account fields
@@ -94,12 +96,14 @@ export function AccountSearchCombobox({
         normalizedName.includes(normalizedSearch) ||
         normalizedName.includes(hiraganaSearch) ||
         normalizedName.includes(katakanaSearch) ||
-        normalizedName.includes(normalizedRomajiSearch);
+        normalizedName.includes(normalizedRomajiHiragana) ||
+        normalizedName.includes(normalizedRomajiKatakana);
       const kanaMatch =
         normalizedNameKana.includes(normalizedSearch) ||
         normalizedNameKana.includes(hiraganaSearch) ||
         normalizedNameKana.includes(katakanaSearch) ||
-        normalizedNameKana.includes(normalizedRomajiSearch);
+        normalizedNameKana.includes(normalizedRomajiHiragana) ||
+        normalizedNameKana.includes(normalizedRomajiKatakana);
 
       return codeMatch || nameMatch || kanaMatch;
     });
