@@ -38,7 +38,7 @@ const PORT = process.env.PORT || process.env.API_PORT || DEFAULT_API_PORT;
 // CORS configuration
 const corsOptions = {
   origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || ['*'];
+    const allowedOrigins = process.env.CORS_ORIGIN?.split(',').map((o) => o.trim()) || ['*'];
 
     // Allow requests with no origin (mobile apps, etc.)
     if (!origin) return callback(null, true);
@@ -49,14 +49,22 @@ const corsOptions = {
     }
 
     // Also allow localhost for development
-    if (origin.includes('localhost')) {
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
       return callback(null, true);
     }
 
+    // Allow Vercel preview deployments
+    if (origin.includes('vercel.app')) {
+      return callback(null, true);
+    }
+
+    defaultLogger.warn('CORS request blocked', { origin, allowedOrigins });
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
   optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Organization-Id'],
 };
 
 // Security middleware
