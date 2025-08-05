@@ -1,6 +1,5 @@
 # Docker Compose configuration for local development
 # This configuration provides a complete local development environment with hot-reloading
-version: '3.8'
 
 services:
   postgres:

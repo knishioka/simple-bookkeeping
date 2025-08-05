@@ -53,7 +53,7 @@ fi
 
 # Check for Docker (optional)
 USE_DOCKER=false
-if command -v docker &> /dev/null && command -v docker-compose &> /dev/null; then
+if command -v docker &> /dev/null && docker compose version &> /dev/null; then
     read -p "Docker is available. Do you want to use Docker for PostgreSQL? (y/N): " -n 1 -r
     echo ""
     if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -100,7 +100,7 @@ if [ "$USE_DOCKER" = true ]; then
     print_info "Starting PostgreSQL with Docker..."
     
     # Use the local Docker Compose configuration
-    docker-compose -f docker-compose.local.yml up -d postgres
+    docker compose -f docker compose.local.yml up -d postgres
     
     # Wait for PostgreSQL to be ready
     print_info "Waiting for PostgreSQL to be ready..."
@@ -109,7 +109,7 @@ if [ "$USE_DOCKER" = true ]; then
     # Check if PostgreSQL is ready
     max_attempts=30
     attempt=0
-    while ! docker-compose -f docker-compose.local.yml exec -T postgres pg_isready -U bookkeeping > /dev/null 2>&1; do
+    while ! docker compose -f docker compose.local.yml exec -T postgres pg_isready -U bookkeeping > /dev/null 2>&1; do
         attempt=$((attempt + 1))
         if [ $attempt -eq $max_attempts ]; then
             print_error "PostgreSQL failed to start after $max_attempts attempts"
@@ -165,10 +165,10 @@ echo ""
 
 if [ "$USE_DOCKER" = true ]; then
     echo "  With Docker (recommended):"
-    echo "  $ docker-compose -f docker-compose.local.yml up"
+    echo "  $ docker compose -f docker compose.local.yml up"
     echo ""
     echo "  Or start services individually:"
-    echo "  $ docker-compose -f docker-compose.local.yml up postgres  # Database only"
+    echo "  $ docker compose -f docker compose.local.yml up postgres  # Database only"
     echo "  $ pnpm dev                                                # Start app servers"
 else
     echo "  $ pnpm dev                    # Start both API and Web servers"

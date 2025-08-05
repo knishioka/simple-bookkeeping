@@ -81,7 +81,7 @@ Docker Composeを使用すると、PostgreSQLを含むすべての依存サー�
 
    ```bash
    # 開発用Docker Compose設定を使用
-   docker-compose -f docker-compose.local.yml up -d
+   docker compose -f docker compose.local.yml up -d
    ```
 
 3. **データベースの初期化**
@@ -240,13 +240,13 @@ pnpm --filter @simple-bookkeeping/api dev
 
 ```bash
 # すべてのサービスをDockerで起動
-docker-compose -f docker-compose.local.yml up
+docker compose -f docker compose.local.yml up
 
 # バックグラウンドで起動
-docker-compose -f docker-compose.local.yml up -d
+docker compose -f docker compose.local.yml up -d
 
 # ログの確認
-docker-compose -f docker-compose.local.yml logs -f
+docker compose -f docker compose.local.yml logs -f
 ```
 
 ## 認証フローについて
@@ -349,13 +349,13 @@ E2Eテストをローカル環境で実行する際の注意点：
 
 ```bash
 # PostgreSQLが起動しているか確認
-docker-compose -f docker-compose.local.yml ps
+docker compose -f docker compose.local.yml ps
 
 # または
 pg_isready -h localhost -p 5432
 
 # 再起動
-docker-compose -f docker-compose.local.yml restart postgres
+docker compose -f docker compose.local.yml restart postgres
 ```
 
 #### 2. 認証エラー（401 Unauthorized）
@@ -429,11 +429,11 @@ tail -f apps/api/logs/error.log
 
 ```bash
 # すべてのサービスのログ
-docker-compose -f docker-compose.local.yml logs -f
+docker compose -f docker compose.local.yml logs -f
 
 # 特定のサービスのログ
-docker-compose -f docker-compose.local.yml logs -f api
-docker-compose -f docker-compose.local.yml logs -f postgres
+docker compose -f docker compose.local.yml logs -f api
+docker compose -f docker compose.local.yml logs -f postgres
 ```
 
 ## よくある質問
@@ -453,8 +453,8 @@ A: 以下のコマンドでリセットできます：
 
 ```bash
 # Dockerを使用している場合
-docker-compose -f docker-compose.local.yml down -v
-docker-compose -f docker-compose.local.yml up -d
+docker compose -f docker compose.local.yml down -v
+docker compose -f docker compose.local.yml up -d
 pnpm db:migrate
 pnpm db:seed
 
