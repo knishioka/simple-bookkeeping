@@ -6,6 +6,7 @@ import { AppHelpers } from './helpers/test-setup';
  * 基本的なページアクセステスト
  *
  * Playwrightの動作確認と基本的なナビゲーションをテストします。
+ * ローカル環境対応の改善を含みます。
  */
 
 test.describe('基本的なページアクセス', () => {
