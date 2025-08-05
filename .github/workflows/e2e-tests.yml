@@ -2,9 +2,9 @@ name: E2E Tests
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   e2e-tests:
@@ -30,9 +30,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
+        uses: pnpm/action-setup@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -66,22 +64,22 @@ jobs:
           # Start API server in background
           pnpm --filter @simple-bookkeeping/api dev &
           API_PID=$!
-          
+
           # Start web server in background
           pnpm --filter @simple-bookkeeping/web dev &
           WEB_PID=$!
-          
+
           # Wait for servers to be ready
           echo "Waiting for servers to start..."
           sleep 10
-          
+
           # Check if servers are running
           curl -f http://localhost:3001/api/v1/ || exit 1
           curl -f http://localhost:3000 || exit 1
-          
+
           # Run E2E tests
           pnpm --filter @simple-bookkeeping/web test:e2e:ci
-          
+
           # Kill servers
           kill $API_PID $WEB_PID
 
