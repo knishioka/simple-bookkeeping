@@ -71,7 +71,10 @@ export function JournalEntryImportDialog({
     } catch (error) {
       console.error('Failed to import journal entries:', error);
       const errorMessage =
-        (error as any).response?.data?.error?.message || 'インポートに失敗しました';
+        error instanceof Error && 'response' in error
+          ? (error as { response?: { data?: { error?: { message?: string } } } }).response?.data
+              ?.error?.message || 'インポートに失敗しました'
+          : 'インポートに失敗しました';
       toast.error(errorMessage);
     } finally {
       setLoading(false);
