@@ -132,7 +132,6 @@ npx ts-node e2e/user-stories/story-coverage-report.ts
 ### 出力形式
 
 1. **HTML レポート** (`story-coverage.html`)
-
    - ビジュアルなダッシュボード
    - ストーリー別の実装状況
    - シナリオ別のテスト結果
@@ -210,12 +209,10 @@ npx ts-node e2e/user-stories/story-coverage-report.ts
 ## 今後の拡張
 
 1. **ストーリーマッピング**
-
    - ユーザージャーニー全体の可視化
    - ストーリー間の関係性の管理
 
 2. **A/Bテスト統合**
-
    - 異なるUIパターンの比較
    - ユーザー満足度の測定
 

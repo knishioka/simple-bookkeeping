@@ -11,6 +11,7 @@ This report identifies various cleanup opportunities in the simple-bookkeeping c
 ### 1.1 Console Statements (31 files affected)
 
 **High Priority - Debug/Development Logs:**
+
 - `/apps/web/src/lib/api-client.ts` - Lines 92, 127, 187 (debug logs)
 - `/apps/web/src/app/login/page.tsx` - Debug authentication logs
 - `/apps/web/src/contexts/auth-context.tsx` - Error logging (lines 97, 118)
@@ -22,6 +23,7 @@ This report identifies various cleanup opportunities in the simple-bookkeeping c
 ### 1.2 TODO Comments (4 files)
 
 **Potentially Old TODOs:**
+
 - `/apps/web/src/contexts/auth-context.tsx`:
   - Line 59: "TODO: Validate token and get user info"
   - Line 83: "TODO: Get user's organizations"
@@ -43,6 +45,7 @@ This report identifies various cleanup opportunities in the simple-bookkeeping c
 ### 2.1 Build Artifacts (Should be git-ignored)
 
 **Already in .gitignore but present in filesystem:**
+
 - `/apps/web/.next/` - 27MB Next.js build output
 - `/apps/api/dist/` - 812KB compiled TypeScript
 - `/packages/*/dist/` - Various package build outputs
@@ -68,6 +71,7 @@ This report identifies various cleanup opportunities in the simple-bookkeeping c
 ### 3.1 Potential Unused Dependencies
 
 **Web App (`/apps/web/package.json`):**
+
 - `@radix-ui/react-dropdown-menu` - Check if used (have Select component)
 - `@radix-ui/react-toast` - Check if used (using react-hot-toast)
 - `cmdk` - Command menu library, verify usage
@@ -92,6 +96,7 @@ All packages appear to have correct dependency categorization.
 ### 4.1 Modified Files (from git status)
 
 Multiple files show modifications:
+
 - Database schema changes
 - Migration files deleted
 - New migration directories added
@@ -128,18 +133,21 @@ All `.env` files are properly git-ignored.
 ## Priority Actions
 
 ### Immediate (High Priority):
+
 1. Remove hardcoded API URL in `/apps/web/src/lib/api-client.ts`
 2. Replace console.log statements with proper logging
 3. Clean build artifacts: `pnpm clean`
 4. Remove empty directory: `/packages/core/packages/database/dist`
 
 ### Short-term (Medium Priority):
+
 1. Review and resolve TODO comments
 2. Analyze and remove unused dependencies
 3. Standardize toast notification library
 4. Add `dev.log` to .gitignore
 
 ### Long-term (Low Priority):
+
 1. Set up automated dependency analysis
 2. Implement proper logging strategy
 3. Add pre-commit hooks for console.log detection
@@ -169,6 +177,7 @@ pnpm update --interactive
 ## Summary
 
 The codebase is generally well-maintained with proper git-ignore patterns and dependency management. The main cleanup opportunities are:
+
 - Removing debug console.log statements
 - Fixing the hardcoded API URL
 - Reviewing old TODO comments
