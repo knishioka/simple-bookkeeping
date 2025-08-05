@@ -111,17 +111,14 @@ const { data, loading, execute } = useApiCall<CashBookResponse>();
 ## 今後の課題
 
 1. **APIクライアントの改善**
-
    - axios interceptorでの共通エラーハンドリング
    - リトライ機能の実装
 
 2. **状態管理の最適化**
-
    - Zustandストアの整理
    - キャッシュ戦略の実装
 
 3. **アクセシビリティ向上**
-
    - キーボードナビゲーション
    - スクリーンリーダー対応
 
