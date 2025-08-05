@@ -30,6 +30,9 @@ describe('JournalEntry Service', () => {
             startsWith: '202403',
           },
         },
+        select: {
+          entryNumber: true,
+        },
         orderBy: {
           entryNumber: 'desc',
         },
