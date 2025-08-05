@@ -174,24 +174,32 @@ export default defineConfig({
   ],
 
   // 開発サーバー設定（安定性向上）
-  webServer: {
-    command: 'pnpm dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 180000, // 3分に延長（依存関係のビルド時間を考慮）
-
-    // サーバー起動の安定性向上
-    env: {
-      NODE_ENV: 'test',
+  webServer: [
+    {
+      command: 'cd ../.. && pnpm --filter @simple-bookkeeping/api dev',
+      url: 'http://localhost:3001/api/v1/',
+      reuseExistingServer: !process.env.CI,
+      timeout: 180000, // 3分に延長（依存関係のビルド時間を考慮）
+      env: {
+        NODE_ENV: 'test',
+      },
+      retries: 3,
+      stdout: 'pipe',
+      stderr: 'pipe',
     },
-
-    // ヘルスチェック
-    retries: 3,
-
-    // ログ出力（デバッグ用）
-    stdout: 'pipe',
-    stderr: 'pipe',
-  },
+    {
+      command: 'pnpm dev',
+      url: 'http://localhost:3000',
+      reuseExistingServer: !process.env.CI,
+      timeout: 180000, // 3分に延長（依存関係のビルド時間を考慮）
+      env: {
+        NODE_ENV: 'test',
+      },
+      retries: 3,
+      stdout: 'pipe',
+      stderr: 'pipe',
+    },
+  ],
 
   // グローバルセットアップ（必要に応じて）
   globalSetup: process.env.CI ? undefined : undefined, // 将来の拡張用
