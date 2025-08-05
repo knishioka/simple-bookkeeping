@@ -46,7 +46,10 @@ jobs:
           DATABASE_URL: postgresql://test:test@localhost:5432/bookkeeping_test
         run: |
           pnpm --filter @simple-bookkeeping/database prisma:generate
-          pnpm --filter @simple-bookkeeping/database prisma:migrate
+          pnpm --filter @simple-bookkeeping/database prisma db push --skip-generate
+
+      - name: Build packages first
+        run: pnpm build:packages
 
       - name: Build applications
         run: pnpm build
@@ -60,28 +63,8 @@ jobs:
           JWT_SECRET: test-secret-key
           NEXTAUTH_SECRET: test-nextauth-secret
           NEXTAUTH_URL: http://localhost:3000
-        run: |
-          # Start API server in background
-          pnpm --filter @simple-bookkeeping/api dev &
-          API_PID=$!
-
-          # Start web server in background
-          pnpm --filter @simple-bookkeeping/web dev &
-          WEB_PID=$!
-
-          # Wait for servers to be ready
-          echo "Waiting for servers to start..."
-          sleep 10
-
-          # Check if servers are running
-          curl -f http://localhost:3001/api/v1/ || exit 1
-          curl -f http://localhost:3000 || exit 1
-
-          # Run E2E tests
-          pnpm --filter @simple-bookkeeping/web test:e2e:ci
-
-          # Kill servers
-          kill $API_PID $WEB_PID
+          CI: true
+        run: pnpm --filter @simple-bookkeeping/web test:e2e:ci
 
       - name: Upload test results
         if: always()
