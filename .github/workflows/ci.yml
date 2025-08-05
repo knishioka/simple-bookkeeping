@@ -101,7 +101,7 @@ jobs:
       - name: Build packages
         run: pnpm build:packages
 
-      - name: Run database migrations
+      - name: Setup database schema
         run: pnpm --filter @simple-bookkeeping/database prisma db push --skip-generate
 
       - name: Run tests
