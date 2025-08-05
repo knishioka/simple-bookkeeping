@@ -102,7 +102,7 @@ jobs:
         run: pnpm build:packages
 
       - name: Setup database schema
-        run: pnpm --filter @simple-bookkeeping/database prisma db push --skip-generate
+        run: cd packages/database && npx prisma db push --skip-generate
 
       - name: Run tests
         run: pnpm test
