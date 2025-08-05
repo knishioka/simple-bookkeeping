@@ -1,20 +1,33 @@
 import { test, expect } from '@playwright/test';
 
+import { waitForApiReady, waitForHydration, LOCAL_TIMEOUTS } from './helpers/local-test-config';
 import { AppHelpers } from './helpers/test-setup';
 
 /**
  * 基本的なページアクセステスト
  *
  * Playwrightの動作確認と基本的なナビゲーションをテストします。
+ * ローカル環境対応の改善を含みます。
  */
 
 test.describe('基本的なページアクセス', () => {
+  // テスト前にAPIサーバーの準備を待つ
+  test.beforeEach(async ({ page }) => {
+    if (!process.env.CI) {
+      await waitForApiReady(page);
+    }
+  });
   test('トップページが正常に表示される', async ({ page }) => {
     const helpers = new AppHelpers(page);
 
     // トップページにアクセス
-    await page.goto('/');
+    await page.goto('/', { timeout: LOCAL_TIMEOUTS.navigation });
     await helpers.waitForPageLoad();
+
+    // ローカル環境ではハイドレーションを待つ
+    if (!process.env.CI) {
+      await waitForHydration(page);
+    }
 
     // ページタイトルを確認（実際にはh1要素の内容）
     await expect(page.locator('h1')).toContainText('Simple Bookkeeping');

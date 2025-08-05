@@ -87,7 +87,11 @@ class ApiClient {
     }
   }
 
-  async request<T>(path: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+  async request<T>(
+    path: string,
+    options: RequestInit = {},
+    retryCount = 0
+  ): Promise<ApiResponse<T>> {
     const url = `${this.config.baseUrl}${path}`;
     const headers = this.getHeaders();
 
@@ -95,6 +99,8 @@ class ApiClient {
       const response = await fetch(url, {
         ...options,
         headers,
+        // Add timeout for local development
+        signal: AbortSignal.timeout(30000), // 30 seconds timeout
       });
 
       const data = await response.json();
@@ -127,7 +133,22 @@ class ApiClient {
       return { data };
     } catch (error) {
       console.error('API request failed:', error);
-      toast.error('通信エラーが発生しました');
+
+      // Retry logic for local development network issues
+      if (retryCount < 2 && error instanceof Error) {
+        if (error.name === 'AbortError' || error.message.includes('Failed to fetch')) {
+          console.warn(`Retrying request to ${path}, attempt ${retryCount + 1}`);
+          // Wait a bit before retrying
+          await new Promise((resolve) => setTimeout(resolve, 1000 * (retryCount + 1)));
+          return this.request<T>(path, options, retryCount + 1);
+        }
+      }
+
+      // Only show toast for final failure
+      if (retryCount === 0 || retryCount >= 2) {
+        toast.error('通信エラーが発生しました');
+      }
+
       return {
         error: {
           code: 'NETWORK_ERROR',

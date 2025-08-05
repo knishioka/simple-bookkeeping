@@ -1,0 +1,91 @@
+# Docker Compose configuration for local development
+# This configuration provides a complete local development environment with hot-reloading
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: simple-bookkeeping-postgres-local
+    environment:
+      POSTGRES_USER: bookkeeping
+      POSTGRES_PASSWORD: bookkeeping
+      POSTGRES_DB: simple_bookkeeping
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data_local:/var/lib/postgresql/data
+      - ./packages/database/prisma:/prisma
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U bookkeeping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - simple-bookkeeping-local
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: deps
+    container_name: simple-bookkeeping-api-local
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://bookkeeping:bookkeeping@postgres:5432/simple_bookkeeping?schema=public
+      API_PORT: 3001
+      NODE_ENV: development
+      JWT_SECRET: local-dev-secret-change-in-production
+      JWT_EXPIRES_IN: 7d
+      JWT_REFRESH_SECRET: local-dev-refresh-secret-change-in-production
+      JWT_REFRESH_EXPIRES_IN: 30d
+      CORS_ORIGIN: http://localhost:3000
+    ports:
+      - '3001:3001'
+    networks:
+      - simple-bookkeeping-local
+    volumes:
+      - ./:/app
+      - /app/node_modules
+      - /app/apps/api/node_modules
+      - /app/apps/web/node_modules
+      - /app/packages/database/node_modules
+      - /app/packages/types/node_modules
+      - /app/packages/errors/node_modules
+      - /app/packages/shared/node_modules
+    command: sh -c "cd /app && pnpm --filter @simple-bookkeeping/database prisma:generate && pnpm --filter @simple-bookkeeping/api dev"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: deps
+    container_name: simple-bookkeeping-web-local
+    depends_on:
+      - api
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
+      NODE_ENV: development
+    ports:
+      - '3000:3000'
+    networks:
+      - simple-bookkeeping-local
+    volumes:
+      - ./:/app
+      - /app/node_modules
+      - /app/apps/api/node_modules
+      - /app/apps/web/node_modules
+      - /app/packages/database/node_modules
+      - /app/packages/types/node_modules
+      - /app/packages/errors/node_modules
+      - /app/packages/shared/node_modules
+    command: sh -c "cd /app && pnpm --filter @simple-bookkeeping/web dev"
+
+volumes:
+  postgres_data_local:
+    name: simple-bookkeeping-postgres-data-local
+
+networks:
+  simple-bookkeeping-local:
+    driver: bridge
