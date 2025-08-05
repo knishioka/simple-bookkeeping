@@ -46,7 +46,7 @@ jobs:
           DATABASE_URL: postgresql://test:test@localhost:5432/bookkeeping_test
         run: |
           pnpm --filter @simple-bookkeeping/database prisma:generate
-          pnpm --filter @simple-bookkeeping/database prisma db push --skip-generate
+          cd packages/database && npx prisma db push --skip-generate
 
       - name: Build packages first
         run: pnpm build:packages
