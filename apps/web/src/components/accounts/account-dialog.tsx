@@ -151,7 +151,7 @@ export function AccountDialog({
                     </FormControl>
                     <SelectContent>
                       {Object.entries(AccountTypeLabels).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>
+                        <SelectItem key={value} value={value} data-testid={`select-item-${value}`}>
                           {label}
                         </SelectItem>
                       ))}
@@ -176,7 +176,11 @@ export function AccountDialog({
                     <SelectContent>
                       <SelectItem value="none">なし</SelectItem>
                       {filteredParentAccounts.map((acc) => (
-                        <SelectItem key={acc.id} value={acc.id}>
+                        <SelectItem
+                          key={acc.id}
+                          value={acc.id}
+                          data-testid={`select-item-${acc.id}`}
+                        >
                           {acc.code} - {acc.name}
                         </SelectItem>
                       ))}
