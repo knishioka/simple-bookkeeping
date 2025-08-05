@@ -54,14 +54,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     // Check if user is already logged in
-    const token = localStorage.getItem('token');
-    if (token) {
-      // TODO: Validate token and get user info
-      // For now, we'll just clear the loading state
-      setLoading(false);
-    } else {
-      setLoading(false);
-    }
+    const checkAuth = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const refreshToken = localStorage.getItem('refreshToken');
+
+        if (token && refreshToken) {
+          // Set tokens in API client
+          apiClient.setToken(token, refreshToken);
+
+          // Try to validate the token by fetching user info
+          try {
+            const response = await apiClient.get<{ user: User }>('/auth/me');
+            if (response.data?.user) {
+              setUser(response.data.user);
+              setCurrentOrganization(response.data.user.currentOrganization || null);
+
+              // Set organization ID if available
+              if (response.data.user.currentOrganization?.id) {
+                apiClient.setOrganizationId(response.data.user.currentOrganization.id);
+              }
+            }
+          } catch (error) {
+            // Token might be expired or invalid
+            console.warn('Failed to validate token, clearing auth state');
+            apiClient.clearTokens();
+            apiClient.clearOrganizationId();
+          }
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
   }, []);
 
   const login = async (email: string, password: string) => {
