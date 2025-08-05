@@ -3,8 +3,6 @@
 import { Minus, Plus } from 'lucide-react';
 import { FieldArrayWithId, UseFieldArrayRemove, UseFormReturn } from 'react-hook-form';
 
-import type { Account } from '@/types/account';
-
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,6 +21,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+
+import type { Account } from '@/types/account';
 
 interface JournalEntryFormData {
   entryDate: Date;
