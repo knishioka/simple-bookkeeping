@@ -3,10 +3,38 @@ jest.mock('../../lib/prisma', () => ({
   prisma: {
     journalEntry: {
       findFirst: jest.fn(),
+      create: jest.fn(),
+      findMany: jest.fn(),
+      groupBy: jest.fn(),
+    },
+    journalEntryLine: {
+      createMany: jest.fn(),
+      findMany: jest.fn(),
     },
     accountingPeriod: {
       findFirst: jest.fn(),
     },
+    account: {
+      findMany: jest.fn(),
+    },
+    $transaction: jest.fn((callback) => {
+      // Create a mock transaction object with all necessary methods
+      const tx = {
+        journalEntry: {
+          create: jest.fn(),
+          findMany: jest.fn(),
+          groupBy: jest.fn(),
+        },
+        journalEntryLine: {
+          createMany: jest.fn(),
+          findMany: jest.fn(),
+        },
+        account: {
+          findMany: jest.fn(),
+        },
+      };
+      return callback(tx);
+    }),
   },
 }));
 
