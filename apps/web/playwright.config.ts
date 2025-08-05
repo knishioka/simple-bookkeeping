@@ -174,32 +174,48 @@ export default defineConfig({
   ],
 
   // 開発サーバー設定（安定性向上）
-  webServer: [
-    {
-      command: 'cd ../.. && pnpm --filter @simple-bookkeeping/api dev',
-      url: 'http://localhost:3001/api/v1/',
-      reuseExistingServer: !process.env.CI,
-      timeout: 180000, // 3分に延長（依存関係のビルド時間を考慮）
-      env: {
-        NODE_ENV: 'test',
-      },
-      retries: 3,
-      stdout: 'pipe',
-      stderr: 'pipe',
-    },
-    {
-      command: 'pnpm dev',
-      url: 'http://localhost:3000',
-      reuseExistingServer: !process.env.CI,
-      timeout: 180000, // 3分に延長（依存関係のビルド時間を考慮）
-      env: {
-        NODE_ENV: 'test',
-      },
-      retries: 3,
-      stdout: 'pipe',
-      stderr: 'pipe',
-    },
-  ],
+  webServer: process.env.CI
+    ? {
+        // CI環境では単一のWebサーバーのみ（APIは別途起動）
+        command: 'pnpm dev',
+        url: 'http://localhost:3000',
+        reuseExistingServer: false,
+        timeout: 240000, // 4分に延長（CI環境での初回ビルド時間を考慮）
+        env: {
+          NODE_ENV: 'test',
+          NEXT_PUBLIC_API_URL: 'http://localhost:3001',
+        },
+        retries: 2,
+        stdout: 'pipe',
+        stderr: 'pipe',
+      }
+    : [
+        // ローカル環境では両方のサーバーを起動
+        {
+          command: 'cd ../.. && pnpm --filter @simple-bookkeeping/api dev',
+          url: 'http://localhost:3001/api/v1/',
+          reuseExistingServer: true,
+          timeout: 120000,
+          env: {
+            NODE_ENV: 'test',
+          },
+          retries: 2,
+          stdout: 'pipe',
+          stderr: 'pipe',
+        },
+        {
+          command: 'pnpm dev',
+          url: 'http://localhost:3000',
+          reuseExistingServer: true,
+          timeout: 120000,
+          env: {
+            NODE_ENV: 'test',
+          },
+          retries: 2,
+          stdout: 'pipe',
+          stderr: 'pipe',
+        },
+      ],
 
   // グローバルセットアップ（必要に応じて）
   globalSetup: process.env.CI ? undefined : undefined, // 将来の拡張用
