@@ -1,5 +1,5 @@
 import { Request } from 'express';
-import winston from 'winston';
+import { createLogger, format, transports, addColors, Logform } from 'winston';
 
 // Define log levels
 const levels = {
@@ -19,44 +19,44 @@ const colors = {
   debug: 'white',
 };
 
-winston.addColors(colors);
+addColors(colors);
 
 // Format for console output
-const consoleFormat = winston.format.combine(
-  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-  winston.format.colorize({ all: true }),
-  winston.format.printf(
-    (info: winston.Logform.TransformableInfo) => `${info.timestamp} ${info.level}: ${info.message}`
+const consoleFormat = format.combine(
+  format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+  format.colorize({ all: true }),
+  format.printf(
+    (info: Logform.TransformableInfo) => `${info.timestamp} ${info.level}: ${info.message}`
   )
 );
 
 // Format for file output
-const fileFormat = winston.format.combine(
-  winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-  winston.format.errors({ stack: true }),
-  winston.format.splat(),
-  winston.format.json()
+const fileFormat = format.combine(
+  format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+  format.errors({ stack: true }),
+  format.splat(),
+  format.json()
 );
 
 // Create the logger
-const logger = winston.createLogger({
+const logger = createLogger({
   level: process.env.LOG_LEVEL || 'info',
   levels,
   format: fileFormat,
   transports: [
     // Console transport
-    new winston.transports.Console({
+    new transports.Console({
       format: consoleFormat,
     }),
     // Error file transport
-    new winston.transports.File({
+    new transports.File({
       filename: 'logs/error.log',
       level: 'error',
       maxsize: 5242880, // 5MB
       maxFiles: 5,
     }),
     // Combined file transport
-    new winston.transports.File({
+    new transports.File({
       filename: 'logs/combined.log',
       maxsize: 5242880, // 5MB
       maxFiles: 5,
@@ -74,7 +74,7 @@ export interface LogContext {
   ip?: string;
   userAgent?: string;
   correlationId?: string;
-  [key: string]: any;
+  [key: string]: string | undefined;
 }
 
 export class Logger {
@@ -84,35 +84,39 @@ export class Logger {
     this.context = context;
   }
 
-  private formatMessage(message: string, meta?: any): string {
+  private formatMessage(message: string, meta?: unknown): string {
     const contextStr = Object.keys(this.context).length ? ` [${JSON.stringify(this.context)}]` : '';
     const metaStr = meta ? ` ${JSON.stringify(meta)}` : '';
     return `${message}${contextStr}${metaStr}`;
   }
 
-  error(message: string, error?: Error | any, meta?: any): void {
+  error(message: string, error?: Error | unknown, meta?: unknown): void {
     const errorMeta =
       error instanceof Error
         ? { error: { message: error.message, stack: error.stack } }
         : error
           ? { error }
           : {};
-    logger.error(this.formatMessage(message, { ...errorMeta, ...meta }));
+    const combinedMeta =
+      meta && typeof meta === 'object' && !Array.isArray(meta)
+        ? { ...errorMeta, ...meta }
+        : errorMeta;
+    logger.error(this.formatMessage(message, combinedMeta));
   }
 
-  warn(message: string, meta?: any): void {
+  warn(message: string, meta?: unknown): void {
     logger.warn(this.formatMessage(message, meta));
   }
 
-  info(message: string, meta?: any): void {
+  info(message: string, meta?: unknown): void {
     logger.info(this.formatMessage(message, meta));
   }
 
-  http(message: string, meta?: any): void {
+  http(message: string, meta?: unknown): void {
     logger.http(this.formatMessage(message, meta));
   }
 
-  debug(message: string, meta?: any): void {
+  debug(message: string, meta?: unknown): void {
     logger.debug(this.formatMessage(message, meta));
   }
 
@@ -122,7 +126,7 @@ export class Logger {
   }
 
   // Create logger from Express request
-  static fromRequest(req: Request & { user?: any; organizationId?: string }): Logger {
+  static fromRequest(req: Request & { user?: { id?: string }; organizationId?: string }): Logger {
     return new Logger({
       userId: req.user?.id,
       organizationId: req.organizationId,

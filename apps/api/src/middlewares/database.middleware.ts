@@ -28,10 +28,10 @@ export const databaseMetricsMiddleware = async (
 // Query performance tracking for Prisma
 // This would be used in service methods that perform database operations
 export function trackQueryPerformance(operation: string, model: string) {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  return function (target: object, propertyKey: string, descriptor: PropertyDescriptor) {
     const originalMethod = descriptor.value;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       const startTime = Date.now();
 
       try {

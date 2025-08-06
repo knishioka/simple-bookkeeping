@@ -83,7 +83,7 @@ export class CachedAccountService {
    * Cache key: AccountService:getAccountTree:{organizationId}
    * TTL: 30 minutes
    */
-  @Cacheable((args) => args[0], 1800)
+  @Cacheable((args) => String(args[0]), 1800)
   async getAccountTree(organizationId: string): Promise<Account[]> {
     this.logger.debug('Fetching account tree from database', { organizationId });
 
