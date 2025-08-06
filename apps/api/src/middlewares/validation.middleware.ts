@@ -77,7 +77,7 @@ export const validateMultiple = (
         return next();
       }
 
-      middlewares[index](req, res, (err?: any) => {
+      middlewares[index](req, res, (err?: unknown) => {
         if (err) {
           return next(err);
         }
@@ -186,7 +186,7 @@ export const validatePagination = (req: Request, res: Response, next: NextFuncti
   }
 
   // Add parsed values to request
-  (req as any).pagination = {
+  (req as Request & { pagination?: { page: number; limit: number; skip: number } }).pagination = {
     page: pageNum,
     limit: limitNum,
     skip: (pageNum - 1) * limitNum,

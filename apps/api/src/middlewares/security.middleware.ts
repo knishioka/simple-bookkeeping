@@ -1,11 +1,14 @@
 /* eslint-disable import/order */
-import crypto from 'crypto';
+import { randomBytes } from 'crypto';
 
 import { Logger, metrics } from '@simple-bookkeeping/shared';
 import { Request, Response, NextFunction } from 'express';
-import rateLimit from 'express-rate-limit';
-import slowDown from 'express-slow-down';
+import expressRateLimit from 'express-rate-limit';
+import expressSlowDown from 'express-slow-down';
 /* eslint-enable import/order */
+
+const rateLimit = expressRateLimit;
+const slowDown = expressSlowDown;
 
 const logger = new Logger({ component: 'SecurityMiddleware' });
 
@@ -27,7 +30,7 @@ export const rateLimiters = {
       logger.warn('Auth rate limit exceeded', {
         ip: req.ip,
         path: req.path,
-        organizationId: (req as any).organizationId,
+        organizationId: (req as Request & { organizationId?: string }).organizationId,
       });
 
       metrics.recordAuthenticationAttempt('failure', 'rate_limited');
@@ -198,23 +201,24 @@ export const sanitizeInput = (req: Request, res: Response, next: NextFunction) =
 
   // Sanitize query parameters
   if (req.query && typeof req.query === 'object') {
-    req.query = sanitizeObject(req.query);
+    req.query = sanitizeObject(req.query) as typeof req.query;
   }
 
   next();
 };
 
-function sanitizeObject(obj: any): any {
+function sanitizeObject(obj: unknown): unknown {
   if (typeof obj === 'string') {
-    // Remove any HTML tags and scripts
+    // Remove HTML tags and scripts
     return DOMPurify.sanitize(obj, { ALLOWED_TAGS: [] });
   } else if (Array.isArray(obj)) {
     return obj.map(sanitizeObject);
   } else if (obj && typeof obj === 'object') {
-    const sanitized: any = {};
-    for (const key in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        sanitized[key] = sanitizeObject(obj[key]);
+    const sanitized: Record<string, unknown> = {};
+    const objAsRecord = obj as Record<string, unknown>;
+    for (const key in objAsRecord) {
+      if (Object.prototype.hasOwnProperty.call(objAsRecord, key)) {
+        sanitized[key] = sanitizeObject(objAsRecord[key]);
       }
     }
     return sanitized;
@@ -267,7 +271,7 @@ export const handleValidationErrors = (req: Request, res: Response, next: NextFu
 const csrfTokens = new Map<string, { token: string; expires: number }>();
 
 export const generateCSRFToken = (sessionId: string): string => {
-  const token = crypto.randomBytes(32).toString('hex');
+  const token = randomBytes(32).toString('hex');
   const expires = Date.now() + 3600000; // 1 hour
 
   csrfTokens.set(sessionId, { token, expires });
@@ -288,7 +292,10 @@ export const csrfProtection = (req: Request, res: Response, next: NextFunction) 
     return next();
   }
 
-  const sessionId = (req as any).sessionID || req.headers['x-session-id'];
+  const sessionIdHeader = req.headers['x-session-id'];
+  const sessionId =
+    (req as Request & { sessionID?: string }).sessionID ||
+    (typeof sessionIdHeader === 'string' ? sessionIdHeader : undefined);
   const token = req.headers['x-csrf-token'] || req.body._csrf;
 
   if (!sessionId || !token) {
@@ -328,7 +335,7 @@ export const sqlInjectionProtection = (req: Request, res: Response, next: NextFu
     /(<script|<\/script|javascript:|onerror=|onload=)/i,
   ];
 
-  const checkValue = (value: any): boolean => {
+  const checkValue = (value: unknown): boolean => {
     if (typeof value === 'string') {
       return suspiciousPatterns.some((pattern) => pattern.test(value));
     } else if (typeof value === 'object' && value !== null) {

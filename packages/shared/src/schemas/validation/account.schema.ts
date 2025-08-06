@@ -67,7 +67,19 @@ export const accountQuerySchema = z.object({
 });
 
 // Account with balance schema (for reports)
-export const accountWithBalanceSchema: z.ZodSchema<any> = z.object({
+interface AccountWithBalanceType {
+  id: string;
+  code: string;
+  name: string;
+  accountType: AccountType;
+  parentId: string | null;
+  balance: number;
+  debitTotal: number;
+  creditTotal: number;
+  children?: AccountWithBalanceType[];
+}
+
+export const accountWithBalanceSchema: z.ZodSchema<AccountWithBalanceType> = z.object({
   id: uuidSchema,
   code: z.string(),
   name: z.string(),
