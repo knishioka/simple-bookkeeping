@@ -100,8 +100,8 @@ export default defineConfig({
       },
     },
 
-    // 主要ブラウザテスト（CI環境のみ）
-    ...(process.env.CI
+    // 主要ブラウザテスト（ローカル環境のみ - CIではChromiumのみ実行）
+    ...(!process.env.CI
       ? [
           {
             name: 'firefox-desktop',
