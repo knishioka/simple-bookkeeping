@@ -35,7 +35,7 @@ export const requestLoggingMiddleware = (req: Request, res: Response, next: Next
 
   // Capture response
   const originalSend = res.send;
-  res.send = function (data: any): Response {
+  res.send = function (data: unknown): Response {
     res.send = originalSend;
 
     const duration = Date.now() - req.startTime;
