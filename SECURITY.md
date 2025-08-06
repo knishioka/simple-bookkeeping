@@ -130,7 +130,6 @@ if (process.env.NODE_ENV === 'development') {
    ```
 
 2. 秘密情報の漏洩チェック
-
    - GitGuardianなどのツール使用
    - コミット前のpre-commit hook
 
