@@ -26,6 +26,9 @@ jobs:
       - name: Generate Prisma Client
         run: pnpm --filter @simple-bookkeeping/database prisma:generate
 
+      - name: Build packages first
+        run: pnpm build:packages
+
       - name: Check TypeScript build
         run: pnpm build
 
