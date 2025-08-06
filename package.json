@@ -66,6 +66,14 @@
     "turbo": "^1.13.4",
     "typescript": "^5.8.3"
   },
+  "pnpm": {
+    "overrides": {
+      "ws": ">=8.17.1",
+      "tar-fs": ">=3.0.9",
+      "nanoid": ">=5.0.9",
+      "form-data": ">=4.0.4"
+    }
+  },
   "engines": {
     "node": ">=18.0.0",
     "pnpm": ">=6.0.0"
