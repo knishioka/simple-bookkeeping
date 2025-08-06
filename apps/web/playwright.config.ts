@@ -184,6 +184,11 @@ export default defineConfig({
         env: {
           NODE_ENV: 'test',
           NEXT_PUBLIC_API_URL: 'http://localhost:3001',
+          DATABASE_URL:
+            process.env.DATABASE_URL || 'postgresql://test:test@localhost:5432/bookkeeping_test',
+          JWT_SECRET: process.env.JWT_SECRET || 'test-secret-key',
+          NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'test-nextauth-secret',
+          NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
         },
         retries: 2,
         stdout: 'pipe',
@@ -198,6 +203,9 @@ export default defineConfig({
           timeout: 120000,
           env: {
             NODE_ENV: 'test',
+            DATABASE_URL:
+              process.env.DATABASE_URL || 'postgresql://test:test@localhost:5432/bookkeeping_test',
+            JWT_SECRET: process.env.JWT_SECRET || 'test-secret-key',
           },
           retries: 2,
           stdout: 'pipe',
@@ -210,6 +218,9 @@ export default defineConfig({
           timeout: 120000,
           env: {
             NODE_ENV: 'test',
+            NEXT_PUBLIC_API_URL: 'http://localhost:3001',
+            NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'test-nextauth-secret',
+            NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
           },
           retries: 2,
           stdout: 'pipe',
