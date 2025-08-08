@@ -3,6 +3,7 @@ import { hash, compare } from 'bcryptjs';
 import { Request, Response } from 'express';
 
 import { prisma } from '../lib/prisma';
+import { AuthenticatedRequest } from '../middlewares/auth';
 import { generateTokens, verifyRefreshToken } from '../utils/jwt';
 
 export const login = async (
@@ -233,4 +234,94 @@ export const logout = async (_req: Request, res: Response) => {
       message: 'ログアウトしました',
     },
   });
+};
+
+export const getMe = async (req: Request, res: Response) => {
+  try {
+    // Get user from request (set by authenticate middleware)
+    const authUser = (req as AuthenticatedRequest).user;
+
+    if (!authUser) {
+      return res.status(401).json({
+        error: {
+          code: 'UNAUTHORIZED',
+          message: '認証が必要です',
+        },
+      });
+    }
+
+    // Get full user data with organization info
+    const user = await prisma.user.findUnique({
+      where: { id: authUser.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        userOrganizations: {
+          select: {
+            organizationId: true,
+            role: true,
+            isDefault: true,
+            organization: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        error: {
+          code: 'USER_NOT_FOUND',
+          message: 'ユーザーが見つかりません',
+        },
+      });
+    }
+
+    // Get default/current organization
+    const defaultOrg = user.userOrganizations.find((org) => org.isDefault);
+    const currentOrganization = defaultOrg
+      ? {
+          id: defaultOrg.organization.id,
+          name: defaultOrg.organization.name,
+          code: defaultOrg.organization.code,
+          role: defaultOrg.role,
+          isDefault: true,
+        }
+      : undefined;
+
+    // Format organizations list
+    const organizations = user.userOrganizations.map((userOrg) => ({
+      id: userOrg.organization.id,
+      name: userOrg.organization.name,
+      code: userOrg.organization.code,
+      role: userOrg.role,
+      isDefault: userOrg.isDefault,
+    }));
+
+    res.json({
+      data: {
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          organizations,
+          currentOrganization,
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Get current user error:', error);
+    res.status(500).json({
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'ユーザー情報の取得中にエラーが発生しました',
+      },
+    });
+  }
 };
