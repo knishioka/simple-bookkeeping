@@ -182,7 +182,7 @@ export class RedisCacheManager implements CacheManager {
 
 // In-memory cache implementation for development/testing
 export class InMemoryCacheManager implements CacheManager {
-  private cache: Map<string, { value: any; expiresAt: number }> = new Map();
+  private cache: Map<string, { value: unknown; expiresAt: number }> = new Map();
   private logger: Logger;
   private defaultTTL: number;
   private keyPrefix: string;
@@ -294,13 +294,13 @@ export function createCacheManager(): CacheManager {
 }
 
 // Cache decorators for easy method caching
-export function Cacheable(keyGenerator?: (args: any[]) => string, ttl?: number) {
-  return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
+export function Cacheable(keyGenerator?: (args: unknown[]) => string, ttl?: number) {
+  return function (target: object, propertyName: string, descriptor: PropertyDescriptor) {
     const method = descriptor.value;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       // Get cache instance from the class
-      const cache = (this as any).cache;
+      const cache = (this as { cache?: CacheManager }).cache;
       if (!cache || !cache.isConnected()) {
         return method.apply(this, args);
       }
@@ -328,14 +328,14 @@ export function Cacheable(keyGenerator?: (args: any[]) => string, ttl?: number) 
 
 // Cache invalidation decorator
 export function CacheInvalidate(patterns: string[]) {
-  return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
+  return function (target: object, propertyName: string, descriptor: PropertyDescriptor) {
     const method = descriptor.value;
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       const result = await method.apply(this, args);
 
       // Invalidate cache after successful execution
-      const cache = (this as any).cache;
+      const cache = (this as { cache?: CacheManager }).cache;
       if (cache && cache.isConnected()) {
         for (const pattern of patterns) {
           await cache.deletePattern(pattern);

@@ -11,7 +11,7 @@ import { config } from 'dotenv';
 import express, { Express, json, urlencoded } from 'express';
 import helmet from 'helmet';
 import passport from 'passport';
-import swaggerUi from 'swagger-ui-express';
+import { serve as swaggerServe, setup as swaggerSetup } from 'swagger-ui-express';
 
 import { jwtStrategy } from './config/passport';
 import { swaggerSpec } from './config/swagger';
@@ -133,8 +133,8 @@ app.get('/api/v1/health', async (_req, res) => {
 if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_SWAGGER === 'true') {
   app.use(
     '/api-docs',
-    swaggerUi.serve,
-    swaggerUi.setup(swaggerSpec, {
+    swaggerServe,
+    swaggerSetup(swaggerSpec, {
       customCss: '.swagger-ui .topbar { display: none }',
       customSiteTitle: 'Simple Bookkeeping API Documentation',
     })

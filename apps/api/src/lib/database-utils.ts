@@ -189,7 +189,12 @@ export async function executeRawQuery<T = unknown>(
     }
   } catch (error) {
     logger.error('Raw query execution failed', error as Error, {
-      query: 'strings' in query ? query.strings.join('?') : (query as any).text || String(query),
+      query:
+        'strings' in query
+          ? query.strings.join('?')
+          : 'text' in query && typeof query.text === 'string'
+            ? query.text
+            : String(query),
     });
     throw error;
   }

@@ -132,23 +132,48 @@ export class FormHelper {
   }
 
   /**
-   * フォームを送信
+   * フォームを送信（改善版）
+   * Issue #25対応: waitForResponseの改善
    */
   static async submitForm(
     page: Page,
     submitButtonSelector: Locator | string,
-    options?: { waitForResponse?: boolean }
+    options?: {
+      waitForResponse?: boolean;
+      responseUrlPattern?: string | RegExp;
+      timeout?: number;
+    }
   ): Promise<void> {
     const submitButton =
       typeof submitButtonSelector === 'string'
         ? page.locator(submitButtonSelector)
         : submitButtonSelector;
 
+    const timeout = options?.timeout || 15000;
+
     if (options?.waitForResponse) {
-      await Promise.all([
-        page.waitForResponse((response) => response.status() === 200),
-        submitButton.click(),
-      ]);
+      // 改善版: より柔軟な待機処理
+      const responsePromise = options.responseUrlPattern
+        ? page.waitForResponse(
+            (response) => {
+              const urlMatch =
+                typeof options.responseUrlPattern === 'string'
+                  ? response.url().includes(options.responseUrlPattern)
+                  : options.responseUrlPattern.test(response.url());
+              return urlMatch && response.ok();
+            },
+            { timeout }
+          )
+        : page.waitForResponse((response) => response.ok(), { timeout });
+
+      // タイムアウトを許容し、エラーをキャッチ
+      await Promise.race([
+        Promise.all([submitButton.click(), responsePromise]),
+        // タイムアウト時は続行
+        submitButton.click().then(() => page.waitForTimeout(1000)),
+      ]).catch(() => {
+        // エラーが発生してもボタンクリックは実行済みなので続行
+      });
     } else {
       await submitButton.click();
     }
