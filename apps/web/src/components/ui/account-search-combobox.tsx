@@ -89,7 +89,12 @@ export function AccountSearchCombobox({
         // Normalize account fields
         const normalizedCode = normalizeSearchText(account.code);
         const normalizedName = normalizeSearchText(account.name);
-        const normalizedNameKana = account.nameKana ? normalizeSearchText(account.nameKana) : '';
+
+        // Convert nameKana to both hiragana and katakana for flexible matching
+        const nameKanaHiragana = account.nameKana
+          ? normalizeSearchText(katakanaToHiragana(account.nameKana))
+          : '';
+        const nameKanaKatakana = account.nameKana ? normalizeSearchText(account.nameKana) : '';
 
         // Check if search matches any field
         const codeMatch = normalizedCode.includes(normalizedSearch);
@@ -99,13 +104,15 @@ export function AccountSearchCombobox({
           normalizedName.includes(katakanaSearch) ||
           normalizedName.includes(normalizedRomajiHiragana) ||
           normalizedName.includes(normalizedRomajiKatakana);
+
+        // Check kana field against all variations
         const kanaMatch =
-          normalizedNameKana &&
-          (normalizedNameKana.includes(normalizedSearch) ||
-            normalizedNameKana.includes(hiraganaSearch) ||
-            normalizedNameKana.includes(katakanaSearch) ||
-            normalizedNameKana.includes(normalizedRomajiHiragana) ||
-            normalizedNameKana.includes(normalizedRomajiKatakana));
+          account.nameKana &&
+          (nameKanaHiragana.includes(normalizedSearch) ||
+            nameKanaHiragana.includes(hiraganaSearch) ||
+            nameKanaHiragana.includes(normalizedRomajiHiragana) ||
+            nameKanaKatakana.includes(katakanaSearch) ||
+            nameKanaKatakana.includes(normalizedRomajiKatakana));
 
         return codeMatch || nameMatch || kanaMatch;
       });
