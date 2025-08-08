@@ -75,7 +75,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 apiClient.setOrganizationId(response.data.user.currentOrganization.id);
               }
             }
-          } catch (error) {
+          } catch {
             // Token might be expired or invalid
             console.warn('Failed to validate token, clearing auth state');
             apiClient.clearTokens();
