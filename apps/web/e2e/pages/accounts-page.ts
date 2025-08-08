@@ -89,9 +89,11 @@ export class AccountsPage extends BasePage {
       await RadixSelectHelper.selectOption(this.page, parentSelect, data.parentAccount);
     }
 
-    // 保存
+    // 保存（改善版）
     await FormHelper.submitForm(this.page, this.selectors.createButton, {
       waitForResponse: true,
+      responseUrlPattern: '/api/v1/accounts',
+      timeout: 10000,
     });
 
     // ダイアログが閉じるまで待機
@@ -127,9 +129,11 @@ export class AccountsPage extends BasePage {
       await RadixSelectHelper.selectOption(this.page, typeSelect, newData.type);
     }
 
-    // 更新
+    // 更新（改善版）
     await FormHelper.submitForm(this.page, this.selectors.updateButton, {
       waitForResponse: true,
+      responseUrlPattern: '/api/v1/accounts',
+      timeout: 10000,
     });
 
     await this.waitForDialogHidden();
