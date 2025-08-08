@@ -108,12 +108,18 @@ cd simple-bookkeeping
 pnpm install
 
 # 環境変数の設定
-cp .env.example .env
+cp .env.example .env.local
+# 重要: .env.localを編集して必要な値を設定
+# 特にNEXT_PUBLIC_API_URLは必ず/api/v1を含めてください
+# 詳細は docs/ENVIRONMENT_VARIABLES.md を参照
 
 # PostgreSQLの起動（別途インストールが必要）
 # データベースのセットアップ
 pnpm db:migrate
 pnpm db:seed
+
+# 環境変数の検証（オプション）
+pnpm env:validate
 
 # 開発サーバーの起動
 pnpm dev
@@ -148,6 +154,7 @@ API_PORT=3011  # デフォルト: 3001
 
 ### 📋 開発・運用
 
+- [環境変数ガイド](./docs/ENVIRONMENT_VARIABLES.md) - 環境変数の詳細設定
 - [実装計画](./docs/implementation-plan/roadmap.md) - フェーズ別開発計画
 - [技術スタック選定書](./docs/implementation-plan/tech-stack.md) - 技術選定の理由
 - [Docker環境構築](./docs/docker-setup.md) - Docker開発環境
