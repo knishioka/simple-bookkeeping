@@ -1,7 +1,7 @@
 'use client';
 
 import { Calendar, Download } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
 import { ReportLayout } from '@/components/common/ReportLayout';
@@ -43,15 +43,15 @@ export default function BalanceSheetPage() {
   const [asOfDate, setAsOfDate] = useState(getToday());
   const { data, loading, execute } = useApiCall<BalanceSheetData>();
 
-  const fetchBalanceSheet = () => {
+  const fetchBalanceSheet = useCallback(() => {
     execute(() => apiClient.get<BalanceSheetData>(`/reports/balance-sheet?asOfDate=${asOfDate}`), {
       errorMessage: '貸借対照表の取得に失敗しました',
     });
-  };
+  }, [execute, asOfDate]);
 
   useEffect(() => {
     fetchBalanceSheet();
-  }, []);
+  }, [fetchBalanceSheet]);
 
   const handleExport = () => {
     toast.success('エクスポート機能は開発中です');

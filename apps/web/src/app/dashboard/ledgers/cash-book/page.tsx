@@ -1,7 +1,7 @@
 'use client';
 
 import { Download } from 'lucide-react';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 
 import { DateRangePicker } from '@/components/common/DateRangePicker';
@@ -32,7 +32,7 @@ export default function CashBookPage() {
   const { startDate, endDate, setStartDate, setEndDate } = useDateRange();
   const { data, loading, execute } = useApiCall<CashBookResponse>();
 
-  const fetchCashBook = () => {
+  const fetchCashBook = useCallback(() => {
     execute(
       () =>
         apiClient.get<{ data: CashBookResponse }>(
@@ -42,11 +42,11 @@ export default function CashBookPage() {
         errorMessage: '現金出納帳の取得に失敗しました',
       }
     );
-  };
+  }, [execute, startDate, endDate]);
 
   useEffect(() => {
     fetchCashBook();
-  }, []);
+  }, [fetchCashBook]);
 
   const handleExport = () => {
     toast.success('エクスポート機能は開発中です');

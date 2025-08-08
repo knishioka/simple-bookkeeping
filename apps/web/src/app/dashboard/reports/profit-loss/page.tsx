@@ -1,7 +1,7 @@
 'use client';
 
 import { Calendar, Download, Printer } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
@@ -57,7 +57,7 @@ export default function ProfitLossPage() {
     return date.toISOString().split('T')[0];
   });
 
-  const fetchProfitLoss = async () => {
+  const fetchProfitLoss = useCallback(async () => {
     setLoading(true);
     try {
       const response = await apiClient.get<ProfitLossData>(
@@ -72,11 +72,11 @@ export default function ProfitLossPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [startDate, endDate]);
 
   useEffect(() => {
     fetchProfitLoss();
-  }, []);
+  }, [fetchProfitLoss]);
 
   const handleDateChange = () => {
     fetchProfitLoss();
