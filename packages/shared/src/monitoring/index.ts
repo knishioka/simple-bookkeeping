@@ -1,3 +1,5 @@
+import * as os from 'os';
+
 import { Request, Response, NextFunction } from 'express';
 import { Counter, Histogram, Gauge, Registry, collectDefaultMetrics } from 'prom-client';
 
@@ -339,8 +341,7 @@ export class HealthChecker {
 
   private getMemoryUsage() {
     const used = process.memoryUsage();
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const total = require('os').totalmem();
+    const total = os.totalmem();
     const percentage = (used.heapUsed / total) * 100;
 
     return {
