@@ -172,11 +172,9 @@ export class ErrorBoundary extends Component<Props, State> {
 }
 
 // Async Error Boundary for handling async errors
-export const AsyncErrorBoundary: React.FC<Props> = ({ children, ...props }) => {
-  // eslint-disable-next-line import/no-named-as-default-member
+export const AsyncErrorBoundary = ({ children, ...props }: Props) => {
   React.useEffect(() => {
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      // eslint-disable-next-line no-console
       console.error('Unhandled promise rejection:', event.reason);
       // You could trigger error boundary here if needed
     };
