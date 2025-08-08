@@ -11,7 +11,7 @@
     "db:migrate:prod": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
-    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint . --ext .ts",
+    "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf node_modules .turbo dist"

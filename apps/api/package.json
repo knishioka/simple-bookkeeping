@@ -6,7 +6,7 @@
     "dev": "nodemon",
     "build": "tsc",
     "start": "node dist/index.js",
-    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint . --ext .ts",
+    "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
     "test": "NODE_ENV=test jest --forceExit --detectOpenHandles",
     "test:watch": "NODE_ENV=test jest --watch",
