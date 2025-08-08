@@ -1,7 +1,9 @@
-import { createCacheManager, metrics, healthChecker } from '@simple-bookkeeping/shared';
+import { createCacheManager, metrics, healthChecker, Logger } from '@simple-bookkeeping/shared';
 import { Router, Request, Response } from 'express';
 
 import { prisma } from '../lib/prisma';
+
+const logger = new Logger({ component: 'MonitoringRoutes' });
 
 const router = Router();
 
@@ -100,7 +102,8 @@ router.get('/health', async (_req: Request, res: Response) => {
       try {
         await prisma.$queryRaw`SELECT 1`;
         return true;
-      } catch {
+      } catch (error) {
+        logger.error('Health check database error', error as Error);
         return false;
       }
     },
@@ -176,7 +179,8 @@ router.get('/health/readiness', async (_req: Request, res: Response) => {
       status: 'ready',
       database: true,
     });
-  } catch {
+  } catch (error) {
+    logger.error('Database readiness check failed', error as Error);
     res.status(503).json({
       status: 'not_ready',
       database: false,
