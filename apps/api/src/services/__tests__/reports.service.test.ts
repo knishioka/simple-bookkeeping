@@ -30,6 +30,7 @@ jest.mock('@prisma/client', () => {
   };
 });
 
+import { PrismaClient } from '@prisma/client';
 import { AccountType } from '@simple-bookkeeping/database';
 
 import { ReportsService } from '../reports.service';
@@ -40,8 +41,6 @@ describe('ReportsService', () => {
 
   beforeEach(() => {
     service = new ReportsService();
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { PrismaClient } = require('@prisma/client');
     mockPrismaClient = new PrismaClient();
     jest.clearAllMocks();
   });

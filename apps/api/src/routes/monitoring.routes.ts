@@ -25,7 +25,7 @@ router.get('/metrics', async (_req: Request, res: Response) => {
   try {
     res.set('Content-Type', metrics.getContentType());
     res.send(await metrics.getMetrics());
-  } catch (error) {
+  } catch {
     res.status(500).json({
       error: {
         code: 'METRICS_ERROR',
@@ -176,7 +176,7 @@ router.get('/health/readiness', async (_req: Request, res: Response) => {
       status: 'ready',
       database: true,
     });
-  } catch (error) {
+  } catch {
     res.status(503).json({
       status: 'not_ready',
       database: false,

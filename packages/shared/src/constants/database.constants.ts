@@ -1,3 +1,5 @@
+import * as os from 'os';
+
 // Database connection pool constants
 export const DATABASE_CONSTANTS = {
   // Connection pool settings
@@ -41,8 +43,7 @@ export function calculatePoolSize(): number {
   }
 
   // Default formula: num_physical_cpus * 2 + 1
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const cpuCount = require('os').cpus().length;
+  const cpuCount = os.cpus().length;
   return Math.min(cpuCount * 2 + 1, 20); // Cap at 20 connections
 }
 
