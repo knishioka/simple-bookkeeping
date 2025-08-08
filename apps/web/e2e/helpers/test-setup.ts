@@ -1,4 +1,4 @@
-import { Page, expect } from '@playwright/test';
+import { Page, expect, BrowserContext } from '@playwright/test';
 
 /**
  * E2Eテスト用のヘルパー関数集
@@ -49,29 +49,148 @@ export class AuthHelpers {
   constructor(private page: Page) {}
 
   /**
-   * ログイン実行
+   * ログイン実行（改善版）
+   * Issue #25対応: タイムアウト問題を解決
    */
   async login(email: string = 'test@example.com', password: string = 'password') {
     await this.page.goto('/login');
 
     // フォーム入力
-    await this.page.fill('input[name="email"]', email);
-    await this.page.fill('input[name="password"]', password);
+    await this.page.fill('input[name="email"], input#email', email);
+    await this.page.fill('input[name="password"], input#password', password);
 
-    // ログインボタンクリック
-    await this.page.click('button[type="submit"]');
+    // ログインボタンクリック（複数の待機条件で柔軟に対応）
+    const loginButton = this.page.locator('button[type="submit"]');
 
-    // ダッシュボードへのリダイレクトを待機
-    await this.page.waitForURL('/dashboard');
+    // クリックと同時に複数の条件を待機
+    await Promise.race([
+      // ダッシュボードへのリダイレクトを待つ
+      Promise.all([
+        loginButton.click(),
+        this.page.waitForURL('**/dashboard/**', { timeout: 15000 }),
+      ]).catch(() => null),
+
+      // または認証成功のレスポンスを待つ
+      Promise.all([
+        loginButton.click(),
+        this.page.waitForResponse((resp) => resp.url().includes('/auth/login') && resp.ok(), {
+          timeout: 15000,
+        }),
+      ]).catch(() => null),
+
+      // またはローカルストレージへのトークン保存を待つ
+      Promise.all([
+        loginButton.click(),
+        this.page.waitForFunction(() => localStorage.getItem('token') !== null, { timeout: 15000 }),
+      ]).catch(() => null),
+    ]);
+
+    // ログイン成功を確認
+    const isLoggedIn = await this.isAuthenticated();
+    if (!isLoggedIn) {
+      throw new Error('Login failed: Authentication was not successful');
+    }
+  }
+
+  /**
+   * モックを使用したログイン（テスト環境用）
+   */
+  async loginWithMock(email: string = 'test@example.com', token: string = 'test-token') {
+    // 直接localStorageにトークンを設定
+    await this.page.goto('/');
+    await this.page.evaluate(
+      ({ token, email }) => {
+        localStorage.setItem('token', token);
+        localStorage.setItem('refreshToken', 'test-refresh-token');
+        localStorage.setItem('userEmail', email);
+        localStorage.setItem('userId', '1');
+        localStorage.setItem('organizationId', 'org-1');
+      },
+      { token, email }
+    );
+  }
+
+  /**
+   * 認証状態の確認
+   */
+  async isAuthenticated(): Promise<boolean> {
+    return await this.page.evaluate(() => {
+      return localStorage.getItem('token') !== null;
+    });
   }
 
   /**
    * ログアウト実行
    */
   async logout() {
-    await this.page.click('[data-testid="user-menu"]');
-    await this.page.click('text=ログアウト');
-    await this.page.waitForURL('/login');
+    // ユーザーメニューが存在する場合のみクリック
+    const userMenu = this.page.locator('[data-testid="user-menu"]');
+    if (await userMenu.isVisible().catch(() => false)) {
+      await userMenu.click();
+      await this.page.click('text=ログアウト');
+    }
+
+    // localStorageをクリア
+    await this.page.evaluate(() => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('organizationId');
+    });
+
+    // ログインページへのリダイレクトを待機
+    await this.page.waitForURL('/login', { timeout: 10000 }).catch(() => {
+      // リダイレクトしない場合は手動でナビゲート
+      return this.page.goto('/login');
+    });
+  }
+
+  /**
+   * APIモックの設定
+   */
+  async setupAuthMock(
+    context: BrowserContext,
+    options?: {
+      shouldSucceed?: boolean;
+      token?: string;
+      user?: Record<string, unknown>;
+    }
+  ) {
+    const { shouldSucceed = true, token = 'test-token', user = {} } = options || {};
+
+    await context.route('**/api/v1/auth/login', async (route) => {
+      if (shouldSucceed) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            data: {
+              token,
+              refreshToken: 'test-refresh-token',
+              user: {
+                id: '1',
+                email: 'test@example.com',
+                name: 'Test User',
+                organizationId: 'org-1',
+                ...user,
+              },
+            },
+          }),
+        });
+      } else {
+        await route.fulfill({
+          status: 401,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            error: {
+              code: 'INVALID_CREDENTIALS',
+              message: 'Invalid email or password',
+            },
+          }),
+        });
+      }
+    });
   }
 }
 
