@@ -35,7 +35,7 @@ const accountSchema = z.object({
   code: z.string().min(1, 'コードは必須です').max(10, 'コードは10文字以内で入力してください'),
   name: z.string().min(1, '科目名は必須です').max(50, '科目名は50文字以内で入力してください'),
   accountType: z.enum(['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'], {
-    required_error: 'タイプを選択してください',
+    message: 'タイプを選択してください',
   }),
   parentId: z.string().optional(),
 });
