@@ -3,6 +3,6 @@ packages:
   - packages/*
 
 catalog:
-  eslint: 8.57.1
-  '@typescript-eslint/eslint-plugin': 8.39.0
-  '@typescript-eslint/parser': 8.39.0
+  eslint: 9.32.0
+  '@typescript-eslint/eslint-plugin': 8.38.0
+  '@typescript-eslint/parser': 8.38.0
