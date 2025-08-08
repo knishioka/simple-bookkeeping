@@ -34,7 +34,7 @@ export async function waitForApiReady(page: Page): Promise<void> {
       // Or just wait for network idle state
       page.waitForLoadState('networkidle', { timeout: 10000 }),
     ]);
-  } catch (error) {
+  } catch {
     // If API is not ready, continue anyway (tests may use mocks)
     console.warn('API readiness check timed out, continuing with tests');
   }

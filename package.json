@@ -53,7 +53,7 @@
     "@typescript-eslint/eslint-plugin": "^8.39.0",
     "@typescript-eslint/parser": "^8.39.0",
     "depcheck": "^1.4.7",
-    "eslint": "^9.32.0",
+    "eslint": "8.57.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-import-resolver-node": "^0.3.9",
     "eslint-plugin-import": "^2.32.0",
@@ -71,7 +71,10 @@
       "ws": ">=8.17.1",
       "tar-fs": ">=3.0.9",
       "nanoid": ">=5.0.9",
-      "form-data": ">=4.0.4"
+      "form-data": ">=4.0.4",
+      "eslint": "8.57.1",
+      "@eslint/eslintrc": "^2.1.4",
+      "@eslint/js": "8.57.0"
     }
   },
   "engines": {
