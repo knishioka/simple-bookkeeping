@@ -30,6 +30,10 @@
     "db:init": "./scripts/init-db.sh",
     "db:migrate": "turbo run db:migrate",
     "db:seed": "turbo run db:seed",
+    "env:validate": "tsx scripts/validate-env.ts",
+    "env:validate:api": "tsx scripts/validate-env.ts --api",
+    "env:validate:web": "tsx scripts/validate-env.ts --web",
+    "env:validate:strict": "tsx scripts/validate-env.ts --strict",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
@@ -69,6 +73,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.1.4",
     "prettier": "^3.6.2",
+    "tsx": "^4.20.3",
     "turbo": "^2.5.5",
     "typescript": "^5.9.2"
   },
