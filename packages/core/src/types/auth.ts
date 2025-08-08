@@ -15,9 +15,7 @@ export interface User extends PrismaUser {
 }
 
 // 組織型（Prismaの型を拡張）
-export interface Organization extends PrismaOrganization {
-  // 必要に応じて追加のプロパティ
-}
+export type Organization = PrismaOrganization;
 
 // ユーザーと組織の関連
 export interface UserOrganization {

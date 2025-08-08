@@ -12,9 +12,7 @@ import type {
 } from '@simple-bookkeeping/database';
 
 // 会計期間
-export interface AccountingPeriod extends PrismaAccountingPeriod {
-  // 必要に応じて拡張
-}
+export type AccountingPeriod = PrismaAccountingPeriod;
 
 // 仕訳伝票
 export interface JournalEntry extends PrismaJournalEntry {
