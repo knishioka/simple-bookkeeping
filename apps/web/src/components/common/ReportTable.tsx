@@ -1,3 +1,5 @@
+import React from 'react';
+
 import {
   Table,
   TableBody,
@@ -45,8 +47,8 @@ export function ReportTable({
     );
   };
 
-  const renderRows = (items: ReportItem[]): JSX.Element[] => {
-    const rows: JSX.Element[] = [];
+  const renderRows = (items: ReportItem[]): React.JSX.Element[] => {
+    const rows: React.JSX.Element[] = [];
 
     items.forEach((item, index) => {
       rows.push(renderRow(item, index));
