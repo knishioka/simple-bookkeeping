@@ -32,6 +32,8 @@ export const getJournalEntries = async (
     >,
   res: Response
 ) => {
+  const organizationId = req.user?.organizationId;
+
   try {
     const {
       from,
@@ -40,7 +42,6 @@ export const getJournalEntries = async (
       page = String(DEFAULT_PAGE_NUMBER),
       limit = String(DEFAULT_PAGE_SIZE),
     } = req.query;
-    const organizationId = req.user?.organizationId;
 
     if (!organizationId) {
       return res.status(400).json({
@@ -110,7 +111,33 @@ export const getJournalEntries = async (
       },
     });
   } catch (error) {
-    logger.error('Get journal entries error', error);
+    logger.error('Get journal entries error', error as Error, {
+      organizationId,
+      query: req.query,
+      userId: req.user?.id,
+    });
+
+    // Check for specific database errors
+    if (error instanceof Error) {
+      if (error.message.includes('P2021') || error.message.includes('P2022')) {
+        return res.status(503).json({
+          error: {
+            code: 'DATABASE_ERROR',
+            message: 'データベース接続エラーが発生しました。しばらくしてから再度お試しください。',
+          },
+        });
+      }
+
+      if (error.message.includes('P2025')) {
+        return res.status(404).json({
+          error: {
+            code: 'NOT_FOUND',
+            message: '指定されたデータが見つかりません',
+          },
+        });
+      }
+    }
+
     res.status(500).json({
       error: {
         code: 'INTERNAL_SERVER_ERROR',

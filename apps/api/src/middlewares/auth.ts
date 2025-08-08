@@ -1,8 +1,11 @@
 import { UserRole } from '@simple-bookkeeping/database';
+import { Logger } from '@simple-bookkeeping/shared';
 import { NextFunction, Request, Response } from 'express';
 import passport from 'passport';
 
 import { prisma } from '../lib/prisma';
+
+const logger = new Logger({ component: 'AuthMiddleware' });
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -140,7 +143,33 @@ export const setOrganizationContext = async (req: Request, res: Response, next: 
 
     next();
   } catch (error) {
-    console.error('Error setting organization context:', error);
+    logger.error('Error setting organization context', error as Error, {
+      userId: user.id,
+      organizationId:
+        (req.headers['x-organization-id'] as string) || (req.query.organizationId as string),
+    });
+
+    // Check if it's a database connection error
+    if (error instanceof Error) {
+      if (error.message.includes('P2002') || error.message.includes('P2003')) {
+        return res.status(400).json({
+          error: {
+            code: 'INVALID_ORGANIZATION',
+            message: '指定された組織が見つかりません',
+          },
+        });
+      }
+
+      if (error.message.includes('P2021') || error.message.includes('P2022')) {
+        return res.status(503).json({
+          error: {
+            code: 'DATABASE_ERROR',
+            message: 'データベース接続エラーが発生しました。しばらくしてから再度お試しください。',
+          },
+        });
+      }
+    }
+
     return res.status(500).json({
       error: {
         code: 'INTERNAL_ERROR',
