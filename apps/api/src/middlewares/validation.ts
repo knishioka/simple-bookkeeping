@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
-import { AnyZodObject, ZodError } from 'zod';
+import { ZodObject, ZodError, ZodRawShape } from 'zod';
 
-export const validate = (schema: AnyZodObject) => {
+export const validate = (schema: ZodObject<ZodRawShape>) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       await schema.parseAsync({
@@ -16,7 +16,7 @@ export const validate = (schema: AnyZodObject) => {
           error: {
             code: 'VALIDATION_ERROR',
             message: '入力データが不正です',
-            details: error.errors.map((err) => ({
+            details: error.issues.map((err) => ({
               field: err.path.join('.'),
               message: err.message,
             })),
