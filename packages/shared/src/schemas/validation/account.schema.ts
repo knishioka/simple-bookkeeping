@@ -39,7 +39,7 @@ export const createAccountSchema = z.object({
   code: accountCodeSchema,
   name: accountNameSchema,
   accountType: z.nativeEnum(AccountType, {
-    errorMap: () => ({ message: 'Invalid account type' }),
+    message: 'Invalid account type',
   }),
   parentId: uuidSchema.nullable().optional(),
   description: z.string().max(500, 'Description too long').optional(),

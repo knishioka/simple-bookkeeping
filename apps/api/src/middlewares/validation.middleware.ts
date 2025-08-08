@@ -29,14 +29,14 @@ export const validate = (schema: ZodSchema, source: 'body' | 'query' | 'params' 
           path: req.path,
           method: req.method,
           source,
-          errors: error.errors,
+          errors: error.issues,
         });
 
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
           error: {
             code: ERROR_CODES.VALIDATION_ERROR,
             message: 'Validation failed',
-            details: error.errors.map((err) => ({
+            details: error.issues.map((err) => ({
               field: err.path.join('.'),
               message: err.message,
               code: err.code,
