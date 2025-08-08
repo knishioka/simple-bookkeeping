@@ -16,7 +16,7 @@
     "dev": "tsc --watch",
     "clean": "rm -rf dist node_modules .turbo",
     "typecheck": "tsc --noEmit",
-    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint . --ext .ts",
+    "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix"
   },
   "dependencies": {
