@@ -25,7 +25,6 @@ async function main() {
     },
   });
 
-  // eslint-disable-next-line no-console
   console.log('Created admin user:', adminUser.email);
 
   // Create default organization
@@ -39,7 +38,6 @@ async function main() {
     },
   });
 
-  // eslint-disable-next-line no-console
   console.log('Created organization:', organization.name);
 
   // Add admin user to organization
@@ -64,7 +62,6 @@ async function main() {
     },
   });
 
-  // eslint-disable-next-line no-console
   console.log('Created accounting period:', accountingPeriod.name);
 
   // Create standard accounts (標準勘定科目)
@@ -553,7 +550,6 @@ async function main() {
     });
   }
 
-  // eslint-disable-next-line no-console
   console.log('Created standard accounts');
 
   // Create sample partners
@@ -583,10 +579,8 @@ async function main() {
   //   }),
   // ]);
 
-  // eslint-disable-next-line no-console
   // console.log('Created sample partners:', partners.length);
 
-  // eslint-disable-next-line no-console
   console.log('Seed data created successfully!');
 }
 
