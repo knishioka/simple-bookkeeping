@@ -1,7 +1,7 @@
 'use client';
 
 import { Calendar, Download, Printer } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
@@ -49,7 +49,7 @@ export default function AccountsReceivablePage() {
     return date.toISOString().split('T')[0];
   });
 
-  const fetchAccountsReceivable = async () => {
+  const fetchAccountsReceivable = useCallback(async () => {
     setLoading(true);
     try {
       const response = await apiClient.get<AccountsReceivableData>(
@@ -64,11 +64,11 @@ export default function AccountsReceivablePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [startDate, endDate]);
 
   useEffect(() => {
     fetchAccountsReceivable();
-  }, []);
+  }, [fetchAccountsReceivable]);
 
   const handleDateChange = () => {
     fetchAccountsReceivable();

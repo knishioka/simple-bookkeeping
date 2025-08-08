@@ -1,7 +1,7 @@
 'use client';
 
 import { Calendar, Download, Printer } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
@@ -40,7 +40,7 @@ export default function TrialBalancePage() {
     return date.toISOString().split('T')[0];
   });
 
-  const fetchTrialBalance = async () => {
+  const fetchTrialBalance = useCallback(async () => {
     setLoading(true);
     try {
       const response = await apiClient.get<TrialBalanceData>(
@@ -55,11 +55,11 @@ export default function TrialBalancePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [asOfDate]);
 
   useEffect(() => {
     fetchTrialBalance();
-  }, []);
+  }, [fetchTrialBalance]);
 
   const handleDateChange = () => {
     fetchTrialBalance();

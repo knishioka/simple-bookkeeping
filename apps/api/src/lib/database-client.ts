@@ -2,9 +2,8 @@ import { PrismaClient } from '@prisma/client';
 import { buildDatabaseUrl, DATABASE_CONSTANTS, Logger } from '@simple-bookkeeping/shared';
 
 declare global {
-  // eslint-disable-next-line no-var
   var prisma: PrismaClient | undefined;
-  // eslint-disable-next-line no-var
+
   var prismaShutdownHandlers: (() => Promise<void>)[] | undefined;
 }
 
