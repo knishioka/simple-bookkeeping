@@ -116,7 +116,7 @@ export const inviteUserSchema = z.object({
   email: emailSchema,
   name: z.string().min(1).max(100).trim(),
   role: z.nativeEnum(UserRole, {
-    errorMap: () => ({ message: 'Invalid user role' }),
+    message: 'Invalid user role',
   }),
   sendInviteEmail: z.boolean().optional().default(true),
 });
