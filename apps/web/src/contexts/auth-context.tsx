@@ -63,16 +63,38 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           // Set tokens in API client
           apiClient.setToken(token, refreshToken);
 
-          // Try to validate the token by fetching user info
+          // Try to restore user from localStorage first (fast recovery)
+          const cachedUser = localStorage.getItem('user');
+          if (cachedUser) {
+            try {
+              const parsedUser = JSON.parse(cachedUser) as User;
+              setUser(parsedUser);
+              setCurrentOrganization(parsedUser.currentOrganization || null);
+
+              // Set organization ID if available
+              if (parsedUser.currentOrganization?.id) {
+                apiClient.setOrganizationId(parsedUser.currentOrganization.id);
+              }
+            } catch (e) {
+              console.warn('Failed to parse cached user data:', e);
+              localStorage.removeItem('user');
+            }
+          }
+
+          // Then validate the token by fetching fresh user info
           try {
             const response = await apiClient.get<{ user: User }>('/auth/me');
             if (response.data?.user) {
-              setUser(response.data.user);
-              setCurrentOrganization(response.data.user.currentOrganization || null);
+              const freshUser = response.data.user;
+              setUser(freshUser);
+              setCurrentOrganization(freshUser.currentOrganization || null);
+
+              // Update cached user data
+              localStorage.setItem('user', JSON.stringify(freshUser));
 
               // Set organization ID if available
-              if (response.data.user.currentOrganization?.id) {
-                apiClient.setOrganizationId(response.data.user.currentOrganization.id);
+              if (freshUser.currentOrganization?.id) {
+                apiClient.setOrganizationId(freshUser.currentOrganization.id);
               }
             }
           } catch {
@@ -80,6 +102,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             console.warn('Failed to validate token, clearing auth state');
             apiClient.clearTokens();
             apiClient.clearOrganizationId();
+            localStorage.removeItem('user');
+            setUser(null);
+            setCurrentOrganization(null);
           }
         }
       } catch (error) {
@@ -142,6 +167,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setUser(fullUser);
         setCurrentOrganization(organization || null);
 
+        // Save user data to localStorage for fast recovery
+        localStorage.setItem('user', JSON.stringify(fullUser));
+
         toast.success('ログインしました');
         router.push('/dashboard');
       }
@@ -162,6 +190,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       await apiClient.post('/auth/logout');
       apiClient.clearTokens();
       apiClient.clearOrganizationId();
+      localStorage.removeItem('user');
       setUser(null);
       setCurrentOrganization(null);
       toast.success('ログアウトしました');
@@ -171,6 +200,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Even if logout fails, clear local state
       apiClient.clearTokens();
       apiClient.clearOrganizationId();
+      localStorage.removeItem('user');
       setUser(null);
       setCurrentOrganization(null);
       router.push('/login');
@@ -186,11 +216,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       return;
     }
 
-    setCurrentOrganization(organization);
-    setUser({
+    const updatedUser = {
       ...user,
       currentOrganization: organization,
-    });
+    };
+
+    setCurrentOrganization(organization);
+    setUser(updatedUser);
+
+    // Update cached user data
+    localStorage.setItem('user', JSON.stringify(updatedUser));
 
     // Update API client with new organization
     apiClient.setOrganizationId(organizationId);
