@@ -4,20 +4,45 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
+      day: 'monday'
+      time: '04:00'
+      timezone: 'Asia/Tokyo'
     open-pull-requests-limit: 10
     groups:
-      dependencies:
+      # パッチアップデートをグループ化
+      patch-updates:
         patterns:
           - '*'
-        exclude-patterns:
-          - 'typescript'
-          - '@types/*'
-      typescript:
+        update-types:
+          - 'patch'
+      # マイナーアップデートをグループ化
+      minor-updates:
         patterns:
-          - 'typescript'
-          - '@types/*'
+          - '*'
+        update-types:
+          - 'minor'
+    # セキュリティアップデートは個別に
+    allow:
+      - dependency-type: 'all'
+    labels:
+      - 'dependencies'
+      - 'automated'
+    reviewers:
+      - 'knishioka'
+    commit-message:
+      prefix: 'chore'
+      include: 'scope'
 
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
       interval: 'weekly'
+      day: 'monday'
+      time: '04:00'
+      timezone: 'Asia/Tokyo'
+    labels:
+      - 'dependencies'
+      - 'github-actions'
+    commit-message:
+      prefix: 'chore'
+      include: 'scope'
