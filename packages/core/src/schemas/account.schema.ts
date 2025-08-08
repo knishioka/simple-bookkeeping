@@ -32,8 +32,7 @@ export const createAccountSchema = z.object({
       AccountType.EXPENSE,
     ],
     {
-      required_error: '勘定科目タイプを選択してください',
-      invalid_type_error: '無効な勘定科目タイプです',
+      message: '無効な勘定科目タイプです',
     }
   ),
   parentId: z.string().uuid('親科目IDの形式が正しくありません').nullable().optional(),
