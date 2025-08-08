@@ -248,7 +248,7 @@ export const metricsMiddleware = (req: Request, res: Response, next: NextFunctio
   res.on('finish', () => {
     const duration = (Date.now() - startTime) / 1000; // Convert to seconds
     const route = req.route?.path || req.path || 'unknown';
-    const organizationId = (req as any).organizationId;
+    const organizationId = (req as Request & { organizationId?: string }).organizationId;
 
     metrics.recordHttpRequest(req.method, route, res.statusCode, duration, organizationId);
   });

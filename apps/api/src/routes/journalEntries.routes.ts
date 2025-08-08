@@ -6,7 +6,7 @@ import {
   journalEntryQuerySchema,
 } from '@simple-bookkeeping/shared';
 import { Router } from 'express';
-import multer from 'multer';
+import multer, { memoryStorage } from 'multer';
 
 import * as journalEntriesController from '../controllers/journalEntries.controller';
 import {
@@ -22,7 +22,7 @@ import type { Router as RouterType } from 'express';
 
 const router: RouterType = Router();
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: memoryStorage(),
   limits: { fileSize: FILE_UPLOAD_SIZE_LIMIT },
 });
 

@@ -596,7 +596,7 @@ export const importJournalEntries = async (req: AuthenticatedRequest, res: Respo
     });
   } catch (error) {
     logger.error('Import journal entries error', error);
-    if (error instanceof Error && (error as any).code === 'CSV_INVALID_COLUMN_NAME') {
+    if (error instanceof Error && 'code' in error && error.code === 'CSV_INVALID_COLUMN_NAME') {
       return res.status(400).json({
         error: {
           code: 'INVALID_CSV_HEADER',
