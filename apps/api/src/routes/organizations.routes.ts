@@ -72,6 +72,23 @@ router.post(
   organizationsController.inviteUser as RouteHandler
 );
 
+// Get organization members (All members can view)
+router.get('/:id/members', organizationsController.getOrganizationMembers as RouteHandler);
+
+// Update user role in organization (Admin only)
+router.put(
+  '/:id/members/:userId',
+  authorize(UserRole.ADMIN),
+  validate(
+    z.object({
+      body: z.object({
+        role: z.enum([UserRole.ADMIN, UserRole.ACCOUNTANT, UserRole.VIEWER]),
+      }),
+    })
+  ),
+  organizationsController.updateUserRole as RouteHandler
+);
+
 // Remove user from organization (Admin only)
 router.delete(
   '/:id/users/:userId',

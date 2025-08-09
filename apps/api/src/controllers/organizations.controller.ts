@@ -343,6 +343,25 @@ export const removeUser = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
+    // Check if target user is the last admin
+    if (userOrganization.role === UserRole.ADMIN) {
+      const adminCount = await prisma.userOrganization.count({
+        where: {
+          organizationId,
+          role: UserRole.ADMIN,
+        },
+      });
+
+      if (adminCount <= 1) {
+        return res.status(400).json({
+          error: {
+            code: 'LAST_ADMIN',
+            message: '最後の管理者を削除することはできません',
+          },
+        });
+      }
+    }
+
     // Remove user from organization
     await prisma.userOrganization.delete({
       where: {
@@ -364,6 +383,168 @@ export const removeUser = async (req: AuthenticatedRequest, res: Response) => {
       error: {
         code: 'INTERNAL_SERVER_ERROR',
         message: 'ユーザーの削除中にエラーが発生しました',
+      },
+    });
+  }
+};
+
+export const getOrganizationMembers = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const organizationId = req.user?.organizationId;
+
+    // Verify user is getting members of their current organization
+    if (id !== organizationId) {
+      return res.status(403).json({
+        error: {
+          code: 'FORBIDDEN',
+          message: 'この組織のメンバーを取得する権限がありません',
+        },
+      });
+    }
+
+    const members = await prisma.userOrganization.findMany({
+      where: {
+        organizationId,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: [
+        { role: 'asc' }, // ADMIN first
+        { user: { name: 'asc' } },
+      ],
+    });
+
+    const membersData = members.map((member) => ({
+      id: member.user.id,
+      email: member.user.email,
+      name: member.user.name,
+      role: member.role,
+      joinedAt: member.joinedAt,
+    }));
+
+    res.json({
+      data: membersData,
+    });
+  } catch (error) {
+    console.error('Get organization members error:', error);
+    res.status(500).json({
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'メンバー一覧の取得中にエラーが発生しました',
+      },
+    });
+  }
+};
+
+export const updateUserRole = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id, userId: targetUserId } = req.params;
+    const { role } = req.body;
+    const organizationId = req.user?.organizationId;
+    const currentUserId = req.user?.id;
+
+    // Verify user is updating role in their current organization
+    if (id !== organizationId) {
+      return res.status(403).json({
+        error: {
+          code: 'FORBIDDEN',
+          message: 'この組織のメンバーロールを更新する権限がありません',
+        },
+      });
+    }
+
+    // Prevent self role change
+    if (targetUserId === currentUserId) {
+      return res.status(400).json({
+        error: {
+          code: 'CANNOT_CHANGE_OWN_ROLE',
+          message: '自分自身のロールを変更することはできません',
+        },
+      });
+    }
+
+    // Check if user exists in organization
+    const userOrganization = await prisma.userOrganization.findUnique({
+      where: {
+        userId_organizationId: {
+          userId: targetUserId,
+          organizationId,
+        },
+      },
+    });
+
+    if (!userOrganization) {
+      return res.status(404).json({
+        error: {
+          code: 'NOT_FOUND',
+          message: 'ユーザーが組織に所属していません',
+        },
+      });
+    }
+
+    // Check if changing from ADMIN and if it's the last admin
+    if (userOrganization.role === UserRole.ADMIN && role !== UserRole.ADMIN) {
+      const adminCount = await prisma.userOrganization.count({
+        where: {
+          organizationId,
+          role: UserRole.ADMIN,
+        },
+      });
+
+      if (adminCount <= 1) {
+        return res.status(400).json({
+          error: {
+            code: 'LAST_ADMIN',
+            message: '最後の管理者のロールを変更することはできません',
+          },
+        });
+      }
+    }
+
+    // Update user role
+    const updatedUserOrganization = await prisma.userOrganization.update({
+      where: {
+        userId_organizationId: {
+          userId: targetUserId,
+          organizationId,
+        },
+      },
+      data: {
+        role,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    res.json({
+      data: {
+        id: updatedUserOrganization.user.id,
+        email: updatedUserOrganization.user.email,
+        name: updatedUserOrganization.user.name,
+        role: updatedUserOrganization.role,
+      },
+    });
+  } catch (error) {
+    console.error('Update user role error:', error);
+    res.status(500).json({
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'ロールの更新中にエラーが発生しました',
       },
     });
   }

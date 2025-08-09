@@ -29,8 +29,16 @@ export default function SettingsPage() {
       title: '組織設定',
       icon: Building,
       items: [
-        { label: '組織情報', description: '組織名や住所の編集' },
-        { label: 'メンバー管理', description: 'ユーザーの招待と権限管理' },
+        {
+          label: '組織情報',
+          description: '組織名や住所の編集',
+          href: '/dashboard/settings/organization',
+        },
+        {
+          label: 'メンバー管理',
+          description: 'ユーザーの招待と権限管理',
+          href: '/dashboard/settings/organization/members',
+        },
       ],
     },
     {
