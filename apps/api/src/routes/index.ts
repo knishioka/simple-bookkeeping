@@ -1,5 +1,6 @@
 import { Router } from 'express';
 
+import accountingPeriodsRoutes from './accountingPeriods.routes';
 import accountsRoutes from './accounts.routes';
 import authRoutes from './auth.routes';
 import journalEntriesRoutes from './journalEntries.routes';
@@ -19,6 +20,7 @@ router.use('/auth', authRoutes);
 router.use('/setup', setupRoutes);
 router.use('/organizations', organizationsRoutes);
 router.use('/accounts', accountsRoutes);
+router.use('/accounting-periods', accountingPeriodsRoutes);
 router.use('/journal-entries', journalEntriesRoutes);
 router.use('/reports', reportsRoutes);
 router.use('/ledgers', ledgersRoutes);

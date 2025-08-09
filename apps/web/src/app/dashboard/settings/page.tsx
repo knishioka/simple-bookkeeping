@@ -1,6 +1,7 @@
 'use client';
 
 import { Settings, User, Building, Bell, Shield, CreditCard } from 'lucide-react';
+import Link from 'next/link';
 
 import { useAuth } from '@/contexts/auth-context';
 
@@ -28,7 +29,11 @@ export default function SettingsPage() {
       title: '会計設定',
       icon: CreditCard,
       items: [
-        { label: '会計期間', description: '会計期間の設定と管理' },
+        {
+          label: '会計期間',
+          description: '会計期間の設定と管理',
+          href: '/dashboard/settings/accounting-periods',
+        },
         { label: '消費税設定', description: '消費税率の設定' },
         { label: 'デフォルト設定', description: '各種デフォルト値の設定' },
       ],
@@ -68,18 +73,27 @@ export default function SettingsPage() {
                 <h3 className="text-lg font-semibold">{category.title}</h3>
               </div>
               <div className="space-y-3">
-                {category.items.map((item) => (
-                  <div
-                    key={item.label}
-                    className="flex items-center justify-between p-3 rounded-md hover:bg-accent cursor-pointer transition-colors"
-                  >
-                    <div>
-                      <p className="font-medium">{item.label}</p>
-                      <p className="text-sm text-muted-foreground">{item.description}</p>
+                {category.items.map((item) => {
+                  const content = (
+                    <div className="flex items-center justify-between p-3 rounded-md hover:bg-accent cursor-pointer transition-colors">
+                      <div>
+                        <p className="font-medium">{item.label}</p>
+                        <p className="text-sm text-muted-foreground">{item.description}</p>
+                      </div>
+                      <Settings className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <Settings className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                ))}
+                  );
+
+                  if ('href' in item && item.href) {
+                    return (
+                      <Link key={item.label} href={item.href}>
+                        {content}
+                      </Link>
+                    );
+                  }
+
+                  return <div key={item.label}>{content}</div>;
+                })}
               </div>
             </div>
           );
