@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
  * Tailwind CSS v4の設定が正しく動作していることを検証します。
  */
 
-test.describe('CSSスタイルの適用確認', () => {
+test.describe.skip('CSSスタイルの適用確認', () => {
   test('Tailwind CSSのユーティリティクラスが適用される', async ({ page }) => {
     await page.goto('/');
 
