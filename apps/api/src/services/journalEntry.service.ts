@@ -258,12 +258,29 @@ export const validateJournalEntryBalance = (
  * Get accounting period for a given date
  */
 export const getAccountingPeriod = async (date: Date, organizationId: string) => {
-  return await prisma.accountingPeriod.findFirst({
+  // First try to find an active period for the date
+  const activePeriod = await prisma.accountingPeriod.findFirst({
     where: {
       organizationId,
       startDate: { lte: date },
       endDate: { gte: date },
       isActive: true,
+    },
+  });
+
+  if (activePeriod) {
+    return activePeriod;
+  }
+
+  // If no active period found, try to find any period for the date
+  return await prisma.accountingPeriod.findFirst({
+    where: {
+      organizationId,
+      startDate: { lte: date },
+      endDate: { gte: date },
+    },
+    orderBy: {
+      isActive: 'desc', // Prefer active periods if multiple periods exist for the date
     },
   });
 };
