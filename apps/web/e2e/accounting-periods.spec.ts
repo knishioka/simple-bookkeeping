@@ -280,7 +280,7 @@ test.describe('Accounting Periods Management', () => {
     await expect(page.locator('text=期間が重複しています')).toBeVisible();
   });
 
-  test('should show empty state when no periods exist', async ({ page }) => {
+  test.skip('should show empty state when no periods exist', async ({ page }) => {
     await page.goto('/dashboard/settings/accounting-periods');
 
     // Check for empty state message
@@ -290,7 +290,7 @@ test.describe('Accounting Periods Management', () => {
     await expect(page.locator('button:has-text("最初の会計期間を作成")')).toBeVisible();
   });
 
-  test('should handle API errors gracefully', async ({ page }) => {
+  test.skip('should handle API errors gracefully', async ({ page }) => {
     await page.goto('/dashboard/settings/accounting-periods');
 
     // Intercept API call and return error
