@@ -141,10 +141,11 @@ test.describe('Accounting Periods Management', () => {
     await expect(mainContent).toBeVisible();
 
     // Check if there's a table or empty state - either is fine
-    const hasContent =
-      (await page
-        .locator('table, [role="table"], text=/会計期間|データがありません|登録されていません/i')
-        .count()) > 0;
+    const tableCount = await page.locator('table, [role="table"]').count();
+    const textCount = await page
+      .locator('text=/会計期間|データがありません|登録されていません/i')
+      .count();
+    const hasContent = tableCount > 0 || textCount > 0;
     expect(hasContent).toBeTruthy();
   });
 
