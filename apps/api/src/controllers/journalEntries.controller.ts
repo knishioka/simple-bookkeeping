@@ -111,14 +111,18 @@ export const getJournalEntries = async (
       },
     });
   } catch (error) {
+    // Log detailed error information for debugging
     logger.error('Get journal entries error', error as Error, {
       organizationId,
       query: req.query,
       userId: req.user?.id,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      errorStack: error instanceof Error ? error.stack : undefined,
     });
 
     // Check for specific database errors
     if (error instanceof Error) {
+      // Database connection issues
       if (error.message.includes('P2021') || error.message.includes('P2022')) {
         return res.status(503).json({
           error: {
@@ -128,11 +132,23 @@ export const getJournalEntries = async (
         });
       }
 
+      // Record not found
       if (error.message.includes('P2025')) {
         return res.status(404).json({
           error: {
             code: 'NOT_FOUND',
             message: '指定されたデータが見つかりません',
+          },
+        });
+      }
+
+      // Log the actual error message for unknown errors in development
+      if (process.env.NODE_ENV === 'development') {
+        return res.status(500).json({
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: '仕訳の取得中にエラーが発生しました',
+            details: error.message,
           },
         });
       }

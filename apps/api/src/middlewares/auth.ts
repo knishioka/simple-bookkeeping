@@ -84,6 +84,13 @@ export const setOrganizationContext = async (req: Request, res: Response, next: 
     const organizationId =
       (req.headers['x-organization-id'] as string) || (req.query.organizationId as string);
 
+    logger.debug('Setting organization context', {
+      userId: user.id,
+      headerOrgId: req.headers['x-organization-id'],
+      queryOrgId: req.query.organizationId,
+      organizationId,
+    });
+
     if (organizationId) {
       // Verify user has access to this organization
       const userOrg = await prisma.userOrganization.findUnique({
@@ -107,8 +114,17 @@ export const setOrganizationContext = async (req: Request, res: Response, next: 
         if (authReq.user) {
           authReq.user.organizationId = organizationId;
           authReq.user.organizationRole = userOrg.role;
+          logger.debug('Organization context set from header/query', {
+            userId: user.id,
+            organizationId,
+            role: userOrg.role,
+          });
         }
       } else {
+        logger.warn('User does not have access to organization', {
+          userId: user.id,
+          organizationId,
+        });
         return res.status(403).json({
           error: {
             code: 'FORBIDDEN',
@@ -137,16 +153,29 @@ export const setOrganizationContext = async (req: Request, res: Response, next: 
         if (authReq.user) {
           authReq.user.organizationId = defaultOrg.organizationId;
           authReq.user.organizationRole = defaultOrg.role;
+          logger.debug('Organization context set from default', {
+            userId: user.id,
+            organizationId: defaultOrg.organizationId,
+            role: defaultOrg.role,
+          });
         }
+      } else {
+        logger.warn('No default organization found for user', {
+          userId: user.id,
+        });
       }
     }
 
     next();
   } catch (error) {
+    const requestedOrgId =
+      (req.headers['x-organization-id'] as string) || (req.query.organizationId as string);
+
     logger.error('Error setting organization context', error as Error, {
       userId: user.id,
-      organizationId:
-        (req.headers['x-organization-id'] as string) || (req.query.organizationId as string),
+      organizationId: requestedOrgId,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      errorStack: error instanceof Error ? error.stack : undefined,
     });
 
     // Check if it's a database connection error
@@ -165,6 +194,17 @@ export const setOrganizationContext = async (req: Request, res: Response, next: 
           error: {
             code: 'DATABASE_ERROR',
             message: 'データベース接続エラーが発生しました。しばらくしてから再度お試しください。',
+          },
+        });
+      }
+
+      // Log the actual error in development mode
+      if (process.env.NODE_ENV === 'development') {
+        return res.status(500).json({
+          error: {
+            code: 'INTERNAL_ERROR',
+            message: '組織情報の取得に失敗しました',
+            details: error.message,
           },
         });
       }
