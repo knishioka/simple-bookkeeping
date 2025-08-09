@@ -65,6 +65,9 @@ export default defineConfig({
     // ベースURL（開発サーバー）
     baseURL: 'http://localhost:3000',
 
+    // CSSの読み込みを待機
+    waitForLoadState: 'networkidle',
+
     // トレース設定（詳細化）
     trace: 'retain-on-failure',
 
@@ -95,7 +98,17 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         // Chromium固有の最適化
         launchOptions: {
-          args: ['--disable-web-security', '--disable-features=VizDisplayCompositor'],
+          args: [
+            '--disable-web-security',
+            '--disable-features=VizDisplayCompositor',
+            // CI環境でのCSS処理を改善
+            '--disable-dev-shm-usage',
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-gpu',
+            // フォント読み込みを安定化
+            '--font-render-hinting=none',
+          ],
         },
       },
     },
@@ -176,11 +189,11 @@ export default defineConfig({
   // 開発サーバー設定（安定性向上）
   webServer: process.env.CI
     ? {
-        // CI環境では単一のWebサーバーのみ（APIは別途起動）
-        command: 'pnpm dev',
+        // CI環境では却下したビルドを使用
+        command: 'pnpm start',
         url: 'http://localhost:3000',
         reuseExistingServer: false,
-        timeout: 240000, // 4分に延長（CI環境での初回ビルド時間を考慮）
+        timeout: 120000, // 2分
         env: {
           NODE_ENV: 'test',
           NEXT_PUBLIC_API_URL: 'http://localhost:3001',

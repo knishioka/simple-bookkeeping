@@ -52,10 +52,25 @@ jobs:
         run: pnpm build:packages
 
       - name: Build applications
-        run: pnpm build
+        run: |
+          # Build the apps to ensure CSS is properly compiled
+          pnpm --filter @simple-bookkeeping/api build
+          pnpm --filter @simple-bookkeeping/web build
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/bookkeeping_test
 
       - name: Install Playwright browsers
         run: pnpm --filter @simple-bookkeeping/web exec playwright install --with-deps chromium
+
+      - name: Start API server in background
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/bookkeeping_test
+          JWT_SECRET: test-secret-key
+        run: |
+          cd apps/api
+          node dist/index.js &
+          sleep 5
+          curl -f http://localhost:3001/api/v1/ || exit 1
 
       - name: Run E2E tests
         env:
@@ -64,6 +79,7 @@ jobs:
           NEXTAUTH_SECRET: test-nextauth-secret
           NEXTAUTH_URL: http://localhost:3000
           CI: true
+          NODE_ENV: production
         run: pnpm --filter @simple-bookkeeping/web test:e2e:ci
 
       - name: Upload test results
