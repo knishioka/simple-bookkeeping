@@ -12,6 +12,12 @@ export class ApiError extends BaseError {
   }
 }
 
+export class BadRequestError extends ApiError {
+  constructor(message: string) {
+    super(message, 400, 'BAD_REQUEST');
+  }
+}
+
 export class NotFoundError extends ApiError {
   constructor(resource: string, id?: string) {
     const message = id ? `${resource} with id ${id} not found` : `${resource} not found`;
