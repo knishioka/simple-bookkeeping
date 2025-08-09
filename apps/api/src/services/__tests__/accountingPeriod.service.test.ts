@@ -12,6 +12,10 @@ describe('AccountingPeriodService', () => {
     prisma = new PrismaClient();
     service = new AccountingPeriodService(prisma);
     jest.clearAllMocks();
+
+    // Setup default mocks for Prisma methods
+    prisma.accountingPeriod.updateMany = jest.fn();
+    prisma.accountingPeriod.update = jest.fn();
   });
 
   describe('findAll', () => {
