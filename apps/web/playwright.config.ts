@@ -65,9 +65,6 @@ export default defineConfig({
     // ベースURL（開発サーバー）
     baseURL: 'http://localhost:3000',
 
-    // CSSの読み込みを待機
-    waitForLoadState: 'networkidle',
-
     // トレース設定（詳細化）
     trace: 'retain-on-failure',
 
