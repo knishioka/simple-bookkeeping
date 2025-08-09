@@ -15,9 +15,32 @@ export class AppHelpers {
 
   /**
    * ページが完全に読み込まれるまで待機
+   *
+   * CI環境での安定性を考慮し、networkidleの代わりに
+   * より信頼性の高い待機条件を使用します。
    */
   async waitForPageLoad() {
-    await this.page.waitForLoadState('networkidle');
+    // DOMContentLoadedとloadイベントを待機
+    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.waitForLoadState('load');
+
+    // CSSが読み込まれているか確認
+    await this.page.waitForFunction(
+      () => {
+        // documentにスタイルシートが存在するか確認
+        const stylesheets = Array.from(document.styleSheets);
+        return stylesheets.length > 0;
+      },
+      { timeout: 15000 }
+    );
+
+    // bodyが表示されているか確認
+    await this.page.waitForSelector('body', { state: 'visible', timeout: 15000 });
+
+    // CI環境では追加の待機時間を設定（安定性向上）
+    if (process.env.CI) {
+      await this.page.waitForTimeout(300);
+    }
   }
 
   /**
