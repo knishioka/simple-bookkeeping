@@ -1,4 +1,8 @@
-import { loginSchema } from '@simple-bookkeeping/shared';
+import {
+  changePasswordSchema,
+  loginSchema,
+  updateUserProfileSchema,
+} from '@simple-bookkeeping/shared';
 import { Router } from 'express';
 import { z } from 'zod';
 
@@ -43,5 +47,21 @@ router.post('/logout', authenticate, authController.logout);
 
 // Get current user
 router.get('/me', authenticate, authController.getMe);
+
+// Update profile
+router.put(
+  '/profile',
+  authenticate,
+  validate(z.object({ body: updateUserProfileSchema })),
+  authController.updateProfile
+);
+
+// Change password
+router.put(
+  '/password',
+  authenticate,
+  validate(z.object({ body: changePasswordSchema })),
+  authController.changePassword
+);
 
 export default router;

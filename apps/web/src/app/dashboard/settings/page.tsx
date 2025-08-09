@@ -13,8 +13,16 @@ export default function SettingsPage() {
       title: 'アカウント設定',
       icon: User,
       items: [
-        { label: 'プロフィール', description: '名前やメールアドレスの変更' },
-        { label: 'パスワード変更', description: 'パスワードの更新' },
+        {
+          label: 'プロフィール',
+          description: '名前やメールアドレスの変更',
+          href: '/dashboard/settings/account',
+        },
+        {
+          label: 'パスワード変更',
+          description: 'パスワードの更新',
+          href: '/dashboard/settings/account',
+        },
       ],
     },
     {
