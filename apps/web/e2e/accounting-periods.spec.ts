@@ -1,23 +1,17 @@
 import { test, expect } from '@playwright/test';
 
-import { setupTestData, cleanupTestData } from './helpers/test-setup';
+import { AuthHelpers } from './helpers/test-setup';
 
 test.describe('Accounting Periods Management', () => {
   test.beforeEach(async ({ page }) => {
-    await setupTestData();
+    const auth = new AuthHelpers(page);
 
-    // Login as admin
-    await page.goto('/login');
-    await page.fill('input[name="email"]', 'admin@example.com');
-    await page.fill('input[name="password"]', 'password123');
-    await page.click('button[type="submit"]');
+    // Login as admin with mock
+    await auth.loginWithMock('admin@example.com', 'test-token');
 
-    // Wait for dashboard to load
-    await page.waitForURL('/dashboard');
-  });
-
-  test.afterEach(async () => {
-    await cleanupTestData();
+    // Navigate to dashboard
+    await page.goto('/dashboard');
+    await page.waitForLoadState('domcontentloaded');
   });
 
   test('should navigate to accounting periods page from settings', async ({ page }) => {
