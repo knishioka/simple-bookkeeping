@@ -30,6 +30,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   switchOrganization: (organizationId: string) => Promise<void>;
   currentOrganization: Organization | null;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -236,6 +237,27 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     router.refresh();
   };
 
+  const refreshUser = async () => {
+    try {
+      const response = await apiClient.get<{ user: User }>('/auth/me');
+      if (response.data?.user) {
+        const freshUser = response.data.user;
+        setUser(freshUser);
+        setCurrentOrganization(freshUser.currentOrganization || null);
+
+        // Update cached user data
+        localStorage.setItem('user', JSON.stringify(freshUser));
+
+        // Set organization ID if available
+        if (freshUser.currentOrganization?.id) {
+          apiClient.setOrganizationId(freshUser.currentOrganization.id);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to refresh user data:', error);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     loading,
@@ -244,6 +266,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     isAuthenticated: !!user,
     switchOrganization,
     currentOrganization,
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

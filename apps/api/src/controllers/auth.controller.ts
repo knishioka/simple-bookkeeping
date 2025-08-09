@@ -1,4 +1,9 @@
-import { LoginInput, UserRole } from '@simple-bookkeeping/core';
+import {
+  ChangePasswordInput,
+  LoginInput,
+  UpdateUserProfileInput,
+  UserRole,
+} from '@simple-bookkeeping/core';
 import { hash, compare } from 'bcryptjs';
 import { Request, Response } from 'express';
 
@@ -321,6 +326,121 @@ export const getMe = async (req: Request, res: Response) => {
       error: {
         code: 'INTERNAL_SERVER_ERROR',
         message: 'ユーザー情報の取得中にエラーが発生しました',
+      },
+    });
+  }
+};
+
+export const updateProfile = async (req: Request, res: Response) => {
+  try {
+    const authUser = (req as AuthenticatedRequest).user;
+    const { name } = req.body as UpdateUserProfileInput;
+
+    if (!authUser) {
+      return res.status(401).json({
+        error: {
+          code: 'UNAUTHORIZED',
+          message: '認証が必要です',
+        },
+      });
+    }
+
+    // Update user profile
+    const updatedUser = await prisma.user.update({
+      where: { id: authUser.id },
+      data: {
+        name,
+        updatedAt: new Date(),
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+      },
+    });
+
+    res.json({
+      data: {
+        user: updatedUser,
+      },
+    });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'プロフィール更新中にエラーが発生しました',
+      },
+    });
+  }
+};
+
+export const changePassword = async (req: Request, res: Response) => {
+  try {
+    const authUser = (req as AuthenticatedRequest).user;
+    const { currentPassword, newPassword } = req.body as ChangePasswordInput;
+
+    if (!authUser) {
+      return res.status(401).json({
+        error: {
+          code: 'UNAUTHORIZED',
+          message: '認証が必要です',
+        },
+      });
+    }
+
+    // Get user with password hash
+    const user = await prisma.user.findUnique({
+      where: { id: authUser.id },
+      select: {
+        id: true,
+        passwordHash: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        error: {
+          code: 'USER_NOT_FOUND',
+          message: 'ユーザーが見つかりません',
+        },
+      });
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await compare(currentPassword, user.passwordHash);
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({
+        error: {
+          code: 'INVALID_PASSWORD',
+          message: '現在のパスワードが正しくありません',
+        },
+      });
+    }
+
+    // Hash new password
+    const newPasswordHash = await hash(newPassword, 10);
+
+    // Update password
+    await prisma.user.update({
+      where: { id: authUser.id },
+      data: {
+        passwordHash: newPasswordHash,
+        updatedAt: new Date(),
+      },
+    });
+
+    res.json({
+      data: {
+        message: 'パスワードを変更しました',
+      },
+    });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'パスワード変更中にエラーが発生しました',
       },
     });
   }

@@ -28,6 +28,11 @@ export const updateUserSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+// ユーザープロフィール更新スキーマ
+export const updateUserProfileSchema = z.object({
+  name: z.string().min(1, '名前を入力してください'),
+});
+
 // パスワード変更スキーマ
 export const changePasswordSchema = z
   .object({
@@ -44,4 +49,5 @@ export const changePasswordSchema = z
 export type LoginInput = z.infer<typeof loginSchema>;
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+export type UpdateUserProfileInput = z.infer<typeof updateUserProfileSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
