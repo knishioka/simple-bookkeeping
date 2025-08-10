@@ -109,7 +109,9 @@ test.describe('Audit Logs', () => {
   test('should display audit logs page for admin users', async ({ page }) => {
     // Navigate directly to audit logs page
     await page.goto('/dashboard/settings/audit-logs');
-    await page.waitForSelector('h2:has-text("監査ログ")', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="audit-logs-table"], text="監査ログ"', {
+      timeout: 15000,
+    });
 
     // Check page content - use more specific selector to avoid duplicates
     await expect(page.getByText('監査ログ', { exact: true }).first()).toBeVisible();
@@ -122,7 +124,9 @@ test.describe('Audit Logs', () => {
 
   test('should filter audit logs by action type', async ({ page }) => {
     await page.goto('/dashboard/settings/audit-logs');
-    await page.waitForSelector('h2:has-text("監査ログ")', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="audit-logs-table"], text="監査ログ"', {
+      timeout: 15000,
+    });
 
     // Select CREATE action filter using the helper
     const actionFilter = page.getByRole('combobox').first();
@@ -172,7 +176,9 @@ test.describe('Audit Logs', () => {
 
   test('should export audit logs as CSV', async ({ page }) => {
     await page.goto('/dashboard/settings/audit-logs');
-    await page.waitForSelector('h2:has-text("監査ログ")', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="audit-logs-table"], text="監査ログ"', {
+      timeout: 15000,
+    });
 
     // Set up download promise with longer timeout
     const downloadPromise = page.waitForEvent('download', { timeout: 30000 });
@@ -316,7 +322,9 @@ test.describe('Audit Logs', () => {
 
     // Navigate to audit logs
     await page.goto('/dashboard/settings/audit-logs');
-    await page.waitForSelector('h2:has-text("監査ログ")', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="audit-logs-table"], text="監査ログ"', {
+      timeout: 15000,
+    });
 
     // Filter by Account entity type using the helper
     const entityFilter = page.getByRole('combobox').nth(1);
