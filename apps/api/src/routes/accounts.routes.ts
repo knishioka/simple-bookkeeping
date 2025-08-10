@@ -4,6 +4,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 
 import * as accountsController from '../controllers/accounts.controller';
+import { auditLog } from '../middlewares/auditLog.middleware';
 import {
   authenticate,
   authorize,
@@ -36,6 +37,7 @@ router.post(
   '/',
   authorize(UserRole.ADMIN, UserRole.ACCOUNTANT),
   validate(z.object({ body: createAccountSchema })),
+  auditLog.createAccount,
   accountsController.createAccount as RouteHandler
 );
 
@@ -51,10 +53,16 @@ router.put(
       }),
     })
   ),
+  auditLog.updateAccount,
   accountsController.updateAccount as RouteHandler
 );
 
 // Delete account (Admin only)
-router.delete('/:id', authorize(UserRole.ADMIN), accountsController.deleteAccount as RouteHandler);
+router.delete(
+  '/:id',
+  authorize(UserRole.ADMIN),
+  auditLog.deleteAccount,
+  accountsController.deleteAccount as RouteHandler
+);
 
 export default router;
