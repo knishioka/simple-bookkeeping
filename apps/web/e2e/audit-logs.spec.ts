@@ -45,14 +45,14 @@ test.describe('Audit Logs', () => {
   test('should display audit logs page for admin users', async ({ page }) => {
     // Navigate to settings
     await page.goto('/dashboard/settings');
-    await expect(page.getByText('設定')).toBeVisible();
+    await expect(page.getByRole('heading', { name: '設定', exact: true })).toBeVisible();
 
     // Click on audit logs link
-    await page.getByText('監査ログ').click();
+    await page.getByRole('link', { name: '監査ログ' }).click();
     await page.waitForURL('**/dashboard/settings/audit-logs');
 
     // Check page content
-    await expect(page.getByText('監査ログ')).toBeVisible();
+    await expect(page.getByRole('heading', { name: '監査ログ' })).toBeVisible();
     await expect(page.getByText('システムで行われた全ての操作の履歴を確認できます')).toBeVisible();
 
     // Check filter controls
