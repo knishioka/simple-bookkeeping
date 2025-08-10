@@ -259,8 +259,12 @@ export default function AuditLogsPage() {
           <div className="flex flex-wrap gap-4">
             <div className="flex items-center gap-2">
               <Filter className="h-4 w-4 text-muted-foreground" />
-              <Select value={selectedAction} onValueChange={setSelectedAction}>
-                <SelectTrigger className="w-32">
+              <Select
+                value={selectedAction}
+                onValueChange={setSelectedAction}
+                data-testid="audit-action-filter"
+              >
+                <SelectTrigger className="w-32" data-testid="audit-action-trigger">
                   <SelectValue placeholder="操作種別" />
                 </SelectTrigger>
                 <SelectContent>
@@ -274,8 +278,12 @@ export default function AuditLogsPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Select value={selectedEntityType} onValueChange={setSelectedEntityType}>
-                <SelectTrigger className="w-40">
+              <Select
+                value={selectedEntityType}
+                onValueChange={setSelectedEntityType}
+                data-testid="audit-entity-filter"
+              >
+                <SelectTrigger className="w-40" data-testid="audit-entity-trigger">
                   <SelectValue placeholder="対象種別" />
                 </SelectTrigger>
                 <SelectContent>
@@ -310,11 +318,20 @@ export default function AuditLogsPage() {
               size="icon"
               onClick={() => fetchAuditLogs()}
               disabled={loading}
+              data-testid="audit-refresh-button"
             >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`}
+                data-testid={loading ? 'loading' : undefined}
+              />
             </Button>
 
-            <Button variant="outline" onClick={handleExport} disabled={loading}>
+            <Button
+              variant="outline"
+              onClick={handleExport}
+              disabled={loading}
+              data-testid="audit-export-button"
+            >
               <Download className="h-4 w-4 mr-2" />
               エクスポート
             </Button>
@@ -322,7 +339,7 @@ export default function AuditLogsPage() {
 
           {/* Table */}
           <div className="border rounded-lg">
-            <Table>
+            <Table data-testid="audit-logs-table">
               <TableHeader>
                 <TableRow>
                   <TableHead>日時</TableHead>
