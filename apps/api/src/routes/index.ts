@@ -2,6 +2,7 @@ import { Router } from 'express';
 
 import accountingPeriodsRoutes from './accountingPeriods.routes';
 import accountsRoutes from './accounts.routes';
+import auditLogRoutes from './auditLog.routes';
 import authRoutes from './auth.routes';
 import journalEntriesRoutes from './journalEntries.routes';
 import ledgersRoutes from './ledgers.routes';
@@ -24,6 +25,7 @@ router.use('/accounting-periods', accountingPeriodsRoutes);
 router.use('/journal-entries', journalEntriesRoutes);
 router.use('/reports', reportsRoutes);
 router.use('/ledgers', ledgersRoutes);
+router.use('/audit-logs', auditLogRoutes);
 router.use('/seed', seedRoutes);
 
 // Monitoring routes (no auth required)

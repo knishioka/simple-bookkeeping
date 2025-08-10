@@ -68,6 +68,11 @@ export default function SettingsPage() {
       items: [
         { label: '二要素認証', description: '二要素認証の設定' },
         { label: 'アクセスログ', description: 'ログイン履歴の確認' },
+        {
+          label: '監査ログ',
+          description: 'システム操作履歴の確認（管理者のみ）',
+          href: '/dashboard/settings/audit-logs',
+        },
       ],
     },
   ];

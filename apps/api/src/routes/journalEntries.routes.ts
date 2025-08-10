@@ -9,6 +9,7 @@ import { Router } from 'express';
 import multer, { memoryStorage } from 'multer';
 
 import * as journalEntriesController from '../controllers/journalEntries.controller';
+import { auditLog } from '../middlewares/auditLog.middleware';
 import {
   authenticate,
   authorize,
@@ -46,6 +47,7 @@ router.post(
   '/',
   authorize(UserRole.ADMIN, UserRole.ACCOUNTANT),
   validate(createJournalEntrySchema, 'body'),
+  auditLog.createJournalEntry,
   journalEntriesController.createJournalEntry as RouteHandler
 );
 
@@ -54,6 +56,7 @@ router.put(
   '/:id',
   authorize(UserRole.ADMIN, UserRole.ACCOUNTANT),
   validate(updateJournalEntrySchema, 'body'),
+  auditLog.updateJournalEntry,
   journalEntriesController.updateJournalEntry as RouteHandler
 );
 
@@ -61,6 +64,7 @@ router.put(
 router.delete(
   '/:id',
   authorize(UserRole.ADMIN),
+  auditLog.deleteJournalEntry,
   journalEntriesController.deleteJournalEntry as RouteHandler
 );
 
@@ -68,6 +72,7 @@ router.delete(
 router.post(
   '/:id/approve',
   authorize(UserRole.ADMIN, UserRole.ACCOUNTANT),
+  auditLog.approveJournalEntry,
   journalEntriesController.approveJournalEntry as RouteHandler
 );
 

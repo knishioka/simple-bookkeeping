@@ -10,6 +10,7 @@ import {
   activateAccountingPeriod,
   getActiveAccountingPeriod,
 } from '../controllers/accountingPeriods.controller';
+import { auditLog } from '../middlewares/auditLog.middleware';
 import { authenticate, authorize } from '../middlewares/auth';
 
 const router = Router();
@@ -24,6 +25,7 @@ router.post(
   '/',
   authenticate,
   authorize(UserRole.ADMIN, UserRole.ACCOUNTANT),
+  auditLog.createAccountingPeriod,
   createAccountingPeriod
 );
 
@@ -31,6 +33,7 @@ router.put(
   '/:id',
   authenticate,
   authorize(UserRole.ADMIN, UserRole.ACCOUNTANT),
+  auditLog.updateAccountingPeriod,
   updateAccountingPeriod
 );
 
@@ -38,6 +41,7 @@ router.delete(
   '/:id',
   authenticate,
   authorize(UserRole.ADMIN, UserRole.ACCOUNTANT),
+  auditLog.deleteAccountingPeriod,
   deleteAccountingPeriod
 );
 

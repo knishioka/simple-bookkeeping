@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 
 import * as organizationsController from '../controllers/organizations.controller';
+import { auditLog } from '../middlewares/auditLog.middleware';
 import { authenticate, authorize, setOrganizationContext } from '../middlewares/auth';
 import { validate } from '../middlewares/validation';
 
@@ -54,6 +55,7 @@ router.put(
       }),
     })
   ),
+  auditLog.updateOrganization,
   organizationsController.updateOrganization as RouteHandler
 );
 
