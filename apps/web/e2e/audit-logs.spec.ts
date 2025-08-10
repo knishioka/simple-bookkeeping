@@ -1,17 +1,45 @@
 import { test, expect } from '@playwright/test';
 
+import { AuthHelpers } from './helpers/test-setup';
+
 test.describe('Audit Logs', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, context }) => {
+    // Mock authentication API
+    await context.route('**/api/v1/auth/login', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            token: 'test-token',
+            refreshToken: 'test-refresh-token',
+            user: {
+              id: '1',
+              email: 'admin@example.com',
+              name: 'Admin User',
+              organizationId: 'org-1',
+              role: 'admin',
+              currentOrganization: {
+                id: 'org-1',
+                name: 'Test Organization',
+                role: 'admin',
+              },
+            },
+          },
+        }),
+      });
+    });
+
     // Login as admin user
     await page.goto('/login');
     await page.fill('#email', 'admin@example.com');
     await page.fill('#password', 'admin123');
 
-    const loginButton = page.locator('button[type="submit"]');
-    await loginButton.click();
-
-    // Wait for login to complete
-    await page.waitForURL('**/dashboard/**', { timeout: 15000 });
+    // Click login and wait for navigation
+    await Promise.all([
+      page.click('button[type="submit"]'),
+      page.waitForURL('**/dashboard', { timeout: 15000 }),
+    ]);
   });
 
   test('should display audit logs page for admin users', async ({ page }) => {
@@ -180,9 +208,40 @@ test.describe('Audit Logs', () => {
     await expect(table).toBeVisible();
   });
 
-  test('should not show audit logs page for non-admin users', async ({ page }) => {
-    // Logout and login as a non-admin user
+  test('should not show audit logs page for non-admin users', async ({ page, context }) => {
+    // Create helpers instance
+    const helpers = new AuthHelpers(page);
+
+    // Logout first
     await helpers.logout();
+
+    // Mock authentication API for non-admin user
+    await context.route('**/api/v1/auth/login', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            token: 'test-token-viewer',
+            refreshToken: 'test-refresh-token-viewer',
+            user: {
+              id: '2',
+              email: 'viewer@example.com',
+              name: 'Viewer User',
+              organizationId: 'org-1',
+              role: 'viewer',
+              currentOrganization: {
+                id: 'org-1',
+                name: 'Test Organization',
+                role: 'viewer',
+              },
+            },
+          },
+        }),
+      });
+    });
+
+    // Login as non-admin user
     await helpers.login('viewer@example.com', 'password123');
 
     // Try to access audit logs directly
