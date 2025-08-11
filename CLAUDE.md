@@ -836,6 +836,92 @@ supabase/.env
    - Railway: ダッシュボードまたはCLIで管理
    - GitHub Actions: Secretsで管理
 
+## 🏷️ GitHub Issueラベル管理
+
+### 利用可能なラベル一覧
+
+#### タイプ別
+
+- `bug` - バグ・不具合
+- `enhancement` - 機能改善・既存機能の向上
+- `feature` - 新機能の追加
+- `documentation` - ドキュメントの追加・更新
+- `test` - テスト関連（追加・修正）
+- `refactor` - コードのリファクタリング
+- `performance` - パフォーマンス改善
+- `security` - セキュリティ関連
+- `chore` - 雑務・メンテナンス作業
+
+#### 優先度
+
+- `priority: critical` - 緊急対応が必要
+- `priority: high` - 優先度高（1週間以内）
+- `priority: medium` - 優先度中（1ヶ月以内）
+- `priority: low` - 優先度低（急がない）
+
+#### ワークフローステータス
+
+- `follow-up` - フォローアップが必要
+- `blocked` - ブロック中
+- `needs review` - レビュー待ち
+- `ready to merge` - マージ準備完了
+- `in progress` - 作業中
+- `wip` - Work In Progress
+
+#### 機能エリア
+
+- `area: auth` - 認証・認可機能
+- `area: accounting` - 会計・簿記機能
+- `area: journal` - 仕訳入力機能
+- `area: reports` - レポート・帳票機能
+- `area: ui/ux` - UI/UXデザイン
+- `area: api` - API設計・実装
+- `area: e2e` - E2Eテスト
+- `area: audit` - 監査ログ機能
+
+### Issue作成時の注意事項
+
+#### ラベルの確認方法
+
+```bash
+# 利用可能なラベルを確認
+gh label list --json name,description --jq '.[] | "\(.name): \(.description)"'
+
+# ラベルの検索
+gh label list | grep -i test
+```
+
+#### 推奨ラベル組み合わせ
+
+- バグ修正: `bug` + `priority: *` + 該当エリア
+- 新機能: `feature` + `enhancement` + 該当エリア
+- フォローアップ: `follow-up` + 元の関連ラベル
+- テスト追加: `test` + 対象エリアラベル
+
+#### ラベル管理スクリプト
+
+```bash
+# ラベルセットアップスクリプトの実行
+bash .github/scripts/create-labels.sh
+```
+
+### Issue作成コマンド例
+
+```bash
+# 存在するラベルのみを使用
+gh issue create \
+  --title "タイトル" \
+  --body "本文" \
+  --label "enhancement,area: e2e"  # 確実に存在するラベルを使用
+
+# ラベルエラーを避ける方法
+LABELS="enhancement"  # 基本的なラベルから始める
+if gh label list | grep -q "test"; then
+  LABELS="$LABELS,test"
+fi
+gh issue create --label "$LABELS" ...
+```
+
 ## 🔍 トラブルシューティング
 
 ### よくある問題と解決策

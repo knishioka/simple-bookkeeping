@@ -1,0 +1,129 @@
+name: 🐛 バグ報告
+description: バグや不具合を報告する
+title: '[Bug]: '
+labels: ['bug', 'needs review']
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        バグ報告ありがとうございます！以下の情報を提供していただけると、問題の解決が早くなります。
+
+  - type: textarea
+    id: description
+    attributes:
+      label: バグの説明
+      description: どのような問題が発生していますか？明確かつ簡潔に説明してください。
+      placeholder: |
+        例：仕訳入力画面で、借方と貸方の金額が一致しているにも関わらず、
+        「借方と貸方の合計が一致しません」というエラーが表示される。
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 再現手順
+      description: バグを再現するための手順を記載してください。
+      placeholder: |
+        1. '/dashboard/journal-entries/new' にアクセス
+        2. 日付を選択
+        3. 借方に「現金 1000円」を入力
+        4. 貸方に「売上 1000円」を入力
+        5. 「登録」ボタンをクリック
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待される動作
+      description: 本来どのような動作を期待していましたか？
+      placeholder: 仕訳が正常に登録され、一覧画面に遷移する
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 実際の動作
+      description: 実際にはどのような動作になりましたか？
+      placeholder: エラーメッセージが表示され、仕訳が登録されない
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 深刻度
+      description: このバグの業務への影響度を選択してください
+      options:
+        - 致命的（業務が停止する）
+        - 重大（主要機能が使えない）
+        - 中程度（回避策がある）
+        - 軽微（使用感に影響）
+    validations:
+      required: true
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: 発生頻度
+      description: このバグはどのくらいの頻度で発生しますか？
+      options:
+        - 必ず発生する
+        - 頻繁に発生する（50%以上）
+        - 時々発生する（10-50%）
+        - まれに発生する（10%未満）
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 環境情報
+      description: バグが発生した環境の情報を提供してください
+      render: yaml
+      placeholder: |
+        OS: macOS 14.0
+        ブラウザ: Chrome 120.0.0
+        環境: 本番環境 / ステージング / ローカル
+        アカウント種別: 管理者 / 一般ユーザー
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: スクリーンショット
+      description: バグの状況を示すスクリーンショットがあれば添付してください
+      placeholder: ドラッグ＆ドロップまたはクリックして画像をアップロード
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: エラーログ
+      description: ブラウザのコンソールやネットワークタブのエラーがあれば貼り付けてください
+      render: shell
+      placeholder: |
+        エラーメッセージやスタックトレースをここに貼り付け
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 追加情報
+      description: その他、問題の解決に役立つ情報があれば記載してください
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: チェックリスト
+      description: 以下の項目を確認してください
+      options:
+        - label: 同様のIssueが既に存在しないことを確認しました
+          required: true
+        - label: 最新バージョンで問題が発生することを確認しました
+          required: false
+        - label: ブラウザのキャッシュをクリアして再試行しました
+          required: false
