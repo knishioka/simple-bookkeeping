@@ -1,53 +1,27 @@
 import { test, expect } from '@playwright/test';
 
+import { UnifiedAuth } from './helpers/unified-auth';
+import { UnifiedMock } from './helpers/unified-mock';
+
 /**
  * 認証フローのテスト
  * Issue #25: ローカル環境でのPlaywrightテスト実行時の認証エラーを再現・検証
+ * Issue #103: 統一ヘルパーへの移行
  */
 
 test.describe('認証フロー', () => {
-  test('ログイン処理が正常に動作する', async ({ page }) => {
-    // ログインページにアクセス
-    await page.goto('/login');
+  test('ログイン処理が正常に動作する', async ({ page, context }) => {
+    // 統一モックでAPIレスポンスをセットアップ
+    await UnifiedMock.setupAuthMocks(context);
 
-    // フォーム要素の存在確認
-    await expect(page.locator('#email')).toBeVisible();
-    await expect(page.locator('#password')).toBeVisible();
+    // ログインフォーム入力ヘルパーを使用
+    await UnifiedAuth.fillLoginForm(page, 'admin@example.com', 'admin123');
 
-    // ログイン情報を入力
-    await page.fill('#email', 'admin@example.com');
-    await page.fill('#password', 'admin123');
+    // ログインボタンクリックと成功待機
+    await UnifiedAuth.submitLoginAndWait(page);
 
-    // ログインボタンをクリック（改善版：複数の待機条件を使用）
-    const loginButton = page.locator('button[type="submit"]');
-
-    // APIレスポンスまたはページ遷移を待機
-    await Promise.race([
-      // ダッシュボードへのリダイレクトを待つ
-      page.waitForURL('**/dashboard/**', { timeout: 15000 }).catch(() => null),
-      // または認証APIのレスポンスを待つ
-      page
-        .waitForResponse((resp) => resp.url().includes('/api/v1/auth/login') && resp.ok(), {
-          timeout: 15000,
-        })
-        .catch(() => null),
-      // またはエラーメッセージの表示を待つ
-      page
-        .locator('[role="alert"]')
-        .waitFor({ timeout: 15000 })
-        .catch(() => null),
-    ]);
-
-    await loginButton.click();
-
-    // ログイン後の検証（いずれかの条件を満たす）
-    const isLoggedIn = await page
-      .evaluate(() => {
-        // ローカルストレージにトークンが保存されているか確認
-        return localStorage.getItem('token') !== null;
-      })
-      .catch(() => false);
-
+    // ログイン後の検証
+    const isAuthenticated = await UnifiedAuth.isAuthenticated(page);
     const isDashboard = page.url().includes('/dashboard');
     const hasError = await page
       .locator('[role="alert"]')
@@ -55,80 +29,61 @@ test.describe('認証フロー', () => {
       .catch(() => false);
 
     // いずれかの条件を満たしていることを確認
-    expect(isLoggedIn || isDashboard || hasError).toBeTruthy();
+    expect(isAuthenticated || isDashboard || hasError).toBeTruthy();
   });
 
   test.skip('APIモックを使用したログイン処理', async ({ page, context }) => {
     // 注：このテストは現在のアプリケーションがlocalStorageにトークンを保存しないためスキップ
     // モック機能のテストは将来的にアプリケーションがlocalStorageを使用するようになった後に有効化
 
-    // APIレスポンスをモック
-    await context.route('**/api/v1/auth/login', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          data: {
-            token: 'test-token-12345',
-            refreshToken: 'test-refresh-token',
-            user: {
-              id: '1',
-              email: 'admin@example.com',
-              name: 'Test Admin',
-              organizationId: 'org-1',
-            },
-          },
-        }),
-      });
+    // 統一認証ヘルパーでモックをセットアップ
+    await UnifiedAuth.setupMockRoutes(context, {
+      customTokens: {
+        token: 'test-token-12345',
+        refreshToken: 'test-refresh-token',
+      },
     });
 
-    // ログインページにアクセス
-    await page.goto('/login');
-
-    // フォーム入力
-    await page.fill('#email', 'admin@example.com');
-    await page.fill('#password', 'admin123');
+    // ログインフォーム入力
+    await UnifiedAuth.fillLoginForm(page, 'admin@example.com', 'admin123');
 
     // ログインボタンクリック
     await page.click('button[type="submit"]');
 
-    // モックレスポンスが処理されることを確認
-    await page.waitForTimeout(1000);
+    // モックレスポンスが処理されることを確認（waitForTimeoutを削除）
+    await page.waitForLoadState('networkidle');
 
     // トークンが保存されていることを確認
     const token = await page.evaluate(() => localStorage.getItem('token'));
     expect(token).toBe('test-token-12345');
   });
 
-  test('直接トークンを設定してログイン状態を作る', async ({ page }) => {
-    // トップページにアクセス
-    await page.goto('/');
-
-    // 直接localStorageにトークンを設定
-    await page.evaluate(() => {
-      localStorage.setItem('token', 'test-token-direct');
-      localStorage.setItem('refreshToken', 'test-refresh-direct');
-      localStorage.setItem('organizationId', 'org-1');
-      localStorage.setItem('userId', '1');
+  test('直接トークンを設定してログイン状態を作る', async ({ page, context }) => {
+    // 統一認証ヘルパーで認証状態をセットアップ
+    await UnifiedAuth.setup(context, page, {
+      customTokens: {
+        token: 'test-token-direct',
+        refreshToken: 'test-refresh-direct',
+      },
+      skipApiRoutes: true, // APIモックは不要
     });
 
     // ダッシュボードページにアクセス
     await page.goto('/dashboard');
 
-    // 認証が必要なページにアクセスできることを確認
-    // （実際のダッシュボードページが存在しない場合は404になる可能性あり）
-    const hasAuthHeader = await page.evaluate(() => {
-      // トークンがまだ存在することを確認
-      return localStorage.getItem('token') === 'test-token-direct';
-    });
+    // 認証状態を確認
+    const isAuthenticated = await UnifiedAuth.isAuthenticated(page);
+    expect(isAuthenticated).toBeTruthy();
 
-    expect(hasAuthHeader).toBeTruthy();
+    // トークンが正しく設定されていることを確認
+    const token = await page.evaluate(() => localStorage.getItem('token'));
+    expect(token).toBe('test-token-direct');
   });
 });
 
 test.describe('認証エラーハンドリング', () => {
   test('無効な認証情報でエラーメッセージが表示される', async ({ page, context }) => {
-    // エラーレスポンスをモック
+    // 統一モックでエラーレスポンスをセットアップ
     await context.route('**/api/v1/auth/login', async (route) => {
       await route.fulfill({
         status: 401,
@@ -142,12 +97,8 @@ test.describe('認証エラーハンドリング', () => {
       });
     });
 
-    // ログインページにアクセス
-    await page.goto('/login');
-
-    // 無効な認証情報を入力
-    await page.fill('#email', 'wrong@example.com');
-    await page.fill('#password', 'wrongpassword');
+    // ログインフォーム入力
+    await UnifiedAuth.fillLoginForm(page, 'wrong@example.com', 'wrongpassword');
 
     // ログインボタンクリック
     await page.click('button[type="submit"]');
