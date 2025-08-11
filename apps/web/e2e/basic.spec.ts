@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 import { UnifiedMock } from './helpers/unified-mock';
+import { waitForPageReady, smartWait } from './helpers/wait-strategies';
 
 /**
  * 基本的なページアクセステスト
@@ -71,7 +72,7 @@ test.describe('基本的なページアクセス', () => {
 
     // デモ勘定科目ページにアクセス
     await page.goto('/demo/accounts');
-    await waitForPageReady(page, { waitForApi: /\/accounts/ });
+    await waitForPageReady(page, { waitForSelector: 'h1', skipNetworkIdle: true });
 
     // ページタイトル確認
     await expect(page.locator('h1')).toContainText('勘定科目管理');
@@ -145,7 +146,7 @@ test.describe('レスポンシブデザイン', () => {
 
     // デモ勘定科目ページにアクセス
     await page.goto('/demo/accounts');
-    await waitForPageReady(page, { waitForApi: /\/accounts/ });
+    await waitForPageReady(page, { waitForSelector: 'h1', skipNetworkIdle: true });
 
     // タブレットでもテーブルが適切に表示されることを確認
     await expect(page.locator('table')).toBeVisible();
