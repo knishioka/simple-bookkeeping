@@ -1,21 +1,20 @@
 import { test, expect } from '@playwright/test';
 
-import { AppHelpers } from './helpers/test-setup';
+import { UnifiedMock } from './helpers/unified-mock';
 
 /**
  * 基本的なページアクセステスト
  *
  * Playwrightの動作確認と基本的なナビゲーションをテストします。
  * ローカル環境対応の改善を含みます。
+ * Issue #103: 統一ヘルパーへの移行
  */
 
 test.describe('基本的なページアクセス', () => {
   test('トップページが正常に表示される', async ({ page }) => {
-    const helpers = new AppHelpers(page);
-
     // トップページにアクセス
     await page.goto('/');
-    await helpers.waitForPageLoad();
+    await page.waitForLoadState('networkidle');
 
     // ページタイトルを確認（実際にはh1要素の内容）
     await expect(page.locator('h1')).toContainText('Simple Bookkeeping');
@@ -29,11 +28,9 @@ test.describe('基本的なページアクセス', () => {
   });
 
   test('ログインページが正常に表示される', async ({ page }) => {
-    const helpers = new AppHelpers(page);
-
     // ログインページにアクセス
     await page.goto('/login');
-    await helpers.waitForPageLoad();
+    await page.waitForLoadState('networkidle');
 
     // ページタイトルを確認（CardTitleのh2要素）
     await expect(page.locator('text=ログイン').first()).toBeVisible();
@@ -48,12 +45,13 @@ test.describe('基本的なページアクセス', () => {
     await expect(page.locator('text=パスワード')).toBeVisible();
   });
 
-  test('デモページが正常に表示される', async ({ page }) => {
-    const helpers = new AppHelpers(page);
+  test('デモページが正常に表示される', async ({ page, context }) => {
+    // デモページ用のモックをセットアップ
+    await UnifiedMock.setupDashboardMocks(context);
 
     // デモページにアクセス
     await page.goto('/demo');
-    await helpers.waitForPageLoad();
+    await page.waitForLoadState('networkidle');
 
     // デモページのコンテンツ確認
     await expect(page.locator('h1')).toContainText('機能デモ');
@@ -63,12 +61,13 @@ test.describe('基本的なページアクセス', () => {
     await expect(page.locator('text=仕訳入力のデモを見る')).toBeVisible();
   });
 
-  test('デモ勘定科目ページが正常に表示される', async ({ page }) => {
-    const helpers = new AppHelpers(page);
+  test('デモ勘定科目ページが正常に表示される', async ({ page, context }) => {
+    // 勘定科目用のモックをセットアップ
+    await UnifiedMock.setupAccountsMocks(context);
 
     // デモ勘定科目ページにアクセス
     await page.goto('/demo/accounts');
-    await helpers.waitForPageLoad();
+    await page.waitForLoadState('networkidle');
 
     // ページタイトル確認
     await expect(page.locator('h1')).toContainText('勘定科目管理');
@@ -82,12 +81,13 @@ test.describe('基本的なページアクセス', () => {
     await expect(page.locator('text=普通預金')).toBeVisible();
   });
 
-  test('デモ仕訳入力ページが正常に表示される', async ({ page }) => {
-    const helpers = new AppHelpers(page);
+  test('デモ仕訳入力ページが正常に表示される', async ({ page, context }) => {
+    // 仕訳用のモックをセットアップ
+    await UnifiedMock.setupJournalMocks(context);
 
     // デモ仕訳入力ページにアクセス
     await page.goto('/demo/journal-entries');
-    await helpers.waitForPageLoad();
+    await page.waitForLoadState('networkidle');
 
     // ページタイトル確認
     await expect(page.locator('h1')).toContainText('仕訳入力');
@@ -115,15 +115,16 @@ test.describe('基本的なページアクセス', () => {
 });
 
 test.describe('レスポンシブデザイン', () => {
-  test('モバイル表示でも基本機能が利用可能', async ({ page }) => {
+  test('モバイル表示でも基本機能が利用可能', async ({ page, context }) => {
     // モバイルビューポートに設定
     await page.setViewportSize({ width: 375, height: 667 });
 
-    const helpers = new AppHelpers(page);
+    // デモページ用のモックをセットアップ
+    await UnifiedMock.setupDashboardMocks(context);
 
     // デモページにアクセス
     await page.goto('/demo');
-    await helpers.waitForPageLoad();
+    await page.waitForLoadState('networkidle');
 
     // モバイルでもコンテンツが表示されることを確認
     await expect(page.locator('h1')).toBeVisible();
@@ -131,15 +132,16 @@ test.describe('レスポンシブデザイン', () => {
     await expect(page.locator('text=仕訳入力のデモを見る')).toBeVisible();
   });
 
-  test('タブレット表示でも基本機能が利用可能', async ({ page }) => {
+  test('タブレット表示でも基本機能が利用可能', async ({ page, context }) => {
     // タブレットビューポートに設定
     await page.setViewportSize({ width: 768, height: 1024 });
 
-    const helpers = new AppHelpers(page);
+    // 勘定科目用のモックをセットアップ
+    await UnifiedMock.setupAccountsMocks(context);
 
     // デモ勘定科目ページにアクセス
     await page.goto('/demo/accounts');
-    await helpers.waitForPageLoad();
+    await page.waitForLoadState('networkidle');
 
     // タブレットでもテーブルが適切に表示されることを確認
     await expect(page.locator('table')).toBeVisible();
