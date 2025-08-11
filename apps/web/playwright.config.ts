@@ -191,12 +191,12 @@ export default defineConfig({
   // 開発サーバー設定（最適化）
   webServer: {
     command: isCI
-      ? 'pnpm --filter @simple-bookkeeping/web start' // CI環境ではビルド済みアプリを起動
+      ? 'cd ../../ && pnpm --filter @simple-bookkeeping/web start' // CI環境ではビルド済みアプリを起動（モノレポルートから実行）
       : 'pnpm dev:test', // ローカルでは開発サーバー
     url: 'http://localhost:3000',
     reuseExistingServer: !isCI, // CI環境では新規起動、ローカルでは再利用
     timeout: TIMEOUTS.server,
-    stdout: isDebug ? 'pipe' : 'ignore',
+    stdout: 'pipe', // CI環境でもサーバー出力を確認
     stderr: 'pipe',
   },
 
