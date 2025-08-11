@@ -1,74 +1,26 @@
 import { test, expect } from '@playwright/test';
 
+import { UnifiedAuth } from './helpers/unified-auth';
+
+/**
+ * Issue #103: 統一ヘルパーへの移行
+ */
 test.describe('Accounting Periods Management', () => {
   test('should successfully authenticate and navigate to dashboard', async ({ page, context }) => {
-    // Mock authentication API
-    await context.route('**/api/v1/auth/login', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          data: {
-            token: 'test-token',
-            refreshToken: 'test-refresh-token',
-            user: {
-              id: '1',
-              email: 'admin@example.com',
-              name: 'Admin User',
-              organizationId: 'org-1',
-              currentOrganization: {
-                id: 'org-1',
-                name: 'Test Organization',
-                role: 'admin',
-              },
-            },
-          },
-        }),
-      });
-    });
+    // 統一認証ヘルパーでモックをセットアップ
+    await UnifiedAuth.setupMockRoutes(context);
 
-    // Login flow
-    await page.goto('/login');
-    await page.fill('#email', 'admin@example.com');
-    await page.fill('#password', 'admin123');
-
-    // Click login and wait for navigation
-    await Promise.all([
-      page.click('button[type="submit"]'),
-      page
-        .waitForURL('**/dashboard/**', { timeout: 15000 })
-        .catch(() => page.waitForURL('**/dashboard', { timeout: 15000 })),
-    ]);
+    // ログインフォーム入力と送信
+    await UnifiedAuth.fillLoginForm(page, 'admin@example.com', 'admin123');
+    await UnifiedAuth.submitLoginAndWait(page);
 
     // Verify we're on the dashboard
     await expect(page).toHaveURL(/.*dashboard.*/);
   });
 
   test.beforeEach(async ({ page, context }) => {
-    // Mock authentication API
-    await context.route('**/api/v1/auth/login', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          data: {
-            token: 'test-token',
-            refreshToken: 'test-refresh-token',
-            user: {
-              id: '1',
-              email: 'admin@example.com',
-              name: 'Admin User',
-              organizationId: 'org-1',
-              currentOrganization: {
-                id: 'org-1',
-                name: 'Test Organization',
-                role: 'admin',
-              },
-            },
-          },
-        }),
-      });
-    });
+    // 統一ヘルパーで認証とモックをセットアップ
+    await UnifiedAuth.setupMockRoutes(context);
 
     // Mock accounting periods API
     await context.route('**/api/v1/accounting-periods', async (route) => {
@@ -96,18 +48,9 @@ test.describe('Accounting Periods Management', () => {
       }
     });
 
-    // Login flow
-    await page.goto('/login');
-    await page.fill('#email', 'admin@example.com');
-    await page.fill('#password', 'admin123');
-
-    // Click login and wait for navigation
-    await Promise.all([
-      page.click('button[type="submit"]'),
-      page
-        .waitForURL('**/dashboard/**', { timeout: 15000 })
-        .catch(() => page.waitForURL('**/dashboard', { timeout: 15000 })),
-    ]);
+    // ログインフォーム入力と送信
+    await UnifiedAuth.fillLoginForm(page, 'admin@example.com', 'admin123');
+    await UnifiedAuth.submitLoginAndWait(page);
   });
 
   test('should navigate to accounting periods page from settings', async ({ page }) => {

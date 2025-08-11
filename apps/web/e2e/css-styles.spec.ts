@@ -1,4 +1,6 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
+
+import { UnifiedMock } from './helpers/unified-mock';
 
 /**
  * CSSスタイルとTailwind CSSの適用確認テスト
@@ -7,10 +9,14 @@ import { test, expect } from '@playwright/test';
  * Tailwind CSS v4の設定が正しく動作していることを検証します。
  *
  * CI環境での安定性を考慮し、CSSの読み込みを確実に待機する処理を含みます。
+ * Issue #103: 統一ヘルパーへの移行
  */
 
 // CSSが確実に読み込まれるまで待機するヘルパー関数
-async function waitForCSSToLoad(page) {
+async function waitForCSSToLoad(page: Page) {
+  // ネットワークがアイドル状態になるまで待機（統一された待機処理）
+  await page.waitForLoadState('networkidle');
+
   // スタイルシートが読み込まれるまで待機
   await page.waitForFunction(() => {
     const stylesheets = Array.from(document.styleSheets);
@@ -36,10 +42,7 @@ async function waitForCSSToLoad(page) {
     return styles.getPropertyValue('--background').trim() !== '';
   });
 
-  // 追加の待機時間（CI環境での安定性向上）
-  if (process.env.CI) {
-    await page.waitForTimeout(500);
-  }
+  // CI環境での安定性向上（waitForTimeoutを削除してnetworkidleに依存）
 }
 
 test.describe('CSSスタイルの適用確認', () => {
@@ -155,7 +158,10 @@ test.describe('CSSスタイルの適用確認', () => {
     expect(desktopStyles.width).not.toBe(mobileStyles.width);
   });
 
-  test('カードコンポーネントのスタイルが適用される', async ({ page }) => {
+  test('カードコンポーネントのスタイルが適用される', async ({ page, context }) => {
+    // デモページ用のモックをセットアップ
+    await UnifiedMock.setupDashboardMocks(context);
+
     await page.goto('/demo');
     await waitForCSSToLoad(page);
 
