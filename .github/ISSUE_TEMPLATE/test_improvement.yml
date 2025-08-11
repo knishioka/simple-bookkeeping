@@ -1,0 +1,152 @@
+name: 🧪 テスト改善
+description: テストの追加・改善・修正
+title: '[Test]: '
+labels: ['test']
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        テストの改善提案ありがとうございます！品質向上に貢献していただけることを嬉しく思います。
+
+  - type: dropdown
+    id: test-type
+    attributes:
+      label: テストの種類
+      description: どの種類のテストに関する提案ですか？
+      options:
+        - 単体テスト（Unit Test）
+        - 統合テスト（Integration Test）
+        - E2Eテスト（End-to-End Test）
+        - パフォーマンステスト
+        - セキュリティテスト
+        - その他
+    validations:
+      required: true
+
+  - type: dropdown
+    id: action-type
+    attributes:
+      label: アクションの種類
+      description: 何を行いますか？
+      options:
+        - 新規テストの追加
+        - 既存テストの修正
+        - テストカバレッジの向上
+        - テストのリファクタリング
+        - テストインフラの改善
+    validations:
+      required: true
+
+  - type: textarea
+    id: target
+    attributes:
+      label: 対象
+      description: テストの対象となるファイル、機能、またはコンポーネントを指定してください
+      placeholder: |
+        例：
+        - ファイル: apps/web/src/components/JournalEntry.tsx
+        - 機能: 仕訳入力のバリデーション
+        - API: POST /api/v1/journal-entries
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-situation
+    attributes:
+      label: 現在の状況
+      description: 現在のテストの状態や問題点を説明してください
+      placeholder: |
+        例：仕訳入力コンポーネントには基本的なテストはあるが、
+        エラーケースやエッジケースのテストが不足している。
+        現在のカバレッジは60%程度。
+
+  - type: textarea
+    id: improvement-plan
+    attributes:
+      label: 改善計画
+      description: どのようなテストを追加・改善しますか？
+      placeholder: |
+        例：
+        1. 借方・貸方の不一致エラーのテスト
+        2. 最大金額を超えた場合のテスト
+        3. 必須項目が未入力の場合のテスト
+        4. 日付の妥当性チェックのテスト
+    validations:
+      required: true
+
+  - type: textarea
+    id: test-scenarios
+    attributes:
+      label: テストシナリオ
+      description: 具体的なテストケースを記載してください
+      render: typescript
+      placeholder: |
+        describe('JournalEntry', () => {
+          it('借方と貸方の合計が一致しない場合はエラーを表示する', () => {
+            // Arrange
+            const invalidEntry = { debit: 1000, credit: 2000 };
+            
+            // Act
+            const result = validateJournalEntry(invalidEntry);
+            
+            // Assert
+            expect(result.error).toBe('借方と貸方の合計が一致しません');
+          });
+        });
+
+  - type: dropdown
+    id: coverage-impact
+    attributes:
+      label: カバレッジへの影響
+      description: この変更によるテストカバレッジへの影響
+      options:
+        - 大幅に向上（10%以上）
+        - 向上（5-10%）
+        - やや向上（5%未満）
+        - 変化なし
+        - 不明
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: 依存関係
+      description: このテストが依存する他のコンポーネントやサービス
+      placeholder: |
+        例：
+        - Prismaのモック設定
+        - 認証ヘルパー（UnifiedAuth）
+        - APIモック（UnifiedMock）
+
+  - type: textarea
+    id: risks
+    attributes:
+      label: リスクと考慮事項
+      description: テストの実装や実行に関するリスクや注意点
+      placeholder: |
+        例：
+        - テスト実行時間が長くなる可能性
+        - 外部サービスへの依存
+        - フレーキーテストになる可能性
+
+  - type: textarea
+    id: additional-notes
+    attributes:
+      label: 追加メモ
+      description: その他、関連する情報があれば記載してください
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: チェックリスト
+      description: 以下の項目を確認してください
+      options:
+        - label: 既存のテストを確認し、重複がないことを確認しました
+          required: true
+        - label: テストの保守性を考慮しています
+          required: false
+        - label: CI/CDでの実行を考慮しています
+          required: false

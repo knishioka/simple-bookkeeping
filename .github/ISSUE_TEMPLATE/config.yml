@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 ディスカッション
+    url: https://github.com/knishioka/simple-bookkeeping/discussions
+    about: アイデアの議論や質問はこちら
+  - name: 📧 セキュリティ問題の報告
+    url: mailto:security@example.com
+    about: セキュリティに関する問題は直接メールでご連絡ください
+  - name: 📖 ドキュメント
+    url: https://github.com/knishioka/simple-bookkeeping/tree/main/docs
+    about: プロジェクトのドキュメントを確認
