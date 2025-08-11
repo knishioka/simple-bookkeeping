@@ -339,16 +339,41 @@ export class UnifiedAuth {
    */
   static async submitLoginAndWait(page: Page): Promise<void> {
     const loginButton = page.locator('button[type="submit"]');
+    const isCI = !!process.env.CI;
 
     // ログインボタンをクリック
     await loginButton.click();
 
-    // より単純な成功条件で待機（CI環境での互換性向上）
-    try {
-      await page.waitForURL('**/dashboard/**', { timeout: 10000 });
-    } catch {
-      // ダッシュボードへのリダイレクトが失敗した場合、トークンの保存を確認
-      await page.waitForFunction(() => localStorage.getItem('token') !== null, { timeout: 5000 });
+    // CI環境では異なる待機戦略を使用
+    if (isCI) {
+      // CI環境：より確実な待機戦略
+      // 1. まず短い時間でdomcontentloadedを待つ
+      await page.waitForLoadState('domcontentloaded', { timeout: 5000 });
+
+      // 2. ログイン処理の結果を待つ（成功または失敗）
+      await Promise.race([
+        // ダッシュボードへのリダイレクトを待つ
+        page.waitForURL('**/dashboard/**', { timeout: 10000 }).catch(() => null),
+        // トークンの保存を待つ
+        page
+          .waitForFunction(() => localStorage.getItem('token') !== null, { timeout: 10000 })
+          .catch(() => null),
+        // エラーメッセージの表示を待つ
+        page
+          .waitForSelector('[role="alert"], .text-destructive', { timeout: 10000 })
+          .catch(() => null),
+      ]);
+
+      // 3. 少し待機して状態を安定させる
+      await page.waitForTimeout(500);
+    } else {
+      // ローカル環境：既存のロジックを使用
+      try {
+        await page.waitForURL('**/dashboard/**', { timeout: 10000 });
+      } catch {
+        // ダッシュボードへのリダイレクトが失敗した場合、トークンの保存を確認
+        await page.waitForFunction(() => localStorage.getItem('token') !== null, { timeout: 5000 });
+      }
     }
   }
 

@@ -1,0 +1,109 @@
+# Docker Compose configuration for E2E testing
+# This configuration provides an isolated test environment that mimics CI
+
+services:
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: simple-bookkeeping-postgres-test
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: bookkeeping_test
+    ports:
+      - '5433:5432' # Different port to avoid conflicts with dev DB
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U test']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - simple-bookkeeping-test
+
+  api-test:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: production
+    container_name: simple-bookkeeping-api-test
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://test:test@postgres-test:5432/bookkeeping_test?schema=public
+      API_PORT: 3001
+      NODE_ENV: test
+      JWT_SECRET: test-secret-key
+      JWT_EXPIRES_IN: 1h
+      JWT_REFRESH_SECRET: test-refresh-secret
+      JWT_REFRESH_EXPIRES_IN: 7d
+      CORS_ORIGIN: http://web-test:3000
+    ports:
+      - '3011:3001' # Different port to avoid conflicts
+    networks:
+      - simple-bookkeeping-test
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3001/api/v1/']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web-test:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: production
+    container_name: simple-bookkeeping-web-test
+    depends_on:
+      api-test:
+        condition: service_healthy
+    environment:
+      NEXT_PUBLIC_API_URL: http://api-test:3001/api/v1
+      NEXTAUTH_SECRET: test-nextauth-secret
+      NEXTAUTH_URL: http://localhost:3010
+      NODE_ENV: test
+    ports:
+      - '3010:3000' # Different port to avoid conflicts
+    networks:
+      - simple-bookkeeping-test
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  playwright:
+    build:
+      context: .
+      dockerfile: Dockerfile.playwright
+    container_name: simple-bookkeeping-playwright
+    depends_on:
+      web-test:
+        condition: service_healthy
+      api-test:
+        condition: service_healthy
+    environment:
+      # Playwright environment variables
+      BASE_URL: http://web-test:3000
+      API_URL: http://api-test:3001
+      CI: 'true'
+      NODE_ENV: test
+      # Test database connection for setup/teardown
+      DATABASE_URL: postgresql://test:test@postgres-test:5432/bookkeeping_test?schema=public
+    volumes:
+      - ./apps/web/e2e:/app/apps/web/e2e
+      - ./apps/web/playwright.config.ts:/app/apps/web/playwright.config.ts
+      - ./apps/web/playwright-report:/app/apps/web/playwright-report
+      - ./apps/web/test-results:/app/apps/web/test-results
+    networks:
+      - simple-bookkeeping-test
+    command: sh -c "cd /app/apps/web && npx playwright test"
+
+volumes:
+  postgres_test_data:
+    name: simple-bookkeeping-postgres-test-data
+
+networks:
+  simple-bookkeeping-test:
+    driver: bridge
