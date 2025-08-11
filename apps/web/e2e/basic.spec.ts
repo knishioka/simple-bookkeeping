@@ -13,8 +13,10 @@ import { UnifiedMock } from './helpers/unified-mock';
 test.describe('基本的なページアクセス', () => {
   test('トップページが正常に表示される', async ({ page }) => {
     // トップページにアクセス
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+    // h1要素が表示されるまで待機
+    await page.waitForSelector('h1', { timeout: 10000 });
 
     // ページタイトルを確認（実際にはh1要素の内容）
     await expect(page.locator('h1')).toContainText('Simple Bookkeeping');
@@ -29,8 +31,10 @@ test.describe('基本的なページアクセス', () => {
 
   test('ログインページが正常に表示される', async ({ page }) => {
     // ログインページにアクセス
-    await page.goto('/login');
-    await page.waitForLoadState('networkidle');
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+
+    // フォーム要素が表示されるまで待機
+    await page.waitForSelector('#email', { timeout: 10000 });
 
     // ページタイトルを確認（CardTitleのh2要素）
     await expect(page.locator('text=ログイン').first()).toBeVisible();
