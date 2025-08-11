@@ -1,9 +1,12 @@
 import { test, expect } from '@playwright/test';
 
-import { RadixSelectHelper } from './helpers/radix-select-helper';
+import { UnifiedAuth } from './helpers/unified-auth';
 
 test.describe('Audit Logs', () => {
   test.beforeEach(async ({ page, context }) => {
+    // Use unified authentication setup for admin user
+    await UnifiedAuth.setup(context, page, { role: 'admin' });
+
     // Mock /auth/me API endpoint for authentication check
     await context.route('**/api/v1/auth/me', async (route) => {
       await route.fulfill({
@@ -68,38 +71,6 @@ test.describe('Audit Logs', () => {
           }),
         });
       }
-    });
-
-    // Navigate to a page first to set localStorage
-    await page.goto('/');
-
-    // Set up localStorage with authentication data BEFORE navigating to protected routes
-    await page.evaluate(() => {
-      const user = {
-        id: '1',
-        email: 'admin@example.com',
-        name: 'Admin User',
-        organizations: [
-          {
-            id: 'org-1',
-            name: 'Test Organization',
-            code: 'TEST',
-            role: 'ADMIN',
-            isDefault: true,
-          },
-        ],
-        currentOrganization: {
-          id: 'org-1',
-          name: 'Test Organization',
-          code: 'TEST',
-          role: 'ADMIN',
-          isDefault: true,
-        },
-      };
-
-      localStorage.setItem('token', 'test-token');
-      localStorage.setItem('refreshToken', 'test-refresh-token');
-      localStorage.setItem('user', JSON.stringify(user));
     });
 
     // Now navigate to dashboard settings
@@ -265,6 +236,10 @@ test.describe('Audit Logs', () => {
   });
 
   test('should not show audit logs page for non-admin users', async ({ page, context }) => {
+    // Clear previous auth and set up as viewer
+    await UnifiedAuth.clear(page);
+    await UnifiedAuth.setupAsViewer(context, page);
+
     // Mock authentication API for non-admin user
     await context.route('**/api/v1/auth/me', async (route) => {
       await route.fulfill({
@@ -273,7 +248,7 @@ test.describe('Audit Logs', () => {
         body: JSON.stringify({
           data: {
             user: {
-              id: '2',
+              id: '3',
               email: 'viewer@example.com',
               name: 'Viewer User',
               organizations: [
@@ -296,35 +271,6 @@ test.describe('Audit Logs', () => {
           },
         }),
       });
-    });
-
-    // Clear current user data and set viewer user
-    await page.evaluate(() => {
-      const user = {
-        id: '2',
-        email: 'viewer@example.com',
-        name: 'Viewer User',
-        organizations: [
-          {
-            id: 'org-1',
-            name: 'Test Organization',
-            code: 'TEST',
-            role: 'VIEWER',
-            isDefault: true,
-          },
-        ],
-        currentOrganization: {
-          id: 'org-1',
-          name: 'Test Organization',
-          code: 'TEST',
-          role: 'VIEWER',
-          isDefault: true,
-        },
-      };
-
-      localStorage.setItem('token', 'test-token-viewer');
-      localStorage.setItem('refreshToken', 'test-refresh-token-viewer');
-      localStorage.setItem('user', JSON.stringify(user));
     });
 
     // Try to access audit logs directly
