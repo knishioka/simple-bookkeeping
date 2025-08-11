@@ -75,6 +75,16 @@ jobs:
           sleep 5
           curl -f http://localhost:3001/api/v1/ || exit 1
 
+      - name: Start Web server in background
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/bookkeeping_test
+          NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
+        run: |
+          cd apps/web
+          npm run start &
+          sleep 10
+          curl -f http://localhost:3000 || exit 1
+
       - name: Run E2E tests with performance tracking
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/bookkeeping_test
