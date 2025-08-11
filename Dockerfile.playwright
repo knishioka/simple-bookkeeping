@@ -1,0 +1,36 @@
+# Dockerfile for Playwright E2E tests
+FROM mcr.microsoft.com/playwright:v1.48.0-focal
+
+# Set working directory
+WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm@9
+
+# Copy package files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY apps/web/package.json ./apps/web/
+COPY apps/api/package.json ./apps/api/
+COPY packages/database/package.json ./packages/database/
+COPY packages/types/package.json ./packages/types/
+COPY packages/errors/package.json ./packages/errors/
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/core/package.json ./packages/core/
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Copy source code
+COPY . .
+
+# Generate Prisma client
+RUN pnpm --filter @simple-bookkeeping/database prisma:generate
+
+# Build packages (needed for test helpers)
+RUN pnpm build:packages
+
+# Install Playwright browsers (Chromium only for faster builds)
+RUN cd apps/web && npx playwright install chromium
+
+# Set default command
+CMD ["sh", "-c", "cd apps/web && npx playwright test"]

@@ -17,6 +17,9 @@
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:ci": "playwright test --reporter=list",
     "test:e2e:basic": "./e2e-run-basic.sh",
+    "test:e2e:docker": "../../scripts/e2e-test.sh",
+    "test:e2e:docker:headed": "../../scripts/e2e-test.sh --headed",
+    "test:e2e:docker:auth": "../../scripts/e2e-test.sh --test auth-test.spec.ts",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf .next .turbo node_modules",
     "analyze": "ANALYZE=true next build"

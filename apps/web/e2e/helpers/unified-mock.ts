@@ -73,6 +73,12 @@ export class UnifiedMock {
     context: BrowserContext,
     options: UnifiedMockOptions = {}
   ): Promise<void> {
+    const isCI = !!process.env.CI;
+
+    // CI環境では遅延を無効化してレスポンスを高速化
+    if (isCI && !options.delay) {
+      options.delay = 0;
+    }
     // /auth/me
     await context.route('**/api/v1/auth/me', async (route) => {
       await this.handleRoute(route, options, async () => {
