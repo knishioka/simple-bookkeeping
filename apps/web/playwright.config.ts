@@ -14,7 +14,7 @@ const TIMEOUTS = {
   test: isCI ? 30000 : 20000, // テスト全体のタイムアウトを短縮
   expect: 5000, // アサーションタイムアウトを短縮
   action: 10000, // アクションタイムアウト
-  navigation: 15000, // ナビゲーションタイムアウト
+  navigation: 10000, // ナビゲーションタイムアウト（15秒から10秒に短縮）
   server: 60000, // サーバー起動タイムアウト
 };
 
@@ -190,9 +190,9 @@ export default defineConfig({
 
   // 開発サーバー設定（最適化）
   webServer: isCI
-    ? undefined // CI環境では事前にサーバーが起動している前提
+    ? undefined // CI環境では事前にサーバーが起動されている
     : {
-        command: 'pnpm dev:test', // テスト用の開発サーバーコマンド
+        command: 'pnpm dev:test', // ローカルでは開発サーバー
         url: 'http://localhost:3000',
         reuseExistingServer: true, // 既存サーバーを再利用
         timeout: TIMEOUTS.server,

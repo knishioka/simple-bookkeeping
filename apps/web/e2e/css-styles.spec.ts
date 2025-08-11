@@ -14,8 +14,8 @@ import { UnifiedMock } from './helpers/unified-mock';
 
 // CSSが確実に読み込まれるまで待機するヘルパー関数
 async function waitForCSSToLoad(page: Page) {
-  // ネットワークがアイドル状態になるまで待機（統一された待機処理）
-  await page.waitForLoadState('networkidle');
+  // DOMコンテンツの読み込みを待機
+  await page.waitForLoadState('domcontentloaded');
 
   // スタイルシートが読み込まれるまで待機
   await page.waitForFunction(() => {
