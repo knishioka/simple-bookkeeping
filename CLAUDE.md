@@ -898,13 +898,6 @@ gh label list | grep -i test
 - フォローアップ: `follow-up` + 元の関連ラベル
 - テスト追加: `test` + 対象エリアラベル
 
-#### ラベル管理スクリプト
-
-```bash
-# ラベルセットアップスクリプトの実行
-bash .github/scripts/create-labels.sh
-```
-
 ### Issue作成コマンド例
 
 ```bash
