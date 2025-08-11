@@ -51,13 +51,16 @@ jobs:
       - name: Build packages first
         run: pnpm build:packages
 
-      - name: Build applications
-        run: |
-          # Build the apps to ensure CSS is properly compiled
-          pnpm --filter @simple-bookkeeping/api build
-          pnpm --filter @simple-bookkeeping/web build
+      - name: Build API application
+        run: pnpm --filter @simple-bookkeeping/api build
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/bookkeeping_test
+
+      - name: Build Web application
+        run: pnpm --filter @simple-bookkeeping/web build
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/bookkeeping_test
+          NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
 
       - name: Install Playwright browsers
         run: pnpm --filter @simple-bookkeeping/web exec playwright install --with-deps chromium
@@ -72,7 +75,7 @@ jobs:
           sleep 5
           curl -f http://localhost:3001/api/v1/ || exit 1
 
-      - name: Run E2E tests
+      - name: Run E2E tests with performance tracking
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/bookkeeping_test
           JWT_SECRET: test-secret-key
@@ -80,7 +83,15 @@ jobs:
           NEXTAUTH_URL: http://localhost:3000
           CI: true
           NODE_ENV: production
-        run: pnpm --filter @simple-bookkeeping/web test:e2e:ci
+        run: |
+          START_TIME=$(date +%s)
+          pnpm --filter @simple-bookkeeping/web test:e2e:ci
+          END_TIME=$(date +%s)
+          DURATION=$((END_TIME - START_TIME))
+          echo "E2E tests completed in ${DURATION} seconds"
+          echo "::notice title=E2E Performance::Tests completed in ${DURATION} seconds"
+          # Save performance data
+          echo "{\"duration\": ${DURATION}, \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > performance-report.json
 
       - name: Upload test results
         if: always()
@@ -97,3 +108,11 @@ jobs:
           name: playwright-videos
           path: apps/web/test-results/
           retention-days: 7
+
+      - name: Upload performance report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-report
+          path: performance-report.json
+          retention-days: 30

@@ -189,16 +189,16 @@ export default defineConfig({
   ],
 
   // 開発サーバー設定（最適化）
-  webServer: isCI
-    ? undefined // CI環境では事前にサーバーが起動している前提
-    : {
-        command: 'pnpm dev:test', // テスト用の開発サーバーコマンド
-        url: 'http://localhost:3000',
-        reuseExistingServer: true, // 既存サーバーを再利用
-        timeout: TIMEOUTS.server,
-        stdout: isDebug ? 'pipe' : 'ignore',
-        stderr: 'pipe',
-      },
+  webServer: {
+    command: isCI
+      ? 'pnpm --filter @simple-bookkeeping/web start' // CI環境ではビルド済みアプリを起動
+      : 'pnpm dev:test', // ローカルでは開発サーバー
+    url: 'http://localhost:3000',
+    reuseExistingServer: !isCI, // CI環境では新規起動、ローカルでは再利用
+    timeout: TIMEOUTS.server,
+    stdout: isDebug ? 'pipe' : 'ignore',
+    stderr: 'pipe',
+  },
 
   // グローバルセットアップ
   globalSetup: './e2e/global-setup.ts',
