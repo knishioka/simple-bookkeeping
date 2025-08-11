@@ -10,8 +10,7 @@ import { UnifiedMock } from './helpers/unified-mock';
  */
 
 test.describe('認証フロー', () => {
-  // TODO: CI環境での安定化が必要。Issue #107で部分的に改善したが、さらなる調整が必要
-  test.skip('ログイン処理が正常に動作する', async ({ page, context }) => {
+  test('ログイン処理が正常に動作する', async ({ page, context }) => {
     // 統一モックでAPIレスポンスをセットアップ
     await UnifiedMock.setupAuthMocks(context);
 
@@ -33,8 +32,7 @@ test.describe('認証フロー', () => {
     expect(isAuthenticated || isDashboard || hasError).toBeTruthy();
   });
 
-  // TODO: CI環境での安定化が必要。networkidleの代替アプローチが必要
-  test.skip('APIモックを使用したログイン処理', async ({ page, context }) => {
+  test('APIモックを使用したログイン処理', async ({ page, context }) => {
     // 注：このテストは現在のアプリケーションがlocalStorageにトークンを保存しないためスキップ
     // モック機能のテストは将来的にアプリケーションがlocalStorageを使用するようになった後に有効化
 
@@ -52,8 +50,11 @@ test.describe('認証フロー', () => {
     // ログインボタンクリック
     await page.click('button[type="submit"]');
 
-    // モックレスポンスが処理されることを確認（waitForTimeoutを削除）
-    await page.waitForLoadState('networkidle');
+    // モックレスポンスが処理されることを確認
+    await page.waitForLoadState('domcontentloaded');
+
+    // 少し待機してモックレスポンスが処理されるのを待つ
+    await page.waitForTimeout(1000);
 
     // トークンが保存されていることを確認
     const token = await page.evaluate(() => localStorage.getItem('token'));
