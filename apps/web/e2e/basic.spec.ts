@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 import { UnifiedMock } from './helpers/unified-mock';
+import { waitForPageReady, smartWait } from './helpers/wait-strategies';
 
 /**
  * 基本的なページアクセステスト
@@ -55,7 +56,7 @@ test.describe('基本的なページアクセス', () => {
 
     // デモページにアクセス
     await page.goto('/demo');
-    await page.waitForLoadState('networkidle');
+    await waitForPageReady(page, { waitForSelector: 'h1' });
 
     // デモページのコンテンツ確認
     await expect(page.locator('h1')).toContainText('機能デモ');
@@ -71,7 +72,7 @@ test.describe('基本的なページアクセス', () => {
 
     // デモ勘定科目ページにアクセス
     await page.goto('/demo/accounts');
-    await page.waitForLoadState('networkidle');
+    await waitForPageReady(page, { waitForSelector: 'h1', skipNetworkIdle: true });
 
     // ページタイトル確認
     await expect(page.locator('h1')).toContainText('勘定科目管理');
@@ -128,7 +129,7 @@ test.describe('レスポンシブデザイン', () => {
 
     // デモページにアクセス
     await page.goto('/demo');
-    await page.waitForLoadState('networkidle');
+    await waitForPageReady(page, { waitForSelector: 'h1' });
 
     // モバイルでもコンテンツが表示されることを確認
     await expect(page.locator('h1')).toBeVisible();
@@ -145,7 +146,7 @@ test.describe('レスポンシブデザイン', () => {
 
     // デモ勘定科目ページにアクセス
     await page.goto('/demo/accounts');
-    await page.waitForLoadState('networkidle');
+    await waitForPageReady(page, { waitForSelector: 'h1', skipNetworkIdle: true });
 
     // タブレットでもテーブルが適切に表示されることを確認
     await expect(page.locator('table')).toBeVisible();

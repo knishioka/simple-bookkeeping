@@ -79,7 +79,7 @@ export default function AccountsPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">勘定科目管理</h1>
-        <Button onClick={handleCreate}>
+        <Button onClick={handleCreate} data-testid="account-create-button">
           <Plus className="mr-2 h-4 w-4" />
           新規作成
         </Button>
@@ -99,10 +99,15 @@ export default function AccountsPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
+                data-testid="accounts-search-input"
               />
             </div>
-            <Select value={selectedType} onValueChange={setSelectedType}>
-              <SelectTrigger className="w-[200px]">
+            <Select
+              value={selectedType}
+              onValueChange={setSelectedType}
+              data-testid="accounts-type-filter"
+            >
+              <SelectTrigger className="w-[200px]" data-testid="accounts-type-trigger">
                 <SelectValue placeholder="科目タイプ" />
               </SelectTrigger>
               <SelectContent>
@@ -131,7 +136,7 @@ export default function AccountsPage() {
           ) : filteredAccounts.length === 0 ? (
             <div className="text-center py-8 text-gray-500">勘定科目が見つかりません</div>
           ) : (
-            <Table>
+            <Table data-testid="accounts-table">
               <TableHeader>
                 <TableRow>
                   <TableHead>コード</TableHead>
