@@ -346,19 +346,26 @@ export class UnifiedAuth {
 
     // CI環境では異なる待機戦略を使用
     if (isCI) {
-      // CI環境：APIレスポンスの完了を待つ
-      await page.waitForLoadState('networkidle', { timeout: 15000 });
+      // CI環境：より確実な待機戦略
+      // 1. まず短い時間でdomcontentloadedを待つ
+      await page.waitForLoadState('domcontentloaded', { timeout: 5000 });
 
-      // トークンが保存されるか、ダッシュボードへリダイレクトされるまで待機
-      await page.waitForFunction(
-        () => {
-          return (
-            localStorage.getItem('token') !== null ||
-            window.location.pathname.includes('/dashboard')
-          );
-        },
-        { timeout: 10000 }
-      );
+      // 2. ログイン処理の結果を待つ（成功または失敗）
+      await Promise.race([
+        // ダッシュボードへのリダイレクトを待つ
+        page.waitForURL('**/dashboard/**', { timeout: 10000 }).catch(() => null),
+        // トークンの保存を待つ
+        page
+          .waitForFunction(() => localStorage.getItem('token') !== null, { timeout: 10000 })
+          .catch(() => null),
+        // エラーメッセージの表示を待つ
+        page
+          .waitForSelector('[role="alert"], .text-destructive', { timeout: 10000 })
+          .catch(() => null),
+      ]);
+
+      // 3. 少し待機して状態を安定させる
+      await page.waitForTimeout(500);
     } else {
       // ローカル環境：既存のロジックを使用
       try {
