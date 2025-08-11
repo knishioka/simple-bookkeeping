@@ -55,7 +55,7 @@ test.describe('基本的なページアクセス', () => {
 
     // デモページにアクセス
     await page.goto('/demo');
-    await page.waitForLoadState('networkidle');
+    await waitForPageReady(page, { waitForSelector: 'h1' });
 
     // デモページのコンテンツ確認
     await expect(page.locator('h1')).toContainText('機能デモ');
@@ -71,7 +71,7 @@ test.describe('基本的なページアクセス', () => {
 
     // デモ勘定科目ページにアクセス
     await page.goto('/demo/accounts');
-    await page.waitForLoadState('networkidle');
+    await waitForPageReady(page, { waitForApi: /\/accounts/ });
 
     // ページタイトル確認
     await expect(page.locator('h1')).toContainText('勘定科目管理');
@@ -128,7 +128,7 @@ test.describe('レスポンシブデザイン', () => {
 
     // デモページにアクセス
     await page.goto('/demo');
-    await page.waitForLoadState('networkidle');
+    await waitForPageReady(page, { waitForSelector: 'h1' });
 
     // モバイルでもコンテンツが表示されることを確認
     await expect(page.locator('h1')).toBeVisible();
@@ -145,7 +145,7 @@ test.describe('レスポンシブデザイン', () => {
 
     // デモ勘定科目ページにアクセス
     await page.goto('/demo/accounts');
-    await page.waitForLoadState('networkidle');
+    await waitForPageReady(page, { waitForApi: /\/accounts/ });
 
     // タブレットでもテーブルが適切に表示されることを確認
     await expect(page.locator('table')).toBeVisible();

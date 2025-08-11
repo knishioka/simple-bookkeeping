@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 import { UnifiedAuth } from './helpers/unified-auth';
+import { waitForApiResponse, waitForTestId, waitForSelectOpen } from './helpers/wait-strategies';
 
 test.describe('Audit Logs', () => {
   test.beforeEach(async ({ page, context }) => {
@@ -80,9 +81,7 @@ test.describe('Audit Logs', () => {
   test('should display audit logs page for admin users', async ({ page }) => {
     // Navigate directly to audit logs page
     await page.goto('/dashboard/settings/audit-logs');
-    await page.waitForSelector('[data-testid="audit-logs-table"]', {
-      timeout: 15000,
-    });
+    await waitForTestId(page, 'audit-logs-table', { timeout: 15000 });
 
     // Check page content - use more specific selector to avoid duplicates
     await expect(page.getByText('監査ログ', { exact: true }).first()).toBeVisible();
@@ -95,33 +94,26 @@ test.describe('Audit Logs', () => {
 
   test('should filter audit logs by action type', async ({ page }) => {
     await page.goto('/dashboard/settings/audit-logs');
-    await page.waitForSelector('[data-testid="audit-logs-table"]', {
-      timeout: 15000,
-    });
+    await waitForTestId(page, 'audit-logs-table', { timeout: 15000 });
 
     // Select CREATE action filter using the trigger button
     const actionFilter = page.locator('[data-testid="audit-action-trigger"]');
     await actionFilter.waitFor({ state: 'visible', timeout: 10000 });
     await actionFilter.click();
 
-    // Wait for options to be visible and click the "作成" option
-    await page.waitForSelector('[role="option"]', { timeout: 10000 });
-    await page.waitForTimeout(500);
+    // Wait for select dropdown to open and click the "作成" option
+    await waitForSelectOpen(page, undefined, { timeout: 10000 });
     const createOption = page.locator('[role="option"]:has-text("作成")').first();
     await createOption.waitFor({ state: 'visible', timeout: 10000 });
     await createOption.click();
 
     // Wait for API response with filtered results
-    await page
-      .waitForResponse((resp) => resp.url().includes('/audit-logs') && resp.status() === 200, {
-        timeout: 10000,
-      })
-      .catch(() => {
-        // Continue even if no API call is made (in case of cached data)
-      });
+    await waitForApiResponse(page, '/audit-logs', { timeout: 10000 }).catch(() => {
+      // Continue even if no API call is made (in case of cached data)
+    });
 
-    // Wait for dropdown to close and verify selection
-    await page.waitForTimeout(1000);
+    // Verify selection by checking the filter button's state
+    await page.waitForSelector('[data-testid="audit-action-trigger"]', { state: 'visible' });
 
     // Just verify that the test completed successfully by checking table is still visible
     await expect(page.locator('[data-testid="audit-logs-table"]')).toBeVisible();
@@ -141,8 +133,10 @@ test.describe('Audit Logs', () => {
     await startDateInput.fill(yesterday.toISOString().split('T')[0]);
     await endDateInput.fill(today.toISOString().split('T')[0]);
 
-    // Wait for filtered results
-    await page.waitForTimeout(1000);
+    // Wait for API response after date filter change
+    await waitForApiResponse(page, '/audit-logs', { timeout: 5000 }).catch(() => {
+      // Continue even if API is not called
+    });
 
     // Check that the table is updated
     await expect(page.locator('table')).toBeVisible();
@@ -150,9 +144,7 @@ test.describe('Audit Logs', () => {
 
   test('should export audit logs as CSV', async ({ page }) => {
     await page.goto('/dashboard/settings/audit-logs');
-    await page.waitForSelector('[data-testid="audit-logs-table"]', {
-      timeout: 15000,
-    });
+    await waitForTestId(page, 'audit-logs-table', { timeout: 15000 });
 
     // Click export button and ensure it's enabled
     const exportButton = page.locator('[data-testid="audit-export-button"]');
@@ -162,8 +154,10 @@ test.describe('Audit Logs', () => {
     // Click export button
     await exportButton.click();
 
-    // Wait for any API response (success or failure)
-    await page.waitForTimeout(2000);
+    // Wait for export API response
+    await waitForApiResponse(page, '/export', { timeout: 5000 }).catch(() => {
+      // Export might be handled differently
+    });
 
     // Test passes if no errors are thrown and button is still clickable
     await expect(exportButton).toBeEnabled();
@@ -189,7 +183,8 @@ test.describe('Audit Logs', () => {
       const nextDisabled = await nextButton.isDisabled();
       if (!nextDisabled) {
         await nextButton.click();
-        await page.waitForTimeout(1000);
+        // Wait for page update
+        await waitForApiResponse(page, '/audit-logs', { timeout: 5000 }).catch(() => {});
         await expect(prevButton).toBeEnabled();
       }
     }
@@ -206,8 +201,8 @@ test.describe('Audit Logs', () => {
     const startDateInput = page.locator('input[type="date"]').first();
     await startDateInput.fill(futureDate.toISOString().split('T')[0]);
 
-    // Wait for the empty state
-    await page.waitForTimeout(1000);
+    // Wait for API response after filter change
+    await waitForApiResponse(page, '/audit-logs', { timeout: 5000 }).catch(() => {});
 
     // Check for empty state message
     const emptyMessage = page.getByText('監査ログがありません');
@@ -222,9 +217,7 @@ test.describe('Audit Logs', () => {
     // This test is too complex for the current E2E setup
     // Just verify the audit logs page loads correctly
     await page.goto('/dashboard/settings/audit-logs');
-    await page.waitForSelector('[data-testid="audit-logs-table"]', {
-      timeout: 15000,
-    });
+    await waitForTestId(page, 'audit-logs-table', { timeout: 15000 });
 
     // Check that the audit logs table is visible
     const table = page.locator('table');
@@ -319,8 +312,8 @@ test.describe('Audit Logs', () => {
     if (await refreshButton.isVisible()) {
       await refreshButton.click();
 
-      // Wait for refresh to complete
-      await page.waitForTimeout(1000);
+      // Wait for refresh API call
+      await waitForApiResponse(page, '/audit-logs', { timeout: 5000 }).catch(() => {});
 
       // Table should still be visible
       await expect(page.locator('table')).toBeVisible();

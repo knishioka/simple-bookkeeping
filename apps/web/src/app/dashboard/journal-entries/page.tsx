@@ -170,11 +170,15 @@ export default function JournalEntriesPage() {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">仕訳入力</h1>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+          <Button
+            variant="outline"
+            onClick={() => setImportDialogOpen(true)}
+            data-testid="journal-entry-import-button"
+          >
             <Upload className="mr-2 h-4 w-4" />
             CSVインポート
           </Button>
-          <Button onClick={handleCreate}>
+          <Button onClick={handleCreate} data-testid="journal-entry-create-button">
             <Plus className="mr-2 h-4 w-4" />
             新規作成
           </Button>
@@ -195,6 +199,7 @@ export default function JournalEntriesPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
+                data-testid="journal-entries-search-input"
               />
             </div>
             <div className="relative">
@@ -204,10 +209,15 @@ export default function JournalEntriesPage() {
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
                 className="pl-10 w-[200px]"
+                data-testid="journal-entries-month-filter"
               />
             </div>
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-[150px]">
+            <Select
+              value={selectedStatus}
+              onValueChange={setSelectedStatus}
+              data-testid="journal-entries-status-filter"
+            >
+              <SelectTrigger className="w-[150px]" data-testid="journal-entries-status-trigger">
                 <SelectValue placeholder="ステータス" />
               </SelectTrigger>
               <SelectContent>
@@ -224,7 +234,7 @@ export default function JournalEntriesPage() {
           ) : filteredEntries.length === 0 ? (
             <div className="text-center py-8 text-gray-500">仕訳が見つかりません</div>
           ) : (
-            <Table>
+            <Table data-testid="journal-entries-table">
               <TableHeader>
                 <TableRow>
                   <TableHead>仕訳番号</TableHead>
