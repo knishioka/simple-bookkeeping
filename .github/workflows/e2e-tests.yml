@@ -79,10 +79,20 @@ jobs:
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/bookkeeping_test
           NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
+          NEXTAUTH_SECRET: test-nextauth-secret
+          NEXTAUTH_URL: http://localhost:3000
         run: |
           cd apps/web
           npm run start &
-          sleep 10
+          # Wait for server to be fully ready
+          for i in {1..30}; do
+            if curl -f http://localhost:3000 >/dev/null 2>&1; then
+              echo "Web server is ready"
+              break
+            fi
+            echo "Waiting for web server... ($i/30)"
+            sleep 1
+          done
           curl -f http://localhost:3000 || exit 1
 
       - name: Run E2E tests with performance tracking
@@ -91,8 +101,9 @@ jobs:
           JWT_SECRET: test-secret-key
           NEXTAUTH_SECRET: test-nextauth-secret
           NEXTAUTH_URL: http://localhost:3000
+          NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
           CI: true
-          NODE_ENV: production
+          NODE_ENV: test
         run: |
           START_TIME=$(date +%s)
           pnpm --filter @simple-bookkeeping/web test:e2e:ci

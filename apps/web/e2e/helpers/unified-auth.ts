@@ -340,21 +340,21 @@ export class UnifiedAuth {
   static async submitLoginAndWait(page: Page): Promise<void> {
     const loginButton = page.locator('button[type="submit"]');
 
-    // 複数の成功条件を待機
+    // 複数の成功条件を待機（タイムアウトを10秒に短縮）
     await Promise.race([
       // ダッシュボードへのリダイレクト
-      loginButton.click().then(() => page.waitForURL('**/dashboard/**', { timeout: 15000 })),
+      loginButton.click().then(() => page.waitForURL('**/dashboard/**', { timeout: 10000 })),
       // トークンの保存確認
       loginButton
         .click()
         .then(() =>
-          page.waitForFunction(() => localStorage.getItem('token') !== null, { timeout: 15000 })
+          page.waitForFunction(() => localStorage.getItem('token') !== null, { timeout: 10000 })
         ),
       // API成功レスポンス
       Promise.all([
         loginButton.click(),
         page.waitForResponse((resp) => resp.url().includes('/auth/login') && resp.ok(), {
-          timeout: 15000,
+          timeout: 10000,
         }),
       ]),
     ]);
