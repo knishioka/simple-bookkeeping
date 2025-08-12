@@ -13,6 +13,7 @@ export const cleanupTestData = async () => {
   // Delete in correct order to respect foreign key constraints
   await prisma.journalEntryLine.deleteMany({});
   await prisma.journalEntry.deleteMany({});
+  await prisma.auditLog.deleteMany({});
   await prisma.account.deleteMany({});
   await prisma.accountingPeriod.deleteMany({});
   await prisma.userOrganization.deleteMany({});
