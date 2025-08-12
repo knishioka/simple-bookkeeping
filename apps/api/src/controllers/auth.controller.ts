@@ -367,17 +367,37 @@ export const getMe = async (req: Request, res: Response) => {
       });
     }
 
-    // Get default/current organization
-    const defaultOrg = user.userOrganizations.find((org) => org.isDefault);
-    const currentOrganization = defaultOrg
-      ? {
-          id: defaultOrg.organization.id,
-          name: defaultOrg.organization.name,
-          code: defaultOrg.organization.code,
-          role: defaultOrg.role,
-          isDefault: true,
-        }
-      : undefined;
+    // Get current organization from JWT context (if switched) or default from DB
+    const currentOrgId = authUser.organizationId;
+    let currentOrganization;
+
+    if (currentOrgId) {
+      // User has switched organization (from JWT)
+      const currentOrg = user.userOrganizations.find((org) => org.organizationId === currentOrgId);
+      if (currentOrg) {
+        currentOrganization = {
+          id: currentOrg.organization.id,
+          name: currentOrg.organization.name,
+          code: currentOrg.organization.code,
+          role: currentOrg.role,
+          isDefault: currentOrg.isDefault,
+        };
+      }
+    }
+
+    // If no current org from JWT, use default
+    if (!currentOrganization) {
+      const defaultOrg = user.userOrganizations.find((org) => org.isDefault);
+      currentOrganization = defaultOrg
+        ? {
+            id: defaultOrg.organization.id,
+            name: defaultOrg.organization.name,
+            code: defaultOrg.organization.code,
+            role: defaultOrg.role,
+            isDefault: true,
+          }
+        : undefined;
+    }
 
     // Format organizations list
     const organizations = user.userOrganizations.map((userOrg) => ({
