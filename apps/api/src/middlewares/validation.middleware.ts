@@ -125,7 +125,7 @@ export const validateFile = (options: {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         error: {
           code: ERROR_CODES.VALIDATION_ERROR,
-          message: 'File is required',
+          message: 'ファイルをアップロードしてください',
         },
       });
     }
