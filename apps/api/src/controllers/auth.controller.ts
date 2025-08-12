@@ -3,7 +3,7 @@ import {
   LoginInput,
   UpdateUserProfileInput,
   UserRole,
-} from '@simple-bookkeeping/core';
+} from '@simple-bookkeeping/shared';
 import { hash, compare } from 'bcryptjs';
 import { Request, Response } from 'express';
 

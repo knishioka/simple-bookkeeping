@@ -2,6 +2,8 @@
  * Authentication type definitions
  */
 
+import { UserRole } from './enums';
+
 export interface User {
   id: string;
   email: string;
@@ -11,8 +13,6 @@ export interface User {
   createdAt: Date;
   updatedAt: Date;
 }
-
-export type UserRole = 'admin' | 'accountant' | 'viewer';
 
 export interface LoginCredentials {
   email: string;

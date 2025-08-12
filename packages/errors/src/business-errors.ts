@@ -45,3 +45,27 @@ export class DuplicateEntryError extends BusinessError {
     super(`${field}「${value}」は既に存在します`, 'DUPLICATE_ENTRY');
   }
 }
+
+export class AccountingPeriodClosedError extends BusinessError {
+  constructor(periodName: string) {
+    super(`会計期間「${periodName}」は既に締められています`, 'ACCOUNTING_PERIOD_CLOSED');
+  }
+}
+
+export class InvalidJournalEntryError extends BusinessError {
+  constructor(message: string) {
+    super(message, 'INVALID_JOURNAL_ENTRY');
+  }
+}
+
+export class DuplicateAccountCodeError extends BusinessError {
+  constructor(code: string) {
+    super(`勘定科目コード「${code}」は既に使用されています`, 'DUPLICATE_ACCOUNT_CODE');
+  }
+}
+
+export class CircularReferenceError extends BusinessError {
+  constructor(message: string) {
+    super(message, 'CIRCULAR_REFERENCE');
+  }
+}
