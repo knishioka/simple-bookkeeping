@@ -552,6 +552,21 @@ pre-commitフックは品質保証のために存在します。必ず守って�
 - `// @ts-ignore` や `// @ts-nocheck` の使用
 - ESLintのルールを `.eslintrc` で無効化する
 - 警告を無視してコミットする
+- **「実装の都合」「一時的」「後で修正」などの理由でESLint警告を無視する**
+- **「動作に影響しない」という判断でTypeScriptエラーを無視する**
+
+**⚠️ 重要な注意事項：**
+
+ESLintやTypeScriptの警告・エラーは、コード品質を保つための重要なフィードバックです。
+これらを無視することは技術的負債を生み出し、将来的に大きな問題につながります。
+
+**絶対に守るべきルール：**
+
+1. **ESLint警告が出たら必ず修正する** - 警告を無視してコミットしない
+2. **TypeScriptエラーは即座に解決する** - `any`型で逃げない
+3. **「実装の都合」は言い訳にしない** - 正しい実装方法を探す
+4. **一時的な回避策を恒久化しない** - TODOコメントも禁止
+5. **CI/CDでエラーが出たら必ず対処する** - ローカルで再現して修正
 
 **正しい対処法：**
 
@@ -572,6 +587,25 @@ interface UserData {
   name: string;
 }
 const data: UserData = fetchData();
+
+// ❌ Bad: 実装の都合でエラーを無視
+try {
+  await someOperation();
+} catch (error: any) {
+  // TypeScriptエラーを無視
+  console.log(error.message);
+}
+
+// ✅ Good: 適切な型ガードを使用
+try {
+  await someOperation();
+} catch (error) {
+  if (error instanceof Error) {
+    console.log(error.message);
+  } else {
+    console.log('Unknown error occurred');
+  }
+}
 ```
 
 ### 2. TypeScriptの型安全性
@@ -582,6 +616,7 @@ const data: UserData = fetchData();
 - `as` によるアサーションは最小限に
 - 型推論で十分な場合は明示的な型注釈を避ける
 - ジェネリクスを適切に使用する
+- **エラーオブジェクトの型は必ず適切に処理する**
 
 ```typescript
 // ❌ Bad: 型を適当に決める

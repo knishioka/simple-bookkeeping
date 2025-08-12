@@ -90,7 +90,21 @@ export default function AccountSettingsPage() {
       passwordForm.reset();
     } catch (error) {
       console.error('Password change error:', error);
-      if ((error as any).response?.data?.error?.code === 'INVALID_PASSWORD') {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'response' in error &&
+        error.response &&
+        typeof error.response === 'object' &&
+        'data' in error.response &&
+        error.response.data &&
+        typeof error.response.data === 'object' &&
+        'error' in error.response.data &&
+        error.response.data.error &&
+        typeof error.response.data.error === 'object' &&
+        'code' in error.response.data.error &&
+        error.response.data.error.code === 'INVALID_PASSWORD'
+      ) {
         toast.error('現在のパスワードが正しくありません');
       } else {
         toast.error('パスワードの変更に失敗しました');

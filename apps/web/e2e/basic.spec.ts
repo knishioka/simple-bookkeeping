@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 import { UnifiedMock } from './helpers/unified-mock';
-import { waitForPageReady, smartWait } from './helpers/wait-strategies';
+import { waitForPageReady } from './helpers/wait-strategies';
 
 /**
  * 基本的なページアクセステスト
