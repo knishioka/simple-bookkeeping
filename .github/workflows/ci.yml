@@ -110,6 +110,8 @@ jobs:
         run: pnpm test
         env:
           NODE_ENV: test
+          JWT_SECRET: test-jwt-secret-for-ci
+          DISABLE_RATE_LIMIT: true
 
   build:
     name: Build
