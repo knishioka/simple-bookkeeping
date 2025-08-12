@@ -1,6 +1,13 @@
 #!/bin/bash
 
-# Vercel API deployment status check script
+# ============================================================================
+# vercel-api-status.sh - Vercel Deployment Status Monitor
+# ============================================================================
+# Purpose: Monitors Vercel deployment status via API, displays recent deployments,
+#          health checks, and deployment statistics with colored output
+# Usage: pnpm vercel:status (or direct execution)
+# Requirements: VERCEL_TOKEN environment variable or Vercel CLI authentication
+# ============================================================================
 
 # Colors for output
 GREEN='\033[0;32m'

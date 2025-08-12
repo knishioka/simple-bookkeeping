@@ -1,7 +1,13 @@
 #!/bin/bash
 
-# E2E Test Runner Script
-# This script provides an isolated Docker environment for E2E testing
+# ============================================================================
+# e2e-test.sh - Docker-based E2E Testing Framework
+# ============================================================================
+# Purpose: Provides isolated Docker environment for comprehensive E2E testing
+#          with database, API, and web server setup plus Playwright test execution
+# Usage: pnpm test:e2e [options] (supports --headless, --browser, --test pattern)
+# Requirements: Docker, docker-compose.test.yml, Playwright test configuration
+# ============================================================================
 
 set -e
 

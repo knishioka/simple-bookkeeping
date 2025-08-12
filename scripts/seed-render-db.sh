@@ -1,8 +1,13 @@
 #!/bin/bash
 
-# Render データベースへのシードデータ投入スクリプト
-# 注意: このスクリプトはローカルからRenderのデータベースに接続するため、
-# 実行後は削除することを推奨します
+# ============================================================================
+# seed-render-db.sh - Render Database Seeding Script
+# ============================================================================
+# Purpose: Populate Render PostgreSQL database with initial seed data
+# Usage: RENDER_DATABASE_URL='postgresql://user:pass@host:port/db' ./scripts/seed-render-db.sh
+# Requirements: Node.js, Prisma CLI, Render database connection string
+# Note: DEPRECATED - For security, delete after use. Use API-based seeding instead.
+# ============================================================================
 
 set -e
 
