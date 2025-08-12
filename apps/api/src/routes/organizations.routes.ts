@@ -93,9 +93,43 @@ router.put(
 
 // Remove user from organization (Admin only)
 router.delete(
-  '/:id/users/:userId',
+  '/:id/members/:userId',
   authorize(UserRole.ADMIN),
   organizationsController.removeUser as RouteHandler
+);
+
+// Add new member to organization (Admin only)
+router.post(
+  '/:id/members',
+  authorize(UserRole.ADMIN),
+  validate(
+    z.object({
+      body: z.object({
+        email: z.string().email(),
+        role: z.enum([UserRole.ADMIN, UserRole.ACCOUNTANT, UserRole.VIEWER]),
+      }),
+    })
+  ),
+  organizationsController.inviteUser as RouteHandler
+);
+
+// Get organization settings (All members can view)
+router.get('/:id/settings', organizationsController.getOrganizationSettings as RouteHandler);
+
+// Update organization settings (Admin only)
+router.put(
+  '/:id/settings',
+  authorize(UserRole.ADMIN),
+  validate(
+    z.object({
+      body: z.object({
+        address: z.string().optional(),
+        phone: z.string().optional(),
+        email: z.string().email().optional(),
+      }),
+    })
+  ),
+  organizationsController.updateOrganizationSettings as RouteHandler
 );
 
 export default router;
