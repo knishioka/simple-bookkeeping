@@ -211,30 +211,59 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const switchOrganization = async (organizationId: string) => {
     if (!user) return;
 
-    const organization = user.organizations.find((org) => org.id === organizationId);
-    if (!organization) {
-      toast.error('組織が見つかりません');
-      return;
+    try {
+      // Call the new switch organization endpoint
+      const response = await apiClient.post<{
+        token: string;
+        refreshToken: string;
+        user: {
+          id: string;
+          email: string;
+          name: string;
+          role: string;
+          organizationId: string;
+          organization: {
+            id: string;
+            name: string;
+            code: string;
+          };
+        };
+      }>('/auth/switch-organization', { organizationId });
+
+      if (response.data) {
+        // Update tokens with new organization context
+        apiClient.setToken(response.data.token, response.data.refreshToken);
+        apiClient.setOrganizationId(organizationId);
+
+        // Create organization object from response
+        const organization: Organization = {
+          id: response.data.user.organization.id,
+          name: response.data.user.organization.name,
+          code: response.data.user.organization.code,
+          role: response.data.user.role as 'ADMIN' | 'ACCOUNTANT' | 'VIEWER',
+          isDefault: false, // Not necessarily the default after switching
+        };
+
+        const updatedUser = {
+          ...user,
+          currentOrganization: organization,
+        };
+
+        setCurrentOrganization(organization);
+        setUser(updatedUser);
+
+        // Update cached user data
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+
+        toast.success(`${organization.name} に切り替えました`);
+
+        // Refresh the current page to reload data
+        router.refresh();
+      }
+    } catch (error) {
+      console.error('Failed to switch organization:', error);
+      toast.error('組織の切り替えに失敗しました');
     }
-
-    const updatedUser = {
-      ...user,
-      currentOrganization: organization,
-    };
-
-    setCurrentOrganization(organization);
-    setUser(updatedUser);
-
-    // Update cached user data
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-
-    // Update API client with new organization
-    apiClient.setOrganizationId(organizationId);
-
-    toast.success(`${organization.name} に切り替えました`);
-
-    // Refresh the current page to reload data
-    router.refresh();
   };
 
   const refreshUser = async () => {
