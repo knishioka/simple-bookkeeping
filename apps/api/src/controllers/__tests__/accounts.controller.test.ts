@@ -234,7 +234,7 @@ describe('AccountsController', () => {
       const account = await createTestAccount(testSetup.organization.id);
 
       const updateData = {
-        code: 'NEW-CODE', // Trying to change code (will be ignored)
+        code: 'NEW-CODE', // Trying to change code
         name: 'Updated Name',
       };
 
@@ -243,18 +243,49 @@ describe('AccountsController', () => {
         .set('Authorization', `Bearer ${testSetup.token}`)
         .send(updateData);
 
-      // Code change is silently ignored, but update succeeds
-      expect(response.status).toBe(200);
-      expect(response.body.data.code).toBe(account.code); // Code remains unchanged
-      expect(response.body.data.name).toBe('Updated Name'); // Name is updated
+      // Code change should return error
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('CODE_CHANGE_NOT_ALLOWED');
     });
 
-    it('should prevent updating account with existing journal entries', async () => {
+    it('should prevent updating account type with existing journal entries', async () => {
+      // Create a journal entry first for the cash account
+      await createTestJournalEntry(testSetup.organization.id, testSetup.accountingPeriod.id, true, {
+        lines: [
+          {
+            accountId: testSetup.accounts.cash.id,
+            debitAmount: 1000,
+            creditAmount: 0,
+          },
+          {
+            accountId: testSetup.accounts.sales.id,
+            debitAmount: 0,
+            creditAmount: 1000,
+          },
+        ],
+      });
+
+      const updateData = {
+        accountType: 'LIABILITY', // Trying to change type
+        name: 'Updated Cash Account',
+      };
+
+      const response = await request(app)
+        .put(`/api/v1/accounts/${testSetup.accounts.cash.id}`)
+        .set('Authorization', `Bearer ${testSetup.token}`)
+        .send(updateData);
+
+      // Type change should return error when there are transactions
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('TYPE_CHANGE_NOT_ALLOWED');
+    });
+
+    it('should allow updating name for account with existing journal entries', async () => {
       // Create account with journal entries
       const account = testSetup.accounts.cash;
 
       const updateData = {
-        name: 'Updated Cash Account', // Only name can be updated
+        name: 'Updated Cash Account', // Only name update
       };
 
       const response = await request(app)
@@ -262,7 +293,7 @@ describe('AccountsController', () => {
         .set('Authorization', `Bearer ${testSetup.token}`)
         .send(updateData);
 
-      // Currently, updating accounts with journal entries is allowed
+      // Name update should succeed
       expect(response.status).toBe(200);
       expect(response.body.data.name).toBe('Updated Cash Account');
     });
@@ -368,8 +399,9 @@ describe('AccountsController', () => {
       expect(response.status).toBe(200);
       expect(response.body.data.id).toBe(testSetup.accounts.cash.id);
       expect(response.body.data.code).toBe(testSetup.accounts.cash.code);
-      // Balance calculation is not yet implemented
-      // expect(response.body.data).toHaveProperty('balance');
+      // Balance is now calculated
+      expect(response.body.data).toHaveProperty('balance');
+      expect(typeof response.body.data.balance).toBe('number');
     });
 
     it('should return 404 for non-existent account', async () => {
@@ -401,7 +433,7 @@ describe('AccountsController', () => {
   });
 
   describe('POST /api/v1/accounts/import', () => {
-    it.skip('should import accounts from CSV', async () => {
+    it('should import accounts from CSV', async () => {
       const csvContent = `code,name,accountType
 6001,給与手当,EXPENSE
 6002,地代家賃,EXPENSE
@@ -417,7 +449,7 @@ describe('AccountsController', () => {
       expect(response.body.data.errors).toHaveLength(0);
     });
 
-    it.skip('should handle duplicate codes in CSV', async () => {
+    it('should handle duplicate codes in CSV', async () => {
       const csvContent = `code,name,accountType
 ${testSetup.accounts.cash.code},Duplicate,ASSET
 7001,Valid Account,EXPENSE`;
@@ -433,7 +465,7 @@ ${testSetup.accounts.cash.code},Duplicate,ASSET
       expect(response.body.data.errors[0]).toContain(testSetup.accounts.cash.code);
     });
 
-    it.skip('should validate CSV format', async () => {
+    it('should validate CSV format', async () => {
       const invalidCsv = `invalid,format
 missing,required,columns`;
 

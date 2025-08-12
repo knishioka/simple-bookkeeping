@@ -1,6 +1,7 @@
 import { UserRole } from '@simple-bookkeeping/database';
 import { createAccountSchema } from '@simple-bookkeeping/shared';
 import { Router } from 'express';
+import multer from 'multer';
 import { z } from 'zod';
 
 import * as accountsController from '../controllers/accounts.controller';
@@ -15,6 +16,9 @@ import { validate } from '../middlewares/validation';
 
 import type { RouteHandler } from '../types/express';
 import type { Router as RouterType } from 'express';
+
+// Setup multer for file upload
+const upload = multer({ storage: multer.memoryStorage() });
 
 const router: RouterType = Router();
 
@@ -48,7 +52,9 @@ router.put(
   validate(
     z.object({
       body: z.object({
+        code: z.string().optional(),
         name: z.string().min(1).optional(),
+        accountType: z.enum(['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE']).optional(),
         parentId: z.string().uuid().optional(),
       }),
     })
@@ -63,6 +69,14 @@ router.delete(
   authorize(UserRole.ADMIN),
   auditLog.deleteAccount,
   accountsController.deleteAccount as RouteHandler
+);
+
+// Import accounts from CSV (Admin/Accountant only)
+router.post(
+  '/import',
+  authorize(UserRole.ADMIN, UserRole.ACCOUNTANT),
+  upload.single('file'),
+  accountsController.importAccounts as RouteHandler
 );
 
 export default router;

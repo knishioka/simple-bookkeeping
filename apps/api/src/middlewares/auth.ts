@@ -16,6 +16,7 @@ export interface AuthenticatedRequest extends Request {
     organizationId?: string;
     organizationRole?: UserRole;
   };
+  file?: Express.Multer.File;
 }
 
 export const authenticate = (req: Request, res: Response, next: NextFunction) => {
