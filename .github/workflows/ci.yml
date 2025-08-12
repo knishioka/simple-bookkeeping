@@ -110,6 +110,7 @@ jobs:
         run: pnpm test
         env:
           NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test?schema=public
           JWT_SECRET: test-jwt-secret-for-ci
           DISABLE_RATE_LIMIT: true
 
