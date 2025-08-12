@@ -1,5 +1,13 @@
-// Basic E2E test to verify frontend pages are working
-// Run with: node scripts/e2e-basic-test.js
+/**
+ * ============================================================================
+ * e2e-basic-test.js - Basic E2E Test Runner
+ * ============================================================================
+ * Purpose: Verify frontend demo pages and API server functionality via HTTP requests
+ * Usage: node scripts/e2e-basic-test.js
+ * Requirements: Frontend server on localhost:3000, Node.js fetch API
+ * Note: Lightweight alternative to full E2E testing - checks page accessibility and content
+ * ============================================================================
+ */
 
 async function testFrontendPages() {
   console.log('🧪 Testing frontend pages...\n');

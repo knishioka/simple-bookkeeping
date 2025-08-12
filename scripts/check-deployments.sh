@@ -1,6 +1,12 @@
 #!/bin/bash
 
-# 両プラットフォームのデプロイメント状態を確認するスクリプト
+# ============================================================================
+# check-deployments.sh - Multi-platform Deployment Monitor
+# ============================================================================
+# Purpose: Monitor deployment status across both Render (API) and Vercel (Web)
+# Usage: pnpm deploy:check
+# Requirements: RENDER_API_KEY and VERCEL_TOKEN environment variables
+# ============================================================================
 
 set -e
 

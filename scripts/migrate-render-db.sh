@@ -1,7 +1,13 @@
 #!/bin/bash
 
-# Renderデータベースのマイグレーション実行スクリプト
-# 使用方法: DATABASE_URL='<External_Connection_URL>' ./scripts/migrate-render-db.sh
+# ============================================================================
+# migrate-render-db.sh - Render Database Migration Script
+# ============================================================================
+# Purpose: Execute Prisma database migrations on Render's PostgreSQL database
+# Usage: DATABASE_URL='postgresql://user:pass@host:port/db' ./scripts/migrate-render-db.sh
+# Requirements: Node.js, Prisma CLI, Render database connection string
+# Note: Interactive script that prompts for seeding data after migration
+# ============================================================================
 
 set -e
 

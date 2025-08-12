@@ -1,7 +1,12 @@
 #!/bin/bash
 
-# ビルドチェックスクリプト
-# コミット前に依存関係とビルドの問題を検出
+# ============================================================================
+# check-build.sh - Pre-commit Build Validation Script
+# ============================================================================
+# Purpose: Lightweight TypeScript type checking for changed packages only
+# Usage: Automatically run by pre-commit hook or manually via pnpm precommit:check
+# Scope: Only checks packages with changed TypeScript files for faster feedback
+# ============================================================================
 
 echo "🔍 Running build checks..."
 

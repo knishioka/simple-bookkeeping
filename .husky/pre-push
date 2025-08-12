@@ -25,23 +25,11 @@ if echo "$PROTECTED_BRANCHES" | grep -w "$BRANCH" > /dev/null; then
     echo "✅ No high or critical vulnerabilities found"
   fi
   
-  # Run Vercel build check
-  echo "🔨 Checking Vercel build (Web app)..."
-  if ! NODE_ENV=production pnpm --filter @simple-bookkeeping/web build; then
-    echo "❌ Vercel build failed! Please fix build errors before pushing."
-    echo "💡 Run 'NODE_ENV=production pnpm --filter @simple-bookkeeping/web build' to see detailed errors"
+  # Run comprehensive build check using the dedicated script
+  if ! ./scripts/check-full-build.sh; then
+    echo "❌ Build checks failed! Please fix errors before pushing."
     exit 1
   fi
-  echo "✅ Vercel build passed"
-  
-  # Run Render build check (API server)
-  echo "🔨 Checking Render build (API server)..."
-  if ! pnpm --filter @simple-bookkeeping/api build; then
-    echo "❌ Render build failed! Please fix build errors before pushing."
-    echo "💡 Run 'pnpm --filter @simple-bookkeeping/api build' to see detailed errors"
-    exit 1
-  fi
-  echo "✅ Render build passed"
   
   echo "✅ All pre-push checks passed!"
 else

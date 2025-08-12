@@ -1,7 +1,12 @@
 #!/bin/bash
 
-# 完全ビルドチェックスクリプト
-# push前にVercelとRenderの両方のビルドが成功することを確認
+# ============================================================================
+# check-full-build.sh - Pre-push Comprehensive Build Validation
+# ============================================================================
+# Purpose: Full build validation for both Vercel (Web) and Render (API) platforms
+# Usage: Automatically run by pre-push hook or manually via pnpm prepush:check
+# Scope: Builds all packages to ensure deployment readiness
+# ============================================================================
 
 echo "🚀 Running full build checks..."
 

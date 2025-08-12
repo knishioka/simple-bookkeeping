@@ -1,7 +1,13 @@
 #!/bin/bash
 
-# Render logs retrieval script
-# Supports build logs, runtime logs, and error filtering
+# ============================================================================
+# render-logs.sh - Render Log Retrieval Tool
+# ============================================================================
+# Purpose: Fetches and displays Render logs with multiple modes: runtime logs,
+#          build logs, error filtering, streaming, search, and statistics
+# Usage: pnpm render:logs <command> [options] (e.g., runtime, build, errors)
+# Requirements: Render CLI, .render/services.json, optional RENDER_API_KEY
+# ============================================================================
 
 # Colors for output
 GREEN='\033[0;32m'

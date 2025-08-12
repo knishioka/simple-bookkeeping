@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# ============================================================================
+# start-dev.sh - Development Server Startup Script
+# ============================================================================
+# Purpose: Starts both web and API development servers concurrently with
+#          port conflict checking and graceful shutdown handling
+# Usage: pnpm dev (or direct execution)
+# Requirements: .env file for configuration, WEB_PORT and API_PORT variables
+# ============================================================================
+
 # 環境変数の読み込み
 if [ -f .env ]; then
   export $(cat .env | grep -v '^#' | xargs)

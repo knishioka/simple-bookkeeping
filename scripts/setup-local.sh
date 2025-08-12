@@ -1,7 +1,13 @@
 #!/bin/bash
 
-# Setup script for local development environment
-# This script sets up a complete local development environment for Simple Bookkeeping
+# ============================================================================
+# setup-local.sh - Local Development Environment Setup
+# ============================================================================
+# Purpose: Complete setup of local development environment with Docker support
+# Usage: ./scripts/setup-local.sh
+# Requirements: Node.js 18+, pnpm, Docker (optional), PostgreSQL (if not using Docker)
+# Note: Interactive script that guides through environment setup with colored output
+# ============================================================================
 
 set -e  # Exit on error
 

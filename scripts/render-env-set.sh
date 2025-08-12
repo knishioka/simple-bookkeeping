@@ -1,6 +1,13 @@
 #!/bin/bash
 
-# Render API environment variable management script
+# ============================================================================
+# render-env-set.sh - Render Environment Variable Management
+# ============================================================================
+# Purpose: Manage Render service environment variables via REST API
+# Usage: ./scripts/render-env-set.sh <command> [options]
+# Requirements: curl, jq, RENDER_API_KEY env var, .render/services.json config
+# Note: Supports list, set, delete operations and timeout fix for optimal Render performance
+# ============================================================================
 
 # Colors for output
 GREEN='\033[0;32m'
