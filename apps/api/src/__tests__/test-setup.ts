@@ -1,5 +1,5 @@
 // Import env setup first
-import './env-setup';
+import './test-env-setup';
 
 // Now import prisma after environment variables are set
 import { prisma } from '../lib/prisma';
