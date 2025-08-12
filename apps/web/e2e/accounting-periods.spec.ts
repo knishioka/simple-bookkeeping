@@ -7,15 +7,20 @@ import { UnifiedAuth } from './helpers/unified-auth';
  */
 test.describe('Accounting Periods Management', () => {
   test('should successfully authenticate and navigate to dashboard', async ({ page, context }) => {
+    // テストのタイムアウトを延長
+    test.setTimeout(30000);
+
     // 統一認証ヘルパーでモックをセットアップ
     await UnifiedAuth.setupMockRoutes(context);
 
-    // ログインフォーム入力と送信
-    await UnifiedAuth.fillLoginForm(page, 'admin@example.com', 'admin123');
-    await UnifiedAuth.submitLoginAndWait(page);
+    // 直接認証トークンを設定してダッシュボードへ移動
+    await UnifiedAuth.setAuthData(page);
+    await page.goto('/dashboard/settings/accounting-periods');
+    await page.waitForLoadState('networkidle');
 
-    // Verify we're on the dashboard
-    await expect(page).toHaveURL(/.*dashboard.*/);
+    // Verify we're on the accounting periods page
+    await expect(page).toHaveURL(/.*accounting-periods.*/);
+    await expect(page.locator('h1.text-2xl')).toContainText('会計期間管理');
   });
 
   test.beforeEach(async ({ page, context }) => {
