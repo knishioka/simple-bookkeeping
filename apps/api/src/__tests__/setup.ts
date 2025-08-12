@@ -1,13 +1,11 @@
+// Import env setup first
+import './env-setup';
+
+// Now import prisma after environment variables are set
 import { prisma } from '../lib/prisma';
 
 // Increase timeout for database operations
 jest.setTimeout(30000);
-
-// Set NODE_ENV to test to ensure proper test configuration
-process.env.NODE_ENV = 'test';
-
-// Disable rate limiting in tests
-process.env.DISABLE_RATE_LIMIT = 'true';
 
 // Ensure clean database state before all tests
 beforeAll(async () => {

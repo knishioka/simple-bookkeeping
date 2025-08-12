@@ -1,3 +1,6 @@
+// Setup test environment variables first
+import '../../__tests__/env-setup';
+
 import { UserRole } from '@simple-bookkeeping/database';
 import bcrypt from 'bcryptjs';
 import request from 'supertest';
