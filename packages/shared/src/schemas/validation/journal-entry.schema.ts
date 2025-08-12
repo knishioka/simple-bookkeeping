@@ -79,21 +79,11 @@ export const updateJournalEntrySchema = createJournalEntrySchema.partial().exten
 
 // Query parameters schema
 export const journalEntryQuerySchema = z.object({
-  from: dateSchema.optional(),
-  to: dateSchema.optional(),
+  from: z.string().optional(),
+  to: z.string().optional(),
   status: z.nativeEnum(JournalStatus).optional(),
-  page: z
-    .string()
-    .regex(/^\d+$/, 'Page must be a number')
-    .transform(Number)
-    .pipe(z.number().int().positive())
-    .optional(),
-  limit: z
-    .string()
-    .regex(/^\d+$/, 'Limit must be a number')
-    .transform(Number)
-    .pipe(z.number().int().positive().max(100))
-    .optional(),
+  page: z.string().optional(),
+  limit: z.string().optional(),
   organizationId: uuidSchema.optional(),
 });
 

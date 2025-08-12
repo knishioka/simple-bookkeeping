@@ -16,7 +16,7 @@ import {
   setOrganizationContext,
   requireOrganization,
 } from '../middlewares/auth';
-import { validate, validateFile } from '../middlewares/validation.middleware';
+import { validate, validateFile, validateOptional } from '../middlewares/validation.middleware';
 
 import type { RouteHandler } from '../types/express';
 import type { Router as RouterType } from 'express';
@@ -35,7 +35,7 @@ router.use(requireOrganization);
 // Get all journal entries
 router.get(
   '/',
-  validate(journalEntryQuerySchema, 'query'),
+  validateOptional(journalEntryQuerySchema, 'query'),
   journalEntriesController.getJournalEntries as RouteHandler
 );
 
@@ -87,6 +87,19 @@ router.post(
     allowedTypes: ['text/csv', 'application/csv'],
   }),
   journalEntriesController.importJournalEntries as RouteHandler
+);
+
+// Upload CSV endpoint (alias for import)
+router.post(
+  '/upload-csv',
+  authorize(UserRole.ADMIN, UserRole.ACCOUNTANT),
+  upload.single('file'),
+  validateFile({
+    required: true,
+    maxSize: FILE_UPLOAD_SIZE_LIMIT,
+    allowedTypes: ['text/csv', 'application/csv'],
+  }),
+  journalEntriesController.uploadCsvJournalEntries as RouteHandler
 );
 
 export default router;
