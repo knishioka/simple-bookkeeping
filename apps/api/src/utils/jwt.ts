@@ -3,12 +3,14 @@ import * as jwt from 'jsonwebtoken';
 interface TokenPayload {
   sub: string;
   email: string;
+  organizationId: string;
   role: string;
 }
 
 export const generateTokens = (
   userId: string,
   email: string,
+  organizationId: string,
   role: string
 ): { accessToken: string; refreshToken: string } => {
   const jwtSecret = process.env.JWT_SECRET;
@@ -25,6 +27,7 @@ export const generateTokens = (
   const payload: TokenPayload = {
     sub: userId,
     email,
+    organizationId,
     role,
   };
 

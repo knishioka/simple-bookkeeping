@@ -64,4 +64,18 @@ router.put(
   authController.changePassword
 );
 
+// Switch organization
+router.post(
+  '/switch-organization',
+  authenticate,
+  validate(
+    z.object({
+      body: z.object({
+        organizationId: z.string().uuid('有効な組織IDを入力してください'),
+      }),
+    })
+  ),
+  authController.switchOrganization
+);
+
 export default router;

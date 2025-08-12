@@ -62,8 +62,21 @@ export const login = async (
     const organizationId = defaultOrg?.organizationId;
     const organizationRole = defaultOrg?.role || UserRole.VIEWER;
 
-    // TODO: Remove hardcoded role when fully migrated to organization-based roles
-    const { accessToken, refreshToken } = generateTokens(user.id, user.email, organizationRole);
+    if (!organizationId) {
+      return res.status(400).json({
+        error: {
+          code: 'NO_ORGANIZATION',
+          message: 'ユーザーが組織に所属していません',
+        },
+      });
+    }
+
+    const { accessToken, refreshToken } = generateTokens(
+      user.id,
+      user.email,
+      organizationId,
+      organizationRole
+    );
 
     // Update last login
     await prisma.user.update({
@@ -129,8 +142,69 @@ export const refreshToken = async (req: Request, res: Response) => {
       });
     }
 
-    // TODO: Remove hardcoded role when fully migrated to organization-based roles
-    const tokens = generateTokens(user.id, user.email, UserRole.ADMIN);
+    // Get user's organization info from the refresh token payload
+    // If organizationId is in the token, use it; otherwise get default
+    let organizationId = payload.organizationId;
+    let organizationRole = payload.role;
+
+    // If no organization info in token (legacy token), get default organization
+    if (!organizationId) {
+      const defaultOrg = await prisma.userOrganization.findFirst({
+        where: {
+          userId: user.id,
+          isDefault: true,
+        },
+      });
+
+      if (!defaultOrg) {
+        return res.status(400).json({
+          error: {
+            code: 'NO_ORGANIZATION',
+            message: 'ユーザーが組織に所属していません',
+          },
+        });
+      }
+
+      organizationId = defaultOrg.organizationId;
+      organizationRole = defaultOrg.role;
+    } else {
+      // Verify the user still has access to the organization
+      const userOrg = await prisma.userOrganization.findUnique({
+        where: {
+          userId_organizationId: {
+            userId: user.id,
+            organizationId,
+          },
+        },
+      });
+
+      if (!userOrg) {
+        // User no longer has access to this organization, get default
+        const defaultOrg = await prisma.userOrganization.findFirst({
+          where: {
+            userId: user.id,
+            isDefault: true,
+          },
+        });
+
+        if (!defaultOrg) {
+          return res.status(400).json({
+            error: {
+              code: 'NO_ORGANIZATION',
+              message: 'ユーザーが組織に所属していません',
+            },
+          });
+        }
+
+        organizationId = defaultOrg.organizationId;
+        organizationRole = defaultOrg.role;
+      } else {
+        // Update role in case it changed
+        organizationRole = userOrg.role;
+      }
+    }
+
+    const tokens = generateTokens(user.id, user.email, organizationId, organizationRole);
 
     res.json({
       data: {
@@ -203,7 +277,12 @@ export const register = async (req: Request, res: Response) => {
       return { user, organization };
     });
 
-    const tokens = generateTokens(result.user.id, result.user.email, UserRole.ADMIN);
+    const tokens = generateTokens(
+      result.user.id,
+      result.user.email,
+      result.organization.id,
+      UserRole.ADMIN
+    );
 
     res.status(201).json({
       data: {
@@ -441,6 +520,119 @@ export const changePassword = async (req: Request, res: Response) => {
       error: {
         code: 'INTERNAL_SERVER_ERROR',
         message: 'パスワード変更中にエラーが発生しました',
+      },
+    });
+  }
+};
+
+export const switchOrganization = async (req: Request, res: Response) => {
+  try {
+    const authUser = (req as AuthenticatedRequest).user;
+    const { organizationId } = req.body;
+
+    if (!authUser) {
+      return res.status(401).json({
+        error: {
+          code: 'UNAUTHORIZED',
+          message: '認証が必要です',
+        },
+      });
+    }
+
+    if (!organizationId) {
+      return res.status(400).json({
+        error: {
+          code: 'MISSING_ORGANIZATION_ID',
+          message: '組織IDが必要です',
+        },
+      });
+    }
+
+    // Check if user has access to the organization
+    const userOrg = await prisma.userOrganization.findUnique({
+      where: {
+        userId_organizationId: {
+          userId: authUser.id,
+          organizationId,
+        },
+      },
+      include: {
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            isActive: true,
+          },
+        },
+      },
+    });
+
+    if (!userOrg) {
+      return res.status(403).json({
+        error: {
+          code: 'NO_ACCESS_TO_ORGANIZATION',
+          message: 'この組織へのアクセス権限がありません',
+        },
+      });
+    }
+
+    if (!userOrg.organization.isActive) {
+      return res.status(403).json({
+        error: {
+          code: 'ORGANIZATION_INACTIVE',
+          message: 'この組織は無効化されています',
+        },
+      });
+    }
+
+    // Get user details for token generation
+    const user = await prisma.user.findUnique({
+      where: { id: authUser.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        error: {
+          code: 'USER_NOT_FOUND',
+          message: 'ユーザーが見つかりません',
+        },
+      });
+    }
+
+    // Generate new tokens with the selected organization
+    const { accessToken, refreshToken } = generateTokens(
+      user.id,
+      user.email,
+      organizationId,
+      userOrg.role
+    );
+
+    res.json({
+      data: {
+        token: accessToken,
+        refreshToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: userOrg.role,
+          organizationId,
+          organization: userOrg.organization,
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Switch organization error:', error);
+    res.status(500).json({
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: '組織切り替え中にエラーが発生しました',
       },
     });
   }

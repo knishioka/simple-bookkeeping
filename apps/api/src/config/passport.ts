@@ -44,12 +44,31 @@ export const jwtStrategy = new JwtStrategy(opts, async (payload, done) => {
       return done(null, false);
     }
 
-    // Map user with system-wide role (ADMIN by default for now)
+    // Get the role from JWT payload (organization-based)
+    const organizationId = payload.organizationId;
+    const role = payload.role as UserRole;
+
+    // Verify user still has access to the organization
+    let currentOrgRole = role;
+    if (organizationId) {
+      const userOrg = user.userOrganizations.find((uo) => uo.organizationId === organizationId);
+
+      if (!userOrg || !userOrg.organization.isActive) {
+        // User no longer has access to this organization
+        return done(null, false);
+      }
+
+      // Use the current role from database (in case it was updated)
+      currentOrgRole = userOrg.role;
+    }
+
+    // Map user with organization-based role
     const mappedUser = {
       id: user.id,
       email: user.email,
       name: user.name,
-      role: UserRole.ADMIN, // Will be removed once we fully migrate to org-based roles
+      role: currentOrgRole,
+      organizationId,
       userOrganizations: user.userOrganizations,
     };
 
