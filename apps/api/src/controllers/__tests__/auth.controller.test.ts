@@ -95,24 +95,8 @@ describe('AuthController', () => {
       expect(response.body.error.code).toBe('VALIDATION_ERROR');
     });
 
-    it.skip('should rate limit login attempts', async () => {
-      // TODO: Implement rate limiting
-      // Make multiple failed login attempts
-      const attempts = Array(6)
-        .fill(null)
-        .map(() =>
-          request(app).post('/api/v1/auth/login').send({
-            email: 'auth-test@example.com',
-            password: 'WrongPassword',
-          })
-        );
-
-      const responses = await Promise.all(attempts);
-      const lastResponse = responses[responses.length - 1];
-
-      // Should be rate limited after 5 attempts
-      expect(lastResponse.status).toBe(429);
-    });
+    // Rate limiting is tested in a separate file (auth.rate-limit.test.ts)
+    // because it requires specific environment setup before module loading
 
     it('should log audit event for successful login', async () => {
       const response = await request(app).post('/api/v1/auth/login').send({
