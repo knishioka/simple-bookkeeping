@@ -149,9 +149,24 @@ export default function OrganizationMembersPage() {
       setInviteDialogOpen(false);
       form.reset();
       fetchMembers();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to invite user:', error);
-      const errorMessage = error.response?.data?.error?.message || 'ユーザーの招待に失敗しました';
+      const errorMessage =
+        error &&
+        typeof error === 'object' &&
+        'response' in error &&
+        error.response &&
+        typeof error.response === 'object' &&
+        'data' in error.response &&
+        error.response.data &&
+        typeof error.response.data === 'object' &&
+        'error' in error.response.data &&
+        error.response.data.error &&
+        typeof error.response.data.error === 'object' &&
+        'message' in error.response.data.error &&
+        typeof error.response.data.error.message === 'string'
+          ? error.response.data.error.message
+          : 'ユーザーの招待に失敗しました';
       toast.error(errorMessage);
     } finally {
       setIsInviting(false);
@@ -168,9 +183,24 @@ export default function OrganizationMembersPage() {
       setRemoveDialogOpen(false);
       setSelectedMember(null);
       fetchMembers();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to remove member:', error);
-      const errorMessage = error.response?.data?.error?.message || 'メンバーの削除に失敗しました';
+      const errorMessage =
+        error &&
+        typeof error === 'object' &&
+        'response' in error &&
+        error.response &&
+        typeof error.response === 'object' &&
+        'data' in error.response &&
+        error.response.data &&
+        typeof error.response.data === 'object' &&
+        'error' in error.response.data &&
+        error.response.data.error &&
+        typeof error.response.data.error === 'object' &&
+        'message' in error.response.data.error &&
+        typeof error.response.data.error.message === 'string'
+          ? error.response.data.error.message
+          : 'メンバーの削除に失敗しました';
       toast.error(errorMessage);
     } finally {
       setIsRemoving(false);
@@ -189,9 +219,24 @@ export default function OrganizationMembersPage() {
       setRoleDialogOpen(false);
       setSelectedMember(null);
       fetchMembers();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to update role:', error);
-      const errorMessage = error.response?.data?.error?.message || 'ロールの更新に失敗しました';
+      const errorMessage =
+        error &&
+        typeof error === 'object' &&
+        'response' in error &&
+        error.response &&
+        typeof error.response === 'object' &&
+        'data' in error.response &&
+        error.response.data &&
+        typeof error.response.data === 'object' &&
+        'error' in error.response.data &&
+        error.response.data.error &&
+        typeof error.response.data.error === 'object' &&
+        'message' in error.response.data.error &&
+        typeof error.response.data.error.message === 'string'
+          ? error.response.data.error.message
+          : 'ロールの更新に失敗しました';
       toast.error(errorMessage);
     } finally {
       setIsUpdatingRole(false);
