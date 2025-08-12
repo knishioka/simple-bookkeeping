@@ -81,6 +81,8 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test?schema=public
+      JWT_SECRET: test-jwt-secret-for-ci
+      DISABLE_RATE_LIMIT: true
 
     steps:
       - uses: actions/checkout@v4
