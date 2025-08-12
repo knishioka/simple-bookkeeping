@@ -33,7 +33,7 @@ describe('AuditLogController', () => {
         action: 'CREATE',
         entityType: 'JournalEntry',
         entityId: 'test-entity-1',
-        details: { description: 'Created journal entry' },
+        newValues: { description: 'Created journal entry' },
         ipAddress: '127.0.0.1',
       },
     });
@@ -45,7 +45,8 @@ describe('AuditLogController', () => {
         action: 'UPDATE',
         entityType: 'Account',
         entityId: 'test-entity-2',
-        details: { changes: { name: 'Updated name' } },
+        oldValues: { name: 'Original name' },
+        newValues: { name: 'Updated name' },
         ipAddress: '127.0.0.1',
       },
     });
@@ -100,8 +101,8 @@ describe('AuditLogController', () => {
         .get('/api/v1/audit-logs')
         .set('Authorization', `Bearer ${adminToken}`)
         .query({
-          from: today.toISOString().split('T')[0],
-          to: tomorrow.toISOString().split('T')[0],
+          startDate: today.toISOString(),
+          endDate: tomorrow.toISOString(),
         });
 
       expect(response.status).toBe(200);
@@ -148,7 +149,7 @@ describe('AuditLogController', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.data.id).toBe(log?.id);
-      expect(response.body.data).toHaveProperty('details');
+      expect(response.body.data).toHaveProperty('newValues');
     });
 
     it('should return 404 for non-existent log', async () => {
@@ -252,7 +253,11 @@ describe('AuditLogController', () => {
       });
 
       expect(auditLog).not.toBeNull();
-      expect(auditLog?.details).toHaveProperty('description', 'Test Entry for Audit');
+      expect(auditLog?.newValues).toEqual(
+        expect.objectContaining({
+          description: 'Test Entry for Audit',
+        })
+      );
     });
 
     it('should create audit log on account update', async () => {
