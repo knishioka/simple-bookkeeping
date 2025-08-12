@@ -29,7 +29,7 @@
       "outputs": []
     },
     "test": {
-      "outputs": ["coverage/**"],
+      "outputs": [],
       "dependsOn": [],
       "env": ["NODE_ENV"]
     },
