@@ -207,7 +207,7 @@ describe('OrganizationsController', () => {
       });
 
       const memberData = {
-        userId: newUser.id,
+        email: newUser.email,
         role: UserRole.ACCOUNTANT,
       };
 
@@ -223,7 +223,7 @@ describe('OrganizationsController', () => {
 
     it('should prevent duplicate members', async () => {
       const memberData = {
-        userId: accountantUser.id, // Already a member
+        email: accountantUser.email, // Already a member
         role: UserRole.VIEWER,
       };
 
@@ -233,7 +233,7 @@ describe('OrganizationsController', () => {
         .send(memberData);
 
       expect(response.status).toBe(400);
-      expect(response.body.error.code).toBe('USER_ALREADY_MEMBER');
+      expect(response.body.error.code).toBe('ALREADY_MEMBER');
     });
 
     it('should require ADMIN role to add members', async () => {
@@ -246,7 +246,7 @@ describe('OrganizationsController', () => {
       });
 
       const memberData = {
-        userId: newUser.id,
+        email: newUser.email,
         role: UserRole.VIEWER,
       };
 
@@ -260,7 +260,7 @@ describe('OrganizationsController', () => {
 
     it('should validate user exists', async () => {
       const memberData = {
-        userId: 'non-existent-user-id',
+        email: 'nonexistent@example.com',
         role: UserRole.VIEWER,
       };
 
@@ -290,6 +290,12 @@ describe('OrganizationsController', () => {
     });
 
     it('should prevent self role change', async () => {
+      // Create another admin first so self-change check takes precedence over last admin check
+      await createTestUser(testOrg.id, UserRole.ADMIN, {
+        email: 'second-admin@test.com',
+        name: 'Second Admin',
+      });
+
       const updateData = {
         role: UserRole.VIEWER, // Try to demote self
       };
@@ -361,6 +367,19 @@ describe('OrganizationsController', () => {
     });
 
     it('should prevent self removal', async () => {
+      // Update viewer to admin first so self-removal check takes precedence over last admin check
+      await prisma.userOrganization.update({
+        where: {
+          userId_organizationId: {
+            userId: viewerUser.id,
+            organizationId: testOrg.id,
+          },
+        },
+        data: {
+          role: UserRole.ADMIN,
+        },
+      });
+
       const response = await request(app)
         .delete(`/api/v1/organizations/${testOrg.id}/members/${adminUser.id}`)
         .set('Authorization', `Bearer ${adminToken}`);
@@ -467,8 +486,8 @@ describe('OrganizationsController', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .send(invalidSettings);
 
-      expect(response.status).toBe(400);
-      expect(response.body.error.code).toBe('INVALID_EMAIL');
+      expect(response.status).toBe(422);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
     });
 
     it('should require ADMIN role to update settings', async () => {

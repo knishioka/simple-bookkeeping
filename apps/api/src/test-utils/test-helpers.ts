@@ -64,7 +64,7 @@ export const createTestUser = async (
       userId: user.id,
       organizationId,
       role,
-      isDefault: false,
+      isDefault: true,
     },
   });
 
