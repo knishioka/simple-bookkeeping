@@ -1,3 +1,6 @@
+// Setup test environment variables first
+import '../test-utils/env-setup';
+
 import { AccountType, JournalStatus, UserRole } from '@prisma/client';
 import request from 'supertest';
 

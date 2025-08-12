@@ -47,15 +47,22 @@ describe('JWT Utils', () => {
       expect(decodedRefresh.sub).toBe(userId);
     });
 
-    it('should throw error when JWT_SECRET is not set', () => {
+    it('should throw error when JWT_SECRET is not set in non-test environment', () => {
+      // Save original values
+      const originalSecret = process.env.JWT_SECRET;
+      const originalNodeEnv = process.env.NODE_ENV;
+
+      // Set NODE_ENV to production to test the error case
+      process.env.NODE_ENV = 'production';
       delete process.env.JWT_SECRET;
 
       expect(() => {
         generateTokens(userId, email, organizationId, role);
       }).toThrow('JWT_SECRET environment variable is required');
 
-      // Restore for other tests
-      process.env.JWT_SECRET = 'test-jwt-secret-with-sufficient-length-for-security-purposes';
+      // Restore original values
+      process.env.JWT_SECRET = originalSecret;
+      process.env.NODE_ENV = originalNodeEnv;
     });
   });
 
