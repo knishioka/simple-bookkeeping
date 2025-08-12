@@ -30,13 +30,14 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
       });
     }
 
-    (req as AuthenticatedRequest).user = user as {
-      id: string;
-      email: string;
-      name: string;
-      role: UserRole;
-      organizationId?: string;
-      organizationRole?: UserRole;
+    // User object now comes with organizationId and role from JWT
+    (req as AuthenticatedRequest).user = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      organizationId: user.organizationId,
+      organizationRole: user.role, // Same as role since it's organization-based
     };
     next();
   })(req, res, next);

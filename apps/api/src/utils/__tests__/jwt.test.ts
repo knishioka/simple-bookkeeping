@@ -5,12 +5,14 @@ import { generateTokens, verifyRefreshToken } from '../jwt';
 interface JWTPayload {
   sub: string;
   email?: string;
+  organizationId?: string;
   role?: string;
 }
 
 describe('JWT Utils', () => {
   const userId = 'test-user-id';
   const email = 'test@example.com';
+  const organizationId = 'test-org-id';
   const role = 'ADMIN';
 
   // Set up test environment variables
@@ -22,7 +24,7 @@ describe('JWT Utils', () => {
 
   describe('generateTokens', () => {
     it('should generate access and refresh tokens', () => {
-      const { accessToken, refreshToken } = generateTokens(userId, email, role);
+      const { accessToken, refreshToken } = generateTokens(userId, email, organizationId, role);
 
       expect(accessToken).toBeTruthy();
       expect(refreshToken).toBeTruthy();
@@ -31,6 +33,7 @@ describe('JWT Utils', () => {
       const decodedAccess = verify(accessToken, process.env.JWT_SECRET as string) as JWTPayload;
       expect(decodedAccess.sub).toBe(userId);
       expect(decodedAccess.email).toBe(email);
+      expect(decodedAccess.organizationId).toBe(organizationId);
       expect(decodedAccess.role).toBe(role);
 
       // Verify refresh token
@@ -45,7 +48,7 @@ describe('JWT Utils', () => {
       delete process.env.JWT_SECRET;
 
       expect(() => {
-        generateTokens(userId, email, role);
+        generateTokens(userId, email, organizationId, role);
       }).toThrow('JWT_SECRET environment variable is required');
 
       // Restore for other tests
@@ -55,11 +58,12 @@ describe('JWT Utils', () => {
 
   describe('verifyRefreshToken', () => {
     it('should verify valid refresh token', () => {
-      const { refreshToken } = generateTokens(userId, email, role);
+      const { refreshToken } = generateTokens(userId, email, organizationId, role);
       const decoded = verifyRefreshToken(refreshToken);
 
       expect(decoded.sub).toBe(userId);
       expect(decoded.email).toBe(email);
+      expect(decoded.organizationId).toBe(organizationId);
       expect(decoded.role).toBe(role);
     });
 
