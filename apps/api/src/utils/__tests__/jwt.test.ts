@@ -1,3 +1,6 @@
+// Setup test environment variables first
+import '../../test-utils/env-setup';
+
 import { verify } from 'jsonwebtoken';
 
 import { generateTokens, verifyRefreshToken } from '../jwt';

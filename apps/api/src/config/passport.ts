@@ -5,13 +5,17 @@ import { prisma } from '../lib/prisma';
 
 const jwtSecret = process.env.JWT_SECRET;
 
-if (!jwtSecret) {
+// In test environment, allow a default secret for testing
+if (!jwtSecret && process.env.NODE_ENV !== 'test') {
   throw new Error('JWT_SECRET environment variable is required');
 }
 
+// Use a default test secret if JWT_SECRET is not set in test environment
+const effectiveJwtSecret = jwtSecret || 'test-jwt-secret';
+
 const opts: StrategyOptions = {
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-  secretOrKey: jwtSecret,
+  secretOrKey: effectiveJwtSecret,
 };
 
 export const jwtStrategy = new JwtStrategy(opts, async (payload, done) => {

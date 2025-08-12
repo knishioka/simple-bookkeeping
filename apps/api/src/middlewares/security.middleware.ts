@@ -17,7 +17,7 @@ export const rateLimiters = {
   // Strict rate limit for authentication endpoints
   auth: rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 requests per window
+    max: process.env.DISABLE_RATE_LIMIT === 'true' ? 999999 : 5, // 5 requests per window (disabled in tests)
     message: {
       error: {
         code: 'RATE_LIMIT_EXCEEDED',
@@ -26,6 +26,7 @@ export const rateLimiters = {
     },
     standardHeaders: true,
     legacyHeaders: false,
+    skip: () => process.env.DISABLE_RATE_LIMIT === 'true',
     handler: (req: Request, res: Response) => {
       logger.warn('Auth rate limit exceeded', {
         ip: req.ip,
@@ -47,7 +48,7 @@ export const rateLimiters = {
   // Standard rate limit for API endpoints
   api: rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute
-    max: 100, // 100 requests per minute
+    max: process.env.DISABLE_RATE_LIMIT === 'true' ? 999999 : 100, // 100 requests per minute
     message: {
       error: {
         code: 'RATE_LIMIT_EXCEEDED',
@@ -57,15 +58,19 @@ export const rateLimiters = {
     standardHeaders: true,
     legacyHeaders: false,
     skip: (req: Request) => {
-      // Skip rate limiting for monitoring endpoints
-      return req.path.startsWith('/health') || req.path.startsWith('/metrics');
+      // Skip rate limiting for monitoring endpoints or in test environment
+      return (
+        process.env.DISABLE_RATE_LIMIT === 'true' ||
+        req.path.startsWith('/health') ||
+        req.path.startsWith('/metrics')
+      );
     },
   }),
 
   // Strict rate limit for data modification endpoints
   write: rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute
-    max: 30, // 30 write requests per minute
+    max: process.env.DISABLE_RATE_LIMIT === 'true' ? 999999 : 30, // 30 write requests per minute
     message: {
       error: {
         code: 'RATE_LIMIT_EXCEEDED',
@@ -74,30 +79,33 @@ export const rateLimiters = {
     },
     standardHeaders: true,
     legacyHeaders: false,
+    skip: () => process.env.DISABLE_RATE_LIMIT === 'true',
   }),
 
   // Rate limit for file uploads
   upload: rateLimit({
     windowMs: 10 * 60 * 1000, // 10 minutes
-    max: 10, // 10 uploads per 10 minutes
+    max: process.env.DISABLE_RATE_LIMIT === 'true' ? 999999 : 10, // 10 uploads per 10 minutes
     message: {
       error: {
         code: 'UPLOAD_RATE_LIMIT_EXCEEDED',
         message: 'ファイルアップロードの上限に達しました。',
       },
     },
+    skip: () => process.env.DISABLE_RATE_LIMIT === 'true',
   }),
 
   // Rate limit for report generation
   reports: rateLimit({
     windowMs: 5 * 60 * 1000, // 5 minutes
-    max: 20, // 20 reports per 5 minutes
+    max: process.env.DISABLE_RATE_LIMIT === 'true' ? 999999 : 20, // 20 reports per 5 minutes
     message: {
       error: {
         code: 'REPORT_RATE_LIMIT_EXCEEDED',
         message: 'レポート生成の上限に達しました。',
       },
     },
+    skip: () => process.env.DISABLE_RATE_LIMIT === 'true',
   }),
 };
 
@@ -106,17 +114,19 @@ export const speedLimiters = {
   // Slow down authentication attempts
   auth: slowDown({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    delayAfter: 2, // Allow 2 requests at full speed
-    delayMs: 1000, // Add 1 second delay per request after delayAfter
-    maxDelayMs: 5000, // Maximum delay of 5 seconds
+    delayAfter: process.env.DISABLE_RATE_LIMIT === 'true' ? 999999 : 2, // Allow 2 requests at full speed
+    delayMs: process.env.DISABLE_RATE_LIMIT === 'true' ? 0 : 1000, // Add 1 second delay per request after delayAfter
+    maxDelayMs: process.env.DISABLE_RATE_LIMIT === 'true' ? 0 : 5000, // Maximum delay of 5 seconds
+    skip: () => process.env.DISABLE_RATE_LIMIT === 'true',
   }),
 
   // Slow down API requests
   api: slowDown({
     windowMs: 1 * 60 * 1000, // 1 minute
-    delayAfter: 50, // Allow 50 requests at full speed
-    delayMs: 100, // Add 100ms delay per request after delayAfter
-    maxDelayMs: 1000, // Maximum delay of 1 second
+    delayAfter: process.env.DISABLE_RATE_LIMIT === 'true' ? 999999 : 50, // Allow 50 requests at full speed
+    delayMs: process.env.DISABLE_RATE_LIMIT === 'true' ? 0 : 100, // Add 100ms delay per request after delayAfter
+    maxDelayMs: process.env.DISABLE_RATE_LIMIT === 'true' ? 0 : 1000, // Maximum delay of 1 second
+    skip: () => process.env.DISABLE_RATE_LIMIT === 'true',
   }),
 };
 
@@ -179,15 +189,21 @@ export const ipBlockingMiddleware = (req: Request, res: Response, next: NextFunc
   next();
 };
 
-// Clean up old IP attempts periodically
-setInterval(() => {
-  const oneHourAgo = Date.now() - 3600000;
-  for (const [ip, attempts] of ipAttempts.entries()) {
-    if (attempts.lastAttempt < oneHourAgo) {
-      ipAttempts.delete(ip);
+// Clean up old IP attempts periodically (not in tests)
+if (process.env.NODE_ENV !== 'test') {
+  const cleanupInterval = setInterval(() => {
+    const oneHourAgo = Date.now() - 3600000;
+    for (const [ip, attempts] of ipAttempts.entries()) {
+      if (attempts.lastAttempt < oneHourAgo) {
+        ipAttempts.delete(ip);
+      }
     }
-  }
-}, 300000); // Clean up every 5 minutes
+  }, 300000); // Clean up every 5 minutes
+
+  // Clear interval on process exit
+  process.on('SIGTERM', () => clearInterval(cleanupInterval));
+  process.on('SIGINT', () => clearInterval(cleanupInterval));
+}
 
 // Input sanitization middleware
 import { body, validationResult } from 'express-validator';

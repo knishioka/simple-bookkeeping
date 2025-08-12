@@ -25,6 +25,8 @@ jobs:
 
       - name: Generate Prisma Client
         run: pnpm --filter @simple-bookkeeping/database prisma:generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test?schema=public
 
       - name: Build packages
         run: pnpm build:packages
@@ -53,6 +55,8 @@ jobs:
 
       - name: Generate Prisma Client
         run: pnpm --filter @simple-bookkeeping/database prisma:generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test?schema=public
 
       - name: Build packages
         run: pnpm build:packages
@@ -79,9 +83,6 @@ jobs:
         ports:
           - 5432:5432
 
-    env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test?schema=public
-
     steps:
       - uses: actions/checkout@v4
 
@@ -97,17 +98,24 @@ jobs:
 
       - name: Generate Prisma Client
         run: pnpm --filter @simple-bookkeeping/database prisma:generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test?schema=public
 
       - name: Build packages
         run: pnpm build:packages
 
       - name: Setup database schema
         run: cd packages/database && npx prisma db push --skip-generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test?schema=public
 
       - name: Run tests
         run: pnpm test
         env:
-          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test?schema=public
+          JWT_SECRET: test-jwt-secret-for-ci
+          JWT_REFRESH_SECRET: test-jwt-refresh-secret-for-ci
+          DISABLE_RATE_LIMIT: true
 
   build:
     name: Build
@@ -127,6 +135,8 @@ jobs:
 
       - name: Generate Prisma Client
         run: pnpm --filter @simple-bookkeeping/database prisma:generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test?schema=public
 
       - name: Build packages
         run: pnpm build:packages

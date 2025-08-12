@@ -28,6 +28,6 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
-  // setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'], // Disabled for now - requires database
-  testTimeout: 10000,
+  setupFilesAfterEnv: ['<rootDir>/src/test-utils/setup.ts'],
+  testTimeout: 30000,
 };
