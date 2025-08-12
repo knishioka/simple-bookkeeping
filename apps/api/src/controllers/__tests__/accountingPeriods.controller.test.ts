@@ -137,7 +137,11 @@ describe('AccountingPeriodsController', () => {
 
     it('should require ACCOUNTANT or ADMIN role', async () => {
       const viewerUser = await createTestUser(testSetup.organization.id, UserRole.VIEWER);
-      const viewerToken = generateTestToken(viewerUser.id, testSetup.organization.id);
+      const viewerToken = generateTestToken(
+        viewerUser.id,
+        testSetup.organization.id,
+        UserRole.VIEWER
+      );
 
       const periodData = {
         name: '2025年度',
@@ -292,7 +296,7 @@ describe('AccountingPeriodsController', () => {
 
       // ADMIN should be able to close
       const adminUser = await createTestUser(testSetup.organization.id, UserRole.ADMIN);
-      const adminToken = generateTestToken(adminUser.id, testSetup.organization.id);
+      const adminToken = generateTestToken(adminUser.id, testSetup.organization.id, UserRole.ADMIN);
 
       const adminResponse = await request(app)
         .post(`/api/v1/accounting-periods/${testSetup.accountingPeriod.id}/close`)
@@ -312,7 +316,7 @@ describe('AccountingPeriodsController', () => {
       });
 
       const adminUser = await createTestUser(testSetup.organization.id, UserRole.ADMIN);
-      const adminToken = generateTestToken(adminUser.id, testSetup.organization.id);
+      const adminToken = generateTestToken(adminUser.id, testSetup.organization.id, UserRole.ADMIN);
 
       const response = await request(app)
         .post(`/api/v1/accounting-periods/${closedPeriod.id}/reopen`)
@@ -325,7 +329,7 @@ describe('AccountingPeriodsController', () => {
 
     it('should prevent reopening open period', async () => {
       const adminUser = await createTestUser(testSetup.organization.id, UserRole.ADMIN);
-      const adminToken = generateTestToken(adminUser.id, testSetup.organization.id);
+      const adminToken = generateTestToken(adminUser.id, testSetup.organization.id, UserRole.ADMIN);
 
       const response = await request(app)
         .post(`/api/v1/accounting-periods/${testSetup.accountingPeriod.id}/reopen`)
@@ -360,7 +364,7 @@ describe('AccountingPeriodsController', () => {
       });
 
       const adminUser = await createTestUser(testSetup.organization.id, UserRole.ADMIN);
-      const adminToken = generateTestToken(adminUser.id, testSetup.organization.id);
+      const adminToken = generateTestToken(adminUser.id, testSetup.organization.id, UserRole.ADMIN);
 
       const response = await request(app)
         .delete(`/api/v1/accounting-periods/${emptyPeriod.id}`)
@@ -375,7 +379,7 @@ describe('AccountingPeriodsController', () => {
       await createTestJournalEntry(testSetup.organization.id, testSetup.accountingPeriod.id);
 
       const adminUser = await createTestUser(testSetup.organization.id, UserRole.ADMIN);
-      const adminToken = generateTestToken(adminUser.id, testSetup.organization.id);
+      const adminToken = generateTestToken(adminUser.id, testSetup.organization.id, UserRole.ADMIN);
 
       const response = await request(app)
         .delete(`/api/v1/accounting-periods/${testSetup.accountingPeriod.id}`)

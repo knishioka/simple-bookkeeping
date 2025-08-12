@@ -36,19 +36,19 @@ describe('OrganizationsController', () => {
       email: 'admin@test.com',
       name: 'Admin User',
     });
-    adminToken = generateTestToken(adminUser.id, testOrg.id);
+    adminToken = generateTestToken(adminUser.id, testOrg.id, UserRole.ADMIN);
 
     accountantUser = await createTestUser(testOrg.id, UserRole.ACCOUNTANT, {
       email: 'accountant@test.com',
       name: 'Accountant User',
     });
-    accountantToken = generateTestToken(accountantUser.id, testOrg.id);
+    accountantToken = generateTestToken(accountantUser.id, testOrg.id, UserRole.ACCOUNTANT);
 
     viewerUser = await createTestUser(testOrg.id, UserRole.VIEWER, {
       email: 'viewer@test.com',
       name: 'Viewer User',
     });
-    viewerToken = generateTestToken(viewerUser.id, testOrg.id);
+    viewerToken = generateTestToken(viewerUser.id, testOrg.id, UserRole.VIEWER);
   });
 
   afterAll(async () => {

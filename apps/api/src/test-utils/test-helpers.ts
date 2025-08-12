@@ -70,13 +70,19 @@ export const createTestUser = async (
   return user;
 };
 
-// Generate JWT token for testing
-export const generateTestToken = (userId: string, organizationId: string) => {
+// Generate JWT token for testing with role
+export const generateTestToken = (
+  userId: string,
+  organizationId: string,
+  role: UserRole = UserRole.VIEWER
+) => {
   const secret = process.env.JWT_SECRET || 'test-secret';
   return jwt.sign(
     {
-      userId,
+      sub: userId, // JWT standard claim for subject (user ID)
+      userId, // Keep for backwards compatibility
       organizationId,
+      role, // Include the role for the organization
       iat: Math.floor(Date.now() / 1000),
     },
     secret,
@@ -151,13 +157,13 @@ export const createTestJournalEntry = async (
   let lines = data?.lines;
   if (!lines) {
     const cashAccount = await createTestAccount(organizationId, {
-      code: 'CASH',
+      code: `CASH-${Date.now()}`,
       name: '現金',
       accountType: AccountType.ASSET,
     });
 
     const salesAccount = await createTestAccount(organizationId, {
-      code: 'SALES',
+      code: `SALES-${Date.now() + 1}`,
       name: '売上',
       accountType: AccountType.REVENUE,
     });
@@ -218,7 +224,7 @@ export const createTestJournalEntry = async (
 export const createFullTestSetup = async (role: UserRole = UserRole.ACCOUNTANT) => {
   const organization = await createTestOrganization();
   const user = await createTestUser(organization.id, role);
-  const token = generateTestToken(user.id, organization.id);
+  const token = generateTestToken(user.id, organization.id, role);
   const accountingPeriod = await createTestAccountingPeriod(organization.id);
 
   // Create basic accounts

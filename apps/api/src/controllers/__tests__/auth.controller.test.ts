@@ -189,7 +189,7 @@ describe('AuthController', () => {
     let accessToken: string;
 
     beforeEach(async () => {
-      accessToken = generateTestToken(testUser.id, testOrg.id);
+      accessToken = generateTestToken(testUser.id, testOrg.id, UserRole.ACCOUNTANT);
     });
 
     it('should logout successfully', async () => {
@@ -285,7 +285,7 @@ describe('AuthController', () => {
     let accessToken: string;
 
     beforeEach(async () => {
-      accessToken = generateTestToken(testUser.id, testOrg.id);
+      accessToken = generateTestToken(testUser.id, testOrg.id, UserRole.ACCOUNTANT);
     });
 
     it('should change password with valid current password', async () => {
@@ -353,7 +353,7 @@ describe('AuthController', () => {
 
   describe('GET /api/v1/auth/me', () => {
     it('should return current user info', async () => {
-      const token = generateTestToken(testUser.id, testOrg.id);
+      const token = generateTestToken(testUser.id, testOrg.id, UserRole.ACCOUNTANT);
 
       const response = await request(app)
         .get('/api/v1/auth/me')
@@ -400,7 +400,7 @@ describe('AuthController', () => {
         },
       });
 
-      token = generateTestToken(testUser.id, testOrg.id);
+      token = generateTestToken(testUser.id, testOrg.id, UserRole.ACCOUNTANT);
     });
 
     it('should switch to another organization', async () => {

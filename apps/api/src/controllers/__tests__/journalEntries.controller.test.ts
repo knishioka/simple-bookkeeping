@@ -220,7 +220,11 @@ describe('JournalEntriesController', () => {
 
     it('should require ACCOUNTANT or ADMIN role', async () => {
       const viewerUser = await createTestUser(testSetup.organization.id, UserRole.VIEWER);
-      const viewerToken = generateTestToken(viewerUser.id, testSetup.organization.id);
+      const viewerToken = generateTestToken(
+        viewerUser.id,
+        testSetup.organization.id,
+        UserRole.VIEWER
+      );
 
       const entryData = {
         entryDate: '2024-03-15',
@@ -439,7 +443,7 @@ describe('JournalEntriesController', () => {
 
       // Create ADMIN user and try again
       const adminUser = await createTestUser(testSetup.organization.id, UserRole.ADMIN);
-      const adminToken = generateTestToken(adminUser.id, testSetup.organization.id);
+      const adminToken = generateTestToken(adminUser.id, testSetup.organization.id, UserRole.ADMIN);
 
       const adminResponse = await request(app)
         .delete(`/api/v1/journal-entries/${entry.id}`)
@@ -473,7 +477,11 @@ describe('JournalEntriesController', () => {
       );
 
       const viewerUser = await createTestUser(testSetup.organization.id, UserRole.VIEWER);
-      const viewerToken = generateTestToken(viewerUser.id, testSetup.organization.id);
+      const viewerToken = generateTestToken(
+        viewerUser.id,
+        testSetup.organization.id,
+        UserRole.VIEWER
+      );
 
       const response = await request(app)
         .post(`/api/v1/journal-entries/${entry.id}/approve`)

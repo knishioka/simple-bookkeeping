@@ -163,7 +163,11 @@ describe('AccountsController', () => {
 
     it('should require ACCOUNTANT or ADMIN role', async () => {
       const viewerUser = await createTestUser(testSetup.organization.id, UserRole.VIEWER);
-      const viewerToken = generateTestToken(viewerUser.id, testSetup.organization.id);
+      const viewerToken = generateTestToken(
+        viewerUser.id,
+        testSetup.organization.id,
+        UserRole.VIEWER
+      );
 
       const accountData = {
         code: '3001',
@@ -314,7 +318,7 @@ describe('AccountsController', () => {
 
       // Try with ADMIN role
       const adminUser = await createTestUser(testSetup.organization.id, UserRole.ADMIN);
-      const adminToken = generateTestToken(adminUser.id, testSetup.organization.id);
+      const adminToken = generateTestToken(adminUser.id, testSetup.organization.id, UserRole.ADMIN);
 
       const adminResponse = await request(app)
         .delete(`/api/v1/accounts/${account.id}`)
@@ -354,7 +358,7 @@ describe('AccountsController', () => {
         data: { name: 'Different Org', code: 'DIFF' },
       });
       const differentUser = await createTestUser(differentOrg.id);
-      const differentToken = generateTestToken(differentUser.id, differentOrg.id);
+      const differentToken = generateTestToken(differentUser.id, differentOrg.id, UserRole.VIEWER);
 
       const response = await request(app)
         .get(`/api/v1/accounts/${otherAccount.id}`)
