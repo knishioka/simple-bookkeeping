@@ -2,6 +2,8 @@
  * Journal entry type definitions
  */
 
+import { JournalEntryStatus } from './enums';
+
 export interface JournalEntry {
   id: string;
   entryNumber: string;
@@ -24,8 +26,6 @@ export interface JournalEntry {
     name: string;
   };
 }
-
-export type JournalEntryStatus = 'draft' | 'approved' | 'cancelled';
 
 export interface JournalEntryLine {
   id: string;

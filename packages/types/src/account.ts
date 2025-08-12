@@ -2,7 +2,7 @@
  * Account type definitions
  */
 
-export type AccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
+import { AccountType } from './enums';
 
 export type AccountCategory =
   | 'current_asset'
