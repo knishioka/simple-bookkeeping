@@ -1,5 +1,7 @@
+/// <reference types="jest" />
+
 // Import env setup first
-import './test-env-setup';
+import './env-setup';
 
 // Now import prisma after environment variables are set
 import { prisma } from '../lib/prisma';
