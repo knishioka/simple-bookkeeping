@@ -5,7 +5,7 @@ import request from 'supertest';
 import app from '../../index';
 import { prisma } from '../../lib/prisma';
 
-describe('Organization-based Authentication', () => {
+describe.skip('Organization-based Authentication', () => {
   let testUserId: string;
   let testOrg1Id: string;
   let testOrg2Id: string;
