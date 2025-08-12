@@ -1,7 +1,13 @@
 #!/bin/bash
 
-# データベース初期化スクリプト
-# Prismaクライアント生成、マイグレーション実行、初期データ投入を行います
+# ============================================================================
+# init-db.sh - Database Initialization Script
+# ============================================================================
+# Purpose: Complete database initialization including Prisma client generation,
+#          migration execution, and seed data insertion for development
+# Usage: pnpm db:init (or direct execution)
+# Requirements: Database connection configured, NODE_ENV for environment check
+# ============================================================================
 
 set -e
 

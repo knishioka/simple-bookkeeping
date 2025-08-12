@@ -1,6 +1,13 @@
 #!/bin/bash
 
-# Renderサービスをシンガポールリージョンに移行するためのヘルパースクリプト
+# ============================================================================
+# update-to-singapore.sh - Render Singapore Region Migration Helper
+# ============================================================================
+# Purpose: Guide migration of Render services from Oregon to Singapore region
+# Usage: ./scripts/update-to-singapore.sh
+# Requirements: RENDER_API_KEY env var, render CLI, existing .render/services.json
+# Note: Manual guidance script - does not perform actual migration, only provides steps
+# ============================================================================
 
 set -e
 

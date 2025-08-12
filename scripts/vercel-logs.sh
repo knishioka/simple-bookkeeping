@@ -1,7 +1,13 @@
 #!/bin/bash
 
-# Vercel logs retrieval script
-# Supports build logs, runtime logs, and error filtering
+# ============================================================================
+# vercel-logs.sh - Vercel Log Retrieval Tool
+# ============================================================================
+# Purpose: Fetches and displays Vercel logs including runtime, build, error logs,
+#          function invocations, streaming, and deployment statistics
+# Usage: pnpm vercel:logs <command> [options] (e.g., runtime, build, errors)
+# Requirements: Vercel CLI, optional VERCEL_TOKEN for enhanced features
+# ============================================================================
 
 # Colors for output
 GREEN='\033[0;32m'

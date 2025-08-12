@@ -1,5 +1,13 @@
-// Simple script to create a test user via API
-// Run with: node scripts/create-test-user.js
+/**
+ * ============================================================================
+ * create-test-user.js - Test User Creation Utility
+ * ============================================================================
+ * Purpose: Create a test user account via API for development and testing
+ * Usage: node scripts/create-test-user.js
+ * Requirements: API server running on localhost:3001, Node.js fetch API
+ * Note: Uses random password if TEST_USER_PASSWORD env var not set
+ * ============================================================================
+ */
 
 async function createTestUser() {
   const apiUrl = 'http://localhost:3001/api/v1';

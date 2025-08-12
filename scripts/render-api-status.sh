@@ -1,6 +1,13 @@
 #!/bin/bash
 
-# Render API deployment status check script
+# ============================================================================
+# render-api-status.sh - Render Deployment Status Monitor
+# ============================================================================
+# Purpose: Monitors Render deployment status via API, displays service info,
+#          recent deployments, health checks, and deployment statistics
+# Usage: pnpm render:status (or direct execution)
+# Requirements: RENDER_API_KEY environment variable, .render/services.json
+# ============================================================================
 
 # Colors for output
 GREEN='\033[0;32m'
