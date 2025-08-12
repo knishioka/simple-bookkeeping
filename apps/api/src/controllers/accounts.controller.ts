@@ -1,5 +1,5 @@
-import { CreateAccountInput, AccountType } from '@simple-bookkeeping/core';
-import { Logger } from '@simple-bookkeeping/shared';
+import { Logger, CreateAccountInput } from '@simple-bookkeeping/shared';
+import { AccountType } from '@simple-bookkeeping/types';
 import { Response } from 'express';
 
 import { prisma } from '../lib/prisma';

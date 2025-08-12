@@ -3,7 +3,7 @@
  */
 
 import { Prisma } from '@prisma/client';
-import { BaseError } from '@simple-bookkeeping/core';
+import { BaseError } from '@simple-bookkeeping/errors';
 import { NextFunction, Request, Response } from 'express';
 
 export const errorHandler = (
