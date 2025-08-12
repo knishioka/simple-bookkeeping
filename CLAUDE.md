@@ -525,6 +525,65 @@ update: いろいろ修正
 fix: バグ修正
 ```
 
+## GitHub Issue管理
+
+### Issue作成のルール
+
+**重要：GitHub issueは必ずgh CLIコマンドを使用して作成すること**
+
+```bash
+# issueの作成
+gh issue create \
+  --title "タイトル" \
+  --body "本文" \
+  --label "bug,high-priority" \
+  --assignee "@me"
+
+# テンプレートファイルから作成
+gh issue create \
+  --title "タイトル" \
+  --body-file issue-template.md \
+  --label "enhancement"
+
+# 複数ラベルの設定
+gh issue create \
+  --title "Refactor: パッケージ構造の重複を解消" \
+  --label "refactor,technical-debt,high-priority"
+```
+
+### よく使うラベル
+
+- `bug`: バグ報告
+- `enhancement`: 機能追加
+- `refactor`: リファクタリング
+- `technical-debt`: 技術的負債
+- `documentation`: ドキュメント
+- `testing`: テスト関連
+- `security`: セキュリティ
+- `performance`: パフォーマンス
+- `high-priority`: 優先度高
+- `medium-priority`: 優先度中
+- `low-priority`: 優先度低
+
+### Issue管理コマンド
+
+```bash
+# issue一覧
+gh issue list
+gh issue list --label "bug"
+gh issue list --assignee "@me"
+
+# issue詳細
+gh issue view 123
+
+# issueの更新
+gh issue edit 123 --add-label "in-progress"
+gh issue edit 123 --remove-label "todo"
+
+# issueのクローズ
+gh issue close 123 --comment "修正完了"
+```
+
 ### 重要：pre-commitフックを無視しない
 
 **絶対にやってはいけないこと：**
