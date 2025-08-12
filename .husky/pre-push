@@ -7,6 +7,24 @@ PROTECTED_BRANCHES="main master production"
 if echo "$PROTECTED_BRANCHES" | grep -w "$BRANCH" > /dev/null; then
   echo "📋 Pushing to protected branch '$BRANCH', running full build checks..."
   
+  # Run security audit for dependencies
+  echo "🔒 Checking for security vulnerabilities..."
+  pnpm audit --audit-level=high
+  AUDIT_EXIT_CODE=$?
+  
+  if [ $AUDIT_EXIT_CODE -eq 1 ]; then
+    echo "⚠️  Security vulnerabilities found (high or critical severity)"
+    echo "💡 Run 'pnpm audit' for details or 'pnpm audit fix' to attempt automatic fixes"
+    echo "⚠️  Proceeding with push, but please address vulnerabilities soon"
+    # Note: We're not exiting here to avoid blocking deployments,
+    # but you can change this to 'exit 1' for stricter enforcement
+  elif [ $AUDIT_EXIT_CODE -gt 1 ]; then
+    echo "❌ Error running security audit"
+    exit 1
+  else
+    echo "✅ No high or critical vulnerabilities found"
+  fi
+  
   # Run Vercel build check
   echo "🔨 Checking Vercel build (Web app)..."
   if ! NODE_ENV=production pnpm --filter @simple-bookkeeping/web build; then
