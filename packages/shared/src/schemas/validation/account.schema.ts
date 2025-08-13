@@ -1,15 +1,7 @@
+import { AccountType } from '@simple-bookkeeping/types';
 import { z } from 'zod';
 
 import { ACCOUNT_CODE_MAX_LENGTH, ACCOUNT_NAME_MAX_LENGTH, REGEX_PATTERNS } from '../../constants';
-
-// Define AccountType enum locally to avoid circular dependency
-export enum AccountType {
-  ASSET = 'ASSET',
-  LIABILITY = 'LIABILITY',
-  EQUITY = 'EQUITY',
-  REVENUE = 'REVENUE',
-  EXPENSE = 'EXPENSE',
-}
 
 // Base schemas
 const uuidSchema = z.string().uuid('Invalid ID format');
@@ -105,3 +97,6 @@ export type CreateAccountInput = z.infer<typeof createAccountSchema>;
 export type UpdateAccountInput = z.infer<typeof updateAccountSchema>;
 export type AccountQueryParams = z.infer<typeof accountQuerySchema>;
 export type AccountWithBalance = z.infer<typeof accountWithBalanceSchema>;
+
+// Re-export AccountType for convenience
+export { AccountType };

@@ -5,6 +5,7 @@
 import { ValidationError } from '@simple-bookkeeping/types';
 
 import { BaseError } from './base-error';
+import { getErrorMessage, Language } from './messages';
 
 export class ApiError extends BaseError {
   constructor(message: string, statusCode = 500, code = 'API_ERROR') {
@@ -19,21 +20,24 @@ export class BadRequestError extends ApiError {
 }
 
 export class NotFoundError extends ApiError {
-  constructor(resource: string, id?: string) {
-    const message = id ? `${resource} with id ${id} not found` : `${resource} not found`;
+  constructor(resource: string, id?: string, language?: Language) {
+    const resourceWithId = id ? `${resource} (ID: ${id})` : resource;
+    const message = getErrorMessage('RESOURCE_NOT_FOUND', { resource: resourceWithId }, language);
     super(message, 404, 'NOT_FOUND');
   }
 }
 
 export class UnauthorizedError extends ApiError {
-  constructor(message = 'Unauthorized') {
-    super(message, 401, 'UNAUTHORIZED');
+  constructor(message?: string, language?: Language) {
+    const errorMessage = message || getErrorMessage('UNAUTHORIZED', undefined, language);
+    super(errorMessage, 401, 'UNAUTHORIZED');
   }
 }
 
 export class ForbiddenError extends ApiError {
-  constructor(message = 'Forbidden') {
-    super(message, 403, 'FORBIDDEN');
+  constructor(message?: string, language?: Language) {
+    const errorMessage = message || getErrorMessage('FORBIDDEN', undefined, language);
+    super(errorMessage, 403, 'FORBIDDEN');
   }
 }
 
@@ -54,7 +58,8 @@ export class ConflictError extends ApiError {
 }
 
 export class TooManyRequestsError extends ApiError {
-  constructor(message = 'Too many requests') {
-    super(message, 429, 'TOO_MANY_REQUESTS');
+  constructor(message?: string, language?: Language) {
+    const errorMessage = message || getErrorMessage('TOO_MANY_REQUESTS', undefined, language);
+    super(errorMessage, 429, 'TOO_MANY_REQUESTS');
   }
 }
