@@ -226,7 +226,7 @@ describe('AuditLogController', () => {
   });
 
   describe('Audit log creation on actions', () => {
-    it.skip('should create audit log on journal entry creation', async () => {
+    it('should create audit log on journal entry creation', async () => {
       const entryData = {
         entryDate: '2024-03-15',
         description: 'Test Entry for Audit',
@@ -267,7 +267,7 @@ describe('AuditLogController', () => {
       );
     });
 
-    it.skip('should create audit log on account update', async () => {
+    it('should create audit log on account update', async () => {
       const updateData = {
         name: 'Updated Account Name',
       };
