@@ -1,7 +1,7 @@
 import { UserRole, JournalStatus, AccountType } from '@simple-bookkeeping/database';
 import { TEST_CREDENTIALS, TEST_JWT_CONFIG } from '@simple-bookkeeping/test-utils';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 
 import { prisma } from '../lib/prisma';
 
@@ -97,7 +97,9 @@ export const generateTestToken = (
       iat: Math.floor(Date.now() / 1000),
     },
     secret,
-    { expiresIn: TEST_JWT_CONFIG.expiresIn as any }
+    {
+      expiresIn: TEST_JWT_CONFIG.expiresIn,
+    } as SignOptions
   );
 };
 

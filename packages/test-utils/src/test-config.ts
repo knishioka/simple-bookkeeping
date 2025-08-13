@@ -51,7 +51,7 @@ export const TEST_JWT_CONFIG = {
   expiresIn: process.env.TEST_JWT_EXPIRES_IN || '1h',
   refreshSecret: process.env.TEST_REFRESH_SECRET || 'test-refresh-secret-do-not-use-in-production',
   refreshExpiresIn: process.env.TEST_REFRESH_EXPIRES_IN || '7d',
-} as const;
+};
 
 /**
  * Database configuration for tests

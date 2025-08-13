@@ -2,6 +2,8 @@ import * as jwt from 'jsonwebtoken';
 
 import { TEST_CREDENTIALS, TEST_JWT_CONFIG } from '../test-config';
 
+import type { SignOptions } from 'jsonwebtoken';
+
 /**
  * Generate a test JWT token
  * @param payload - Token payload
@@ -21,7 +23,6 @@ export function generateTestJWT(
   }
 ): string {
   const secret = options?.secret || TEST_JWT_CONFIG.secret;
-  const expiresIn = options?.expiresIn || TEST_JWT_CONFIG.expiresIn;
 
   return jwt.sign(
     {
@@ -30,7 +31,9 @@ export function generateTestJWT(
       iat: Math.floor(Date.now() / 1000),
     },
     secret,
-    { expiresIn: expiresIn as any }
+    {
+      expiresIn: options?.expiresIn || TEST_JWT_CONFIG.expiresIn,
+    } as SignOptions
   );
 }
 
@@ -48,7 +51,6 @@ export function generateTestRefreshToken(
   }
 ): string {
   const secret = options?.secret || TEST_JWT_CONFIG.refreshSecret;
-  const expiresIn = options?.expiresIn || TEST_JWT_CONFIG.refreshExpiresIn;
 
   return jwt.sign(
     {
@@ -58,7 +60,9 @@ export function generateTestRefreshToken(
       iat: Math.floor(Date.now() / 1000),
     },
     secret,
-    { expiresIn: expiresIn as any }
+    {
+      expiresIn: options?.expiresIn || TEST_JWT_CONFIG.refreshExpiresIn,
+    } as SignOptions
   );
 }
 
