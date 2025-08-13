@@ -1,6 +1,15 @@
 import { Router } from 'express';
 
-import { getBalanceSheet, getProfitLoss } from '../controllers/reports.controller';
+import {
+  getBalanceSheet,
+  getIncomeStatement,
+  getCashFlow,
+  getAgedReceivables,
+  getAgedPayables,
+  getFinancialRatios,
+  exportReport,
+  createCustomReport,
+} from '../controllers/reports.controller';
 import { authenticate, setOrganizationContext, requireOrganization } from '../middlewares/auth';
 
 import type { RouteHandler } from '../types/express';
@@ -13,13 +22,28 @@ router.use(authenticate);
 router.use(setOrganizationContext);
 router.use(requireOrganization);
 
-// 貸借対照表の取得
-router.get(
-  '/accounting-periods/:accountingPeriodId/balance-sheet',
-  getBalanceSheet as RouteHandler
-);
+// Balance Sheet
+router.get('/balance-sheet', getBalanceSheet as RouteHandler);
 
-// 損益計算書の取得
-router.get('/accounting-periods/:accountingPeriodId/profit-loss', getProfitLoss as RouteHandler);
+// Income Statement
+router.get('/income-statement', getIncomeStatement as RouteHandler);
+
+// Cash Flow Statement
+router.get('/cash-flow', getCashFlow as RouteHandler);
+
+// Aged Receivables
+router.get('/aged-receivables', getAgedReceivables as RouteHandler);
+
+// Aged Payables
+router.get('/aged-payables', getAgedPayables as RouteHandler);
+
+// Financial Ratios
+router.get('/financial-ratios', getFinancialRatios as RouteHandler);
+
+// Export Reports
+router.get('/export', exportReport as RouteHandler);
+
+// Custom Reports
+router.post('/custom', createCustomReport as RouteHandler);
 
 export default router;
