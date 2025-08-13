@@ -26,7 +26,7 @@ describe.skip('LoginPage - ユーザーエクスペリエンス', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUseRouter.mockReturnValue(mockRouter as any);
+    mockUseRouter.mockReturnValue(mockRouter as ReturnType<typeof useRouter>);
     mockUseAuth.mockReturnValue({
       login: mockLogin,
       loading: false,

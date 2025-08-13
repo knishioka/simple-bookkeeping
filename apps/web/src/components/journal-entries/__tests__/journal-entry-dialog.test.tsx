@@ -470,7 +470,7 @@ describe.skip('JournalEntryDialog - ユーザーインタラクション', () =>
       const user = userEvent.setup();
 
       // 保存API を遅延させる
-      let resolvePromise: (value: any) => void;
+      let resolvePromise: (value: unknown) => void;
       const savePromise = new Promise((resolve) => {
         resolvePromise = resolve;
       });

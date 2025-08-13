@@ -24,7 +24,9 @@ jest.mock('json2csv', () => ({
     // Simple CSV mock implementation
     if (!data || data.length === 0) return '';
     const headers = Object.keys(data[0]).join(',');
-    const rows = data.map((item: any) => Object.values(item).join(',')).join('\n');
+    const rows = data
+      .map((item: Record<string, unknown>) => Object.values(item).join(','))
+      .join('\n');
     return `${headers}\n${rows}`;
   }),
 }));

@@ -34,8 +34,8 @@ const mockLocation = {
   assign: jest.fn(),
   reload: jest.fn(),
 };
-delete (window as any).location;
-window.location = mockLocation as any;
+delete (window as { location?: Location }).location;
+window.location = mockLocation as unknown as Location;
 
 describe('ApiClient - エラーハンドリングとローディング状態', () => {
   beforeEach(() => {
