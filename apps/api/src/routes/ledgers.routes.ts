@@ -5,6 +5,11 @@ import {
   getBankBook,
   getAccountsReceivable,
   getAccountsPayable,
+  getGeneralLedger,
+  getSubsidiaryLedger,
+  getTrialBalance,
+  getAccountBalance,
+  exportLedger,
 } from '../controllers/ledgers.controller';
 import { authenticate, setOrganizationContext, requireOrganization } from '../middlewares/auth';
 
@@ -16,6 +21,21 @@ const router: RouterType = Router();
 router.use(authenticate);
 router.use(setOrganizationContext);
 router.use(requireOrganization);
+
+// 総勘定元帳
+router.get('/general', getGeneralLedger);
+
+// 補助元帳
+router.get('/subsidiary/:accountId', getSubsidiaryLedger);
+
+// 試算表
+router.get('/trial-balance', getTrialBalance);
+
+// 勘定残高
+router.get('/account-balance/:accountId', getAccountBalance);
+
+// エクスポート
+router.get('/export', exportLedger);
 
 // 現金出納帳
 router.get('/cash-book', getCashBook);
