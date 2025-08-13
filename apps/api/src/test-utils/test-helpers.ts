@@ -1,6 +1,7 @@
 import { UserRole, JournalStatus, AccountType } from '@simple-bookkeeping/database';
+import { TEST_CREDENTIALS, TEST_JWT_CONFIG } from '@simple-bookkeeping/test-utils';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 
 import { prisma } from '../lib/prisma';
 
@@ -47,7 +48,15 @@ export const createTestUser = async (
     isActive?: boolean;
   }
 ) => {
-  const passwordHash = await bcrypt.hash(data?.password || 'TestPassword123!', 10);
+  // Use centralized test credentials as defaults
+  const defaultCreds =
+    role === UserRole.ADMIN
+      ? TEST_CREDENTIALS.admin
+      : role === UserRole.ACCOUNTANT
+        ? TEST_CREDENTIALS.accountant
+        : TEST_CREDENTIALS.viewer;
+
+  const passwordHash = await bcrypt.hash(data?.password || defaultCreds.password, 10);
 
   const user = await prisma.user.create({
     data: {
@@ -77,7 +86,8 @@ export const generateTestToken = (
   organizationId: string,
   role: UserRole = UserRole.VIEWER
 ) => {
-  const secret = process.env.JWT_SECRET || 'test-secret';
+  // Use centralized JWT config
+  const secret = process.env.JWT_SECRET || TEST_JWT_CONFIG.secret;
   return jwt.sign(
     {
       sub: userId, // JWT standard claim for subject (user ID)
@@ -87,7 +97,9 @@ export const generateTestToken = (
       iat: Math.floor(Date.now() / 1000),
     },
     secret,
-    { expiresIn: '1h' }
+    {
+      expiresIn: TEST_JWT_CONFIG.expiresIn,
+    } as SignOptions
   );
 };
 

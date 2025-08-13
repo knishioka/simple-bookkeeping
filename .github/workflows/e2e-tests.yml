@@ -104,6 +104,14 @@ jobs:
           NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
           CI: true
           NODE_ENV: test
+          # Test credentials from secrets (with fallbacks)
+          TEST_JWT_SECRET: ${{ secrets.TEST_JWT_SECRET || 'test-jwt-secret-do-not-use-in-production' }}
+          TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL || 'admin.test@localhost' }}
+          TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD || 'AdminTest123!' }}
+          TEST_ACCOUNTANT_EMAIL: ${{ secrets.TEST_ACCOUNTANT_EMAIL || 'accountant.test@localhost' }}
+          TEST_ACCOUNTANT_PASSWORD: ${{ secrets.TEST_ACCOUNTANT_PASSWORD || 'AccountantTest123!' }}
+          TEST_VIEWER_EMAIL: ${{ secrets.TEST_VIEWER_EMAIL || 'viewer.test@localhost' }}
+          TEST_VIEWER_PASSWORD: ${{ secrets.TEST_VIEWER_PASSWORD || 'ViewerTest123!' }}
         run: |
           START_TIME=$(date +%s)
           pnpm --filter @simple-bookkeeping/web test:e2e:ci

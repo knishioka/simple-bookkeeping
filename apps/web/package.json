@@ -39,6 +39,7 @@
     "@radix-ui/react-toast": "^1.2.14",
     "@simple-bookkeeping/database": "workspace:*",
     "@simple-bookkeeping/shared": "workspace:*",
+    "@simple-bookkeeping/test-utils": "workspace:*",
     "@simple-bookkeeping/types": "workspace:*",
     "@tanstack/react-query": "^5.84.1",
     "class-variance-authority": "^0.7.1",

@@ -1,9 +1,11 @@
 /**
  * 統一認証ヘルパー
  * Issue #95対応: E2Eテスト全体で使用する統一された認証処理
+ * Issue #131対応: test-utilsパッケージから認証情報をインポート
  */
 
 import { Page, BrowserContext } from '@playwright/test';
+import { TEST_CREDENTIALS } from '@simple-bookkeeping/test-utils';
 
 /**
  * ユーザーロール定義
@@ -43,28 +45,29 @@ export interface UnifiedAuthOptions {
 
 /**
  * プリセットユーザー定義
+ * TEST_CREDENTIALSから認証情報を取得
  */
 export const PRESET_USERS: Record<UserRole, UserInfo> = {
   admin: {
     id: '1',
-    email: 'admin@example.com',
-    name: 'Admin User',
+    email: TEST_CREDENTIALS.admin.email,
+    name: TEST_CREDENTIALS.admin.name,
     organizationId: 'org-1',
     role: 'admin',
     permissions: ['*'],
   },
   accountant: {
     id: '2',
-    email: 'accountant@example.com',
-    name: 'Accountant User',
+    email: TEST_CREDENTIALS.accountant.email,
+    name: TEST_CREDENTIALS.accountant.name,
     organizationId: 'org-1',
     role: 'accountant',
     permissions: ['accounts:read', 'accounts:write', 'journal:read', 'journal:write'],
   },
   viewer: {
     id: '3',
-    email: 'viewer@example.com',
-    name: 'Viewer User',
+    email: TEST_CREDENTIALS.viewer.email,
+    name: TEST_CREDENTIALS.viewer.name,
     organizationId: 'org-1',
     role: 'viewer',
     permissions: ['accounts:read', 'journal:read'],
@@ -326,8 +329,8 @@ export class UnifiedAuth {
    * テスト用ログインフォーム入力（実APIテスト用）
    */
   static async fillLoginForm(page: Page, email?: string, password?: string): Promise<void> {
-    const loginEmail = email || PRESET_USERS.admin.email;
-    const loginPassword = password || 'admin123';
+    const loginEmail = email || TEST_CREDENTIALS.admin.email;
+    const loginPassword = password || TEST_CREDENTIALS.admin.password;
 
     await page.goto('/login');
     await page.fill('input#email, input[name="email"]', loginEmail);

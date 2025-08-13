@@ -20,4 +20,25 @@ if [ -f "./scripts/check-build.sh" ]; then
   fi
 fi
 
+# Check for missing newlines at end of files
+echo "🔍 Checking for missing newlines at end of files..."
+files_without_newline=""
+for file in $(git diff --cached --name-only --diff-filter=ACM); do
+  if [ -f "$file" ] && [ -s "$file" ]; then
+    if [ -n "$(tail -c 1 "$file")" ]; then
+      files_without_newline="$files_without_newline $file"
+    fi
+  fi
+done
+
+if [ -n "$files_without_newline" ]; then
+  echo "❌ Files missing newline at end:"
+  for file in $files_without_newline; do
+    echo "  - $file"
+  done
+  echo "💡 Fix by adding a newline at the end of each file"
+  exit 1
+fi
+echo "✅ All files have proper newlines"
+
 npx lint-staged

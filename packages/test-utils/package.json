@@ -1,0 +1,22 @@
+{
+  "name": "@simple-bookkeeping/test-utils",
+  "version": "1.0.0",
+  "description": "Test utilities and credentials management for Simple Bookkeeping",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^8.4.1",
+    "@simple-bookkeeping/types": "workspace:*",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/node": "^20.11.5",
+    "typescript": "^5.3.3"
+  }
+}
