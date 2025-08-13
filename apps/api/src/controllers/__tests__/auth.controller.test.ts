@@ -30,6 +30,10 @@ describe('AuthController', () => {
     });
   });
 
+  afterEach(async () => {
+    await cleanupTestData();
+  });
+
   afterAll(async () => {
     await cleanupTestData();
     await prisma.$disconnect();

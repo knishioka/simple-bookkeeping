@@ -51,6 +51,10 @@ describe('OrganizationsController', () => {
     viewerToken = generateTestToken(viewerUser.id, testOrg.id, UserRole.VIEWER);
   });
 
+  afterEach(async () => {
+    await cleanupTestData();
+  });
+
   afterAll(async () => {
     await cleanupTestData();
     await prisma.$disconnect();

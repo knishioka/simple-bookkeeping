@@ -72,11 +72,17 @@ describe('Organization-based Authentication', () => {
     });
   });
 
+  afterEach(async () => {
+    // Clean up any additional data created during tests
+    await prisma.auditLog.deleteMany({});
+  });
+
   afterAll(async () => {
     // Clean up test data
     await prisma.userOrganization.deleteMany({});
     await prisma.user.deleteMany({});
     await prisma.organization.deleteMany({});
+    await prisma.$disconnect();
   });
 
   describe('POST /api/v1/auth/login', () => {
