@@ -35,7 +35,7 @@ export function createAuditLogMiddleware(options: AuditLogOptions) {
     }
 
     // Skip if organization context is not set
-    if (!authenticatedReq.organizationId) {
+    if (!authenticatedReq.user?.organizationId) {
       return next();
     }
 
@@ -48,7 +48,7 @@ export function createAuditLogMiddleware(options: AuditLogOptions) {
         oldValues = await captureEntityValues(
           options.entityType,
           entityId,
-          authenticatedReq.organizationId
+          authenticatedReq.user?.organizationId || ''
         );
       } catch (error) {
         logger.error('Failed to capture old values for audit log', {
@@ -71,7 +71,7 @@ export function createAuditLogMiddleware(options: AuditLogOptions) {
       if (res.statusCode >= 200 && res.statusCode < 300) {
         createAuditLog({
           userId: authenticatedReq.user?.id || '',
-          organizationId: authenticatedReq.organizationId || '',
+          organizationId: authenticatedReq.user?.organizationId || '',
           action: options.action,
           entityType: options.entityType,
           entityId: entityId || extractEntityIdFromResponse(data),

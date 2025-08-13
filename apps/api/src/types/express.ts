@@ -15,5 +15,4 @@ export interface AuthenticatedRequest extends Request {
     organizationId?: string;
     organizationRole?: UserRole;
   };
-  organizationId?: string; // Deprecated, use user.organizationId instead
 }
