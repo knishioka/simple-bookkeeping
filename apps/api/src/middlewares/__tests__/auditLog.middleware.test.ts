@@ -48,6 +48,7 @@ describe('Audit Log Middleware', () => {
         id: 'user-123',
         email: 'test@example.com',
         role: UserRole.ADMIN,
+        organizationId: 'org-123',
       },
       organizationId: 'org-123',
       params: { id: 'entity-123' },
@@ -80,15 +81,17 @@ describe('Audit Log Middleware', () => {
 
       const responseData = JSON.stringify({ data: { id: 'je-123', amount: 1000 } });
 
+      // Run the middleware which will wrap res.send
       await middleware(mockRequest as Request, mockResponse as Response, mockNext);
 
-      // Simulate successful response
-      if (mockResponse.send) {
-        mockResponse.send(responseData);
+      // Now call the wrapped send function
+      const wrappedSend = mockResponse.send;
+      if (wrappedSend) {
+        wrappedSend.call(mockResponse, responseData);
       }
 
       // Wait for async audit log creation
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       expect(mockNext).toHaveBeenCalled();
       expect(prisma.auditLog.create).toHaveBeenCalledWith({
@@ -119,21 +122,44 @@ describe('Audit Log Middleware', () => {
         captureNewValues: true,
       });
 
+      // Run the middleware which will wrap res.send and capture old values
       await middleware(mockRequest as Request, mockResponse as Response, mockNext);
 
-      // Simulate successful response
-      if (mockResponse.send) {
-        mockResponse.send(
+      // Wait a bit for the old values to be captured
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      // Verify old values were captured
+      expect(prisma.journalEntry.findFirst).toHaveBeenCalledWith({
+        where: { id: 'entity-123', organizationId: 'org-123' },
+        include: { lines: true },
+      });
+
+      // Now call the wrapped send function
+      const wrappedSend = mockResponse.send;
+      if (wrappedSend) {
+        wrappedSend.call(
+          mockResponse,
           JSON.stringify({ data: { id: 'entity-123', name: 'New Name', amount: 1000 } })
         );
       }
 
-      // Wait for async operations
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      // Wait for async audit log creation
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
-      expect(prisma.journalEntry.findFirst).toHaveBeenCalledWith({
-        where: { id: 'entity-123', organizationId: 'org-123' },
-        include: { lines: true },
+      // Verify audit log was created with old and new values
+      expect(prisma.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          userId: 'user-123',
+          organizationId: 'org-123',
+          action: AuditAction.UPDATE,
+          entityType: 'JournalEntry',
+          oldValues: mockOldEntity,
+          newValues: expect.objectContaining({
+            id: 'entity-123',
+            name: 'New Name',
+            amount: 1000,
+          }),
+        }),
       });
     });
 
@@ -190,12 +216,14 @@ describe('Audit Log Middleware', () => {
 
       await middleware(mockRequest as Request, mockResponse as Response, mockNext);
 
-      if (mockResponse.send) {
-        mockResponse.send(JSON.stringify({ error: 'Bad Request' }));
+      // Call the wrapped send function
+      const wrappedSend = mockResponse.send;
+      if (wrappedSend) {
+        wrappedSend.call(mockResponse, JSON.stringify({ error: 'Bad Request' }));
       }
 
       // Wait for async operations
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       expect(prisma.auditLog.create).not.toHaveBeenCalled();
     });
@@ -210,15 +238,18 @@ describe('Audit Log Middleware', () => {
 
       await middleware(mockRequest as Request, mockResponse as Response, mockNext);
 
-      if (mockResponse.send) {
-        mockResponse.send(JSON.stringify({ data: { id: 'test-123' } }));
+      // Call the wrapped send function
+      const wrappedSend = mockResponse.send;
+      if (wrappedSend) {
+        wrappedSend.call(mockResponse, JSON.stringify({ data: { id: 'test-123' } }));
       }
 
       // Wait for async operations
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       // Logger error should have been called, but mocking it properly is complex
       // The important thing is that the middleware doesn't throw and continues execution
+      expect(prisma.auditLog.create).toHaveBeenCalled();
     });
   });
 
