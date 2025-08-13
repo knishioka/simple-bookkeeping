@@ -382,6 +382,57 @@ Executable doesn't exist at /Users/.../chromium
 pnpm --filter @simple-bookkeeping/web exec playwright install
 ```
 
+### 4. Next.jsビルドエラー（NODE_ENV）
+
+**エラー**:
+
+```
+⚠ You are using a non-standard "NODE_ENV" value in your environment
+Error: <Html> should not be imported outside of pages/_document
+```
+
+**原因**: NODE_ENVが"development"に設定されているとNext.jsのビルドが失敗する場合がある
+
+**解決方法**:
+
+```bash
+# NODE_ENVをクリアしてビルド
+unset NODE_ENV
+pnpm build
+
+# または明示的にproductionを設定
+NODE_ENV=production pnpm build
+```
+
+### 5. テスト用データベース未起動
+
+**エラー**:
+
+```
+PrismaClientInitializationError: User was denied access on the database `(not available)`
+```
+
+**原因**: テスト用のPostgreSQLが起動していない
+
+**解決方法**:
+
+```bash
+# DockerでテストDBを起動
+docker run -d \
+  --name postgres-test \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=simple_bookkeeping_test \
+  -p 5432:5432 \
+  postgres:15
+
+# またはローカルPostgreSQLでテストDBを作成
+createdb simple_bookkeeping_test
+
+# テスト実行
+pnpm test
+```
+
 ## デバッグのコツ
 
 ### ログの確認方法
