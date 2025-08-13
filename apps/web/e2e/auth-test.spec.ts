@@ -14,8 +14,8 @@ test.describe('認証フロー', () => {
     // 統一モックでAPIレスポンスをセットアップ
     await UnifiedMock.setupAuthMocks(context);
 
-    // ログインフォーム入力ヘルパーを使用
-    await UnifiedAuth.fillLoginForm(page, 'admin@example.com', 'admin123');
+    // ログインフォーム入力ヘルパーを使用（TEST_CREDENTIALSから認証情報を取得）
+    await UnifiedAuth.fillLoginForm(page);
 
     // ログインボタンクリックと成功待機
     await UnifiedAuth.submitLoginAndWait(page);
@@ -44,8 +44,8 @@ test.describe('認証フロー', () => {
       },
     });
 
-    // ログインフォーム入力
-    await UnifiedAuth.fillLoginForm(page, 'admin@example.com', 'admin123');
+    // ログインフォーム入力（TEST_CREDENTIALSから認証情報を取得）
+    await UnifiedAuth.fillLoginForm(page);
 
     // ログインボタンクリック
     await page.click('button[type="submit"]');

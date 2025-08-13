@@ -19,6 +19,7 @@
     "@simple-bookkeeping/database": "workspace:*",
     "@simple-bookkeeping/errors": "workspace:*",
     "@simple-bookkeeping/shared": "workspace:*",
+    "@simple-bookkeeping/test-utils": "workspace:*",
     "@simple-bookkeeping/types": "workspace:*",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",

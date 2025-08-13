@@ -2,6 +2,7 @@
 import '../../test-utils/env-setup';
 
 import { UserRole, Organization, User } from '@simple-bookkeeping/database';
+import { TEST_CREDENTIALS } from '@simple-bookkeeping/test-utils';
 import jwt from 'jsonwebtoken';
 import request from 'supertest';
 
@@ -17,16 +18,16 @@ import {
 describe('AuthController', () => {
   let testOrg: Organization;
   let testUser: User;
-  const testPassword = 'TestPassword123!';
+  const testPassword = TEST_CREDENTIALS.accountant.password;
 
   beforeEach(async () => {
     await cleanupTestData();
 
     testOrg = await createTestOrganization();
     testUser = await createTestUser(testOrg.id, UserRole.ACCOUNTANT, {
-      email: 'auth-test@example.com',
+      email: TEST_CREDENTIALS.accountant.email,
       password: testPassword,
-      name: 'Auth Test User',
+      name: TEST_CREDENTIALS.accountant.name,
     });
   });
 
@@ -42,20 +43,20 @@ describe('AuthController', () => {
   describe('POST /api/v1/auth/login', () => {
     it('should login with valid credentials', async () => {
       const response = await request(app).post('/api/v1/auth/login').send({
-        email: 'auth-test@example.com',
+        email: TEST_CREDENTIALS.accountant.email,
         password: testPassword,
       });
 
       expect(response.status).toBe(200);
       expect(response.body.data).toHaveProperty('token');
       expect(response.body.data).toHaveProperty('refreshToken');
-      expect(response.body.data.user.email).toBe('auth-test@example.com');
+      expect(response.body.data.user.email).toBe(TEST_CREDENTIALS.accountant.email);
       expect(response.body.data.user.organizationId).toBe(testOrg.id);
     });
 
     it('should reject invalid password', async () => {
       const response = await request(app).post('/api/v1/auth/login').send({
-        email: 'auth-test@example.com',
+        email: TEST_CREDENTIALS.accountant.email,
         password: 'WrongPassword123!',
       });
 
@@ -81,7 +82,7 @@ describe('AuthController', () => {
       });
 
       const response = await request(app).post('/api/v1/auth/login').send({
-        email: 'auth-test@example.com',
+        email: TEST_CREDENTIALS.accountant.email,
         password: testPassword,
       });
 
@@ -91,7 +92,7 @@ describe('AuthController', () => {
 
     it('should validate required fields', async () => {
       const response = await request(app).post('/api/v1/auth/login').send({
-        email: 'auth-test@example.com',
+        email: TEST_CREDENTIALS.accountant.email,
         // Missing password
       });
 
