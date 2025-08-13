@@ -28,7 +28,7 @@ export class AuditLogController {
   async getAuditLogs(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const authenticatedReq = req as AuthenticatedRequest;
-      const organizationId = authenticatedReq.organizationId || '';
+      const organizationId = authenticatedReq.user?.organizationId || '';
 
       // Parse and validate query parameters
       const validatedQuery = auditLogFilterSchema.parse(req.query);
@@ -57,7 +57,7 @@ export class AuditLogController {
   async getAuditLogById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const authenticatedReq = req as AuthenticatedRequest;
-      const organizationId = authenticatedReq.organizationId || '';
+      const organizationId = authenticatedReq.user?.organizationId || '';
       const { id } = req.params;
 
       if (!id) {
@@ -67,7 +67,13 @@ export class AuditLogController {
       const auditLog = await auditLogService.getAuditLogById(id, organizationId);
 
       if (!auditLog) {
-        throw new ApiError('Audit log not found', 404, 'NOT_FOUND');
+        res.status(404).json({
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Audit log not found',
+          },
+        });
+        return;
       }
 
       res.json({
@@ -79,12 +85,13 @@ export class AuditLogController {
   }
 
   /**
-   * Export audit logs as CSV
+   * Export audit logs as CSV or JSON
    */
   async exportAuditLogs(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const authenticatedReq = req as AuthenticatedRequest;
-      const organizationId = authenticatedReq.organizationId || '';
+      const organizationId = authenticatedReq.user?.organizationId || '';
+      const format = req.query.format || 'csv';
 
       // Parse and validate query parameters
       const validatedQuery = auditLogFilterSchema.parse(req.query);
@@ -96,17 +103,25 @@ export class AuditLogController {
         endDate: validatedQuery.endDate ? new Date(validatedQuery.endDate) : undefined,
       };
 
-      const csv = await auditLogService.exportAuditLogs(filter);
+      if (format === 'json') {
+        // Export as JSON
+        const logs = await auditLogService.getAuditLogsForExport(filter);
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.json(logs);
+      } else {
+        // Export as CSV
+        const csv = await auditLogService.exportAuditLogs(filter);
 
-      // Set headers for CSV download
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader(
-        'Content-Disposition',
-        `attachment; filename="audit-logs-${new Date().toISOString().split('T')[0]}.csv"`
-      );
+        // Set headers for CSV download
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader(
+          'Content-Disposition',
+          `attachment; filename="audit-logs-${new Date().toISOString().split('T')[0]}.csv"`
+        );
 
-      // Send CSV with BOM for proper Japanese character encoding
-      res.send(`\uFEFF${csv}`);
+        // Send CSV with BOM for proper Japanese character encoding
+        res.send(`\uFEFF${csv}`);
+      }
     } catch (error) {
       next(error);
     }
@@ -118,7 +133,7 @@ export class AuditLogController {
   async getEntityTypes(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const authenticatedReq = req as AuthenticatedRequest;
-      const organizationId = authenticatedReq.organizationId || '';
+      const organizationId = authenticatedReq.user?.organizationId || '';
 
       const entityTypes = await auditLogService.getEntityTypes(organizationId);
 
@@ -136,7 +151,7 @@ export class AuditLogController {
   async getStatistics(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const authenticatedReq = req as AuthenticatedRequest;
-      const organizationId = authenticatedReq.organizationId || '';
+      const organizationId = authenticatedReq.user?.organizationId || '';
       const days = req.query.days ? parseInt(req.query.days as string) : 30;
 
       if (isNaN(days) || days < 1 || days > 365) {
