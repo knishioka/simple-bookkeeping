@@ -132,6 +132,59 @@ export class AuditLogService {
   }
 
   /**
+   * Get audit logs for export (without pagination)
+   */
+  async getAuditLogsForExport(filter: AuditLogFilter): Promise<AuditLogWithUser[]> {
+    const where: Prisma.AuditLogWhereInput = {
+      organizationId: filter.organizationId,
+    };
+
+    if (filter.userId) {
+      where.userId = filter.userId;
+    }
+
+    if (filter.entityType) {
+      where.entityType = filter.entityType;
+    }
+
+    if (filter.entityId) {
+      where.entityId = filter.entityId;
+    }
+
+    if (filter.action) {
+      where.action = filter.action;
+    }
+
+    if (filter.startDate || filter.endDate) {
+      where.createdAt = {};
+      if (filter.startDate) {
+        where.createdAt.gte = filter.startDate;
+      }
+      if (filter.endDate) {
+        where.createdAt.lte = filter.endDate;
+      }
+    }
+
+    const logs = await prisma.auditLog.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return logs as unknown as AuditLogWithUser[];
+  }
+
+  /**
    * Export audit logs as CSV
    */
   async exportAuditLogs(filter: AuditLogFilter): Promise<string> {
