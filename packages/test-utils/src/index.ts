@@ -9,7 +9,7 @@ export {
   generateSecurePassword,
   isTestEnvironment,
   validateTestCredentials,
-} from './credentials';
+} from './test-config';
 
 // Auth helpers
 export {

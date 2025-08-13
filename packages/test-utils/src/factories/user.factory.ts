@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker';
 import { User, UserRole } from '@simple-bookkeeping/types';
 
-import { generateSecurePassword } from '../credentials';
+import { generateSecurePassword } from '../test-config';
 
 /**
  * Factory for creating test user data

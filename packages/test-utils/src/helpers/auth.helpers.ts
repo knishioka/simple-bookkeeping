@@ -1,6 +1,6 @@
 import * as jwt from 'jsonwebtoken';
 
-import { TEST_CREDENTIALS, TEST_JWT_CONFIG } from '../credentials';
+import { TEST_CREDENTIALS, TEST_JWT_CONFIG } from '../test-config';
 
 /**
  * Generate a test JWT token
