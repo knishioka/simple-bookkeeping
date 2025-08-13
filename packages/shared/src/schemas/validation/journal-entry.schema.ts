@@ -1,13 +1,7 @@
+import { JournalStatus } from '@simple-bookkeeping/types';
 import { z } from 'zod';
 
 import { FLOATING_POINT_TOLERANCE, REGEX_PATTERNS } from '../../constants';
-
-// Define JournalStatus enum locally to avoid circular dependency
-export enum JournalStatus {
-  DRAFT = 'DRAFT',
-  APPROVED = 'APPROVED',
-  CANCELLED = 'CANCELLED',
-}
 
 // Base schemas for reuse
 const dateSchema = z
@@ -134,3 +128,6 @@ export type UpdateJournalEntryInput = z.infer<typeof updateJournalEntrySchema>;
 export type JournalEntryQueryParams = z.infer<typeof journalEntryQuerySchema>;
 export type CsvJournalEntryRecord = z.infer<typeof csvJournalEntrySchema>;
 export type JournalEntryResponse = z.infer<typeof journalEntryResponseSchema>;
+
+// Re-export JournalStatus for convenience
+export { JournalStatus };
