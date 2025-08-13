@@ -1,7 +1,7 @@
 // Setup test environment variables first
 import '../../test-utils/env-setup';
 
-import { UserRole } from '@simple-bookkeeping/database';
+import { UserRole, Organization, User } from '@simple-bookkeeping/database';
 import jwt from 'jsonwebtoken';
 import request from 'supertest';
 
@@ -15,8 +15,8 @@ import {
 } from '../../test-utils/test-helpers';
 
 describe('AuthController', () => {
-  let testOrg: any;
-  let testUser: any;
+  let testOrg: Organization;
+  let testUser: User;
   const testPassword = 'TestPassword123!';
 
   beforeEach(async () => {
@@ -373,7 +373,7 @@ describe('AuthController', () => {
   });
 
   describe('POST /api/v1/auth/switch-organization', () => {
-    let otherOrg: any;
+    let otherOrg: Organization;
     let token: string;
 
     beforeEach(async () => {

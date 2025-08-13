@@ -36,11 +36,11 @@ router.use(requireOrganization);
 router.get(
   '/',
   validateOptional(journalEntryQuerySchema, 'query'),
-  journalEntriesController.getJournalEntries as RouteHandler
+  journalEntriesController.getJournalEntries as unknown as RouteHandler
 );
 
 // Get single journal entry
-router.get('/:id', journalEntriesController.getJournalEntry as RouteHandler);
+router.get('/:id', journalEntriesController.getJournalEntry as unknown as RouteHandler);
 
 // Create journal entry (Admin/Accountant only)
 router.post(
@@ -48,7 +48,7 @@ router.post(
   authorize(UserRole.ADMIN, UserRole.ACCOUNTANT),
   validate(createJournalEntrySchema, 'body'),
   auditLog.createJournalEntry,
-  journalEntriesController.createJournalEntry as RouteHandler
+  journalEntriesController.createJournalEntry as unknown as RouteHandler
 );
 
 // Update journal entry (Admin/Accountant only)
@@ -57,7 +57,7 @@ router.put(
   authorize(UserRole.ADMIN, UserRole.ACCOUNTANT),
   validate(updateJournalEntrySchema, 'body'),
   auditLog.updateJournalEntry,
-  journalEntriesController.updateJournalEntry as RouteHandler
+  journalEntriesController.updateJournalEntry as unknown as RouteHandler
 );
 
 // Delete journal entry (Admin only)
@@ -65,7 +65,7 @@ router.delete(
   '/:id',
   authorize(UserRole.ADMIN),
   auditLog.deleteJournalEntry,
-  journalEntriesController.deleteJournalEntry as RouteHandler
+  journalEntriesController.deleteJournalEntry as unknown as RouteHandler
 );
 
 // Approve journal entry (Admin/Accountant only)
@@ -73,7 +73,7 @@ router.post(
   '/:id/approve',
   authorize(UserRole.ADMIN, UserRole.ACCOUNTANT),
   auditLog.approveJournalEntry,
-  journalEntriesController.approveJournalEntry as RouteHandler
+  journalEntriesController.approveJournalEntry as unknown as RouteHandler
 );
 
 // Import journal entries from CSV

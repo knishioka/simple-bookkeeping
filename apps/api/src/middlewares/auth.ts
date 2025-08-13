@@ -19,29 +19,41 @@ export interface AuthenticatedRequest extends Request {
   file?: Express.Multer.File;
 }
 
-export const authenticate = (req: Request, res: Response, next: NextFunction) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  passport.authenticate('jwt', { session: false }, (err: Error, user: any) => {
-    if (err || !user) {
-      return res.status(401).json({
-        error: {
-          code: 'UNAUTHORIZED',
-          message: '認証が必要です',
-        },
-      });
-    }
+// Type for passport user callback
+interface PassportUser {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  organizationId?: string;
+}
 
-    // User object now comes with organizationId and role from JWT
-    (req as AuthenticatedRequest).user = {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      organizationId: user.organizationId,
-      organizationRole: user.role, // Same as role since it's organization-based
-    };
-    next();
-  })(req, res, next);
+export const authenticate = (req: Request, res: Response, next: NextFunction) => {
+  passport.authenticate(
+    'jwt',
+    { session: false },
+    (err: Error | null, user: PassportUser | false) => {
+      if (err || !user) {
+        return res.status(401).json({
+          error: {
+            code: 'UNAUTHORIZED',
+            message: '認証が必要です',
+          },
+        });
+      }
+
+      // User object now comes with organizationId and role from JWT
+      (req as AuthenticatedRequest).user = {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        organizationId: user.organizationId,
+        organizationRole: user.role, // Same as role since it's organization-based
+      };
+      next();
+    }
+  )(req, res, next);
 };
 
 export const authorize = (...roles: UserRole[]) => {

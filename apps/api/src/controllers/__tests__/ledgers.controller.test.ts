@@ -91,7 +91,7 @@ describe('LedgersController', () => {
       expect(response.status).toBe(200);
       // Should only include February entries
       const cashLedger = response.body.data.find(
-        (l: any) => l.account.id === testSetup.accounts.cash.id
+        (l: { account: { id: string } }) => l.account.id === testSetup.accounts.cash.id
       );
       expect(cashLedger.entries).toHaveLength(1);
       expect(cashLedger.entries[0].description).toContain('Sales transaction');
