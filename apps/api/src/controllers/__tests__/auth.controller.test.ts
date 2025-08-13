@@ -105,7 +105,7 @@ describe('AuthController', () => {
 
     it('should log audit event for successful login', async () => {
       const response = await request(app).post('/api/v1/auth/login').send({
-        email: 'auth-test@example.com',
+        email: TEST_CREDENTIALS.accountant.email,
         password: testPassword,
       });
 
@@ -123,7 +123,7 @@ describe('AuthController', () => {
     beforeEach(async () => {
       // Login to get tokens
       const loginResponse = await request(app).post('/api/v1/auth/login').send({
-        email: 'auth-test@example.com',
+        email: TEST_CREDENTIALS.accountant.email,
         password: testPassword,
       });
 
@@ -213,7 +213,6 @@ describe('AuthController', () => {
         password: 'NewPassword123!',
         name: 'New User',
         organizationName: 'New Company',
-        organizationCode: 'NEW-CO',
       };
 
       const response = await request(app).post('/api/v1/auth/register').send(registerData);
@@ -226,11 +225,10 @@ describe('AuthController', () => {
 
     it('should prevent duplicate email', async () => {
       const registerData = {
-        email: 'auth-test@example.com', // Already exists
+        email: TEST_CREDENTIALS.accountant.email, // Already exists
         password: 'Password123!',
         name: 'Duplicate User',
         organizationName: 'Another Company',
-        organizationCode: 'ANOTHER',
       };
 
       const response = await request(app).post('/api/v1/auth/register').send(registerData);
@@ -245,7 +243,6 @@ describe('AuthController', () => {
         password: 'weak', // Weak password
         name: 'Weak Password User',
         organizationName: 'Company',
-        organizationCode: 'COMP',
       };
 
       const response = await request(app).post('/api/v1/auth/register').send(registerData);
@@ -260,7 +257,6 @@ describe('AuthController', () => {
         password: 'Password123!',
         name: 'Invalid Email User',
         organizationName: 'Company',
-        organizationCode: 'COMP',
       };
 
       const response = await request(app).post('/api/v1/auth/register').send(registerData);
@@ -294,7 +290,7 @@ describe('AuthController', () => {
 
       // Verify can login with new password
       const loginResponse = await request(app).post('/api/v1/auth/login').send({
-        email: 'auth-test@example.com',
+        email: TEST_CREDENTIALS.accountant.email,
         password: 'NewPassword123!',
       });
 
@@ -353,7 +349,7 @@ describe('AuthController', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.data.user.id).toBe(testUser.id);
-      expect(response.body.data.user.email).toBe('auth-test@example.com');
+      expect(response.body.data.user.email).toBe(TEST_CREDENTIALS.accountant.email);
       expect(response.body.data.user.currentOrganization.id).toBe(testOrg.id);
       expect(response.body.data.user.currentOrganization.role).toBe(UserRole.ACCOUNTANT);
     });
