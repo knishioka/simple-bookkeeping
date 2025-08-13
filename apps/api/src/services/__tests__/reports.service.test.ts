@@ -35,8 +35,11 @@ import { AccountType } from '@simple-bookkeeping/database';
 
 import { ReportsService } from '../reports.service';
 
+// Using 'any' for mockPrismaClient to avoid complex mock typing issues
+// This is acceptable in test files for mocking purposes
 describe('ReportsService', () => {
   let service: ReportsService;
+
   let mockPrismaClient: any;
 
   beforeEach(() => {

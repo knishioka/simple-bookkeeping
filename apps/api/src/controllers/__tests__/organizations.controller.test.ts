@@ -1,7 +1,7 @@
 // Setup test environment variables first
 import '../../test-utils/env-setup';
 
-import { UserRole } from '@simple-bookkeeping/database';
+import { UserRole, Organization, User } from '@simple-bookkeeping/database';
 import request from 'supertest';
 
 import app from '../../index';
@@ -14,12 +14,12 @@ import {
 } from '../../test-utils/test-helpers';
 
 describe('OrganizationsController', () => {
-  let testOrg: any;
-  let adminUser: any;
+  let testOrg: Organization;
+  let adminUser: User;
   let adminToken: string;
-  let accountantUser: any;
+  let accountantUser: User;
   let accountantToken: string;
-  let viewerUser: any;
+  let viewerUser: User;
   let viewerToken: string;
 
   beforeEach(async () => {
@@ -172,7 +172,7 @@ describe('OrganizationsController', () => {
       expect(response.status).toBe(200);
       expect(response.body.data).toHaveLength(3); // admin, accountant, viewer
 
-      const roles = response.body.data.map((m: any) => m.role);
+      const roles = response.body.data.map((m: { role: UserRole }) => m.role);
       expect(roles).toContain(UserRole.ADMIN);
       expect(roles).toContain(UserRole.ACCOUNTANT);
       expect(roles).toContain(UserRole.VIEWER);
@@ -184,7 +184,9 @@ describe('OrganizationsController', () => {
         .set('Authorization', `Bearer ${adminToken}`);
 
       expect(response.status).toBe(200);
-      const adminMember = response.body.data.find((m: any) => m.role === UserRole.ADMIN);
+      const adminMember = response.body.data.find(
+        (m: { role: UserRole }) => m.role === UserRole.ADMIN
+      );
       expect(adminMember.user.email).toBe('admin@test.com');
       expect(adminMember.user.name).toBe('Admin User');
     });

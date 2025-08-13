@@ -35,8 +35,16 @@ jest.mock('@simple-bookkeeping/shared', () => ({
   })),
 }));
 
+// Type for authenticated user
+interface AuthUser {
+  id: string;
+  email: string;
+  role: UserRole;
+  organizationId?: string;
+}
+
 describe('Audit Log Middleware', () => {
-  let mockRequest: Partial<Request> & { user?: any; organizationId?: string };
+  let mockRequest: Partial<Request> & { user?: AuthUser; organizationId?: string };
   let mockResponse: Partial<Response>;
   let mockNext: NextFunction;
 
@@ -58,7 +66,7 @@ describe('Audit Log Middleware', () => {
       },
       socket: {
         remoteAddress: '127.0.0.1',
-      } as any,
+      } as unknown as Request['socket'],
     };
 
     mockResponse = {
