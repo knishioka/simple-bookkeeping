@@ -12,6 +12,7 @@ export interface AuthenticatedRequest extends Request {
     id: string;
     email: string;
     role: UserRole;
+    organizationId?: string;
+    organizationRole?: UserRole;
   };
-  organizationId?: string;
 }
