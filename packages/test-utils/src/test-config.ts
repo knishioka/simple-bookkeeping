@@ -17,26 +17,26 @@ function generateSecurePassword(prefix = 'Test'): string {
  */
 export const TEST_CREDENTIALS = {
   admin: {
-    email: process.env.TEST_ADMIN_EMAIL || 'admin.test@localhost',
+    email: process.env.TEST_ADMIN_EMAIL || 'admin.test@example.com',
     password: process.env.TEST_ADMIN_PASSWORD || 'AdminTest123!',
     name: process.env.TEST_ADMIN_NAME || 'Test Admin',
     role: 'admin' as const,
   },
   accountant: {
-    email: process.env.TEST_ACCOUNTANT_EMAIL || 'accountant.test@localhost',
+    email: process.env.TEST_ACCOUNTANT_EMAIL || 'accountant.test@example.com',
     password: process.env.TEST_ACCOUNTANT_PASSWORD || 'AccountantTest123!',
     name: process.env.TEST_ACCOUNTANT_NAME || 'Test Accountant',
     role: 'accountant' as const,
   },
   viewer: {
-    email: process.env.TEST_VIEWER_EMAIL || 'viewer.test@localhost',
+    email: process.env.TEST_VIEWER_EMAIL || 'viewer.test@example.com',
     password: process.env.TEST_VIEWER_PASSWORD || 'ViewerTest123!',
     name: process.env.TEST_VIEWER_NAME || 'Test Viewer',
     role: 'viewer' as const,
   },
   // Generic test user for various test scenarios
   testUser: {
-    email: process.env.TEST_USER_EMAIL || 'user.test@localhost',
+    email: process.env.TEST_USER_EMAIL || 'user.test@example.com',
     password: process.env.TEST_USER_PASSWORD || 'TestPassword123!',
     name: process.env.TEST_USER_NAME || 'Test User',
     role: 'viewer' as const,
@@ -78,7 +78,7 @@ export const TEST_API_CONFIG = {
 export function generateTestEmail(prefix = 'test'): string {
   const timestamp = Date.now();
   const random = randomBytes(4).toString('hex');
-  return `${prefix}.${timestamp}.${random}@test.localhost`;
+  return `${prefix}.${timestamp}.${random}@example.com`;
 }
 
 /**
