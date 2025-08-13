@@ -23,6 +23,10 @@ describe('AccountingPeriodsController', () => {
     testSetup = await createFullTestSetup();
   });
 
+  afterEach(async () => {
+    await cleanupTestData();
+  });
+
   afterAll(async () => {
     await cleanupTestData();
     await prisma.$disconnect();
