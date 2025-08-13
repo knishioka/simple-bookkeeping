@@ -55,11 +55,24 @@ simple-bookkeeping/
 └── docs/                 # ドキュメント
 ```
 
+## 📋 目次
+
+- [概要](#概要)
+- [主な機能](#主な機能)
+- [技術スタック](#技術スタック)
+- [前提条件](#前提条件)
+- [セットアップ](#セットアップ)
+- [開発](#開発)
+- [テスト](#テスト)
+- [デプロイメント](#デプロイメント)
+- [ドキュメント](#ドキュメント)
+- [トラブルシューティング](#トラブルシューティング)
+
 ## 前提条件
 
-- Node.js 20.0.0以上
+- Node.js 18.0.0以上（推奨: 20.0.0以上）
 - pnpm 8.0.0以上
-- PostgreSQL 15以上（オプション：Dockerを使用する場合は不要）
+- PostgreSQL 14以上（オプション：Dockerを使用する場合は不要）
 - Docker & Docker Compose（オプション）
 
 ### 推奨：asdfを使った環境構築
@@ -71,6 +84,32 @@ simple-bookkeeping/
 # asdfがインストール済みの場合
 asdf install  # .tool-versionsに基づいて自動でNode.jsとpnpmをインストール
 ```
+
+## 🚀 クイックスタート
+
+```bash
+# 1. リポジトリのクローン
+git clone https://github.com/knishioka/simple-bookkeeping.git
+cd simple-bookkeeping
+
+# 2. 依存関係のインストール
+pnpm install
+
+# 3. 環境変数の設定
+cp .env.example .env.local
+# .env.localを編集して必要な値を設定
+
+# 4. データベースの初期化
+pnpm db:init
+
+# 5. 開発サーバーの起動
+pnpm dev
+```
+
+アプリケーションは以下のURLでアクセス可能：
+
+- Web: http://localhost:3000
+- API: http://localhost:3001
 
 ## セットアップ
 
@@ -201,26 +240,28 @@ API_PORT=3011  # デフォルト: 3001
 
 詳細は[実装計画](./docs/implementation-plan/roadmap.md)をご覧ください。
 
-## 開発コマンド
+## 開発
 
-### 基本コマンド
+### よく使うコマンド
 
 ```bash
 # 開発サーバー起動
-pnpm dev
+pnpm dev                     # 全サービス同時起動
+pnpm --filter web dev        # フロントエンドのみ
+pnpm --filter api dev        # バックエンドのみ
 
 # ビルド
-pnpm build
+pnpm build                   # 全体ビルド
+pnpm build:web              # Vercel用Webアプリビルド
 
-# テスト実行
-pnpm test
-
-# Lint実行
-pnpm lint
-
-# 型チェック
-pnpm typecheck
+# 品質チェック
+pnpm lint                    # ESLint/Prettier
+pnpm typecheck              # TypeScript型チェック
 ```
+
+詳細は[npmスクリプトガイド](./docs/npm-scripts-guide.md)を参照。
+
+## テスト
 
 ### テストコマンド
 
@@ -244,6 +285,9 @@ pnpm test:coverage
 ### データベースコマンド
 
 ```bash
+# 初期化（マイグレーション＋シード）
+pnpm db:init
+
 # マイグレーション実行
 pnpm db:migrate
 
@@ -254,7 +298,29 @@ pnpm db:seed
 pnpm db:studio
 ```
 
-## テスト戦略
+## デプロイメント
+
+### デプロイメント監視
+
+```bash
+# 両プラットフォームの状態確認
+pnpm deploy:check
+
+# Renderログ確認
+pnpm render:logs runtime
+
+# Vercelログ確認
+pnpm vercel:logs build
+```
+
+### 本番デプロイ
+
+- **Vercel（Web）**: mainブランチへのpushで自動デプロイ
+- **Render（API）**: mainブランチへのpushで自動デプロイ
+
+詳細は[デプロイメントガイド](./docs/deployment/)を参照。
+
+### テスト戦略
 
 本プロジェクトでは、以下の3層のテスト戦略を採用しています：
 
@@ -272,6 +338,45 @@ pnpm db:studio
    - ユーザーストーリーベース
    - 実際の使用シナリオを再現
    - パフォーマンス・アクセシビリティ検証
+
+## トラブルシューティング
+
+### よくある問題
+
+#### ポート競合
+
+```bash
+# ポート3000/3001が使用中の場合
+lsof -i :3000
+kill -9 <PID>
+```
+
+#### Prismaエラー
+
+```bash
+# Cannot find module '.prisma/client'
+pnpm --filter @simple-bookkeeping/database prisma:generate
+```
+
+#### 型エラー
+
+```bash
+# Type 'X' is not assignable to type 'Y'
+pnpm build:packages
+```
+
+#### インポートエラー
+
+```bash
+# Cannot find module '@/...'
+# tsconfig.jsonのパスマッピングを確認
+```
+
+詳細は[トラブルシューティングガイド](./docs/deployment/troubleshooting.md)を参照。
+
+## スクリプト
+
+開発・運用に使用する各種スクリプトについては[scripts/README.md](./scripts/README.md)を参照してください。
 
 ## ライセンス
 

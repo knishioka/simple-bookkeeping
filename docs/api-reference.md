@@ -6,17 +6,22 @@ The Simple Bookkeeping API provides a RESTful interface for managing accounting 
 
 ## Base URL
 
-```
-http://localhost:3001/api/v1
-```
+- **Development**: `http://localhost:3001/api/v1`
+- **Production**: `https://simple-bookkeeping-api.onrender.com/api/v1`
 
 ## Authentication
 
-All API requests require a JWT token in the Authorization header:
+All API requests (except `/auth/login` and `/auth/register`) require a JWT token in the Authorization header:
 
 ```
 Authorization: Bearer <token>
 ```
+
+### Token Expiration
+
+- Access tokens expire after 24 hours
+- Refresh tokens expire after 7 days
+- Use `/auth/refresh` endpoint to get a new access token
 
 ## Common Response Format
 
@@ -83,6 +88,59 @@ Login with email and password.
 }
 ```
 
+#### POST /auth/register
+
+Register a new user account.
+
+**Request Body:**
+
+```json
+{
+  "email": "user@example.com",
+  "password": "password123",
+  "name": "John Doe",
+  "organizationName": "株式会社サンプル"
+}
+```
+
+**Response:**
+
+```json
+{
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIs...",
+    "user": {
+      "id": "123",
+      "email": "user@example.com",
+      "name": "John Doe"
+    }
+  }
+}
+```
+
+#### POST /auth/refresh
+
+Refresh access token using refresh token.
+
+**Request Body:**
+
+```json
+{
+  "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
+}
+```
+
+**Response:**
+
+```json
+{
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
+  }
+}
+```
+
 #### POST /auth/logout
 
 Logout and invalidate token.
@@ -94,6 +152,43 @@ Logout and invalidate token.
   "data": {
     "message": "Logged out successfully"
   }
+}
+```
+
+#### GET /auth/me
+
+Get current user information.
+
+**Response:**
+
+```json
+{
+  "data": {
+    "id": "123",
+    "email": "user@example.com",
+    "name": "John Doe",
+    "role": "accountant",
+    "organizations": [
+      {
+        "id": "org-123",
+        "name": "株式会社サンプル",
+        "role": "admin"
+      }
+    ]
+  }
+}
+```
+
+#### POST /auth/change-password
+
+Change user password.
+
+**Request Body:**
+
+```json
+{
+  "currentPassword": "oldpassword123",
+  "newPassword": "newpassword456"
 }
 ```
 
@@ -505,6 +600,97 @@ Get general ledger for an account.
 - `startDate` (string): Period start
 - `endDate` (string): Period end
 
+### Accounting Periods
+
+#### GET /accounting-periods
+
+Get all accounting periods.
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "period-123",
+      "name": "2024年度",
+      "startDate": "2024-01-01",
+      "endDate": "2024-12-31",
+      "isClosed": false,
+      "isActive": true
+    }
+  ]
+}
+```
+
+#### POST /accounting-periods
+
+Create a new accounting period.
+
+**Request Body:**
+
+```json
+{
+  "name": "2024年度",
+  "startDate": "2024-01-01",
+  "endDate": "2024-12-31"
+}
+```
+
+#### POST /accounting-periods/:id/close
+
+Close an accounting period.
+
+**Response:**
+
+```json
+{
+  "data": {
+    "id": "period-123",
+    "isClosed": true,
+    "closedAt": "2024-12-31T23:59:59Z"
+  }
+}
+```
+
+### Audit Logs
+
+#### GET /audit-logs
+
+Get audit logs (admin only).
+
+**Query Parameters:**
+
+- `userId` (string): Filter by user
+- `action` (string): Filter by action type
+- `entityType` (string): Filter by entity type
+- `startDate` (string): Date range start
+- `endDate` (string): Date range end
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "id": "log-123",
+      "userId": "user-123",
+      "userName": "John Doe",
+      "action": "CREATE",
+      "entityType": "JournalEntry",
+      "entityId": "je-123",
+      "details": {
+        "description": "売上計上",
+        "amount": 110000
+      },
+      "ipAddress": "192.168.1.1",
+      "userAgent": "Mozilla/5.0...",
+      "createdAt": "2024-01-15T10:00:00Z"
+    }
+  ]
+}
+```
+
 ## Error Codes
 
 | Code                   | Description                         |
@@ -565,6 +751,24 @@ Configure webhooks to receive real-time notifications:
   "secret": "webhook-secret"
 }
 ```
+
+## Testing
+
+### Test Environment
+
+A sandbox environment is available for testing:
+
+- **Base URL**: `https://sandbox.simple-bookkeeping.com/api/v1`
+- **Test Credentials**: Contact support for test account
+
+### Test Data
+
+Test accounts come pre-populated with sample data:
+
+- Sample organization
+- Chart of accounts
+- Sample journal entries
+- Sample reports
 
 ## SDK Examples
 
