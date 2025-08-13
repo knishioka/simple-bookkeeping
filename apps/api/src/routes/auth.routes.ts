@@ -15,19 +15,24 @@ import type { Router as RouterType } from 'express';
 const router: RouterType = Router();
 
 // Register
+const registerBodySchema = z.object({
+  email: z.string().email('有効なメールアドレスを入力してください'),
+  password: z.string().min(8, 'パスワードは8文字以上で入力してください'),
+  name: z.string().min(1, '名前を入力してください'),
+  organizationName: z.string().min(1, '組織名を入力してください'),
+});
+
 const registerSchema = z.object({
-  body: z.object({
-    email: z.string().email('有効なメールアドレスを入力してください'),
-    password: z.string().min(8, 'パスワードは8文字以上で入力してください'),
-    name: z.string().min(1, '名前を入力してください'),
-    organizationName: z.string().min(1, '組織名を入力してください'),
-  }),
+  body: registerBodySchema,
 });
 
 router.post('/register', validate(registerSchema), authController.register);
 
 // Login
-router.post('/login', validate(z.object({ body: loginSchema })), authController.login);
+const loginValidationSchema = z.object({
+  body: loginSchema,
+});
+router.post('/login', validate(loginValidationSchema), authController.login);
 
 // Refresh token
 router.post(
@@ -49,18 +54,24 @@ router.post('/logout', authenticate, authController.logout);
 router.get('/me', authenticate, authController.getMe);
 
 // Update profile
+const updateProfileValidationSchema = z.object({
+  body: updateUserProfileSchema,
+});
 router.put(
   '/profile',
   authenticate,
-  validate(z.object({ body: updateUserProfileSchema })),
+  validate(updateProfileValidationSchema),
   authController.updateProfile
 );
 
 // Change password
+const changePasswordValidationSchema = z.object({
+  body: changePasswordSchema,
+});
 router.put(
   '/password',
   authenticate,
-  validate(z.object({ body: changePasswordSchema })),
+  validate(changePasswordValidationSchema),
   authController.changePassword
 );
 

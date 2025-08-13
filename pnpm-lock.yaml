@@ -89,6 +89,9 @@ importers:
       '@simple-bookkeeping/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@simple-bookkeeping/test-utils':
+        specifier: workspace:*
+        version: link:../../packages/test-utils
       '@simple-bookkeeping/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -279,6 +282,9 @@ importers:
       '@simple-bookkeeping/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@simple-bookkeeping/test-utils':
+        specifier: workspace:*
+        version: link:../../packages/test-utils
       '@simple-bookkeeping/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -487,6 +493,28 @@ importers:
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
+
+  packages/test-utils:
+    dependencies:
+      '@faker-js/faker':
+        specifier: ^8.4.1
+        version: 8.4.1
+      '@simple-bookkeeping/types':
+        specifier: workspace:*
+        version: link:../types
+      jsonwebtoken:
+        specifier: ^9.0.2
+        version: 9.0.2
+    devDependencies:
+      '@types/jsonwebtoken':
+        specifier: ^9.0.5
+        version: 9.0.10
+      '@types/node':
+        specifier: ^20.11.5
+        version: 20.19.1
+      typescript:
+        specifier: ^5.3.3
+        version: 5.9.2
 
   packages/types:
     dependencies:
@@ -955,6 +983,10 @@ packages:
   '@eslint/plugin-kit@0.3.4':
     resolution: {integrity: sha512-Ul5l+lHEcw3L5+k8POx6r74mxEYKG5kOb6Xpy2gCRW6zweT6TEhAf8vhxGgjhqrd/VO/Dirhsb+1hNpD1ue9hw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@faker-js/faker@8.4.1':
+    resolution: {integrity: sha512-XQ3cU+Q8Uqmrbf2e0cIC/QN43sTBSC8KF12u29Mb47tWrt2hAgBXSgpZMj4Ao8Uk0iJcU99QsOCaIL8934obCg==}
+    engines: {node: ^14.17.0 || ^16.13.0 || >=18.0.0, npm: '>=6.14.13'}
 
   '@fast-csv/format@4.3.5':
     resolution: {integrity: sha512-8iRn6QF3I8Ak78lNAa+Gdl5MJJBM5vRHivFtMRUWINdevNo00K7OXxS2PshawLKTejVwieIlPmK5YlLu6w4u8A==}
@@ -6410,6 +6442,8 @@ snapshots:
     dependencies:
       '@eslint/core': 0.15.1
       levn: 0.4.1
+
+  '@faker-js/faker@8.4.1': {}
 
   '@fast-csv/format@4.3.5':
     dependencies:
