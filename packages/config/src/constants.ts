@@ -18,9 +18,11 @@ export const API_URLS = {
 export const TIMEOUTS = {
   API: parseInt(process.env.API_TIMEOUT || '5000', 10),
   DATABASE: parseInt(process.env.DB_CONNECTION_TIMEOUT || '10000', 10),
-  E2E_TEST: parseInt(process.env.TEST_TIMEOUT || '30000', 10),
-  TEST_NAVIGATION: 5000,
-  TEST_ELEMENT: 3000,
+  E2E_TEST: parseInt(process.env.TEST_TIMEOUT || '10000', 10), // Reduced from 30000ms
+  TEST_NAVIGATION: 3000, // Reduced from 5000ms
+  TEST_ELEMENT: 2000, // Reduced from 3000ms
+  TEST_ACTION: 3000, // New: for click, type actions
+  TEST_API_RESPONSE: 3000, // New: for API response waiting
 } as const;
 
 // Pagination

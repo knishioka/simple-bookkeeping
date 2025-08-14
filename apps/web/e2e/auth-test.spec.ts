@@ -53,8 +53,8 @@ test.describe('認証フロー', () => {
     // モックレスポンスが処理されることを確認
     await page.waitForLoadState('domcontentloaded');
 
-    // 少し待機してモックレスポンスが処理されるのを待つ
-    await page.waitForTimeout(1000);
+    // Wait for token to be saved instead of fixed timeout
+    await page.waitForFunction(() => localStorage.getItem('token') !== null, { timeout: 3000 });
 
     // トークンが保存されていることを確認
     const token = await page.evaluate(() => localStorage.getItem('token'));

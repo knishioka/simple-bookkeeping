@@ -10,13 +10,13 @@ import { PORTS, TIMEOUTS, TEST_CONFIG } from '@simple-bookkeeping/config';
 const isCI = !!process.env.CI;
 const isDebug = !!process.env.DEBUG;
 
-// タイムアウト設定（最適化済み）
+// タイムアウト設定（最適化済み - Issue #129）
 const TEST_TIMEOUTS = {
-  test: isCI ? TIMEOUTS.E2E_TEST : 20000, // テスト全体のタイムアウト
-  expect: TIMEOUTS.TEST_ELEMENT, // アサーションタイムアウト
-  action: 10000, // アクションタイムアウト
-  navigation: TIMEOUTS.TEST_NAVIGATION, // ナビゲーションタイムアウト
-  server: 60000, // サーバー起動タイムアウト
+  test: isCI ? TIMEOUTS.E2E_TEST : 10000, // テスト全体のタイムアウト (20000→10000ms)
+  expect: TIMEOUTS.TEST_ELEMENT, // アサーションタイムアウト (2000ms)
+  action: TIMEOUTS.TEST_ACTION, // アクションタイムアウト (10000→3000ms)
+  navigation: TIMEOUTS.TEST_NAVIGATION, // ナビゲーションタイムアウト (3000ms)
+  server: 30000, // サーバー起動タイムアウト (60000→30000ms)
 };
 
 // リトライ設定
