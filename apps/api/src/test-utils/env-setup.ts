@@ -14,11 +14,11 @@ if (!process.env.DATABASE_URL) {
     process.env.DATABASE_URL =
       'postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test?schema=public';
   } else {
-    // Local development - more flexible configuration
-    // Supports both postgres and custom user configurations
+    // Local development - try to detect the current user
+    const currentUser = process.env.USER || process.env.USERNAME || 'postgres';
     process.env.DATABASE_URL =
       process.env.TEST_DATABASE_URL ||
-      'postgresql://bookkeeping:bookkeeping@localhost:5432/simple_bookkeeping_test?schema=public';
+      `postgresql://${currentUser}@localhost:5432/simple_bookkeeping_test?schema=public`;
   }
 }
 
