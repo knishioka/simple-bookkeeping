@@ -24,6 +24,7 @@
     "**/*.test.ts",
     "**/*.spec.ts",
     "src/**/__tests__/**",
-    "src/e2e/**"
+    "src/e2e/**",
+    "src/test-utils/**"
   ]
 }
