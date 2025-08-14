@@ -1,3 +1,4 @@
+import { TEST_ACCOUNTS } from '@simple-bookkeeping/config';
 import { UserRole, JournalStatus, AccountType } from '@simple-bookkeeping/database';
 import { TEST_CREDENTIALS, TEST_JWT_CONFIG } from '@simple-bookkeeping/test-utils';
 import bcrypt from 'bcryptjs';
@@ -240,23 +241,23 @@ export const createFullTestSetup = async (role: UserRole = UserRole.ACCOUNTANT) 
   const token = generateTestToken(user.id, organization.id, role);
   const accountingPeriod = await createTestAccountingPeriod(organization.id);
 
-  // Create basic accounts
+  // Create basic accounts using config constants
   const cashAccount = await createTestAccount(organization.id, {
-    code: '1001',
-    name: '現金',
-    accountType: AccountType.ASSET,
+    code: TEST_ACCOUNTS.CASH.code,
+    name: TEST_ACCOUNTS.CASH.name,
+    accountType: TEST_ACCOUNTS.CASH.type as AccountType,
   });
 
   const salesAccount = await createTestAccount(organization.id, {
-    code: '4001',
-    name: '売上高',
-    accountType: AccountType.REVENUE,
+    code: TEST_ACCOUNTS.SALES.code,
+    name: TEST_ACCOUNTS.SALES.name,
+    accountType: TEST_ACCOUNTS.SALES.type as AccountType,
   });
 
   const expenseAccount = await createTestAccount(organization.id, {
-    code: '5001',
-    name: '仕入高',
-    accountType: AccountType.EXPENSE,
+    code: TEST_ACCOUNTS.COST_OF_SALES.code,
+    name: TEST_ACCOUNTS.COST_OF_SALES.name,
+    accountType: TEST_ACCOUNTS.COST_OF_SALES.type as AccountType,
   });
 
   return {
