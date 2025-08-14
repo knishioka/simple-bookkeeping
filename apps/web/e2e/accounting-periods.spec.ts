@@ -7,8 +7,7 @@ import { UnifiedAuth } from './helpers/unified-auth';
  */
 test.describe('Accounting Periods Management', () => {
   test('should successfully authenticate and navigate to dashboard', async ({ page, context }) => {
-    // テストのタイムアウトを延長
-    test.setTimeout(30000);
+    // Removed excessive timeout - using optimized global config (10s)
 
     // 統一認証ヘルパーでモックをセットアップ
     await UnifiedAuth.setupMockRoutes(context);
@@ -252,7 +251,7 @@ test.describe('Accounting Periods Management', () => {
       .first();
 
     // The page should show something to indicate it's empty or allow creating new
-    await expect(emptyIndicator).toBeVisible({ timeout: 10000 });
+    await expect(emptyIndicator).toBeVisible({ timeout: 5000 });
   });
 
   test('should handle API errors gracefully', async ({ page, context }) => {

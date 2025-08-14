@@ -156,10 +156,13 @@ export const TEST_LIMITS = {
   BULK_INSERT_SIZE: 50,
 } as const;
 
-// Test Timeouts
+// Test Timeouts (Optimized - Issue #129)
 export const TEST_TIMEOUTS = {
   UNIT: 5000, // 5 seconds
   INTEGRATION: 10000, // 10 seconds
-  E2E: 30000, // 30 seconds
-  SLOW_E2E: 60000, // 60 seconds
+  E2E: 10000, // 10 seconds (reduced from 30s)
+  SLOW_E2E: 20000, // 20 seconds (reduced from 60s, for data-heavy tests only)
+  WAIT_SHORT: 100, // 100ms for short waits
+  WAIT_MEDIUM: 500, // 500ms for medium waits
+  WAIT_LONG: 1000, // 1s for long waits (avoid using)
 } as const;

@@ -43,7 +43,8 @@ export class RadixSelectHelper {
   ): Promise<void> {
     const select = typeof selectLocator === 'string' ? page.locator(selectLocator) : selectLocator;
 
-    await page.waitForTimeout(200); // 値が反映されるまで少し待機
+    // Wait for the select to have content instead of fixed timeout
+    await select.waitFor({ state: 'visible', timeout: 1000 });
     const actualText = await select.textContent();
 
     if (!actualText?.includes(expectedText)) {
@@ -170,7 +171,7 @@ export class FormHelper {
       await Promise.race([
         Promise.all([submitButton.click(), responsePromise]),
         // タイムアウト時は続行
-        submitButton.click().then(() => page.waitForTimeout(1000)),
+        submitButton.click().then(() => page.waitForLoadState('networkidle', { timeout: 1000 })),
       ]).catch(() => {
         // エラーが発生してもボタンクリックは実行済みなので続行
       });

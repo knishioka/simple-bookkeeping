@@ -31,15 +31,15 @@ export class AppHelpers {
         const stylesheets = Array.from(document.styleSheets);
         return stylesheets.length > 0;
       },
-      { timeout: 15000 }
+      { timeout: 5000 }
     );
 
     // bodyが表示されているか確認
-    await this.page.waitForSelector('body', { state: 'visible', timeout: 15000 });
+    await this.page.waitForSelector('body', { state: 'visible', timeout: 5000 });
 
-    // CI環境では追加の待機時間を設定（安定性向上）
+    // CI環境では状態の安定を待つ（固定待機時間を削除）
     if (process.env.CI) {
-      await this.page.waitForTimeout(300);
+      await this.page.waitForLoadState('domcontentloaded', { timeout: 1000 });
     }
   }
 
@@ -90,21 +90,21 @@ export class AuthHelpers {
       // ダッシュボードへのリダイレクトを待つ
       Promise.all([
         loginButton.click(),
-        this.page.waitForURL('**/dashboard/**', { timeout: 15000 }),
+        this.page.waitForURL('**/dashboard/**', { timeout: 5000 }),
       ]).catch(() => null),
 
       // または認証成功のレスポンスを待つ
       Promise.all([
         loginButton.click(),
         this.page.waitForResponse((resp) => resp.url().includes('/auth/login') && resp.ok(), {
-          timeout: 15000,
+          timeout: 5000,
         }),
       ]).catch(() => null),
 
       // またはローカルストレージへのトークン保存を待つ
       Promise.all([
         loginButton.click(),
-        this.page.waitForFunction(() => localStorage.getItem('token') !== null, { timeout: 15000 }),
+        this.page.waitForFunction(() => localStorage.getItem('token') !== null, { timeout: 5000 }),
       ]).catch(() => null),
     ]);
 
@@ -284,7 +284,8 @@ export class AccountHelpers {
    */
   async searchAccount(searchTerm: string) {
     await this.page.fill('input[placeholder*="検索"]', searchTerm);
-    await this.page.waitForTimeout(500); // デバウンス待機
+    // Wait for debounce to complete (check for network activity)
+    await this.page.waitForLoadState('networkidle', { timeout: 1500 });
   }
 
   /**

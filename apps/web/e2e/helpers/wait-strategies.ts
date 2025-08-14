@@ -29,7 +29,7 @@ export async function waitForApiResponse(
     method?: string;
   }
 ): Promise<Response> {
-  const { timeout = 30000, statusCode = 200, method } = options || {};
+  const { timeout = 3000, statusCode = 200, method } = options || {};
 
   return await page.waitForResponse(
     (response) => {
@@ -80,7 +80,7 @@ export async function waitForTestId(
     timeout?: number;
   }
 ) {
-  const { state = 'visible', timeout = 30000 } = options || {};
+  const { state = 'visible', timeout = 5000 } = options || {};
 
   return await page.waitForSelector(`[data-testid="${testId}"]`, { state, timeout });
 }
@@ -98,7 +98,7 @@ export async function waitForDataLoaded(
     timeout?: number;
   }
 ) {
-  const { timeout = 30000 } = options || {};
+  const { timeout = 5000 } = options || {};
   const targetSelector = selector || '[data-loaded="true"]';
 
   await page.waitForSelector(targetSelector, { timeout });
@@ -136,7 +136,7 @@ export async function waitForPageReady(
     waitForTestId: testId,
     waitForSelector: selector,
     skipNetworkIdle = false,
-    timeout = 30000,
+    timeout = 5000,
   } = options || {};
 
   // DOM読み込み完了を待機
@@ -180,7 +180,7 @@ export async function withRetry<T>(
     timeout?: number;
   }
 ): Promise<T> {
-  const { retries = 3, delay = 1000, timeout = 30000 } = options || {};
+  const { retries = 3, delay = 1000, timeout = 5000 } = options || {};
 
   const startTime = Date.now();
   let lastError: Error | undefined;
@@ -220,7 +220,7 @@ export async function waitForCondition(
     polling?: number;
   }
 ) {
-  const { timeout = 30000, polling = 100 } = options || {};
+  const { timeout = 5000, polling = 100 } = options || {};
 
   return await page.waitForFunction(condition, { timeout, polling });
 }
@@ -239,7 +239,7 @@ export async function waitForNavigation(
     waitUntil?: 'load' | 'domcontentloaded' | 'networkidle';
   }
 ) {
-  const { timeout = 30000, waitUntil = 'domcontentloaded' } = options || {};
+  const { timeout = 5000, waitUntil = 'domcontentloaded' } = options || {};
 
   if (url) {
     await page.waitForURL(url, { timeout, waitUntil });
@@ -263,7 +263,7 @@ export async function waitForTextChange(
     timeout?: number;
   }
 ) {
-  const { timeout = 30000 } = options || {};
+  const { timeout = 5000 } = options || {};
 
   await page.waitForFunction(
     ({ sel, text }) => {
@@ -297,7 +297,7 @@ export async function waitForSelectOpen(
     timeout?: number;
   }
 ) {
-  const { timeout = 30000 } = options || {};
+  const { timeout = 5000 } = options || {};
 
   // Radix UIのSelectコンテンツが表示されるまで待機
   await page.waitForSelector('[role="listbox"], [data-radix-select-content]', {
@@ -324,7 +324,7 @@ export async function waitForFormSubmit(
     timeout?: number;
   }
 ) {
-  const { successUrl, successApi, timeout = 30000 } = options || {};
+  const { successUrl, successApi, timeout = 5000 } = options || {};
 
   const promises: Promise<unknown>[] = [];
 
@@ -357,7 +357,7 @@ export async function waitForModal(
     timeout?: number;
   }
 ) {
-  const { role = 'dialog', testId, timeout = 30000 } = options || {};
+  const { role = 'dialog', testId, timeout = 5000 } = options || {};
 
   if (testId) {
     await waitForTestId(page, testId, { timeout });
@@ -382,7 +382,7 @@ export async function waitForToast(
     timeout?: number;
   }
 ) {
-  const { timeout = 30000 } = options || {};
+  const { timeout = 5000 } = options || {};
 
   // トースト要素の表示を待機
   const toastSelector = '[data-sonner-toast], [role="status"], .toast';
@@ -428,7 +428,7 @@ export async function smartWait(
     timeout?: number;
   }
 ) {
-  const { timeout = 30000 } = options || {};
+  const { timeout = 5000 } = options || {};
 
   if (type === 'auto') {
     // 自動判定
