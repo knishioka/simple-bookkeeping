@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { PORTS, TIMEOUTS, TEST_CONFIG } from '@simple-bookkeeping/config';
 
 /**
  * Optimized Playwright configuration for E2E tests
@@ -10,11 +11,11 @@ const isCI = !!process.env.CI;
 const isDebug = !!process.env.DEBUG;
 
 // タイムアウト設定（最適化済み）
-const TIMEOUTS = {
-  test: isCI ? 30000 : 20000, // テスト全体のタイムアウトを短縮
-  expect: 5000, // アサーションタイムアウトを短縮
+const TEST_TIMEOUTS = {
+  test: isCI ? TIMEOUTS.E2E_TEST : 20000, // テスト全体のタイムアウト
+  expect: TIMEOUTS.TEST_ELEMENT, // アサーションタイムアウト
   action: 10000, // アクションタイムアウト
-  navigation: 10000, // ナビゲーションタイムアウト（15秒から10秒に短縮）
+  navigation: TIMEOUTS.TEST_NAVIGATION, // ナビゲーションタイムアウト
   server: 60000, // サーバー起動タイムアウト
 };
 
@@ -39,11 +40,11 @@ export default defineConfig({
   forbidOnly: isCI,
 
   // タイムアウト設定
-  timeout: TIMEOUTS.test,
+  timeout: TEST_TIMEOUTS.test,
 
   // 期待値設定
   expect: {
-    timeout: TIMEOUTS.expect,
+    timeout: TEST_TIMEOUTS.expect,
     toHaveScreenshot: {
       maxDiffPixels: 100,
       threshold: 0.2,
@@ -53,50 +54,53 @@ export default defineConfig({
   // リトライ設定
   retries: isCI ? RETRIES.ci : RETRIES.local,
 
-  // ワーカー設定
+  // ワーカー数の最適化
   workers: isCI ? WORKERS.ci : WORKERS.local,
 
-  // レポート設定（シンプル化）
-  reporter: isCI
-    ? [
-        ['github'],
-        ['json', { outputFile: 'test-results.json' }],
-        ['junit', { outputFile: 'junit.xml' }],
-      ]
-    : [['list'], ['html', { open: 'on-failure' }]],
+  // レポーター設定
+  reporter: [
+    ['list', { printSteps: isDebug }],
+    ...(isCI
+      ? [
+          ['json', { outputFile: 'test-results/results.json' }] as const,
+          ['html', { outputFolder: 'test-results/html', open: 'never' }] as const,
+        ]
+      : [['html', { outputFolder: 'test-results/html', open: 'on-failure' }] as const]),
+  ],
+
+  // 出力ディレクトリ
+  outputDir: 'test-results/output',
 
   // グローバル設定
+  globalSetup:
+    process.env.USE_GLOBAL_SETUP === 'false' ? undefined : require.resolve('./e2e/global-setup'),
+  globalTeardown: undefined,
+
+  // 共有設定
   use: {
     // ベースURL
-    baseURL: process.env.BASE_URL || 'http://localhost:3000',
+    baseURL: TEST_CONFIG.webUrl || `http://localhost:${PORTS.WEB}`,
 
-    // トレース設定（最適化）
+    // トレース設定（失敗時のみ）
     trace: isCI ? 'on-first-retry' : 'retain-on-failure',
 
     // スクリーンショット設定
     screenshot: {
       mode: 'only-on-failure',
-      fullPage: false, // フルページは不要
+      fullPage: false,
     },
 
-    // ビデオ設定（最適化）
-    video: isCI ? 'on-first-retry' : 'off', // ローカルではビデオ無効
+    // ビデオ設定
+    video: isCI ? 'retain-on-failure' : 'off',
 
     // タイムアウト設定
-    actionTimeout: TIMEOUTS.action,
-    navigationTimeout: TIMEOUTS.navigation,
-
-    // ロケール設定
-    locale: 'ja-JP',
-    timezoneId: 'Asia/Tokyo',
+    actionTimeout: TEST_TIMEOUTS.action,
+    navigationTimeout: TEST_TIMEOUTS.navigation,
 
     // ビューポート設定
     viewport: { width: 1280, height: 720 },
 
-    // 権限設定
-    permissions: [],
-
-    // オフライン設定
+    // ネットワーク設定
     offline: false,
 
     // JavaScriptの有効化
@@ -156,136 +160,77 @@ export default defineConfig({
         ]
       : []),
 
-    // モバイルテスト（特定のテストのみ）
+    // モバイルテスト（必要時のみ）
     {
-      name: 'mobile',
+      name: 'mobile-chrome',
       use: {
         ...devices['Pixel 5'],
       },
       testMatch: /.*\.mobile\.spec\.ts$/,
     },
 
-    // 認証テスト専用（高速化のため分離）
+    // API認証テスト用プロジェクト
     {
-      name: 'auth',
+      name: 'api-auth',
       use: {
         ...devices['Desktop Chrome'],
-        // 認証テスト用の特別な設定
-        storageState: undefined, // 認証状態を持たない
+        storageState: 'e2e/.auth/admin.json',
       },
-      testMatch: /.*auth.*\.spec\.ts$/,
+      testMatch: /.*\.auth\.spec\.ts$/,
+      dependencies: [],
     },
 
-    // 統合テスト（モック無効）
+    // Desktop browsers with different viewports
     {
-      name: 'integration',
+      name: 'chromium-desktop',
       use: {
         ...devices['Desktop Chrome'],
-        // 実際のAPIを使用
+        viewport: { width: 1920, height: 1080 },
       },
-      testMatch: /.*\.integration\.spec\.ts$/,
-      timeout: TIMEOUTS.test * 2, // 統合テストは長めのタイムアウト
+      testMatch: /^((?!mobile|tablet).)*\.spec\.ts$/,
+    },
+    {
+      name: 'chromium-tablet',
+      use: {
+        ...devices['iPad Pro'],
+      },
+      testMatch: /.*\.tablet\.spec\.ts$/,
     },
   ],
 
-  // 開発サーバー設定（最適化）
-  webServer: isCI
-    ? undefined // CI環境では事前にサーバーが起動されている
-    : {
-        command: 'pnpm dev:test', // ローカルでは開発サーバー
-        url: 'http://localhost:3000',
-        reuseExistingServer: true, // 既存サーバーを再利用
-        timeout: TIMEOUTS.server,
-        stdout: isDebug ? 'pipe' : 'ignore',
-        stderr: 'pipe',
-      },
-
-  // グローバルセットアップ
-  globalSetup: './e2e/global-setup.ts',
-
-  // グローバルティアダウン
-  globalTeardown: './e2e/global-teardown.ts',
-
-  // テストマッチパターン
-  testMatch: ['**/*.spec.ts', '**/*.test.ts'],
-
-  // 無視パターン
-  testIgnore: [
-    '**/node_modules/**',
-    '**/dist/**',
-    '**/build/**',
-    '**/.next/**',
-    '**/*.skip.spec.ts',
-  ],
-
-  // エラー時の挙動
-  preserveOutput: 'failures-only',
-  updateSnapshots: isCI ? 'none' : 'missing',
-
-  // 最大失敗数
-  maxFailures: isCI ? 5 : 0, // CI環境では5個で停止、ローカルでは全て実行
-
-  // 出力ディレクトリ
-  outputDir: 'test-results',
-
-  // スナップショットディレクトリ
-  snapshotDir: './e2e/snapshots',
-  snapshotPathTemplate:
-    '{snapshotDir}/{testFileDir}/{testFileName}-snapshots/{arg}{-projectName}{-snapshotSuffix}{ext}',
-
-  // カスタムメタデータ
-  metadata: {
-    project: 'Simple Bookkeeping',
-    environment: isCI ? 'ci' : 'local',
-    timestamp: new Date().toISOString(),
-  },
+  // 開発サーバー設定（最適化済み）
+  webServer:
+    process.env.REUSE_SERVER === 'true'
+      ? undefined
+      : [
+          {
+            command: 'pnpm --filter @simple-bookkeeping/api dev:test',
+            port: PORTS.API,
+            timeout: TEST_TIMEOUTS.server,
+            reuseExistingServer: !isCI,
+            stdout: isDebug ? 'pipe' : 'ignore',
+            stderr: 'pipe',
+            env: {
+              NODE_ENV: 'test',
+              PORT: String(PORTS.API),
+              DATABASE_URL: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL,
+              JWT_SECRET: 'test-jwt-secret',
+              LOG_LEVEL: isDebug ? 'debug' : 'error',
+              DISABLE_RATE_LIMIT: 'true',
+            },
+          },
+          {
+            command: 'pnpm --filter @simple-bookkeeping/web dev',
+            port: PORTS.WEB,
+            timeout: TEST_TIMEOUTS.server,
+            reuseExistingServer: !isCI,
+            stdout: isDebug ? 'pipe' : 'ignore',
+            stderr: 'pipe',
+            env: {
+              NODE_ENV: 'test',
+              PORT: String(PORTS.WEB),
+              NEXT_PUBLIC_API_URL: `http://localhost:${PORTS.API}/api/v1`,
+            },
+          },
+        ],
 });
-
-/**
- * カスタムテストヘルパーの設定
- */
-export const testConfig = {
-  // モック設定
-  mock: {
-    enabled: !isCI, // ローカルではモック有効
-    delay: 0, // モックレスポンスの遅延なし
-    errorRate: 0, // エラーレートなし
-  },
-
-  // 認証設定
-  auth: {
-    defaultRole: 'admin' as const,
-    useUnifiedHelper: true,
-  },
-
-  // デバッグ設定
-  debug: {
-    slowMo: isDebug ? 500 : 0,
-    headless: isCI ? true : !isDebug,
-    devtools: isDebug,
-  },
-
-  // パフォーマンス設定
-  performance: {
-    collectMetrics: false,
-    tracingEnabled: false,
-  },
-};
-
-/**
- * テスト環境別の設定
- */
-export const environments = {
-  local: {
-    baseURL: 'http://localhost:3000',
-    apiURL: 'http://localhost:3001',
-  },
-  ci: {
-    baseURL: process.env.BASE_URL || 'http://localhost:3000',
-    apiURL: process.env.API_URL || 'http://localhost:3001',
-  },
-  staging: {
-    baseURL: process.env.STAGING_URL || 'https://staging.example.com',
-    apiURL: process.env.STAGING_API_URL || 'https://api-staging.example.com',
-  },
-};

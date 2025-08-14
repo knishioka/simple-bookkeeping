@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.10.1",
+    "@simple-bookkeeping/config": "workspace:*",
     "@simple-bookkeeping/database": "workspace:*",
     "@simple-bookkeeping/errors": "workspace:*",
     "@simple-bookkeeping/shared": "workspace:*",
