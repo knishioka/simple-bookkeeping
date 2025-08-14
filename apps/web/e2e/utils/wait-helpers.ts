@@ -171,7 +171,7 @@ export async function smartWait(
   }
 ): Promise<void> {
   const timeout = options?.timeout ?? TIMEOUTS.TEST_ELEMENT;
-  const promises: Promise<any>[] = [];
+  const promises: Promise<void>[] = [];
 
   if (conditions.selector) {
     promises.push(page.locator(conditions.selector).waitFor({ state: 'visible', timeout }));
