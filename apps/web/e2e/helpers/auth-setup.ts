@@ -147,20 +147,20 @@ export class AuthSetup {
     // 複数の成功条件を並列で待機
     const loginPromise = Promise.race([
       // オプション1: ダッシュボードへのリダイレクト
-      loginButton.click().then(() => page.waitForURL('**/dashboard/**', { timeout: 15000 })),
+      loginButton.click().then(() => page.waitForURL('**/dashboard/**', { timeout: 5000 })),
 
       // オプション2: トークンがlocalStorageに保存される
       loginButton
         .click()
         .then(() =>
-          page.waitForFunction(() => localStorage.getItem('token') !== null, { timeout: 15000 })
+          page.waitForFunction(() => localStorage.getItem('token') !== null, { timeout: 5000 })
         ),
 
       // オプション3: ログイン成功のレスポンス
       Promise.all([
         loginButton.click(),
         page.waitForResponse((resp) => resp.url().includes('/auth/login') && resp.ok(), {
-          timeout: 15000,
+          timeout: 5000,
         }),
       ]),
     ]);

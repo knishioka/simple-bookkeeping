@@ -367,8 +367,8 @@ export class UnifiedAuth {
           .catch(() => null),
       ]);
 
-      // 3. 少し待機して状態を安定させる
-      await page.waitForTimeout(500);
+      // 3. Wait for state to stabilize with proper condition
+      await page.waitForLoadState('domcontentloaded', { timeout: 1000 });
     } else {
       // ローカル環境：既存のロジックを使用
       try {

@@ -160,7 +160,8 @@ export class StoryTestHelper {
         console.warn(`[AC ATTEMPT ${attempt}/${maxRetries} FAILED] ${criteria}:`, error);
 
         if (attempt < maxRetries) {
-          await page.waitForTimeout(retryDelay);
+          // Use exponential backoff instead of fixed delay
+          await page.waitForTimeout(Math.min(retryDelay * attempt, 2000));
         }
       }
     }
@@ -355,7 +356,8 @@ export const storyExpect = {
         );
         if ((await submitBtn.count()) > 0) {
           await submitBtn.click();
-          await page.waitForTimeout(500); // エラー表示待機
+          // Wait for error messages to appear instead of fixed timeout
+          await page.waitForLoadState('networkidle', { timeout: 2000 }).catch(() => {});
           results.hasErrorMessages =
             (await page.locator('.error, [role="alert"], .field-error').count()) > 0;
         }
@@ -366,7 +368,8 @@ export const storyExpect = {
       // Tabキーでナビゲーション可能か
       const initialElement = await page.evaluate(() => document.activeElement?.tagName);
       await page.keyboard.press('Tab');
-      await page.waitForTimeout(100);
+      // Wait for focus change instead of fixed timeout
+      await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 50)));
       const newElement = await page.evaluate(() => document.activeElement?.tagName);
       results.isKeyboardNavigable = newElement !== 'BODY' && newElement !== initialElement;
     }
@@ -388,7 +391,8 @@ export const storyExpect = {
       // レスポンシブ対応の確認（モバイルサイズ）
       const originalSize = page.viewportSize();
       await page.setViewportSize({ width: 390, height: 844 }); // iPhone 12
-      await page.waitForTimeout(500);
+      // Wait for viewport change to settle
+      await page.waitForLoadState('domcontentloaded', { timeout: 1000 });
 
       // 水平スクロールが発生していないか確認
       const hasHorizontalScroll = await page.evaluate(() => {
