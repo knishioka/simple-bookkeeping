@@ -1,0 +1,19 @@
+{
+  "name": "@simple-bookkeeping/config",
+  "version": "1.0.0",
+  "description": "Configuration constants and settings for Simple Bookkeeping",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "typescript": "^5.3.3"
+  }
+}
