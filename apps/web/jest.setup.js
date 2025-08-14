@@ -1,5 +1,21 @@
 import '@testing-library/jest-dom';
 
+// Suppress JSDOM navigation warnings
+const originalError = console.error;
+beforeAll(() => {
+  console.error = (...args) => {
+    if (typeof args[0] === 'string' && args[0].includes('Not implemented: navigation')) {
+      // Suppress navigation warnings from JSDOM
+      return;
+    }
+    originalError.call(console, ...args);
+  };
+});
+
+afterAll(() => {
+  console.error = originalError;
+});
+
 // Mock hasPointerCapture for Radix UI
 Object.defineProperty(HTMLElement.prototype, 'hasPointerCapture', {
   value: jest.fn(),

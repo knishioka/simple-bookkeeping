@@ -104,6 +104,7 @@ jobs:
           NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
           CI: true
           NODE_ENV: test
+          REUSE_SERVER: true
           # Test credentials from secrets (with fallbacks)
           TEST_JWT_SECRET: ${{ secrets.TEST_JWT_SECRET || 'test-jwt-secret-do-not-use-in-production' }}
           TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL || 'admin.test@localhost' }}

@@ -190,7 +190,7 @@ describe('AccountsController', () => {
 
     it('should handle parent account hierarchy', async () => {
       const parentAccount = await createTestAccount(testSetup.organization.id, {
-        code: '1000',
+        code: '1999', // Use a different code to avoid conflict with setup accounts
         name: '流動資産',
         accountType: AccountType.ASSET,
       });
