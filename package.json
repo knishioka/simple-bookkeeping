@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "dev": "turbo run dev",
-    "dev:ports": "node scripts/check-ports.js",
+    "dev:check-ports": "bash scripts/check-ports.sh",
     "build": "turbo run build",
     "build:packages": "turbo run build --filter='./packages/*'",
     "build:apps": "turbo run build --filter='./apps/*'",
