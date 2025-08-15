@@ -9,19 +9,24 @@ import { prisma } from '../../lib/prisma';
 import {
   cleanupTestData,
   createFullTestSetup,
+  createTestUser,
   generateTestToken,
 } from '../../test-utils/test-helpers';
 
 describe('PartnersController', () => {
   let testSetup: Awaited<ReturnType<typeof createFullTestSetup>>;
+  let adminUser: any;
   let adminToken: string;
   let testPartner: any;
 
   beforeEach(async () => {
     await cleanupTestData();
     testSetup = await createFullTestSetup();
-    // Create admin token for the same organization
-    adminToken = generateTestToken(testSetup.user.id, testSetup.organization.id, UserRole.ADMIN);
+    // Create separate admin user for admin-only operations
+    adminUser = await createTestUser(testSetup.organization.id, UserRole.ADMIN, {
+      email: 'admin-partners@test.com',
+    });
+    adminToken = generateTestToken(adminUser.id, testSetup.organization.id, UserRole.ADMIN);
 
     // Create test partner
     testPartner = await prisma.partner.create({
@@ -277,8 +282,11 @@ describe('PartnersController', () => {
     });
 
     it('should require ADMIN or ACCOUNTANT role', async () => {
+      const viewerUser = await createTestUser(testSetup.organization.id, UserRole.VIEWER, {
+        email: 'viewer-partners@test.com',
+      });
       const viewerToken = generateTestToken(
-        testSetup.user.id,
+        viewerUser.id,
         testSetup.organization.id,
         UserRole.VIEWER
       );
@@ -365,8 +373,11 @@ describe('PartnersController', () => {
     });
 
     it('should require ADMIN or ACCOUNTANT role', async () => {
+      const viewerUser = await createTestUser(testSetup.organization.id, UserRole.VIEWER, {
+        email: 'viewer-partners@test.com',
+      });
       const viewerToken = generateTestToken(
-        testSetup.user.id,
+        viewerUser.id,
         testSetup.organization.id,
         UserRole.VIEWER
       );
@@ -442,8 +453,11 @@ describe('PartnersController', () => {
     });
 
     it('should require ADMIN role', async () => {
+      const accountantUser = await createTestUser(testSetup.organization.id, UserRole.ACCOUNTANT, {
+        email: 'accountant-partners@test.com',
+      });
       const accountantToken = generateTestToken(
-        testSetup.user.id,
+        accountantUser.id,
         testSetup.organization.id,
         UserRole.ACCOUNTANT
       );
