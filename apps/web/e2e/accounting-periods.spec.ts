@@ -96,50 +96,263 @@ test.describe('Accounting Periods Management', () => {
     expect(hasContent).toBeTruthy();
   });
 
-  test.skip('should edit an existing accounting period', async ({ page }) => {
+  test('should edit an existing accounting period', async ({ page, context }) => {
+    // Mock create and update API responses
+    await context.route('**/api/v1/accounting-periods', async (route) => {
+      if (route.request().method() === 'POST') {
+        await route.fulfill({
+          status: 201,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            data: {
+              id: 'period-2',
+              name: '2025年度',
+              startDate: '2025-01-01',
+              endDate: '2025-12-31',
+              isActive: false,
+              organizationId: 'org-1',
+              createdAt: '2024-01-01T00:00:00Z',
+              updatedAt: '2024-01-01T00:00:00Z',
+            },
+          }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
+    await context.route('**/api/v1/accounting-periods/period-2', async (route) => {
+      if (route.request().method() === 'PUT') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            data: {
+              id: 'period-2',
+              name: '2025年度（修正版）',
+              startDate: '2025-01-01',
+              endDate: '2025-12-31',
+              isActive: false,
+              organizationId: 'org-1',
+              createdAt: '2024-01-01T00:00:00Z',
+              updatedAt: '2024-01-01T00:00:00Z',
+            },
+          }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
     await page.goto('/dashboard/settings/accounting-periods');
+    await page.waitForLoadState('domcontentloaded');
 
     // Create a period first
     await page.click('button:has-text("新規作成")');
+    await page.waitForSelector('input[name="name"]');
     await page.fill('input[name="name"]', '2025年度');
     await page.fill('input[name="startDate"]', '2025-01-01');
     await page.fill('input[name="endDate"]', '2025-12-31');
-    await page.click('button:has-text("作成")');
+    await page.click('button[type="submit"]:has-text("作成")');
+
+    // Mock updated periods list
+    await context.route('**/api/v1/accounting-periods', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            data: [
+              {
+                id: '1',
+                name: '2024年度',
+                startDate: '2024-01-01',
+                endDate: '2024-12-31',
+                isActive: true,
+                organizationId: 'org-1',
+                createdAt: '2024-01-01T00:00:00Z',
+                updatedAt: '2024-01-01T00:00:00Z',
+              },
+              {
+                id: 'period-2',
+                name: '2025年度',
+                startDate: '2025-01-01',
+                endDate: '2025-12-31',
+                isActive: false,
+                organizationId: 'org-1',
+                createdAt: '2024-01-01T00:00:00Z',
+                updatedAt: '2024-01-01T00:00:00Z',
+              },
+            ],
+          }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
 
     // Wait for the period to appear
-    await page.waitForSelector('text=2025年度');
+    await page.waitForSelector('text=2025年度', { timeout: 5000 });
 
-    // Click edit button
-    await page.click('tr:has-text("2025年度") button:has(svg)');
+    // Click edit button for the 2025 period
+    await page
+      .locator('tr:has-text("2025年度")')
+      .locator('button[aria-label*="edit"], button:has(svg[class*="Edit"]), button')
+      .nth(0)
+      .click();
 
-    // Update the name
+    // Wait for dialog to open and update the name
+    await page.waitForSelector('input[name="name"]');
     await page.fill('input[name="name"]', '2025年度（修正版）');
 
     // Submit the form
-    await page.click('button:has-text("更新")');
+    await page.click('button[type="submit"]:has-text("更新")');
+
+    // Mock updated list after edit
+    await context.route('**/api/v1/accounting-periods', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            data: [
+              {
+                id: '1',
+                name: '2024年度',
+                startDate: '2024-01-01',
+                endDate: '2024-12-31',
+                isActive: true,
+                organizationId: 'org-1',
+                createdAt: '2024-01-01T00:00:00Z',
+                updatedAt: '2024-01-01T00:00:00Z',
+              },
+              {
+                id: 'period-2',
+                name: '2025年度（修正版）',
+                startDate: '2025-01-01',
+                endDate: '2025-12-31',
+                isActive: false,
+                organizationId: 'org-1',
+                createdAt: '2024-01-01T00:00:00Z',
+                updatedAt: '2024-01-01T00:00:00Z',
+              },
+            ],
+          }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
 
     // Check if the period was updated
-    await expect(page.locator('text=2025年度（修正版）')).toBeVisible();
+    await expect(page.locator('text=2025年度（修正版）')).toBeVisible({ timeout: 5000 });
   });
 
-  test.skip('should activate an accounting period', async ({ page }) => {
+  test('should activate an accounting period', async ({ page, context }) => {
+    // Mock initial periods list with two inactive periods
+    await context.route('**/api/v1/accounting-periods', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            data: [
+              {
+                id: 'period-1',
+                name: '2024年度',
+                startDate: '2024-01-01',
+                endDate: '2024-12-31',
+                isActive: false,
+                organizationId: 'org-1',
+                createdAt: '2024-01-01T00:00:00Z',
+                updatedAt: '2024-01-01T00:00:00Z',
+              },
+              {
+                id: 'period-2',
+                name: '2025年度',
+                startDate: '2025-01-01',
+                endDate: '2025-12-31',
+                isActive: false,
+                organizationId: 'org-1',
+                createdAt: '2024-01-01T00:00:00Z',
+                updatedAt: '2024-01-01T00:00:00Z',
+              },
+            ],
+          }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
+    // Mock activate API response
+    await context.route('**/api/v1/accounting-periods/period-2/activate', async (route) => {
+      if (route.request().method() === 'POST') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            data: {
+              id: 'period-2',
+              name: '2025年度',
+              startDate: '2025-01-01',
+              endDate: '2025-12-31',
+              isActive: true,
+              organizationId: 'org-1',
+              createdAt: '2024-01-01T00:00:00Z',
+              updatedAt: '2024-01-01T00:00:00Z',
+            },
+          }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
     await page.goto('/dashboard/settings/accounting-periods');
+    await page.waitForLoadState('domcontentloaded');
 
-    // Create two periods
-    await page.click('button:has-text("新規作成")');
-    await page.fill('input[name="name"]', '2024年度');
-    await page.fill('input[name="startDate"]', '2024-01-01');
-    await page.fill('input[name="endDate"]', '2024-12-31');
-    await page.click('button:has-text("作成")');
-
-    await page.click('button:has-text("新規作成")');
-    await page.fill('input[name="name"]', '2025年度');
-    await page.fill('input[name="startDate"]', '2025-01-01');
-    await page.fill('input[name="endDate"]', '2025-12-31');
-    await page.click('button:has-text("作成")');
+    // Wait for periods to load
+    await page.waitForSelector('text=2025年度', { timeout: 5000 });
 
     // Activate the 2025 period
-    await page.click('tr:has-text("2025年度") button:has-text("有効化")');
+    await page.locator('tr:has-text("2025年度")').locator('button:has-text("有効化")').click();
+
+    // Mock updated list after activation
+    await context.route('**/api/v1/accounting-periods', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            data: [
+              {
+                id: 'period-1',
+                name: '2024年度',
+                startDate: '2024-01-01',
+                endDate: '2024-12-31',
+                isActive: false,
+                organizationId: 'org-1',
+                createdAt: '2024-01-01T00:00:00Z',
+                updatedAt: '2024-01-01T00:00:00Z',
+              },
+              {
+                id: 'period-2',
+                name: '2025年度',
+                startDate: '2025-01-01',
+                endDate: '2025-12-31',
+                isActive: true,
+                organizationId: 'org-1',
+                createdAt: '2024-01-01T00:00:00Z',
+                updatedAt: '2024-01-01T00:00:00Z',
+              },
+            ],
+          }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
 
     // Check if the period is active
     await expect(page.locator('tr:has-text("2025年度") .bg-green-100')).toContainText('有効');
@@ -148,54 +361,190 @@ test.describe('Accounting Periods Management', () => {
     await expect(page.locator('tr:has-text("2024年度") .bg-green-100')).not.toBeVisible();
   });
 
-  test.skip('should delete an inactive accounting period', async ({ page }) => {
-    await page.goto('/dashboard/settings/accounting-periods');
+  test('should delete an inactive accounting period', async ({ page, context }) => {
+    // Mock initial periods list
+    await context.route('**/api/v1/accounting-periods', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            data: [
+              {
+                id: 'period-1',
+                name: '2024年度',
+                startDate: '2024-01-01',
+                endDate: '2024-12-31',
+                isActive: true,
+                organizationId: 'org-1',
+                createdAt: '2024-01-01T00:00:00Z',
+                updatedAt: '2024-01-01T00:00:00Z',
+              },
+              {
+                id: 'period-delete',
+                name: '削除対象期間',
+                startDate: '2026-01-01',
+                endDate: '2026-12-31',
+                isActive: false,
+                organizationId: 'org-1',
+                createdAt: '2024-01-01T00:00:00Z',
+                updatedAt: '2024-01-01T00:00:00Z',
+              },
+            ],
+          }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
 
-    // Create a period
-    await page.click('button:has-text("新規作成")');
-    await page.fill('input[name="name"]', '削除対象期間');
-    await page.fill('input[name="startDate"]', '2026-01-01');
-    await page.fill('input[name="endDate"]', '2026-12-31');
-    await page.click('button:has-text("作成")');
+    // Mock delete API response
+    await context.route('**/api/v1/accounting-periods/period-delete', async (route) => {
+      if (route.request().method() === 'DELETE') {
+        await route.fulfill({
+          status: 204,
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
+    await page.goto('/dashboard/settings/accounting-periods');
+    await page.waitForLoadState('domcontentloaded');
 
     // Wait for the period to appear
-    await page.waitForSelector('text=削除対象期間');
+    await page.waitForSelector('text=削除対象期間', { timeout: 5000 });
 
     // Click delete button
-    await page.click('tr:has-text("削除対象期間") button:has(svg):last-child');
+    await page.locator('tr:has-text("削除対象期間")').locator('button').last().click();
 
     // Confirm deletion in dialog
-    await page.click('button:has-text("削除"):not([disabled])');
+    await page.waitForSelector('text=会計期間を削除しますか');
+    await page.locator('button:has-text("削除")').last().click();
+
+    // Mock updated list after deletion
+    await context.route('**/api/v1/accounting-periods', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            data: [
+              {
+                id: 'period-1',
+                name: '2024年度',
+                startDate: '2024-01-01',
+                endDate: '2024-12-31',
+                isActive: true,
+                organizationId: 'org-1',
+                createdAt: '2024-01-01T00:00:00Z',
+                updatedAt: '2024-01-01T00:00:00Z',
+              },
+            ],
+          }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
 
     // Check if the period was deleted
-    await expect(page.locator('text=削除対象期間')).not.toBeVisible();
+    await expect(page.locator('text=削除対象期間')).not.toBeVisible({ timeout: 5000 });
   });
 
-  test.skip('should not allow deleting active period', async ({ page }) => {
-    await page.goto('/dashboard/settings/accounting-periods');
+  test('should not allow deleting active period', async ({ page, context }) => {
+    // Mock periods list with an active period
+    await context.route('**/api/v1/accounting-periods', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            data: [
+              {
+                id: 'period-active',
+                name: 'アクティブ期間',
+                startDate: '2024-01-01',
+                endDate: '2024-12-31',
+                isActive: true,
+                organizationId: 'org-1',
+                createdAt: '2024-01-01T00:00:00Z',
+                updatedAt: '2024-01-01T00:00:00Z',
+              },
+              {
+                id: 'period-inactive',
+                name: '非アクティブ期間',
+                startDate: '2025-01-01',
+                endDate: '2025-12-31',
+                isActive: false,
+                organizationId: 'org-1',
+                createdAt: '2024-01-01T00:00:00Z',
+                updatedAt: '2024-01-01T00:00:00Z',
+              },
+            ],
+          }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
 
-    // Create an active period
-    await page.click('button:has-text("新規作成")');
-    await page.fill('input[name="name"]', 'アクティブ期間');
-    await page.fill('input[name="startDate"]', '2024-01-01');
-    await page.fill('input[name="endDate"]', '2024-12-31');
-    await page.click('input[role="switch"]'); // Activate the period
-    await page.click('button:has-text("作成")');
+    await page.goto('/dashboard/settings/accounting-periods');
+    await page.waitForLoadState('domcontentloaded');
 
     // Wait for the period to appear
-    await page.waitForSelector('text=アクティブ期間');
+    await page.waitForSelector('text=アクティブ期間', { timeout: 5000 });
 
     // Check that delete button is not visible for active period
-    await expect(
-      page.locator('tr:has-text("アクティブ期間") button:has(svg):last-child')
-    ).not.toBeVisible();
+    const activeRowDeleteButton = page
+      .locator('tr:has-text("アクティブ期間")')
+      .locator('button[aria-label*="delete"], button:has(svg[class*="Trash"]), button')
+      .last();
+    await expect(activeRowDeleteButton).not.toBeVisible();
+
+    // Check that delete button IS visible for inactive period
+    const inactiveRowDeleteButton = page
+      .locator('tr:has-text("非アクティブ期間")')
+      .locator('button')
+      .last();
+    await expect(inactiveRowDeleteButton).toBeVisible();
   });
 
-  test.skip('should validate date range when creating period', async ({ page }) => {
+  test('should validate date range when creating period', async ({ page, context }) => {
+    // Mock error response for invalid date range
+    await context.route('**/api/v1/accounting-periods', async (route) => {
+      if (route.request().method() === 'POST') {
+        const body = route.request().postDataJSON();
+        if (body && body.startDate > body.endDate) {
+          await route.fulfill({
+            status: 400,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              error: '開始日は終了日より前である必要があります',
+            }),
+          });
+        } else {
+          await route.continue();
+        }
+      } else if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            data: [],
+          }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
     await page.goto('/dashboard/settings/accounting-periods');
+    await page.waitForLoadState('domcontentloaded');
 
     // Click create button
     await page.click('button:has-text("新規作成")');
+    await page.waitForSelector('input[name="name"]');
 
     // Fill in invalid date range (end before start)
     await page.fill('input[name="name"]', '無効な期間');
@@ -203,31 +552,71 @@ test.describe('Accounting Periods Management', () => {
     await page.fill('input[name="endDate"]', '2025-01-01');
 
     // Submit the form
-    await page.click('button:has-text("作成")');
+    await page.click('button[type="submit"]:has-text("作成")');
 
-    // Check for validation error
-    await expect(page.locator('text=開始日は終了日より前である必要があります')).toBeVisible();
+    // Check for validation error in toast notification
+    await expect(page.locator('text=開始日は終了日より前である必要があります')).toBeVisible({
+      timeout: 5000,
+    });
   });
 
-  test.skip('should prevent overlapping periods', async ({ page }) => {
-    await page.goto('/dashboard/settings/accounting-periods');
+  test('should prevent overlapping periods', async ({ page, context }) => {
+    // Mock initial periods list with existing period
+    await context.route('**/api/v1/accounting-periods', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            data: [
+              {
+                id: 'period-1',
+                name: '2025年度',
+                startDate: '2025-01-01',
+                endDate: '2025-12-31',
+                isActive: false,
+                organizationId: 'org-1',
+                createdAt: '2024-01-01T00:00:00Z',
+                updatedAt: '2024-01-01T00:00:00Z',
+              },
+            ],
+          }),
+        });
+      } else if (route.request().method() === 'POST') {
+        const body = route.request().postDataJSON();
+        // Check for overlapping dates
+        if (body && body.startDate <= '2025-12-31' && body.endDate >= '2025-01-01') {
+          await route.fulfill({
+            status: 409,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              error: '期間が重複しています: 2025年度 (2025-01-01 - 2025-12-31)',
+            }),
+          });
+        } else {
+          await route.continue();
+        }
+      } else {
+        await route.continue();
+      }
+    });
 
-    // Create first period
-    await page.click('button:has-text("新規作成")');
-    await page.fill('input[name="name"]', '2025年度');
-    await page.fill('input[name="startDate"]', '2025-01-01');
-    await page.fill('input[name="endDate"]', '2025-12-31');
-    await page.click('button:has-text("作成")');
+    await page.goto('/dashboard/settings/accounting-periods');
+    await page.waitForLoadState('domcontentloaded');
+
+    // Wait for existing period to be displayed
+    await page.waitForSelector('text=2025年度', { timeout: 5000 });
 
     // Try to create overlapping period
     await page.click('button:has-text("新規作成")');
+    await page.waitForSelector('input[name="name"]');
     await page.fill('input[name="name"]', '重複期間');
     await page.fill('input[name="startDate"]', '2025-06-01');
     await page.fill('input[name="endDate"]', '2026-05-31');
-    await page.click('button:has-text("作成")');
+    await page.click('button[type="submit"]:has-text("作成")');
 
     // Check for error message
-    await expect(page.locator('text=期間が重複しています')).toBeVisible();
+    await expect(page.locator('text=期間が重複しています')).toBeVisible({ timeout: 5000 });
   });
 
   test('should show empty state when no periods exist', async ({ page, context }) => {
