@@ -128,6 +128,7 @@ model JournalEntry {
   documentNumber     String?          @map("document_number") // 証憑番号
   status             JournalStatus    @default(DRAFT)
   accountingPeriodId String           @map("accounting_period_id")
+  partnerId          String?          @map("partner_id") // 取引先
   createdById        String           @map("created_by")
   createdAt          DateTime         @default(now()) @map("created_at")
   updatedAt          DateTime         @updatedAt @map("updated_at")
@@ -137,12 +138,14 @@ model JournalEntry {
   accountingPeriod AccountingPeriod  @relation(fields: [accountingPeriodId], references: [id])
   organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   createdBy        User              @relation(fields: [createdById], references: [id])
+  partner          Partner?          @relation(fields: [partnerId], references: [id])
   lines            JournalEntryLine[]
 
   @@unique([organizationId, entryNumber])
   @@index([entryDate])
   @@index([accountingPeriodId])
   @@index([status])
+  @@index([partnerId])
   @@index([organizationId])
   @@map("journal_entries")
 }
@@ -190,6 +193,7 @@ model Partner {
   organizationId String      @map("organization_id")
   
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  journalEntries JournalEntry[]
 
   @@unique([organizationId, code])
   @@index([partnerType])

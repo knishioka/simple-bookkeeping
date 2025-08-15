@@ -88,6 +88,14 @@ export const getJournalEntries = async (
               lineNumber: 'asc',
             },
           },
+          partner: {
+            select: {
+              id: true,
+              code: true,
+              name: true,
+              partnerType: true,
+            },
+          },
           createdBy: {
             select: {
               id: true,
@@ -233,7 +241,7 @@ export const createJournalEntry = async (
   res: Response
 ) => {
   try {
-    const { entryDate, description, documentNumber, lines } = req.body;
+    const { entryDate, description, documentNumber, partnerId, lines } = req.body;
     const userId = req.user?.id || '';
     const organizationId = req.user?.organizationId;
 
@@ -274,6 +282,26 @@ export const createJournalEntry = async (
       });
     }
 
+    // Validate partner if provided
+    if (partnerId) {
+      const partner = await prisma.partner.findFirst({
+        where: {
+          id: partnerId,
+          organizationId,
+          isActive: true,
+        },
+      });
+
+      if (!partner) {
+        return res.status(400).json({
+          error: {
+            code: 'INVALID_PARTNER',
+            message: '無効な取引先が指定されています',
+          },
+        });
+      }
+    }
+
     // Get accounting period
     const date = new Date(entryDate);
     const accountingPeriod = await getAccountingPeriod(date, organizationId);
@@ -308,6 +336,7 @@ export const createJournalEntry = async (
           entryNumber,
           description,
           documentNumber,
+          partnerId,
           accountingPeriodId: accountingPeriod.id,
           organizationId,
           createdById: userId,

@@ -338,6 +338,26 @@ export const auditLog = {
     captureNewValues: true,
   }),
 
+  // Partner operations
+  createPartner: createAuditLogMiddleware({
+    action: AuditAction.CREATE,
+    entityType: 'Partner',
+    captureNewValues: true,
+  }),
+
+  updatePartner: createAuditLogMiddleware({
+    action: AuditAction.UPDATE,
+    entityType: 'Partner',
+    captureOldValues: true,
+    captureNewValues: true,
+  }),
+
+  deletePartner: createAuditLogMiddleware({
+    action: AuditAction.DELETE,
+    entityType: 'Partner',
+    captureOldValues: true,
+  }),
+
   // Accounting Period operations
   createAccountingPeriod: createAuditLogMiddleware({
     action: AuditAction.CREATE,
