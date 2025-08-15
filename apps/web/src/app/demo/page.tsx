@@ -33,6 +33,19 @@ export default function DemoPage() {
         '消費税率の設定',
       ],
     },
+    {
+      title: '取引先管理',
+      description: '顧客と仕入先の情報を管理する機能のデモ',
+      href: '/demo/partners',
+      features: [
+        '取引先の一覧表示',
+        'コード・名前・フリガナによる検索',
+        '顧客・仕入先・両方のタイプ分け',
+        '連絡先情報の管理',
+        '法人番号/個人番号の管理',
+        '有効/無効の状態管理',
+      ],
+    },
   ];
 
   return (
@@ -53,7 +66,7 @@ export default function DemoPage() {
           </div>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-2 mb-12">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 mb-12">
           {demoPages.map((page) => (
             <Card key={page.href} className="h-full">
               <CardHeader>

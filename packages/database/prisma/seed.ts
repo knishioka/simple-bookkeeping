@@ -553,33 +553,71 @@ async function main() {
   console.log('Created standard accounts');
 
   // Create sample partners
-  // TODO: Fix partner creation after fixing enum issue
-  // const partners = await Promise.all([
-  //   prisma.partner.create({
-  //     data: {
-  //       code: 'C001',
-  //       name: '株式会社サンプル商事',
-  //       partnerType: 'CUSTOMER',
-  //       address: '東京都千代田区丸の内1-1-1',
-  //       phone: '03-1234-5678',
-  //       email: 'info@sample-shoji.co.jp',
-  //       organizationId: organization.id,
-  //     },
-  //   }),
-  //   prisma.partner.create({
-  //     data: {
-  //       code: 'V001',
-  //       name: 'オフィスサプライ株式会社',
-  //       partnerType: 'VENDOR',
-  //       address: '東京都新宿区西新宿2-2-2',
-  //       phone: '03-2345-6789',
-  //       email: 'sales@office-supply.co.jp',
-  //       organizationId: organization.id,
-  //     },
-  //   }),
-  // ]);
+  const partners = await Promise.all([
+    prisma.partner.create({
+      data: {
+        code: 'C001',
+        name: '株式会社サンプル商事',
+        nameKana: 'カブシキガイシャサンプルショウジ',
+        partnerType: 'CUSTOMER',
+        address: '東京都千代田区丸の内1-1-1',
+        phone: '03-1234-5678',
+        email: 'info@sample-shoji.co.jp',
+        organizationId: organization.id,
+      },
+    }),
+    prisma.partner.create({
+      data: {
+        code: 'C002',
+        name: '株式会社テクノロジー',
+        nameKana: 'カブシキガイシャテクノロジー',
+        partnerType: 'CUSTOMER',
+        address: '東京都渋谷区渋谷2-21-1',
+        phone: '03-3456-7890',
+        email: 'contact@technology.co.jp',
+        organizationId: organization.id,
+      },
+    }),
+    prisma.partner.create({
+      data: {
+        code: 'V001',
+        name: 'オフィスサプライ株式会社',
+        nameKana: 'オフィスサプライカブシキガイシャ',
+        partnerType: 'VENDOR',
+        address: '東京都新宿区西新宿2-2-2',
+        phone: '03-2345-6789',
+        email: 'sales@office-supply.co.jp',
+        organizationId: organization.id,
+      },
+    }),
+    prisma.partner.create({
+      data: {
+        code: 'V002',
+        name: '文具ショップ田中',
+        nameKana: 'ブングショップタナカ',
+        partnerType: 'VENDOR',
+        address: '東京都台東区浅草1-1-1',
+        phone: '03-4567-8901',
+        email: 'info@tanaka-bungu.jp',
+        organizationId: organization.id,
+      },
+    }),
+    prisma.partner.create({
+      data: {
+        code: 'B001',
+        name: '総合商社ABC',
+        nameKana: 'ソウゴウショウシャエービーシー',
+        partnerType: 'BOTH',
+        address: '東京都港区六本木6-10-1',
+        phone: '03-5678-9012',
+        email: 'info@abc-trading.co.jp',
+        taxId: '1234567890123',
+        organizationId: organization.id,
+      },
+    }),
+  ]);
 
-  // console.log('Created sample partners:', partners.length);
+  console.log('Created sample partners:', partners.length);
 
   console.log('Seed data created successfully!');
 }
