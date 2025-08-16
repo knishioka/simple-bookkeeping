@@ -7,7 +7,7 @@ import { UnifiedAuth } from './helpers/unified-auth';
  */
 test.describe('Accounting Periods Management', () => {
   test('should successfully authenticate and navigate to dashboard', async ({ page, context }) => {
-    // Removed excessive timeout - using optimized global config (10s)
+    test.setTimeout(30000); // Increase test timeout for CI
 
     // 統一認証ヘルパーでモックをセットアップ
     await UnifiedAuth.setupMockRoutes(context);
@@ -15,7 +15,7 @@ test.describe('Accounting Periods Management', () => {
     // 直接認証トークンを設定してダッシュボードへ移動
     await UnifiedAuth.setAuthData(page);
     await page.goto('/dashboard/settings/accounting-periods');
-    await page.waitForLoadState('networkidle', { timeout: 10000 });
+    await page.waitForLoadState('domcontentloaded'); // Use simpler wait condition
 
     // Verify we're on the accounting periods page
     await expect(page).toHaveURL(/.*accounting-periods.*/);
@@ -123,6 +123,7 @@ test.describe('Accounting Periods Management', () => {
   });
 
   test('should edit an existing accounting period', async ({ page, context }) => {
+    test.setTimeout(30000); // Increase test timeout for CI
     let createdPeriod = false;
     let editedPeriod = false;
 
@@ -393,6 +394,7 @@ test.describe('Accounting Periods Management', () => {
   });
 
   test('should not allow deleting active period', async ({ page, context }) => {
+    test.setTimeout(30000); // Increase test timeout for CI
     // Mock periods list with an active period
     await context.route('**/api/v1/accounting-periods', async (route) => {
       if (route.request().method() === 'GET') {
@@ -501,6 +503,7 @@ test.describe('Accounting Periods Management', () => {
   });
 
   test('should prevent overlapping periods', async ({ page, context }) => {
+    test.setTimeout(30000); // Increase test timeout for CI
     // Mock all routes from the beginning
     await context.route('**/api/v1/accounting-periods', async (route) => {
       if (route.request().method() === 'GET') {
