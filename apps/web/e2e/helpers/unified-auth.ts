@@ -352,7 +352,7 @@ export class UnifiedAuth {
       // ログインページにいない場合は、まずログインページに移動
       try {
         await page.goto('/login', { waitUntil: 'domcontentloaded', timeout: 5000 });
-      } catch (error) {
+      } catch {
         console.warn('Failed to navigate to login page. Using direct auth method.');
         await UnifiedAuth.setAuthData(page);
         return;

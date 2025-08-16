@@ -87,8 +87,7 @@ export function PartnerDialogDemo({
     },
   });
 
-  const handleSubmit = (data: PartnerFormData) => {
-    console.log('Submitted data:', data);
+  const handleSubmit = (_data: PartnerFormData) => {
     // In a real app, this would call the API
     onSuccess();
     form.reset();

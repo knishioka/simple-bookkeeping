@@ -253,6 +253,16 @@ export const createPartner = async (req: AuthenticatedRequest, res: Response): P
   try {
     const organizationId = req.user?.organizationId;
 
+    if (!organizationId) {
+      res.status(400).json({
+        error: {
+          code: 'ORGANIZATION_REQUIRED',
+          message: '組織が選択されていません',
+        },
+      });
+      return;
+    }
+
     // Validate request body
     const validation = createPartnerSchema.safeParse(req.body);
     if (!validation.success) {
@@ -291,7 +301,7 @@ export const createPartner = async (req: AuthenticatedRequest, res: Response): P
       data: {
         ...data,
         email: data.email || null,
-        organizationId: organizationId!,
+        organizationId,
       },
     });
 

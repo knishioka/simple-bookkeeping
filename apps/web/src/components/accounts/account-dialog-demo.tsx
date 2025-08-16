@@ -48,6 +48,11 @@ interface Account {
   name: string;
   accountType: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE';
   parentId: string | null;
+  parent?: {
+    id: string;
+    code: string;
+    name: string;
+  };
 }
 
 interface AccountDialogDemoProps {
