@@ -211,26 +211,107 @@ export class ReportsService {
     const totalEquity = calculateTotal(equity);
 
     // Structure assets with categories
+    // Categorize assets based on account code ranges
+    const currentAssetAccounts = accounts.filter(
+      (a) => a.accountType === AccountType.ASSET && a.code >= '1000' && a.code < '1500'
+    );
+    const fixedAssetAccounts = accounts.filter(
+      (a) => a.accountType === AccountType.ASSET && a.code >= '1500' && a.code < '2000'
+    );
+
+    // Calculate cash-related accounts (現金、預金系)
+    const cashAndBankIds = accounts
+      .filter(
+        (a) => a.accountType === AccountType.ASSET && a.code >= '1110' && a.code <= '1133' // 現金〜外貨預金
+      )
+      .map((a) => a.id);
+    const cashTotal = cashAndBankIds.reduce((sum, id) => sum + (accountBalances.get(id) || 0), 0);
+
+    // Calculate accounts receivable (売掛金、受取手形等)
+    const receivableIds = accounts
+      .filter(
+        (a) => a.accountType === AccountType.ASSET && a.code >= '1140' && a.code <= '1142' // 売掛金〜電子記録債権
+      )
+      .map((a) => a.id);
+    const receivableTotal = receivableIds.reduce(
+      (sum, id) => sum + (accountBalances.get(id) || 0),
+      0
+    );
+
+    // Calculate inventory (商品、製品、原材料等)
+    const inventoryIds = accounts
+      .filter(
+        (a) => a.accountType === AccountType.ASSET && a.code >= '1150' && a.code <= '1154' // 商品〜貯蔵品
+      )
+      .map((a) => a.id);
+    const inventoryTotal = inventoryIds.reduce(
+      (sum, id) => sum + (accountBalances.get(id) || 0),
+      0
+    );
+
+    // Calculate all current assets
+    const currentAssetsTotal = currentAssetAccounts.reduce(
+      (sum, account) => sum + (accountBalances.get(account.id) || 0),
+      0
+    );
+
+    // Calculate property (土地、建物)
+    const propertyIds = accounts
+      .filter(
+        (a) =>
+          a.accountType === AccountType.ASSET &&
+          ((a.code >= '1510' && a.code <= '1513') || a.code === '1532') // 建物系、土地
+      )
+      .map((a) => a.id);
+    const propertyTotal = propertyIds.reduce((sum, id) => sum + (accountBalances.get(id) || 0), 0);
+
+    // Calculate equipment (車両、工具器具備品等)
+    const equipmentIds = accounts
+      .filter(
+        (a) =>
+          a.accountType === AccountType.ASSET &&
+          ((a.code >= '1520' && a.code <= '1531') || a.code === '1533') // 車両〜リース資産、建設仮勘定
+      )
+      .map((a) => a.id);
+    const equipmentTotal = equipmentIds.reduce(
+      (sum, id) => sum + (accountBalances.get(id) || 0),
+      0
+    );
+
+    // Account for accumulated depreciation (減価償却累計額 - negative values)
+    // Note: depreciation accounts could be used for net fixed assets calculation if needed
+    // const depreciationIds = accounts
+    //   .filter(
+    //     (a) =>
+    //       a.accountType === AccountType.ASSET &&
+    //       (a.code >= '1550' && a.code <= '1559') // 減価償却累計額
+    //   )
+    //   .map((a) => a.id);
+    // const depreciationTotal = depreciationIds.reduce(
+    //   (sum, id) => sum + (accountBalances.get(id) || 0),
+    //   0
+    // );
+
+    // Calculate all fixed assets
+    const fixedAssetsTotal = fixedAssetAccounts.reduce(
+      (sum, account) => sum + (accountBalances.get(account.id) || 0),
+      0
+    );
+
     const structuredAssets = {
       currentAssets: {
-        cash: accountBalances.get(accounts.find((a) => a.name.includes('現金'))?.id || '') || 0,
-        accountsReceivable: 0,
-        inventory: 0,
-        total: 0,
+        cash: cashTotal,
+        accountsReceivable: receivableTotal,
+        inventory: inventoryTotal,
+        total: currentAssetsTotal,
       },
       fixedAssets: {
-        property: 0,
-        equipment: 0,
-        total: 0,
+        property: propertyTotal,
+        equipment: equipmentTotal,
+        total: fixedAssetsTotal,
       },
       total: totalAssets,
     };
-
-    // Calculate current assets total
-    structuredAssets.currentAssets.total =
-      structuredAssets.currentAssets.cash +
-      structuredAssets.currentAssets.accountsReceivable +
-      structuredAssets.currentAssets.inventory;
 
     // Get retained earnings from revenue and expense accounts for proper balance
     const revenueAccounts = await prisma.account.findMany({
@@ -500,33 +581,142 @@ export class ReportsService {
   async getFinancialRatios(organizationId: string, asOfDate: Date): Promise<FinancialRatiosData> {
     const balanceSheet = await this.getBalanceSheet(organizationId, asOfDate);
 
-    // Calculate current ratio
+    // Get current year's income statement (assuming fiscal year from Jan 1 to asOfDate)
+    const yearStart = new Date(asOfDate.getFullYear(), 0, 1);
+    const incomeStatement = await this.getIncomeStatement(organizationId, yearStart, asOfDate);
+
+    // Extract values from balance sheet
     const currentAssets =
       'currentAssets' in balanceSheet.assets ? balanceSheet.assets.currentAssets.total : 0;
-    const currentLiabilities = 1000000; // Placeholder - would get from balance sheet
+    // const fixedAssets =
+    //   'fixedAssets' in balanceSheet.assets ? balanceSheet.assets.fixedAssets.total : 0;
+    const totalAssets = balanceSheet.totalAssets;
+    const totalLiabilities = balanceSheet.totalLiabilities;
+    const totalEquity = balanceSheet.totalEquity;
+
+    // Categorize liabilities into current and long-term based on account codes
+    const accounts = await prisma.account.findMany({
+      where: { organizationId },
+      orderBy: { code: 'asc' },
+    });
+
+    // Get journal entries for balance calculations
+    const journalEntries = await prisma.journalEntry.findMany({
+      where: {
+        entryDate: { lte: asOfDate },
+        status: JournalStatus.APPROVED,
+        organizationId,
+      },
+      include: {
+        lines: {
+          include: {
+            account: true,
+          },
+        },
+      },
+    });
+
+    // Calculate account balances for liabilities
+    const liabilityBalances = new Map<string, number>();
+    for (const entry of journalEntries) {
+      for (const line of entry.lines) {
+        if (line.account.accountType === AccountType.LIABILITY) {
+          const currentBalance = liabilityBalances.get(line.accountId) || 0;
+          const amount = Number(line.debitAmount) - Number(line.creditAmount);
+          liabilityBalances.set(line.accountId, currentBalance - amount);
+        }
+      }
+    }
+
+    // Current liabilities: codes 2000-2499 (流動負債)
+    const currentLiabilitiesAccounts = accounts.filter(
+      (a) => a.accountType === AccountType.LIABILITY && a.code >= '2000' && a.code < '2500'
+    );
+    const currentLiabilities = currentLiabilitiesAccounts.reduce(
+      (sum, account) => sum + Math.abs(liabilityBalances.get(account.id) || 0),
+      0
+    );
+
+    // Long-term liabilities: codes 2500-2999 (固定負債)
+    // const longTermLiabilities = totalLiabilities - currentLiabilities;
+
+    // Extract income statement values
+    const totalRevenue = incomeStatement.revenue.total;
+    // const totalExpenses = incomeStatement.expenses.total;
+    const netIncome = incomeStatement.netIncome;
+    const grossProfit = incomeStatement.grossProfit;
+
+    // Get specific values for ratio calculations
+    const cash =
+      'currentAssets' in balanceSheet.assets ? balanceSheet.assets.currentAssets.cash : 0;
+    const accountsReceivable =
+      'currentAssets' in balanceSheet.assets
+        ? balanceSheet.assets.currentAssets.accountsReceivable
+        : 0;
+    const inventory =
+      'currentAssets' in balanceSheet.assets ? balanceSheet.assets.currentAssets.inventory : 0;
+
+    // Calculate liquidity ratios
     const currentRatio = currentLiabilities > 0 ? currentAssets / currentLiabilities : 0;
+    const quickAssets = currentAssets - inventory;
+    const quickRatio = currentLiabilities > 0 ? quickAssets / currentLiabilities : 0;
+    const cashRatio = currentLiabilities > 0 ? cash / currentLiabilities : 0;
+
+    // Calculate profitability ratios
+    const grossProfitMargin = totalRevenue > 0 ? grossProfit / totalRevenue : 0;
+    const netProfitMargin = totalRevenue > 0 ? netIncome / totalRevenue : 0;
+    const returnOnAssets = totalAssets > 0 ? netIncome / totalAssets : 0;
+    const returnOnEquity = totalEquity > 0 ? netIncome / totalEquity : 0;
+
+    // Calculate efficiency ratios
+    const assetTurnover = totalAssets > 0 ? totalRevenue / totalAssets : 0;
+    // For inventory turnover, we need cost of goods sold (COGS)
+    // Simplified: assuming COGS is approximately 70% of revenue for now
+    const estimatedCOGS = totalRevenue * 0.7;
+    const inventoryTurnover = inventory > 0 ? estimatedCOGS / inventory : 0;
+    const receivablesTurnover = accountsReceivable > 0 ? totalRevenue / accountsReceivable : 0;
+
+    // Calculate leverage ratios
+    const debtToEquity = totalEquity > 0 ? totalLiabilities / totalEquity : 0;
+    const debtToAssets = totalAssets > 0 ? totalLiabilities / totalAssets : 0;
+
+    // Interest coverage: EBIT / Interest Expense
+    // For now, we'll estimate interest expense from financial expense accounts
+    const interestExpenseAccounts = accounts.filter(
+      (a) => a.accountType === AccountType.EXPENSE && (a.code === '8110' || a.code === '8120') // 支払利息等
+    );
+    let interestExpense = 0;
+    for (const entry of journalEntries) {
+      for (const line of entry.lines) {
+        if (interestExpenseAccounts.some((a) => a.id === line.accountId)) {
+          interestExpense += Number(line.debitAmount) - Number(line.creditAmount);
+        }
+      }
+    }
+    const ebit = netIncome + interestExpense; // Simplified EBIT calculation
+    const interestCoverage = interestExpense > 0 ? ebit / interestExpense : 0;
 
     return {
       liquidityRatios: {
-        currentRatio,
-        quickRatio: currentRatio * 0.8, // Simplified
-        cashRatio: currentRatio * 0.5, // Simplified
+        currentRatio: Math.round(currentRatio * 100) / 100,
+        quickRatio: Math.round(quickRatio * 100) / 100,
+        cashRatio: Math.round(cashRatio * 100) / 100,
       },
       profitabilityRatios: {
-        grossProfitMargin: 0.3,
-        netProfitMargin: 0.2,
-        returnOnAssets: 0.1,
-        returnOnEquity: 0.15,
+        grossProfitMargin: Math.round(grossProfitMargin * 1000) / 1000,
+        netProfitMargin: Math.round(netProfitMargin * 1000) / 1000,
+        returnOnAssets: Math.round(returnOnAssets * 1000) / 1000,
+        returnOnEquity: Math.round(returnOnEquity * 1000) / 1000,
       },
       efficiencyRatios: {
-        assetTurnover: 1.5,
-        inventoryTurnover: 6,
-        receivablesTurnover: 8,
+        assetTurnover: Math.round(assetTurnover * 100) / 100,
+        inventoryTurnover: Math.round(inventoryTurnover * 100) / 100,
+        receivablesTurnover: Math.round(receivablesTurnover * 100) / 100,
       },
       leverageRatios: {
-        debtToEquity: 0.5,
-        debtToAssets: 0.3,
-        interestCoverage: 5,
+        debtToEquity: Math.round(debtToEquity * 100) / 100,
+        debtToAssets: Math.round(debtToAssets * 100) / 100,
+        interestCoverage: Math.round(interestCoverage * 100) / 100,
       },
     };
   }
