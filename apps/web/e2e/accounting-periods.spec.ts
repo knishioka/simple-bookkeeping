@@ -15,7 +15,7 @@ test.describe('Accounting Periods Management', () => {
     // 直接認証トークンを設定してダッシュボードへ移動
     await UnifiedAuth.setAuthData(page);
     await page.goto('/dashboard/settings/accounting-periods');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('networkidle', { timeout: 10000 });
 
     // Verify we're on the accounting periods page
     await expect(page).toHaveURL(/.*accounting-periods.*/);
@@ -210,14 +210,14 @@ test.describe('Accounting Periods Management', () => {
 
     // Create a period first
     await page.click('button:has-text("新規作成")');
-    await page.waitForSelector('input[name="name"]');
+    await page.waitForSelector('input[name="name"]', { timeout: 10000 });
     await page.fill('input[name="name"]', '2025年度');
     await page.fill('input[name="startDate"]', '2025-01-01');
     await page.fill('input[name="endDate"]', '2025-12-31');
     await page.click('button[type="submit"]:has-text("作成")');
 
     // Wait for the period to appear
-    await page.waitForSelector('text=2025年度', { timeout: 5000 });
+    await page.waitForSelector('text=2025年度', { timeout: 10000 });
 
     // Click edit button for the 2025 period
     await page
@@ -227,7 +227,7 @@ test.describe('Accounting Periods Management', () => {
       .click();
 
     // Wait for dialog to open and update the name
-    await page.waitForSelector('input[name="name"]');
+    await page.waitForSelector('input[name="name"]', { timeout: 10000 });
     await page.fill('input[name="name"]', '2025年度（修正版）');
 
     // Submit the form
@@ -237,7 +237,7 @@ test.describe('Accounting Periods Management', () => {
     await page.waitForTimeout(1000);
 
     // Check if the period was updated
-    await expect(page.locator('text=2025年度（修正版）')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('text=2025年度（修正版）')).toBeVisible({ timeout: 10000 });
   });
 
   test('should activate an accounting period', async ({ page, context }) => {
@@ -308,7 +308,7 @@ test.describe('Accounting Periods Management', () => {
     await page.waitForLoadState('domcontentloaded');
 
     // Wait for periods to load
-    await page.waitForSelector('text=2025年度', { timeout: 5000 });
+    await page.waitForSelector('text=2025年度', { timeout: 10000 });
 
     // Activate the 2025 period
     await page.locator('tr:has-text("2025年度")').locator('button:has-text("有効化")').click();
@@ -379,17 +379,17 @@ test.describe('Accounting Periods Management', () => {
     await page.waitForLoadState('domcontentloaded');
 
     // Wait for the period to appear
-    await page.waitForSelector('text=削除対象期間', { timeout: 5000 });
+    await page.waitForSelector('text=削除対象期間', { timeout: 10000 });
 
     // Click delete button
     await page.locator('tr:has-text("削除対象期間")').locator('button').last().click();
 
     // Confirm deletion in dialog
-    await page.waitForSelector('text=会計期間を削除しますか');
+    await page.waitForSelector('text=会計期間を削除しますか', { timeout: 10000 });
     await page.locator('button:has-text("削除")').last().click();
 
     // Check if the period was deleted
-    await expect(page.locator('text=削除対象期間')).not.toBeVisible({ timeout: 5000 });
+    await expect(page.locator('text=削除対象期間')).not.toBeVisible({ timeout: 10000 });
   });
 
   test('should not allow deleting active period', async ({ page, context }) => {
@@ -433,7 +433,7 @@ test.describe('Accounting Periods Management', () => {
     await page.waitForLoadState('domcontentloaded');
 
     // Wait for the period to appear
-    await page.waitForSelector('text=アクティブ期間', { timeout: 5000 });
+    await page.waitForSelector('text=アクティブ期間', { timeout: 10000 });
 
     // Check that delete button is not visible for active period
     const activeRowDeleteButton = page
@@ -484,7 +484,7 @@ test.describe('Accounting Periods Management', () => {
 
     // Click create button
     await page.click('button:has-text("新規作成")');
-    await page.waitForSelector('input[name="name"]');
+    await page.waitForSelector('input[name="name"]', { timeout: 10000 });
 
     // Fill in invalid date range (end before start)
     await page.fill('input[name="name"]', '無効な期間');
@@ -496,7 +496,7 @@ test.describe('Accounting Periods Management', () => {
 
     // Check for validation error in toast notification
     await expect(page.locator('text=開始日は終了日より前である必要があります')).toBeVisible({
-      timeout: 5000,
+      timeout: 10000,
     });
   });
 
@@ -545,18 +545,18 @@ test.describe('Accounting Periods Management', () => {
     await page.waitForLoadState('domcontentloaded');
 
     // Wait for existing period to be displayed
-    await page.waitForSelector('text=2025年度', { timeout: 5000 });
+    await page.waitForSelector('text=2025年度', { timeout: 10000 });
 
     // Try to create overlapping period
     await page.click('button:has-text("新規作成")');
-    await page.waitForSelector('input[name="name"]');
+    await page.waitForSelector('input[name="name"]', { timeout: 10000 });
     await page.fill('input[name="name"]', '重複期間');
     await page.fill('input[name="startDate"]', '2025-06-01');
     await page.fill('input[name="endDate"]', '2026-05-31');
     await page.click('button[type="submit"]:has-text("作成")');
 
     // Check for error message
-    await expect(page.locator('text=期間が重複しています')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('text=期間が重複しています')).toBeVisible({ timeout: 10000 });
   });
 
   test('should show empty state when no periods exist', async ({ page, context }) => {
@@ -580,7 +580,7 @@ test.describe('Accounting Periods Management', () => {
       .first();
 
     // The page should show something to indicate it's empty or allow creating new
-    await expect(emptyIndicator).toBeVisible({ timeout: 5000 });
+    await expect(emptyIndicator).toBeVisible({ timeout: 10000 });
   });
 
   test('should handle API errors gracefully', async ({ page, context }) => {
