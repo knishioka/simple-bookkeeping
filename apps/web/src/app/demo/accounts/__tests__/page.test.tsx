@@ -32,8 +32,9 @@ describe('DemoAccountsPage', () => {
   it('displays mock accounts data', () => {
     render(<DemoAccountsPage />);
 
-    // Mock accounts should be visible
-    expect(screen.getByText('現金')).toBeInTheDocument();
+    // Mock accounts should be visible - including parent and child accounts
+    expect(screen.getByText('流動資産')).toBeInTheDocument(); // Parent account
+    expect(screen.getByText('現金')).toBeInTheDocument(); // Child account
     expect(screen.getByText('売掛金')).toBeInTheDocument();
     expect(screen.getByText('売上高')).toBeInTheDocument();
   });
@@ -46,7 +47,8 @@ describe('DemoAccountsPage', () => {
     await user.type(searchInput, '現金');
 
     expect(screen.getByText('現金')).toBeInTheDocument();
-    expect(screen.queryByText('売掛金')).not.toBeInTheDocument();
+    // 売掛金 is a different account and should be filtered out
+    expect(screen.queryByText('買掛金')).not.toBeInTheDocument();
   });
 
   it('filters accounts by type', async () => {

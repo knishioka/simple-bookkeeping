@@ -168,7 +168,15 @@ export default function DemoAccountsPage() {
 
   // 階層構造を考慮したソート
   const sortAccountsHierarchically = (accounts: Account[]): Account[] => {
+    // If filtered results don't include root accounts, just sort by code
     const rootAccounts = accounts.filter((acc) => !acc.parentId);
+    if (rootAccounts.length === 0) {
+      // No root accounts in filtered results, return sorted by code
+      return accounts
+        .sort((a, b) => a.code.localeCompare(b.code))
+        .map((account) => ({ ...account, level: 0 }) as Account & { level: number });
+    }
+
     const result: Account[] = [];
 
     const addAccountWithChildren = (account: Account, level = 0) => {
@@ -182,6 +190,16 @@ export default function DemoAccountsPage() {
     rootAccounts
       .sort((a, b) => a.code.localeCompare(b.code))
       .forEach((account) => addAccountWithChildren(account));
+
+    // Add any filtered accounts that weren't included in the hierarchy
+    // (e.g., when a child is filtered but its parent isn't)
+    const includedIds = new Set(result.map((acc) => acc.id));
+    const orphanedAccounts = accounts
+      .filter((acc) => !includedIds.has(acc.id))
+      .sort((a, b) => a.code.localeCompare(b.code))
+      .map((account) => ({ ...account, level: 0 }) as Account & { level: number });
+
+    result.push(...orphanedAccounts);
 
     return result;
   };
