@@ -15,26 +15,22 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { useFileImport } from '@/hooks/use-file-import';
 
-interface JournalEntryImportDialogProps {
+interface AccountImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
 }
 
-export function JournalEntryImportDialog({
-  open,
-  onOpenChange,
-  onSuccess,
-}: JournalEntryImportDialogProps) {
+export function AccountImportDialog({ open, onOpenChange, onSuccess }: AccountImportDialogProps) {
   const { file, loading, uploadProgress, handleFileChange, handleImport, handleCancel } =
     useFileImport({
-      endpoint: '/journal-entries/import',
+      endpoint: '/accounts/import',
       onSuccess: () => {
         onSuccess();
         onOpenChange(false);
       },
-      successMessage: '仕訳のインポートが完了しました',
-      errorMessage: '仕訳のインポートに失敗しました',
+      successMessage: '勘定科目のインポートが完了しました',
+      errorMessage: '勘定科目のインポートに失敗しました',
     });
 
   const handleClose = () => {
@@ -48,9 +44,10 @@ export function JournalEntryImportDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>仕訳CSVインポート</DialogTitle>
+          <DialogTitle>勘定科目CSVインポート</DialogTitle>
           <DialogDescription>
-            CSVファイルをアップロードして仕訳を一括登録します。ヘッダーは「日付,借方勘定,貸方勘定,金額,摘要」の順である必要があります。
+            CSVファイルをアップロードして勘定科目を一括登録します。ヘッダーは「code,name,accountType」の順である必要があります。
+            accountTypeは ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE のいずれかを指定してください。
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
