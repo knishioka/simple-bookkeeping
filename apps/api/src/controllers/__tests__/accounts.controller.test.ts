@@ -100,14 +100,17 @@ describe('AccountsController', () => {
     });
 
     it('should include parent account information', async () => {
+      const parentCode = `PARENT-${Date.now()}`;
+      const childCode = `CHILD-${Date.now() + 1}`;
+
       const parentAccount = await createTestAccount(testSetup.organization.id, {
-        code: '1000',
+        code: parentCode,
         name: '流動資産',
         accountType: AccountType.ASSET,
       });
 
       await createTestAccount(testSetup.organization.id, {
-        code: '1100',
+        code: childCode,
         name: '現金預金',
         accountType: AccountType.ASSET,
         parentId: parentAccount.id,
@@ -118,10 +121,10 @@ describe('AccountsController', () => {
         .set('Authorization', `Bearer ${testSetup.token}`);
 
       expect(response.status).toBe(200);
-      const childAccount = response.body.data.find((a: any) => a.code === '1100');
+      const childAccount = response.body.data.find((a: any) => a.code === childCode);
       expect(childAccount).toBeDefined();
       expect(childAccount.parent).toBeDefined();
-      expect(childAccount.parent.code).toBe('1000');
+      expect(childAccount.parent.code).toBe(parentCode);
       expect(childAccount.parent.name).toBe('流動資産');
     });
   });
