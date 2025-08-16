@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { FileDropzone } from '@/components/ui/file-dropzone';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { useFileImport } from '@/hooks/use-file-import';
@@ -22,16 +23,23 @@ interface AccountImportDialogProps {
 }
 
 export function AccountImportDialog({ open, onOpenChange, onSuccess }: AccountImportDialogProps) {
-  const { file, loading, uploadProgress, handleFileChange, handleImport, handleCancel } =
-    useFileImport({
-      endpoint: '/accounts/import',
-      onSuccess: () => {
-        onSuccess();
-        onOpenChange(false);
-      },
-      successMessage: '勘定科目のインポートが完了しました',
-      errorMessage: '勘定科目のインポートに失敗しました',
-    });
+  const {
+    file,
+    loading,
+    uploadProgress,
+    handleFileChange,
+    handleDrop,
+    handleImport,
+    handleCancel,
+  } = useFileImport({
+    endpoint: '/accounts/import',
+    onSuccess: () => {
+      onSuccess();
+      onOpenChange(false);
+    },
+    successMessage: '勘定科目のインポートが完了しました',
+    errorMessage: '勘定科目のインポートに失敗しました',
+  });
 
   const handleClose = () => {
     if (loading) {
@@ -51,18 +59,23 @@ export function AccountImportDialog({ open, onOpenChange, onSuccess }: AccountIm
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
+          <FileDropzone onDrop={handleDrop} disabled={loading} file={file} />
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">または</span>
+            </div>
+          </div>
           <div className="space-y-2">
             <Input
               type="file"
               accept=".csv,text/csv,application/vnd.ms-excel"
               onChange={handleFileChange}
               disabled={loading}
+              className="cursor-pointer"
             />
-            {file && (
-              <div className="text-sm text-muted-foreground">
-                選択されたファイル: {file.name} ({(file.size / 1024).toFixed(1)} KB)
-              </div>
-            )}
           </div>
           {loading && uploadProgress > 0 && (
             <div className="space-y-2">

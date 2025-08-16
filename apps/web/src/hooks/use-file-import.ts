@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
 import { apiClient } from '@/lib/api-client';
@@ -19,6 +19,7 @@ interface UseFileImportReturn {
   loading: boolean;
   uploadProgress: number;
   handleFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  handleDrop: (files: File[]) => void;
   handleImport: () => Promise<void>;
   handleCancel: () => void;
   resetFile: () => void;
@@ -37,10 +38,8 @@ export function useFileImport({
   const [uploadProgress, setUploadProgress] = useState(0);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
-      const selectedFile = event.target.files[0];
-
+  const validateAndSetFile = useCallback(
+    (selectedFile: File) => {
       // Validate file before setting
       const validation = apiClient.validateFile(selectedFile, {
         maxSize,
@@ -49,14 +48,34 @@ export function useFileImport({
 
       if (!validation.valid && validation.error) {
         toast.error(validation.error);
-        event.target.value = ''; // Reset input
-        return;
+        return false;
       }
 
       setFile(selectedFile);
       setUploadProgress(0);
+      return true;
+    },
+    [maxSize, allowedTypes]
+  );
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      const selectedFile = event.target.files[0];
+      const isValid = validateAndSetFile(selectedFile);
+      if (!isValid && event.target) {
+        event.target.value = ''; // Reset input
+      }
     }
   };
+
+  const handleDrop = useCallback(
+    (files: File[]) => {
+      if (files.length > 0) {
+        validateAndSetFile(files[0]);
+      }
+    },
+    [validateAndSetFile]
+  );
 
   const handleImport = async () => {
     if (!file) {
@@ -121,6 +140,7 @@ export function useFileImport({
     loading,
     uploadProgress,
     handleFileChange,
+    handleDrop,
     handleImport,
     handleCancel,
     resetFile,
