@@ -278,20 +278,6 @@ export class ReportsService {
       0
     );
 
-    // Account for accumulated depreciation (減価償却累計額 - negative values)
-    // Note: depreciation accounts could be used for net fixed assets calculation if needed
-    // const depreciationIds = accounts
-    //   .filter(
-    //     (a) =>
-    //       a.accountType === AccountType.ASSET &&
-    //       (a.code >= '1550' && a.code <= '1559') // 減価償却累計額
-    //   )
-    //   .map((a) => a.id);
-    // const depreciationTotal = depreciationIds.reduce(
-    //   (sum, id) => sum + (accountBalances.get(id) || 0),
-    //   0
-    // );
-
     // Calculate all fixed assets
     const fixedAssetsTotal = fixedAssetAccounts.reduce(
       (sum, account) => sum + (accountBalances.get(account.id) || 0),
@@ -588,8 +574,6 @@ export class ReportsService {
     // Extract values from balance sheet
     const currentAssets =
       'currentAssets' in balanceSheet.assets ? balanceSheet.assets.currentAssets.total : 0;
-    // const fixedAssets =
-    //   'fixedAssets' in balanceSheet.assets ? balanceSheet.assets.fixedAssets.total : 0;
     const totalAssets = balanceSheet.totalAssets;
     const totalLiabilities = balanceSheet.totalLiabilities;
     const totalEquity = balanceSheet.totalEquity;
@@ -637,12 +621,8 @@ export class ReportsService {
       0
     );
 
-    // Long-term liabilities: codes 2500-2999 (固定負債)
-    // const longTermLiabilities = totalLiabilities - currentLiabilities;
-
     // Extract income statement values
     const totalRevenue = incomeStatement.revenue.total;
-    // const totalExpenses = incomeStatement.expenses.total;
     const netIncome = incomeStatement.netIncome;
     const grossProfit = incomeStatement.grossProfit;
 
