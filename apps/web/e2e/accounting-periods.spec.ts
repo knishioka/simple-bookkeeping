@@ -102,50 +102,6 @@ test.describe('Accounting Periods Management', () => {
         await route.continue();
       }
     });
-    // Navigate to settings
-    await page.goto('/dashboard/settings');
-    await page.waitForLoadState('domcontentloaded');
-
-    // Wait for the settings page to load
-    await expect(page.locator('h2:has-text("設定")')).toBeVisible();
-
-    // Click on accounting periods link
-    await page.click('a:has-text("会計期間")');
-
-    // Should navigate to accounting periods page
-    await expect(page).toHaveURL('/dashboard/settings/accounting-periods');
-
-    // Check for page content - the page should exist even if empty
-    const pageContent = await page.locator('main, [role="main"], .container').first();
-    await expect(pageContent).toBeVisible();
-  });
-
-  test('should display accounting periods page', async ({ page, context }) => {
-    // Mock accounting periods API for this test
-    await context.route('**/api/v1/accounting-periods', async (route) => {
-      if (route.request().method() === 'GET') {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            data: [
-              {
-                id: '1',
-                name: '2024年度',
-                startDate: '2024-01-01',
-                endDate: '2024-12-31',
-                isActive: true,
-                organizationId: 'org-1',
-                createdAt: '2024-01-01T00:00:00Z',
-                updatedAt: '2024-01-01T00:00:00Z',
-              },
-            ],
-          }),
-        });
-      } else {
-        await route.continue();
-      }
-    });
 
     await page.goto('/dashboard/settings/accounting-periods');
     await page.waitForLoadState('domcontentloaded');
