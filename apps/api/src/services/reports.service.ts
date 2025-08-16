@@ -222,7 +222,7 @@ export class ReportsService {
     // Calculate cash-related accounts (現金、預金系)
     const cashAndBankIds = accounts
       .filter(
-        (a) => a.accountType === AccountType.ASSET && a.code >= '1110' && a.code <= '1133' // 現金〜外貨預金
+        (a) => a.accountType === AccountType.ASSET && a.code >= '1000' && a.code <= '1133' // 現金〜外貨預金
       )
       .map((a) => a.id);
     const cashTotal = cashAndBankIds.reduce((sum, id) => sum + (accountBalances.get(id) || 0), 0);
