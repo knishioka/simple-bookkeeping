@@ -16,6 +16,42 @@ interface AccountQuery {
 }
 
 /**
+ * Check if setting parentId for childId would create a circular reference
+ */
+async function checkCircularReference(
+  parentId: string,
+  childId: string,
+  organizationId: string
+): Promise<boolean> {
+  const visited = new Set<string>();
+  let currentId: string | null = parentId;
+
+  while (currentId) {
+    if (currentId === childId) {
+      return true; // Circular reference detected
+    }
+    if (visited.has(currentId)) {
+      return false; // Already visited, no circular reference
+    }
+    visited.add(currentId);
+
+    const result: { parentId: string | null } | null = await prisma.account.findFirst({
+      where: {
+        id: currentId,
+        organizationId,
+      },
+      select: {
+        parentId: true,
+      },
+    });
+
+    currentId = result?.parentId || null;
+  }
+
+  return false;
+}
+
+/**
  * @swagger
  * /api/v1/accounts:
  *   get:
@@ -328,6 +364,7 @@ export const updateAccount = async (
         _count: {
           select: {
             lines: true,
+            children: true,
           },
         },
       },
@@ -369,6 +406,69 @@ export const updateAccount = async (
           message: '仕訳で使用されている勘定科目の種別は変更できません',
         },
       });
+    }
+
+    // Validate parent account if changed
+    if (parentId !== undefined && parentId !== account.parentId) {
+      // Prevent self-reference
+      if (parentId === id) {
+        return res.status(400).json({
+          error: {
+            code: 'SELF_REFERENCE',
+            message: '自分自身を親科目にすることはできません',
+          },
+        });
+      }
+
+      // Prevent circular reference
+      if (parentId && organizationId) {
+        const isCircular = await checkCircularReference(parentId, id, organizationId);
+        if (isCircular) {
+          return res.status(400).json({
+            error: {
+              code: 'CIRCULAR_REFERENCE',
+              message: '循環参照が発生するため、この親科目は設定できません',
+            },
+          });
+        }
+
+        // Validate parent account exists and has same type
+        const parentAccount = await prisma.account.findFirst({
+          where: {
+            id: parentId,
+            organizationId,
+          },
+        });
+
+        if (!parentAccount) {
+          return res.status(400).json({
+            error: {
+              code: 'INVALID_PARENT',
+              message: '親勘定科目が見つかりません',
+            },
+          });
+        }
+
+        const effectiveAccountType = accountType || account.accountType;
+        if (parentAccount.accountType !== effectiveAccountType) {
+          return res.status(400).json({
+            error: {
+              code: 'TYPE_MISMATCH',
+              message: '親勘定科目と同じタイプである必要があります',
+            },
+          });
+        }
+      }
+
+      // Prevent changing parent if account has children
+      if (account._count.children > 0) {
+        return res.status(400).json({
+          error: {
+            code: 'HAS_CHILDREN',
+            message: '子科目を持つ勘定科目の親科目は変更できません',
+          },
+        });
+      }
     }
 
     const updateData: Partial<{ name: string; parentId: string | null; accountType: AccountType }> =
