@@ -1,7 +1,7 @@
 'use client';
 
-import { Upload } from 'lucide-react';
-import { useState } from 'react';
+import { Upload, X } from 'lucide-react';
+import { useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-// import { apiClient } from '@/lib/api-client';
+import { Progress } from '@/components/ui/progress';
+import { apiClient } from '@/lib/api-client';
 
 interface JournalEntryImportDialogProps {
   open: boolean;
@@ -29,10 +30,27 @@ export function JournalEntryImportDialog({
 }: JournalEntryImportDialogProps) {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files) {
-      setFile(event.target.files[0]);
+    if (event.target.files && event.target.files[0]) {
+      const selectedFile = event.target.files[0];
+
+      // Validate file before setting
+      const validation = apiClient.validateFile(selectedFile, {
+        maxSize: 5 * 1024 * 1024, // 5MB
+        allowedTypes: ['.csv', 'text/csv', 'application/vnd.ms-excel'],
+      });
+
+      if (!validation.valid && validation.error) {
+        toast.error(validation.error);
+        event.target.value = ''; // Reset input
+        return;
+      }
+
+      setFile(selectedFile);
+      setUploadProgress(0);
     }
   };
 
@@ -43,42 +61,52 @@ export function JournalEntryImportDialog({
     }
 
     setLoading(true);
-    const formData = new FormData();
-    formData.append('file', file);
+    setUploadProgress(0);
+
+    // Create abort controller for cancellation
+    abortControllerRef.current = new AbortController();
 
     try {
-      // TODO: Implement file upload using fetch API directly
-      const token = localStorage.getItem('token');
-      const orgId = localStorage.getItem('selectedOrganizationId');
-
-      const response = await fetch('http://localhost:3001/api/v1/journal-entries/import', {
-        method: 'POST',
-        headers: {
-          Authorization: token ? `Bearer ${token}` : '',
-          'X-Organization-Id': orgId || '',
-        },
-        body: formData,
+      const response = await apiClient.upload<{
+        success: boolean;
+        message?: string;
+        imported?: number;
+        errors?: string[];
+      }>('/journal-entries/import', file, {
+        onProgress: setUploadProgress,
+        signal: abortControllerRef.current.signal,
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        toast.success(data.message || 'インポートが完了しました');
+      if (response.data) {
+        toast.success(response.data.message || 'インポートが完了しました');
         onSuccess();
         onOpenChange(false);
-      } else {
-        throw new Error('Upload failed');
+        setFile(null);
+        setUploadProgress(0);
+      } else if (response.error) {
+        // Error is already handled by apiClient with toast
+        console.error('Import error:', response.error);
       }
     } catch (error) {
       console.error('Failed to import journal entries:', error);
-      const errorMessage =
-        error instanceof Error && 'response' in error
-          ? (error as { response?: { data?: { error?: { message?: string } } } }).response?.data
-              ?.error?.message || 'インポートに失敗しました'
-          : 'インポートに失敗しました';
-      toast.error(errorMessage);
+      toast.error('インポートに失敗しました');
     } finally {
       setLoading(false);
+      abortControllerRef.current = null;
     }
+  };
+
+  const handleCancel = () => {
+    // Abort upload if in progress
+    if (abortControllerRef.current && loading) {
+      abortControllerRef.current.abort();
+      setLoading(false);
+      setUploadProgress(0);
+      toast.success('アップロードをキャンセルしました');
+    } else {
+      onOpenChange(false);
+    }
+    setFile(null);
   };
 
   return (
@@ -91,13 +119,40 @@ export function JournalEntryImportDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <Input type="file" accept=".csv" onChange={handleFileChange} />
+          <div className="space-y-2">
+            <Input
+              type="file"
+              accept=".csv,text/csv,application/vnd.ms-excel"
+              onChange={handleFileChange}
+              disabled={loading}
+            />
+            {file && (
+              <div className="text-sm text-muted-foreground">
+                選択されたファイル: {file.name} ({(file.size / 1024).toFixed(1)} KB)
+              </div>
+            )}
+          </div>
+          {loading && uploadProgress > 0 && (
+            <div className="space-y-2">
+              <Progress value={uploadProgress} className="h-2" />
+              <div className="text-sm text-muted-foreground text-center">
+                アップロード中... {Math.round(uploadProgress)}%
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-            キャンセル
+          <Button variant={loading ? 'destructive' : 'outline'} onClick={handleCancel}>
+            {loading ? (
+              <>
+                <X className="mr-2 h-4 w-4" />
+                キャンセル
+              </>
+            ) : (
+              'キャンセル'
+            )}
           </Button>
-          <Button onClick={handleImport} disabled={loading}>
+          <Button onClick={handleImport} disabled={loading || !file}>
             {loading ? (
               'インポート中...'
             ) : (

@@ -351,6 +351,154 @@ describe('ApiClient - エラーハンドリングとローディング状態', (
     });
   });
 
+  describe('ファイルアップロード機能のテスト', () => {
+    let xhrMock: {
+      open: jest.Mock;
+      send: jest.Mock;
+      setRequestHeader: jest.Mock;
+      upload: {
+        addEventListener: jest.Mock;
+      };
+      addEventListener: jest.Mock;
+      abort: jest.Mock;
+      responseText: string;
+      status: number;
+    };
+
+    beforeEach(() => {
+      xhrMock = {
+        open: jest.fn(),
+        send: jest.fn(),
+        setRequestHeader: jest.fn(),
+        upload: {
+          addEventListener: jest.fn(),
+        },
+        addEventListener: jest.fn(),
+        abort: jest.fn(),
+        responseText: '',
+        status: 200,
+      };
+
+      // XMLHttpRequestをモック
+      (global as any).XMLHttpRequest = jest.fn(() => xhrMock) as any;
+    });
+
+    it('【ファイルアップロード1】CSVファイルの正常アップロード', async () => {
+      const file = new File(['test,data'], 'test.csv', { type: 'text/csv' });
+
+      // XHRのイベントリスナーを設定
+      xhrMock.addEventListener.mockImplementation((event, handler) => {
+        if (event === 'load') {
+          xhrMock.responseText = JSON.stringify({
+            data: { success: true, message: 'インポートが完了しました' },
+          });
+          xhrMock.status = 200;
+          // 非同期でハンドラーを実行
+          setTimeout(() => handler(), 0);
+        }
+      });
+
+      const result = await apiClient.upload('/accounts/import', file);
+
+      expect(result.data).toEqual({
+        success: true,
+        message: 'インポートが完了しました',
+      });
+      expect(xhrMock.open).toHaveBeenCalledWith(
+        'POST',
+        'http://localhost:3001/api/v1/accounts/import'
+      );
+      expect(xhrMock.send).toHaveBeenCalledWith(expect.any(FormData));
+    });
+
+    it('【ファイルアップロード2】アップロード進捗の追跡', async () => {
+      const file = new File(['test,data'], 'test.csv', { type: 'text/csv' });
+      const progressCallback = jest.fn();
+
+      // プログレスイベントの設定
+      xhrMock.upload.addEventListener.mockImplementation((event, handler) => {
+        if (event === 'progress') {
+          // プログレスイベントを複数回発火
+          setTimeout(() => handler({ lengthComputable: true, loaded: 50, total: 100 }), 10);
+          setTimeout(() => handler({ lengthComputable: true, loaded: 100, total: 100 }), 20);
+        }
+      });
+
+      // ロードイベントの設定
+      xhrMock.addEventListener.mockImplementation((event, handler) => {
+        if (event === 'load') {
+          xhrMock.responseText = JSON.stringify({ data: { success: true } });
+          xhrMock.status = 200;
+          setTimeout(() => handler(), 30);
+        }
+      });
+
+      await apiClient.upload('/accounts/import', file, {
+        onProgress: progressCallback,
+      });
+
+      // プログレスコールバックが呼ばれたことを確認
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(progressCallback).toHaveBeenCalledWith(50);
+      expect(progressCallback).toHaveBeenCalledWith(100);
+    });
+
+    it('【ファイルアップロード3】アップロードのキャンセル', async () => {
+      const file = new File(['test,data'], 'test.csv', { type: 'text/csv' });
+      const abortController = new AbortController();
+
+      // アボートイベントの設定
+      xhrMock.addEventListener.mockImplementation((event, handler) => {
+        if (event === 'abort') {
+          setTimeout(() => handler(), 10);
+        }
+      });
+
+      // AbortSignalのリスナー設定
+      const abortPromise = apiClient.upload('/accounts/import', file, {
+        signal: abortController.signal,
+      });
+
+      // アップロードをキャンセル
+      setTimeout(() => abortController.abort(), 5);
+
+      const result = await abortPromise;
+
+      expect(result.error).toEqual({
+        code: 'UPLOAD_ABORTED',
+        message: 'アップロードがキャンセルされました',
+      });
+    });
+
+    it('【ファイルバリデーション1】ファイルサイズの検証', () => {
+      // 11MBのファイル（制限: 10MB）
+      const largeFile = new File(['x'.repeat(11 * 1024 * 1024)], 'large.csv', { type: 'text/csv' });
+
+      const validation = apiClient.validateFile(largeFile);
+
+      expect(validation.valid).toBe(false);
+      expect(validation.error).toContain('10.0MB以下');
+    });
+
+    it('【ファイルバリデーション2】ファイル形式の検証', () => {
+      const invalidFile = new File(['test'], 'test.pdf', { type: 'application/pdf' });
+
+      const validation = apiClient.validateFile(invalidFile);
+
+      expect(validation.valid).toBe(false);
+      expect(validation.error).toContain('許可されていないファイル形式');
+    });
+
+    it('【ファイルバリデーション3】有効なCSVファイル', () => {
+      const validFile = new File(['test,data'], 'test.csv', { type: 'text/csv' });
+
+      const validation = apiClient.validateFile(validFile);
+
+      expect(validation.valid).toBe(true);
+      expect(validation.error).toBeUndefined();
+    });
+  });
+
   describe('セキュリティ関連のユーザーシナリオ', () => {
     it('【シナリオ13】センシティブデータのログ出力制御', async () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
