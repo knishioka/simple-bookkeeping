@@ -14,6 +14,11 @@ interface ApiResponse<T> {
   };
 }
 
+interface UploadOptions {
+  onProgress?: (progress: number) => void;
+  signal?: AbortSignal;
+}
+
 class ApiClient {
   private config: ApiConfig;
 
@@ -21,11 +26,20 @@ class ApiClient {
     this.config = config;
   }
 
-  private getHeaders(): Headers {
-    const headers = new Headers({
-      'Content-Type': 'application/json',
-      ...this.config.headers,
-    });
+  private getHeaders(contentType?: string | null): Headers {
+    const headers = new Headers();
+
+    // Only set Content-Type if not null (null means FormData will set it automatically)
+    if (contentType !== null) {
+      headers.set('Content-Type', contentType || 'application/json');
+    }
+
+    // Add custom headers
+    if (this.config.headers) {
+      Object.entries(this.config.headers).forEach(([key, value]) => {
+        headers.set(key, value);
+      });
+    }
 
     const token = this.getToken();
     if (token) {
@@ -181,6 +195,170 @@ class ApiClient {
 
   async delete<T>(path: string): Promise<ApiResponse<T>> {
     return this.request<T>(path, { method: 'DELETE' });
+  }
+
+  async upload<T>(path: string, file: File, options?: UploadOptions): Promise<ApiResponse<T>> {
+    const url = `${this.config.baseUrl}${path}`;
+    const headers = this.getHeaders(null); // null to let FormData set boundary
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const xhr = new XMLHttpRequest();
+
+      return new Promise<ApiResponse<T>>((resolve) => {
+        // Setup progress tracking
+        if (options?.onProgress) {
+          xhr.upload.addEventListener('progress', (event) => {
+            if (event.lengthComputable && options.onProgress) {
+              const percentComplete = (event.loaded / event.total) * 100;
+              options.onProgress(percentComplete);
+            }
+          });
+        }
+
+        // Setup abort signal
+        if (options?.signal) {
+          options.signal.addEventListener('abort', () => {
+            xhr.abort();
+          });
+        }
+
+        // Setup response handler
+        xhr.addEventListener('load', async () => {
+          try {
+            const data = JSON.parse(xhr.responseText);
+
+            if (xhr.status >= 200 && xhr.status < 300) {
+              // Check if response has a data wrapper
+              if (data && typeof data === 'object' && 'data' in data) {
+                resolve({ data: data.data });
+              } else {
+                resolve({ data });
+              }
+            } else {
+              // Handle errors
+              if (xhr.status === 401 && path !== '/auth/refresh') {
+                const refreshed = await this.refreshToken();
+                if (refreshed) {
+                  // Retry the upload
+                  return this.upload<T>(path, file, options);
+                }
+              }
+
+              if (data.error) {
+                if (
+                  data.error.code !== 'ORGANIZATION_REQUIRED' &&
+                  data.error.code !== 'FORBIDDEN'
+                ) {
+                  toast.error(data.error.message || 'エラーが発生しました');
+                }
+                resolve({ error: data.error });
+              } else {
+                resolve({
+                  error: {
+                    code: 'UPLOAD_FAILED',
+                    message: 'ファイルのアップロードに失敗しました',
+                  },
+                });
+              }
+            }
+          } catch (error) {
+            console.error('Failed to parse response:', error);
+            resolve({
+              error: {
+                code: 'PARSE_ERROR',
+                message: 'レスポンスの解析に失敗しました',
+              },
+            });
+          }
+        });
+
+        xhr.addEventListener('error', () => {
+          console.error('Upload failed');
+          toast.error('通信エラーが発生しました');
+          resolve({
+            error: {
+              code: 'NETWORK_ERROR',
+              message: '通信エラーが発生しました',
+            },
+          });
+        });
+
+        xhr.addEventListener('abort', () => {
+          resolve({
+            error: {
+              code: 'UPLOAD_ABORTED',
+              message: 'アップロードがキャンセルされました',
+            },
+          });
+        });
+
+        // Start the upload
+        xhr.open('POST', url);
+
+        // Set headers
+        headers.forEach((value, key) => {
+          xhr.setRequestHeader(key, value);
+        });
+
+        xhr.send(formData);
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('ファイルのアップロードに失敗しました');
+      return {
+        error: {
+          code: 'UPLOAD_ERROR',
+          message: 'ファイルのアップロードに失敗しました',
+        },
+      };
+    }
+  }
+
+  // File validation utilities
+  validateFile(
+    file: File,
+    options?: {
+      maxSize?: number; // in bytes
+      allowedTypes?: string[]; // mime types or extensions
+    }
+  ): { valid: boolean; error?: string } {
+    const { maxSize = 10 * 1024 * 1024, allowedTypes = ['.csv', 'text/csv'] } = options || {};
+
+    // Check file size
+    if (file.size > maxSize) {
+      const sizeMB = (maxSize / (1024 * 1024)).toFixed(1);
+      return {
+        valid: false,
+        error: `ファイルサイズは${sizeMB}MB以下にしてください`,
+      };
+    }
+
+    // Check file type
+    if (allowedTypes.length > 0) {
+      const fileName = file.name.toLowerCase();
+      const fileType = file.type.toLowerCase();
+
+      const isValidType = allowedTypes.some((type) => {
+        if (type.startsWith('.')) {
+          // Check by extension
+          return fileName.endsWith(type.toLowerCase());
+        }
+        // Check by MIME type
+        return fileType === type.toLowerCase();
+      });
+
+      if (!isValidType) {
+        return {
+          valid: false,
+          error: `許可されていないファイル形式です。対応形式: ${allowedTypes.join(', ')}`,
+        };
+      }
+    }
+
+    return { valid: true };
   }
 }
 
