@@ -1,5 +1,5 @@
 'use client';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Upload } from 'lucide-react';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
@@ -7,6 +7,12 @@ import { toast } from 'react-hot-toast';
 const AccountDialog = lazy(() =>
   import('@/components/accounts/account-dialog').then((mod) => ({
     default: mod.AccountDialog,
+  }))
+);
+// Lazy load the account import dialog
+const AccountImportDialog = lazy(() =>
+  import('@/components/accounts/account-import-dialog').then((mod) => ({
+    default: mod.AccountImportDialog,
   }))
 );
 import { Button } from '@/components/ui/button';
@@ -37,6 +43,7 @@ export default function AccountsPage() {
   const [selectedType, setSelectedType] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchAccounts();
@@ -79,10 +86,20 @@ export default function AccountsPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">勘定科目管理</h1>
-        <Button onClick={handleCreate} data-testid="account-create-button">
-          <Plus className="mr-2 h-4 w-4" />
-          新規作成
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setImportDialogOpen(true)}
+            data-testid="account-import-button"
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            インポート
+          </Button>
+          <Button onClick={handleCreate} data-testid="account-create-button">
+            <Plus className="mr-2 h-4 w-4" />
+            新規作成
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -191,6 +208,14 @@ export default function AccountsPage() {
           onOpenChange={setDialogOpen}
           account={editingAccount}
           accounts={accounts}
+          onSuccess={fetchAccounts}
+        />
+      </Suspense>
+
+      <Suspense fallback={<div className="fixed inset-0 bg-black/50" />}>
+        <AccountImportDialog
+          open={importDialogOpen}
+          onOpenChange={setImportDialogOpen}
           onSuccess={fetchAccounts}
         />
       </Suspense>
