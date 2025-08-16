@@ -98,6 +98,32 @@ describe('AccountsController', () => {
 
       expect(response.status).toBe(401);
     });
+
+    it('should include parent account information', async () => {
+      const parentAccount = await createTestAccount(testSetup.organization.id, {
+        code: '1000',
+        name: '流動資産',
+        accountType: AccountType.ASSET,
+      });
+
+      await createTestAccount(testSetup.organization.id, {
+        code: '1100',
+        name: '現金預金',
+        accountType: AccountType.ASSET,
+        parentId: parentAccount.id,
+      });
+
+      const response = await request(app)
+        .get('/api/v1/accounts')
+        .set('Authorization', `Bearer ${testSetup.token}`);
+
+      expect(response.status).toBe(200);
+      const childAccount = response.body.data.find((a: any) => a.code === '1100');
+      expect(childAccount).toBeDefined();
+      expect(childAccount.parent).toBeDefined();
+      expect(childAccount.parent.code).toBe('1000');
+      expect(childAccount.parent.name).toBe('流動資産');
+    });
   });
 
   describe('POST /api/v1/accounts', () => {
@@ -310,6 +336,115 @@ describe('AccountsController', () => {
 
       expect(response.status).toBe(404);
     });
+
+    it('should prevent self-reference in parent account', async () => {
+      const account = await createTestAccount(testSetup.organization.id, {
+        code: '5001',
+        name: 'Test Account',
+        accountType: AccountType.EXPENSE,
+      });
+
+      const updateData = {
+        parentId: account.id, // Self-reference
+      };
+
+      const response = await request(app)
+        .put(`/api/v1/accounts/${account.id}`)
+        .set('Authorization', `Bearer ${testSetup.token}`)
+        .send(updateData);
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('SELF_REFERENCE');
+    });
+
+    it('should prevent circular reference in parent-child relationship', async () => {
+      const parentAccount = await createTestAccount(testSetup.organization.id, {
+        code: '6001',
+        name: 'Parent Account',
+        accountType: AccountType.EXPENSE,
+      });
+
+      const childAccount = await createTestAccount(testSetup.organization.id, {
+        code: '6002',
+        name: 'Child Account',
+        accountType: AccountType.EXPENSE,
+        parentId: parentAccount.id,
+      });
+
+      // Try to set child as parent of parent (circular reference)
+      const updateData = {
+        parentId: childAccount.id,
+      };
+
+      const response = await request(app)
+        .put(`/api/v1/accounts/${parentAccount.id}`)
+        .set('Authorization', `Bearer ${testSetup.token}`)
+        .send(updateData);
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('CIRCULAR_REFERENCE');
+    });
+
+    it('should prevent changing parent if account has children', async () => {
+      const parentAccount = await createTestAccount(testSetup.organization.id, {
+        code: '7001',
+        name: 'Parent Account',
+        accountType: AccountType.ASSET,
+      });
+
+      await createTestAccount(testSetup.organization.id, {
+        code: '7002',
+        name: 'Child Account',
+        accountType: AccountType.ASSET,
+        parentId: parentAccount.id,
+      });
+
+      const newParentAccount = await createTestAccount(testSetup.organization.id, {
+        code: '7003',
+        name: 'New Parent Account',
+        accountType: AccountType.ASSET,
+      });
+
+      // Try to change parent of account that has children
+      const updateData = {
+        parentId: newParentAccount.id,
+      };
+
+      const response = await request(app)
+        .put(`/api/v1/accounts/${parentAccount.id}`)
+        .set('Authorization', `Bearer ${testSetup.token}`)
+        .send(updateData);
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('HAS_CHILDREN');
+    });
+
+    it('should prevent parent account with different account type', async () => {
+      const parentAccount = await createTestAccount(testSetup.organization.id, {
+        code: '8001',
+        name: 'Asset Parent',
+        accountType: AccountType.ASSET,
+      });
+
+      const childAccount = await createTestAccount(testSetup.organization.id, {
+        code: '8002',
+        name: 'Liability Account',
+        accountType: AccountType.LIABILITY,
+      });
+
+      // Try to set parent with different account type
+      const updateData = {
+        parentId: parentAccount.id,
+      };
+
+      const response = await request(app)
+        .put(`/api/v1/accounts/${childAccount.id}`)
+        .set('Authorization', `Bearer ${testSetup.token}`)
+        .send(updateData);
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('TYPE_MISMATCH');
+    });
   });
 
   describe('DELETE /api/v1/accounts/:id', () => {
@@ -391,6 +526,35 @@ describe('AccountsController', () => {
         .set('Authorization', `Bearer ${adminToken}`);
 
       expect(adminResponse.status).toBe(200);
+    });
+
+    it('should prevent deletion of account with child accounts', async () => {
+      // Create admin user for deletion
+      const adminUser = await createTestUser(testSetup.organization.id, UserRole.ADMIN, {
+        email: 'admin-accounts3@test.com',
+      });
+      const adminToken = generateTestToken(adminUser.id, testSetup.organization.id, UserRole.ADMIN);
+
+      const parentAccount = await createTestAccount(testSetup.organization.id, {
+        code: '9001',
+        name: 'Parent Account',
+        accountType: AccountType.ASSET,
+      });
+
+      await createTestAccount(testSetup.organization.id, {
+        code: '9002',
+        name: 'Child Account',
+        accountType: AccountType.ASSET,
+        parentId: parentAccount.id,
+      });
+
+      // Try to delete parent account that has children
+      const response = await request(app)
+        .delete(`/api/v1/accounts/${parentAccount.id}`)
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(response.status).toBe(400);
+      expect(response.body.error.code).toBe('HAS_CHILDREN');
     });
   });
 

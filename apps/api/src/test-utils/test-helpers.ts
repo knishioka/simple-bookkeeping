@@ -136,6 +136,7 @@ export const createTestAccount = async (
     name?: string;
     accountType?: AccountType;
     isActive?: boolean;
+    parentId?: string;
   }
 ) => {
   return await prisma.account.create({
@@ -145,6 +146,7 @@ export const createTestAccount = async (
       name: data?.name || 'Test Account',
       accountType: data?.accountType || AccountType.ASSET,
       isActive: data?.isActive ?? true,
+      parentId: data?.parentId,
     },
   });
 };
