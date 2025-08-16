@@ -26,7 +26,13 @@ test.describe('Accounting Periods Management', () => {
     // 統一ヘルパーで認証とモックをセットアップ
     await UnifiedAuth.setupMockRoutes(context);
 
-    // Mock accounting periods API
+    // ログインフォーム入力と送信
+    await UnifiedAuth.fillLoginForm(page, 'admin@example.com', 'admin123');
+    await UnifiedAuth.submitLoginAndWait(page);
+  });
+
+  test('should navigate to accounting periods page from settings', async ({ page, context }) => {
+    // Mock accounting periods API for this test
     await context.route('**/api/v1/accounting-periods', async (route) => {
       if (route.request().method() === 'GET') {
         await route.fulfill({
@@ -52,12 +58,6 @@ test.describe('Accounting Periods Management', () => {
       }
     });
 
-    // ログインフォーム入力と送信
-    await UnifiedAuth.fillLoginForm(page, 'admin@example.com', 'admin123');
-    await UnifiedAuth.submitLoginAndWait(page);
-  });
-
-  test('should navigate to accounting periods page from settings', async ({ page }) => {
     // Navigate to settings
     await page.goto('/dashboard/settings');
     await page.waitForLoadState('domcontentloaded');
@@ -76,7 +76,77 @@ test.describe('Accounting Periods Management', () => {
     await expect(pageContent).toBeVisible();
   });
 
-  test('should display accounting periods page', async ({ page }) => {
+  test('should display accounting periods page', async ({ page, context }) => {
+    // Mock accounting periods API for this test
+    await context.route('**/api/v1/accounting-periods', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            data: [
+              {
+                id: '1',
+                name: '2024年度',
+                startDate: '2024-01-01',
+                endDate: '2024-12-31',
+                isActive: true,
+                organizationId: 'org-1',
+                createdAt: '2024-01-01T00:00:00Z',
+                updatedAt: '2024-01-01T00:00:00Z',
+              },
+            ],
+          }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
+    // Navigate to settings
+    await page.goto('/dashboard/settings');
+    await page.waitForLoadState('domcontentloaded');
+
+    // Wait for the settings page to load
+    await expect(page.locator('h2:has-text("設定")')).toBeVisible();
+
+    // Click on accounting periods link
+    await page.click('a:has-text("会計期間")');
+
+    // Should navigate to accounting periods page
+    await expect(page).toHaveURL('/dashboard/settings/accounting-periods');
+
+    // Check for page content - the page should exist even if empty
+    const pageContent = await page.locator('main, [role="main"], .container').first();
+    await expect(pageContent).toBeVisible();
+  });
+
+  test('should display accounting periods page', async ({ page, context }) => {
+    // Mock accounting periods API for this test
+    await context.route('**/api/v1/accounting-periods', async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            data: [
+              {
+                id: '1',
+                name: '2024年度',
+                startDate: '2024-01-01',
+                endDate: '2024-12-31',
+                isActive: true,
+                organizationId: 'org-1',
+                createdAt: '2024-01-01T00:00:00Z',
+                updatedAt: '2024-01-01T00:00:00Z',
+              },
+            ],
+          }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
     await page.goto('/dashboard/settings/accounting-periods');
     await page.waitForLoadState('domcontentloaded');
 
@@ -98,10 +168,14 @@ test.describe('Accounting Periods Management', () => {
 
   test('should edit an existing accounting period', async ({ page, context }) => {
     let createdPeriod = false;
+    let editedPeriod = false;
 
     // Mock all API responses from the beginning
-    await context.route('**/api/v1/accounting-periods', async (route) => {
-      if (route.request().method() === 'POST') {
+    await context.route('**/api/v1/accounting-periods**', async (route) => {
+      const url = route.request().url();
+      const method = route.request().method();
+
+      if (url.endsWith('/accounting-periods') && method === 'POST') {
         createdPeriod = true;
         await route.fulfill({
           status: 201,
@@ -119,8 +193,26 @@ test.describe('Accounting Periods Management', () => {
             },
           }),
         });
-      } else if (route.request().method() === 'GET') {
-        // Return different data based on whether period was created
+      } else if (url.includes('/accounting-periods/period-2') && method === 'PUT') {
+        editedPeriod = true;
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            data: {
+              id: 'period-2',
+              name: '2025年度（修正版）',
+              startDate: '2025-01-01',
+              endDate: '2025-12-31',
+              isActive: false,
+              organizationId: 'org-1',
+              createdAt: '2024-01-01T00:00:00Z',
+              updatedAt: '2024-01-01T00:00:00Z',
+            },
+          }),
+        });
+      } else if (url.endsWith('/accounting-periods') && method === 'GET') {
+        // Return different data based on state
         const periods = [
           {
             id: '1',
@@ -137,7 +229,7 @@ test.describe('Accounting Periods Management', () => {
         if (createdPeriod) {
           periods.push({
             id: 'period-2',
-            name: '2025年度',
+            name: editedPeriod ? '2025年度（修正版）' : '2025年度',
             startDate: '2025-01-01',
             endDate: '2025-12-31',
             isActive: false,
@@ -151,29 +243,6 @@ test.describe('Accounting Periods Management', () => {
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({ data: periods }),
-        });
-      } else {
-        await route.continue();
-      }
-    });
-
-    await context.route('**/api/v1/accounting-periods/period-2', async (route) => {
-      if (route.request().method() === 'PUT') {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            data: {
-              id: 'period-2',
-              name: '2025年度（修正版）',
-              startDate: '2025-01-01',
-              endDate: '2025-12-31',
-              isActive: false,
-              organizationId: 'org-1',
-              createdAt: '2024-01-01T00:00:00Z',
-              updatedAt: '2024-01-01T00:00:00Z',
-            },
-          }),
         });
       } else {
         await route.continue();
@@ -208,41 +277,8 @@ test.describe('Accounting Periods Management', () => {
     // Submit the form
     await page.click('button[type="submit"]:has-text("更新")');
 
-    // Mock updated list after edit
-    await context.route('**/api/v1/accounting-periods', async (route) => {
-      if (route.request().method() === 'GET') {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            data: [
-              {
-                id: '1',
-                name: '2024年度',
-                startDate: '2024-01-01',
-                endDate: '2024-12-31',
-                isActive: true,
-                organizationId: 'org-1',
-                createdAt: '2024-01-01T00:00:00Z',
-                updatedAt: '2024-01-01T00:00:00Z',
-              },
-              {
-                id: 'period-2',
-                name: '2025年度（修正版）',
-                startDate: '2025-01-01',
-                endDate: '2025-12-31',
-                isActive: false,
-                organizationId: 'org-1',
-                createdAt: '2024-01-01T00:00:00Z',
-                updatedAt: '2024-01-01T00:00:00Z',
-              },
-            ],
-          }),
-        });
-      } else {
-        await route.continue();
-      }
-    });
+    // Wait a moment for the update to process
+    await page.waitForTimeout(1000);
 
     // Check if the period was updated
     await expect(page.locator('text=2025年度（修正版）')).toBeVisible({ timeout: 5000 });
