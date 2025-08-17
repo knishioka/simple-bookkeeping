@@ -791,6 +791,108 @@ curl -s http://localhost:3000 | grep -q "Simple Bookkeeping"
 3. **失敗時の対応**: 疎通確認に失敗した場合は原因調査と再起動を行う
 4. **ユーザー報告**: 疎通確認完了後にのみURLを案内する
 
+## E2Eテスト実装の教訓
+
+### 1. **実装前の確認事項**
+
+E2Eテストを実装する前に必ず以下を確認すること：
+
+1. **実際のファイル存在確認**
+
+   ```bash
+   # テスト対象のファイルが存在するか確認
+   ls -la apps/web/e2e/
+   find apps/web -name "*.spec.ts" -type f
+   ```
+
+2. **アプリケーション構造の理解**
+
+   ```bash
+   # ページ構造を確認
+   ls -la apps/web/src/app/
+   # デモページと認証が必要なページを区別
+   ls -la apps/web/src/app/demo/
+   ls -la apps/web/src/app/dashboard/
+   ```
+
+3. **既存のテストパターンを参照**
+   ```bash
+   # 成功しているテストを参考にする
+   grep -r "test\|describe" apps/web/e2e/*.spec.ts
+   ```
+
+### 2. **認証の扱い**
+
+認証が必要なページのテストでは以下のパターンを使用：
+
+```typescript
+// ✅ Good: ページを開いてから認証設定
+test('認証が必要なページ', async ({ page, context }) => {
+  // まず適当なページを開く
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+  // 認証設定
+  await UnifiedAuth.setupMockRoutes(context);
+  await UnifiedAuth.setAuthData(page);
+
+  // APIモックの設定
+  await context.route('**/api/v1/auth/me', async (route) => {
+    // ユーザー情報のモック
+  });
+
+  // 認証が必要なページへ移動
+  await page.goto('/dashboard/...', { waitUntil: 'domcontentloaded' });
+});
+
+// ❌ Bad: beforeEachで全テスト共通の認証設定
+test.beforeEach(async ({ page, context }) => {
+  await UnifiedAuth.setAuthData(page); // about:blankで失敗する可能性
+});
+```
+
+### 3. **セレクタの選択**
+
+```typescript
+// ✅ Good: 複数の可能性を考慮した柔軟なセレクタ
+const pageHasContent = await page.evaluate(() => {
+  const bodyText = document.body.innerText || '';
+  return (
+    bodyText.includes('勘定科目') ||
+    bodyText.includes('Accounts') ||
+    document.querySelector('table') !== null ||
+    document.querySelector('main') !== null
+  );
+});
+
+// ❌ Bad: 単一の厳密なセレクタ
+await expect(page.locator('h1:has-text("勘定科目")')).toBeVisible();
+```
+
+### 4. **デモページ vs ダッシュボードページ**
+
+- **デモページ（/demo/...）**: 認証不要、公開ページ
+- **ダッシュボードページ（/dashboard/...）**: 認証必要、適切なモック設定が必要
+
+### 5. **ローカルテストの重要性**
+
+```bash
+# 必ずローカルで実行してから commit/push
+REUSE_SERVER=true npx playwright test --project=chromium-desktop --reporter=list
+
+# 特定のテストファイルのみ実行
+REUSE_SERVER=true npx playwright test extended-coverage.spec.ts --project=chromium-desktop --reporter=list
+```
+
+### 6. **エラー時のデバッグ**
+
+```bash
+# トレースファイルを確認
+npx playwright show-trace test-results/.../trace.zip
+
+# スクリーンショットを確認
+open test-results/.../test-failed-1.png
+```
+
 ### 疎通確認コマンド例
 
 ```bash
