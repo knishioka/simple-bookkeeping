@@ -1649,3 +1649,80 @@ pnpm --filter @simple-bookkeeping/api build    # Render (API)
    - `.next`や`dist`ディレクトリを削除
 
 **重要：デプロイメント前には必ずローカルでビルドが成功することを確認してください。**
+
+## 🧑‍💻 E2Eテストの改善と教訓
+
+### E2Eテストを修正する際のステップ
+
+1. **サーバーの確認**
+
+   ```bash
+   # Webサーバーが正しく起動しているか確認
+   curl -s http://localhost:3000 | grep -q "Simple Bookkeeping"
+
+   # 間違ったアプリが起動している場合は停止
+   pkill -f "next dev" || true
+
+   # 正しいアプリを起動
+   pnpm --filter @simple-bookkeeping/web dev
+   ```
+
+2. **実際のページ構造の確認**
+
+   ```bash
+   # HTML構造を確認
+   curl -s http://localhost:3000/demo/accounts | grep -o "<h1[^>]*>[^<]*</h1>"
+   ```
+
+3. **セレクタの適切な選択**
+   - `waitUntil: 'networkidle'` を使用してページの完全な読み込みを待つ
+   - `timeout` オプションを設定して十分な待機時間を確保
+   - `filter({ hasText: '...' })` を使用してより正確な要素を選択
+
+4. **認証が必要なページのテスト**
+
+   ```typescript
+   // 必ずbeforeEachでAPIモックを設定
+   test.beforeEach(async ({ page, context }) => {
+     await UnifiedAuth.setupMockRoutes(context);
+     await context.route('**/api/v1/auth/me', async (route) => {
+       // ユーザー情報のモック
+     });
+   });
+
+   // テスト内で認証設定
+   await page.goto('/', { waitUntil: 'domcontentloaded' });
+   await UnifiedAuth.setAuthData(page);
+   ```
+
+5. **ダイアログテストの注意点**
+   - Radix UIのダイアログは`[data-state="open"]`属性を持つ
+   - `waitForTimeout`を使用してダイアログのアニメーションを待つ
+   - フォーム要素は`name`属性で特定
+
+6. **テストの実行とデバッグ**
+
+   ```bash
+   # 全テストを実行
+   REUSE_SERVER=true npx playwright test --project=chromium-desktop --reporter=list
+
+   # 特定のテストのみ実行
+   REUSE_SERVER=true npx playwright test extended-coverage.spec.ts:203 --project=chromium-desktop
+
+   # トレースを表示
+   npx playwright show-trace test-results/output/.../trace.zip
+   ```
+
+### よくある問題と解決策
+
+1. **「要素が見つからない」エラー**
+   - ページが完全に読み込まれていない可能性
+   - 解決策: `waitUntil: 'networkidle'` や `timeout` オプションを使用
+
+2. **認証ページがエラーになる**
+   - APIモックが正しく設定されていない
+   - 解決策: 必要なAPIエンドポイントをすべてモックする
+
+3. **テストの不安定性**
+   - タイミング問題や環境依存
+   - 解決策: 適切な待機時間と柔軟なアサーションを使用
