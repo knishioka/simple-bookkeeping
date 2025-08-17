@@ -1726,3 +1726,153 @@ pnpm --filter @simple-bookkeeping/api build    # Render (API)
 3. **テストの不安定性**
    - タイミング問題や環境依存
    - 解決策: 適切な待機時間と柔軟なアサーションを使用
+
+## 🔧 開発環境のポート競合問題と解決策
+
+### 問題：別のNext.jsアプリケーションへの誤接続
+
+E2Eテスト実行時に、同じポート（3000）で動作する別のNext.jsアプリケーションに接続してしまう問題が発生することがあります。
+
+### 原因
+
+1. **複数のNext.jsプロジェクトが同じポートを使用**
+   - デフォルトでNext.jsはポート3000を使用
+   - 複数のプロジェクトを同時に開発している場合、ポート競合が発生
+
+2. **バックグラウンドプロセスの残存**
+   - 前回の開発セッションで起動したサーバーが停止されていない
+   - ターミナルを閉じてもプロセスが残ることがある
+
+3. **自動起動スクリプト**
+   - VSCodeなどのエディタが自動的にサーバーを起動
+   - 複数のウィンドウ/プロジェクトを開いている場合の競合
+
+### 解決策
+
+#### 1. **ポート競合の確認と解消**
+
+```bash
+# ポート3000を使用しているプロセスを確認
+lsof -i :3000
+
+# 不要なプロセスを停止
+pkill -f "next dev" || true
+
+# 特定のPIDを停止
+kill -9 <PID>
+```
+
+#### 2. **プロジェクト固有のポート設定**
+
+**.env.local で設定：**
+
+```bash
+# apps/web/.env.local
+PORT=3000  # Simple Bookkeeping専用
+```
+
+**package.json で設定：**
+
+```json
+{
+  "scripts": {
+    "dev": "next dev -p 3000"
+  }
+}
+```
+
+#### 3. **開発時のベストプラクティス**
+
+1. **プロジェクトごとに異なるポートを使用**
+
+   ```bash
+   # Simple Bookkeeping: 3000
+   # その他のプロジェクトA: 3001
+   # その他のプロジェクトB: 3002
+   ```
+
+2. **開発開始時の確認手順**
+
+   ```bash
+   # 1. 既存のプロセスを確認
+   lsof -i :3000
+
+   # 2. 正しいアプリが起動しているか確認
+   curl -s http://localhost:3000 | grep -q "Simple Bookkeeping"
+
+   # 3. 必要に応じて再起動
+   pkill -f "next dev"
+   pnpm --filter @simple-bookkeeping/web dev
+   ```
+
+3. **E2Eテスト実行前の確認**
+   ```bash
+   # CLAUDE.md内の手順に従って確認
+   curl -s http://localhost:3000 | grep -q "Simple Bookkeeping" && echo "✅ 正しいアプリが起動" || echo "❌ 別のアプリが起動"
+   ```
+
+#### 4. **ポート管理のツール化**
+
+**scripts/check-port.sh を作成：**
+
+```bash
+#!/bin/bash
+PORT=${1:-3000}
+APP_NAME=${2:-"Simple Bookkeeping"}
+
+if lsof -i :$PORT | grep -q LISTEN; then
+  if curl -s http://localhost:$PORT | grep -q "$APP_NAME"; then
+    echo "✅ $APP_NAME is running on port $PORT"
+  else
+    echo "⚠️ Another app is running on port $PORT"
+    echo "Run: pkill -f 'next dev' to stop all Next.js processes"
+  fi
+else
+  echo "ℹ️ Port $PORT is free"
+fi
+```
+
+#### 5. **VS Code設定の最適化**
+
+**.vscode/settings.json：**
+
+```json
+{
+  "terminal.integrated.env.osx": {
+    "PORT": "3000"
+  },
+  "npm.scriptExplorerAction": "run",
+  "npm.exclude": "**/node_modules/**"
+}
+```
+
+### 推奨される開発フロー
+
+1. **開発開始時**
+
+   ```bash
+   # ポート状態を確認
+   ./scripts/check-port.sh 3000 "Simple Bookkeeping"
+
+   # 必要に応じてクリーンアップ
+   pkill -f "next dev"
+
+   # アプリ起動
+   pnpm dev
+   ```
+
+2. **E2Eテスト実行時**
+
+   ```bash
+   # サーバー確認
+   curl -s http://localhost:3000 | grep -q "Simple Bookkeeping"
+
+   # テスト実行
+   REUSE_SERVER=true pnpm test:e2e
+   ```
+
+3. **開発終了時**
+   ```bash
+   # プロセスを確実に停止
+   pkill -f "simple-bookkeeping"
+   ```
