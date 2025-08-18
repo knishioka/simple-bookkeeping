@@ -125,6 +125,20 @@ interface CustomReportData {
   };
 }
 
+interface TrialBalanceData {
+  accounts: Array<{
+    accountId: string;
+    accountCode: string;
+    accountName: string;
+    accountType: AccountType;
+    debitBalance: number;
+    creditBalance: number;
+  }>;
+  totalDebits: number;
+  totalCredits: number;
+  isBalanced: boolean;
+}
+
 export class ReportsService {
   async getBalanceSheet(
     organizationId: string,
@@ -702,14 +716,287 @@ export class ReportsService {
   }
 
   async exportReport(
-    _organizationId: string,
+    organizationId: string,
     type: string,
     format: string,
-    _params: ExportParams
+    params: ExportParams
   ): Promise<Buffer> {
-    // Simplified implementation - would normally generate actual files
-    const content = `Report Type: ${type}\nFormat: ${format}\n`;
-    return Buffer.from(content);
+    // Get report data based on type
+    let reportData: any;
+
+    switch (type) {
+      case 'balance-sheet': {
+        const asOfDate = params.asOf ? new Date(params.asOf) : new Date();
+        reportData = await this.getBalanceSheet(organizationId, asOfDate);
+        break;
+      }
+      case 'income-statement':
+      case 'profit-loss': {
+        if (!params.from || !params.to) {
+          throw new Error('開始日と終了日を指定してください');
+        }
+        const startDate = new Date(params.from);
+        const endDate = new Date(params.to);
+        reportData = await this.getIncomeStatement(organizationId, startDate, endDate);
+        break;
+      }
+      case 'trial-balance': {
+        const asOfDate = params.asOf ? new Date(params.asOf) : new Date();
+        reportData = await this.getTrialBalance(organizationId, asOfDate);
+        break;
+      }
+      default:
+        throw new Error(`サポートされていないレポートタイプ: ${type}`);
+    }
+
+    // Generate export based on format
+    switch (format) {
+      case 'csv':
+        return this.generateCsvReport(type, reportData);
+      case 'pdf':
+        // TODO: PDF generation implementation
+        throw new Error('PDF形式は現在開発中です');
+      case 'xlsx':
+      case 'excel':
+        // TODO: Excel generation implementation
+        throw new Error('Excel形式は現在開発中です');
+      default:
+        throw new Error(`サポートされていない形式: ${format}`);
+    }
+  }
+
+  private generateCsvReport(
+    type: string,
+    data: BalanceSheetData | IncomeStatementData | TrialBalanceData
+  ): Buffer {
+    let csvContent: string;
+
+    switch (type) {
+      case 'balance-sheet':
+        csvContent = this.generateBalanceSheetCsv(data as BalanceSheetData);
+        break;
+      case 'income-statement':
+      case 'profit-loss':
+        csvContent = this.generateIncomeStatementCsv(data as IncomeStatementData);
+        break;
+      case 'trial-balance':
+        csvContent = this.generateTrialBalanceCsv(data as TrialBalanceData);
+        break;
+      default:
+        throw new Error(`サポートされていないレポートタイプ: ${type}`);
+    }
+
+    // Add BOM for Excel UTF-8 compatibility
+    const bom = '\uFEFF';
+    return Buffer.from(bom + csvContent, 'utf-8');
+  }
+
+  private generateBalanceSheetCsv(data: BalanceSheetData): string {
+    const rows: (string | number)[][] = [];
+
+    // Header
+    rows.push(['貸借対照表']);
+    rows.push(['']);
+
+    // Assets section
+    rows.push(['資産の部']);
+    rows.push(['勘定科目コード', '勘定科目名', '金額']);
+
+    if (Array.isArray(data.assets)) {
+      this.addAccountRows(rows, data.assets, 0);
+    }
+    rows.push(['', '資産合計', data.totalAssets]);
+    rows.push(['']);
+
+    // Liabilities section
+    rows.push(['負債の部']);
+    rows.push(['勘定科目コード', '勘定科目名', '金額']);
+    this.addAccountRows(rows, data.liabilities, 0);
+    rows.push(['', '負債合計', data.totalLiabilities]);
+    rows.push(['']);
+
+    // Equity section
+    rows.push(['純資産の部']);
+    rows.push(['勘定科目コード', '勘定科目名', '金額']);
+    this.addAccountRows(rows, data.equity, 0);
+    rows.push(['', '純資産合計', data.totalEquity]);
+    rows.push(['']);
+
+    rows.push(['', '負債・純資産合計', data.totalLiabilitiesAndEquity]);
+
+    // Convert to CSV string
+    return rows
+      .map((row) =>
+        row
+          .map((cell) => {
+            const value = cell?.toString() || '';
+            // Escape quotes and wrap in quotes if contains comma or quote
+            if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+              return `"${value.replace(/"/g, '""')}"`;
+            }
+            return value;
+          })
+          .join(',')
+      )
+      .join('\n');
+  }
+
+  private generateIncomeStatementCsv(data: IncomeStatementData): string {
+    const rows: (string | number)[][] = [];
+
+    // Header
+    rows.push(['損益計算書']);
+    rows.push(['']);
+
+    // Revenue section
+    rows.push(['収益']);
+    rows.push(['勘定科目コード', '勘定科目名', '金額']);
+    if (data.revenue.details) {
+      this.addAccountRows(rows, data.revenue.details, 0);
+    }
+    rows.push(['', '収益合計', data.revenue.total]);
+    rows.push(['']);
+
+    // Expenses section
+    rows.push(['費用']);
+    rows.push(['勘定科目コード', '勘定科目名', '金額']);
+    if (data.expenses.details) {
+      this.addAccountRows(rows, data.expenses.details, 0);
+    }
+    rows.push(['', '費用合計', data.expenses.total]);
+    rows.push(['']);
+
+    rows.push(['', '売上総利益', data.grossProfit]);
+    rows.push(['', '当期純利益', data.netIncome]);
+
+    // Convert to CSV string
+    return rows
+      .map((row) =>
+        row
+          .map((cell) => {
+            const value = cell?.toString() || '';
+            if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+              return `"${value.replace(/"/g, '""')}"`;
+            }
+            return value;
+          })
+          .join(',')
+      )
+      .join('\n');
+  }
+
+  private generateTrialBalanceCsv(data: TrialBalanceData): string {
+    const rows: (string | number)[][] = [];
+
+    // Header
+    rows.push(['試算表']);
+    rows.push(['']);
+    rows.push(['勘定科目コード', '勘定科目名', '借方残高', '貸方残高']);
+
+    // Add account data
+    if (data.accounts) {
+      for (const account of data.accounts) {
+        rows.push([
+          account.accountCode,
+          account.accountName,
+          account.debitBalance || 0,
+          account.creditBalance || 0,
+        ]);
+      }
+    }
+
+    rows.push(['']);
+    rows.push(['', '合計', data.totalDebits || 0, data.totalCredits || 0]);
+
+    // Convert to CSV string
+    return rows
+      .map((row) =>
+        row
+          .map((cell) => {
+            const value = cell?.toString() || '';
+            if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+              return `"${value.replace(/"/g, '""')}"`;
+            }
+            return value;
+          })
+          .join(',')
+      )
+      .join('\n');
+  }
+
+  private addAccountRows(
+    rows: (string | number)[][],
+    accounts: AccountBalance[],
+    level: number
+  ): void {
+    const indent = '  '.repeat(level);
+    for (const account of accounts) {
+      rows.push([account.accountCode, indent + account.accountName, account.balance]);
+      if (account.children && account.children.length > 0) {
+        this.addAccountRows(rows, account.children, level + 1);
+      }
+    }
+  }
+
+  async getTrialBalance(organizationId: string, asOfDate: Date): Promise<TrialBalanceData> {
+    const accounts = await prisma.account.findMany({
+      where: { organizationId },
+      orderBy: { code: 'asc' },
+    });
+
+    const entries = await prisma.journalEntry.findMany({
+      where: {
+        organizationId,
+        entryDate: { lte: asOfDate },
+        status: JournalStatus.APPROVED,
+      },
+      include: { lines: true },
+    });
+
+    const accountBalances = new Map<string, { debit: number; credit: number }>();
+
+    // Initialize all accounts
+    for (const account of accounts) {
+      accountBalances.set(account.id, { debit: 0, credit: 0 });
+    }
+
+    // Calculate balances
+    for (const entry of entries) {
+      for (const line of entry.lines) {
+        const balance = accountBalances.get(line.accountId);
+        if (balance) {
+          balance.debit += Number(line.debitAmount);
+          balance.credit += Number(line.creditAmount);
+        }
+      }
+    }
+
+    // Format for output
+    const trialBalanceAccounts = accounts
+      .map((account) => {
+        const balance = accountBalances.get(account.id) || { debit: 0, credit: 0 };
+        const netBalance = balance.debit - balance.credit;
+
+        return {
+          accountId: account.id,
+          accountCode: account.code,
+          accountName: account.name,
+          accountType: account.accountType,
+          debitBalance: netBalance > 0 ? netBalance : 0,
+          creditBalance: netBalance < 0 ? Math.abs(netBalance) : 0,
+        };
+      })
+      .filter((account) => account.debitBalance !== 0 || account.creditBalance !== 0);
+
+    const totalDebits = trialBalanceAccounts.reduce((sum, acc) => sum + acc.debitBalance, 0);
+    const totalCredits = trialBalanceAccounts.reduce((sum, acc) => sum + acc.creditBalance, 0);
+
+    return {
+      accounts: trialBalanceAccounts,
+      totalDebits,
+      totalCredits,
+      isBalanced: Math.abs(totalDebits - totalCredits) < 0.01,
+    };
   }
 
   async createCustomReport(

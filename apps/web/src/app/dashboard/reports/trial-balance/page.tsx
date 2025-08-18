@@ -4,6 +4,7 @@ import { Calendar, Download, Printer } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
+import { ExportDialog } from '@/components/reports/ExportDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -35,6 +36,7 @@ interface TrialBalanceData {
 export default function TrialBalancePage() {
   const [data, setData] = useState<TrialBalanceData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [asOfDate, setAsOfDate] = useState(() => {
     const date = new Date();
     return date.toISOString().split('T')[0];
@@ -74,8 +76,7 @@ export default function TrialBalancePage() {
   };
 
   const handleExport = () => {
-    // CSV エクスポート機能（後で実装）
-    toast.success('エクスポート機能は開発中です');
+    setExportDialogOpen(true);
   };
 
   const accountTypeLabels: { [key: string]: string } = {
@@ -206,6 +207,12 @@ export default function TrialBalancePage() {
           )}
         </CardContent>
       </Card>
+      <ExportDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        reportType="trial-balance"
+        reportParams={{ asOf: asOfDate }}
+      />
     </div>
   );
 }
