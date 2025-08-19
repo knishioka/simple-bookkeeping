@@ -4,6 +4,7 @@ import { Calendar, Download, Printer } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
+import { ExportDialog } from '@/components/reports/ExportDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -45,6 +46,7 @@ interface ProfitLossData {
 export default function ProfitLossPage() {
   const [data, setData] = useState<ProfitLossData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
     date.setDate(1); // 月初
@@ -91,8 +93,7 @@ export default function ProfitLossPage() {
   };
 
   const handleExport = () => {
-    // CSV エクスポート機能（後で実装）
-    toast.success('エクスポート機能は開発中です');
+    setExportDialogOpen(true);
   };
 
   const renderAccountRow = (account: AccountBalance, level = 0): React.ReactNode => {
@@ -324,6 +325,12 @@ export default function ProfitLossPage() {
           )}
         </CardContent>
       </Card>
+      <ExportDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        reportType="profit-loss"
+        reportParams={{ from: startDate, to: endDate }}
+      />
     </div>
   );
 }

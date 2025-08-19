@@ -2,10 +2,10 @@
 
 import { Calendar, Download } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'react-hot-toast';
 
 import { ReportLayout } from '@/components/common/ReportLayout';
 import { ReportTable, ReportItem } from '@/components/common/ReportTable';
+import { ExportDialog } from '@/components/reports/ExportDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -41,6 +41,7 @@ interface BalanceSheetData {
 
 export default function BalanceSheetPage() {
   const [asOfDate, setAsOfDate] = useState(getToday());
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const { data, loading, execute } = useApiCall<BalanceSheetData>();
 
   const fetchBalanceSheet = useCallback(() => {
@@ -54,7 +55,7 @@ export default function BalanceSheetPage() {
   }, [fetchBalanceSheet]);
 
   const handleExport = () => {
-    toast.success('エクスポート機能は開発中です');
+    setExportDialogOpen(true);
   };
 
   // Transform data to ReportItem format
@@ -183,6 +184,12 @@ export default function BalanceSheetPage() {
           <div className="text-center py-8 text-gray-500">データがありません</div>
         )}
       </div>
+      <ExportDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        reportType="balance-sheet"
+        reportParams={{ asOf: asOfDate }}
+      />
     </ReportLayout>
   );
 }

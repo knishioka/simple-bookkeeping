@@ -273,13 +273,34 @@ interface ExportQueryParams {
 
 export const exportReport = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { type, format, ...params } = req.query as ExportQueryParams;
+    let { type, format } = req.query as ExportQueryParams;
+    const params = { ...req.query } as ExportQueryParams;
+    delete params.type;
+    delete params.format;
 
-    if (!type || !format) {
+    // Extract report type from URL path if not in query
+    if (!type) {
+      const pathParts = req.path.split('/');
+      const reportIndex = pathParts.findIndex((part) => part === 'reports');
+      if (
+        reportIndex >= 0 &&
+        pathParts[reportIndex + 1] &&
+        pathParts[reportIndex + 1] !== 'export'
+      ) {
+        type = pathParts[reportIndex + 1];
+      }
+    }
+
+    // Default to CSV if format not specified
+    if (!format) {
+      format = 'csv';
+    }
+
+    if (!type) {
       return res.status(400).json({
         error: {
           code: 'INVALID_REQUEST',
-          message: 'レポートタイプと形式を指定してください',
+          message: 'レポートタイプを指定してください',
         },
       });
     }

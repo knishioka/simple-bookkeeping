@@ -317,6 +317,35 @@ class ApiClient {
     }
   }
 
+  async getBlob(endpoint: string): Promise<Blob> {
+    const url = `${this.config.baseUrl}${endpoint}`;
+    const headers = this.getHeaders('application/json');
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers,
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorMessage = 'ダウンロードに失敗しました';
+
+      try {
+        const errorData = JSON.parse(errorText);
+        if (errorData.error?.message) {
+          errorMessage = errorData.error.message;
+        }
+      } catch {
+        // If not JSON, use default message
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    return response.blob();
+  }
+
   // File validation utilities
   validateFile(
     file: File,
