@@ -197,9 +197,8 @@ services:
           cpus: '1'
           memory: 1G
 
-volumes:
-  # No persistent volumes needed for test environment
-  # Using tmpfs for PostgreSQL data (defined inline above)
+# Volumes section removed as we're using tmpfs inline
+# No persistent volumes needed for test environment
 
 networks:
   simple-bookkeeping-test:
