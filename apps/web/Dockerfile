@@ -17,15 +17,16 @@ RUN pnpm install --frozen-lockfile
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
+COPY --from=deps /app/packages/database/node_modules ./packages/database/node_modules
 COPY . .
-# Generate Prisma client using existing prisma from node_modules
+# Generate Prisma client using prisma from database package node_modules
 RUN cd packages/database && \
-    npx --yes prisma@6.10.1 generate
+    ./node_modules/.bin/prisma generate
 # Build shared packages first
-RUN pnpm -F @simple-bookkeeping/database build || true
-RUN pnpm -F @simple-bookkeeping/types build || true
-RUN pnpm -F @simple-bookkeeping/errors build || true
-RUN pnpm -F @simple-bookkeeping/shared build || true
+RUN pnpm -F @simple-bookkeeping/database build
+RUN pnpm -F @simple-bookkeeping/types build
+RUN pnpm -F @simple-bookkeeping/errors build
+RUN pnpm -F @simple-bookkeeping/shared build
 # Build web app with standalone output for Docker
 ENV DOCKER_BUILD=true
 RUN pnpm -F @simple-bookkeeping/web build
