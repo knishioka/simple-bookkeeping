@@ -399,4 +399,185 @@ describe('ReportsService', () => {
       ).rejects.toThrow('現金勘定が見つかりません');
     });
   });
+
+  describe('exportReport', () => {
+    it('should export balance sheet as CSV', async () => {
+      const organizationId = 'org-123';
+      const asOfDate = new Date('2024-01-31');
+
+      mockPrismaClient.account.findMany.mockResolvedValue([
+        {
+          id: 'cash-account',
+          code: '1110',
+          name: '現金',
+          accountType: AccountType.ASSET,
+          organizationId,
+          parentId: null,
+        },
+      ]);
+
+      mockPrismaClient.journalEntry.findMany.mockResolvedValue([
+        {
+          id: 'entry-1',
+          entryDate: new Date('2024-01-15'),
+          status: 'APPROVED',
+          organizationId,
+          lines: [
+            {
+              accountId: 'cash-account',
+              debitAmount: 100000,
+              creditAmount: 0,
+              account: {
+                id: 'cash-account',
+                code: '1110',
+                name: '現金',
+                accountType: AccountType.ASSET,
+              },
+            },
+          ],
+        },
+      ]);
+
+      const result = await service.exportReport(organizationId, 'balance-sheet', 'csv', {
+        asOf: asOfDate.toISOString(),
+      });
+
+      expect(result).toBeInstanceOf(Buffer);
+      const csvContent = result.toString('utf-8');
+      expect(csvContent).toContain('貸借対照表');
+      expect(csvContent).toContain('資産の部');
+      expect(csvContent).toContain('勘定科目コード');
+      expect(csvContent).toContain('勘定科目名');
+      expect(csvContent).toContain('金額');
+    });
+
+    it('should export income statement as CSV', async () => {
+      const organizationId = 'org-123';
+      const startDate = new Date('2024-01-01');
+      const endDate = new Date('2024-01-31');
+
+      mockPrismaClient.account.findMany.mockResolvedValue([
+        {
+          id: 'sales-account',
+          code: '4110',
+          name: '売上高',
+          accountType: AccountType.REVENUE,
+          organizationId,
+          parentId: null,
+        },
+      ]);
+
+      mockPrismaClient.journalEntry.findMany.mockResolvedValue([
+        {
+          id: 'entry-1',
+          entryDate: new Date('2024-01-15'),
+          status: 'APPROVED',
+          organizationId,
+          lines: [
+            {
+              accountId: 'sales-account',
+              debitAmount: 0,
+              creditAmount: 500000,
+              account: {
+                id: 'sales-account',
+                code: '4110',
+                name: '売上高',
+                accountType: AccountType.REVENUE,
+              },
+            },
+          ],
+        },
+      ]);
+
+      const result = await service.exportReport(organizationId, 'income-statement', 'csv', {
+        from: startDate.toISOString(),
+        to: endDate.toISOString(),
+      });
+
+      expect(result).toBeInstanceOf(Buffer);
+      const csvContent = result.toString('utf-8');
+      expect(csvContent).toContain('損益計算書');
+      expect(csvContent).toContain('収益');
+      expect(csvContent).toContain('費用');
+    });
+
+    it('should export trial balance as CSV', async () => {
+      const organizationId = 'org-123';
+      const asOfDate = new Date('2024-01-31');
+
+      mockPrismaClient.account.findMany.mockResolvedValue([
+        {
+          id: 'cash-account',
+          code: '1110',
+          name: '現金',
+          accountType: AccountType.ASSET,
+          organizationId,
+        },
+        {
+          id: 'sales-account',
+          code: '4110',
+          name: '売上高',
+          accountType: AccountType.REVENUE,
+          organizationId,
+        },
+      ]);
+
+      mockPrismaClient.journalEntry.findMany.mockResolvedValue([
+        {
+          id: 'entry-1',
+          entryDate: new Date('2024-01-15'),
+          status: 'APPROVED',
+          organizationId,
+          lines: [
+            {
+              accountId: 'cash-account',
+              debitAmount: 100000,
+              creditAmount: 0,
+            },
+            {
+              accountId: 'sales-account',
+              debitAmount: 0,
+              creditAmount: 100000,
+            },
+          ],
+        },
+      ]);
+
+      const result = await service.exportReport(organizationId, 'trial-balance', 'csv', {
+        asOf: asOfDate.toISOString(),
+      });
+
+      expect(result).toBeInstanceOf(Buffer);
+      const csvContent = result.toString('utf-8');
+      expect(csvContent).toContain('試算表');
+      expect(csvContent).toContain('借方残高');
+      expect(csvContent).toContain('貸方残高');
+    });
+
+    it('should throw error for unsupported format', async () => {
+      // Mock data for balance sheet to avoid errors
+      mockPrismaClient.account.findMany.mockResolvedValue([]);
+      mockPrismaClient.journalEntry.findMany.mockResolvedValue([]);
+
+      await expect(
+        service.exportReport('org-123', 'balance-sheet', 'pdf', { asOf: '2024-01-31' })
+      ).rejects.toThrow('PDF形式は現在開発中です');
+
+      await expect(
+        service.exportReport('org-123', 'balance-sheet', 'xlsx', { asOf: '2024-01-31' })
+      ).rejects.toThrow('Excel形式は現在開発中です');
+    });
+
+    it('should throw error for unsupported report type', async () => {
+      await expect(
+        service.exportReport('org-123', 'invalid-report', 'csv', { asOf: '2024-01-31' })
+      ).rejects.toThrow('サポートされていないレポートタイプ: invalid-report');
+    });
+
+    it('should throw error when required parameters are missing', async () => {
+      await expect(service.exportReport('org-123', 'income-statement', 'csv', {})).rejects.toThrow(
+        '開始日と終了日を指定してください'
+      );
+    });
+  });
 });

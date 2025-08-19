@@ -43,6 +43,12 @@ router.get('/financial-ratios', getFinancialRatios as RouteHandler);
 // Export Reports
 router.get('/export', exportReport as RouteHandler);
 
+// Export specific report types
+router.get('/balance-sheet/export', exportReport as RouteHandler);
+router.get('/profit-loss/export', exportReport as RouteHandler);
+router.get('/income-statement/export', exportReport as RouteHandler);
+router.get('/trial-balance/export', exportReport as RouteHandler);
+
 // Custom Reports
 router.post('/custom', createCustomReport as RouteHandler);
 
