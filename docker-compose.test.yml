@@ -6,8 +6,6 @@
 # - Proper dependency management
 # - Optimized for CI/CD environments
 
-version: '3.8'
-
 services:
   postgres-test:
     image: postgres:16-alpine
@@ -43,11 +41,8 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile.test
       target: test
-      cache_from:
-        - simple-bookkeeping-api-test:latest
       args:
         NODE_ENV: test
-    image: simple-bookkeeping-api-test:latest
     container_name: simple-bookkeeping-api-test
     depends_on:
       postgres-test:
@@ -95,12 +90,9 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile.test
       target: test
-      cache_from:
-        - simple-bookkeeping-web-test:latest
       args:
         NODE_ENV: test
         NEXT_PUBLIC_API_URL: http://api-test:3001/api/v1
-    image: simple-bookkeeping-web-test:latest
     container_name: simple-bookkeeping-web-test
     depends_on:
       api-test:
@@ -134,11 +126,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.playwright
-      cache_from:
-        - simple-bookkeeping-playwright:latest
       args:
         PLAYWRIGHT_VERSION: 'v1.48.0'
-    image: simple-bookkeeping-playwright:latest
     container_name: simple-bookkeeping-playwright
     depends_on:
       web-test:
