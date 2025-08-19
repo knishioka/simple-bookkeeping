@@ -1,11 +1,27 @@
 # Dockerfile for Playwright E2E tests
-FROM mcr.microsoft.com/playwright:v1.48.0-focal
+# Optimized multi-stage build for faster CI/CD
+
+# Use specific Playwright version for consistency
+ARG PLAYWRIGHT_VERSION=v1.48.0
+FROM mcr.microsoft.com/playwright:${PLAYWRIGHT_VERSION}-focal AS base
+
+# Install required tools
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    jq \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
 
 # Install pnpm
 RUN npm install -g pnpm@9
+
+# Stage 2: Dependencies
+FROM base AS deps
+WORKDIR /app
 
 # Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
@@ -17,8 +33,13 @@ COPY packages/errors/package.json ./packages/errors/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/core/package.json ./packages/core/
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# Install dependencies with cache mount for faster rebuilds
+RUN --mount=type=cache,target=/root/.pnpm-store \
+    pnpm install --frozen-lockfile
+
+# Stage 3: Build
+FROM deps AS build
+WORKDIR /app
 
 # Copy source code
 COPY . .
@@ -29,8 +50,91 @@ RUN pnpm --filter @simple-bookkeeping/database prisma:generate
 # Build packages (needed for test helpers)
 RUN pnpm build:packages
 
-# Install Playwright browsers (Chromium only for faster builds)
-RUN cd apps/web && npx playwright install chromium
+# Stage 4: Test runtime
+FROM base AS test
+WORKDIR /app
 
-# Set default command
-CMD ["sh", "-c", "cd apps/web && npx playwright test"]
+# Copy built application and dependencies
+COPY --from=build /app .
+
+# Install Playwright browsers with dependencies
+# Using environment variable to control which browsers to install
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+ARG BROWSERS="chromium"
+RUN cd apps/web && npx playwright install ${BROWSERS} --with-deps
+
+# Create test runner script with better error handling
+RUN cat > /run-tests.sh << 'EOF'
+#!/bin/bash
+set -e
+
+echo "🔍 Starting E2E test execution..."
+echo "Environment:"
+echo "  BASE_URL: ${BASE_URL}"
+echo "  API_URL: ${API_URL}"
+echo "  NODE_ENV: ${NODE_ENV}"
+echo "  CI: ${CI}"
+
+# Wait for database to be ready
+if [ ! -z "$DATABASE_URL" ]; then
+    echo "⏳ Waiting for database..."
+    until pg_isready -h postgres-test -p 5432 -U test; do
+        echo "  Database not ready, waiting..."
+        sleep 2
+    done
+    echo "✅ Database is ready"
+fi
+
+# Run database migrations if needed
+if [ -f "/app/packages/database/prisma/schema.prisma" ]; then
+    echo "🔄 Running database migrations..."
+    cd /app
+    pnpm --filter @simple-bookkeeping/database db:migrate || {
+        echo "⚠️  Migration failed, attempting to reset database..."
+        pnpm --filter @simple-bookkeeping/database db:reset --force
+    }
+    echo "✅ Database migrations completed"
+fi
+
+# Run E2E tests
+echo "🎭 Running Playwright tests..."
+cd /app/apps/web
+
+# Set test configuration
+export PLAYWRIGHT_HTML_REPORT=/app/playwright-report
+export PLAYWRIGHT_JUNIT_OUTPUT_NAME=/app/test-results/results.xml
+
+# Execute tests with proper reporter configuration
+npx playwright test \
+    --reporter=html,list,junit \
+    --output=/app/artifacts \
+    ${PLAYWRIGHT_ARGS} || TEST_EXIT_CODE=$?
+
+# Handle test results
+if [ -z "$TEST_EXIT_CODE" ] || [ "$TEST_EXIT_CODE" -eq 0 ]; then
+    echo "✅ All tests passed successfully!"
+    exit 0
+else
+    echo "❌ Some tests failed. Check the reports for details."
+    echo "   HTML Report: /app/playwright-report/index.html"
+    echo "   JUnit Report: /app/test-results/results.xml"
+    echo "   Artifacts: /app/artifacts/"
+    exit $TEST_EXIT_CODE
+fi
+EOF
+
+RUN chmod +x /run-tests.sh
+
+# Set up volume mount points
+VOLUME ["/app/playwright-report", "/app/test-results", "/app/artifacts", "/app/coverage"]
+
+# Default environment variables
+ENV CI=true
+ENV NODE_ENV=test
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0
+
+# Use the test runner script as entrypoint
+ENTRYPOINT ["/run-tests.sh"]
+
+# Allow passing additional playwright arguments
+CMD []

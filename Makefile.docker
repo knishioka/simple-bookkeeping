@@ -1,0 +1,115 @@
+# Makefile for Docker E2E Testing
+# Usage: make -f Makefile.docker <target>
+
+.PHONY: help build test clean logs shell debug
+
+# Default target
+help:
+	@echo "Docker E2E Test Commands:"
+	@echo "  make -f Makefile.docker build     - Build all Docker images"
+	@echo "  make -f Makefile.docker test      - Run E2E tests in Docker"
+	@echo "  make -f Makefile.docker test-watch - Run tests in watch mode"
+	@echo "  make -f Makefile.docker debug     - Run tests with debug output"
+	@echo "  make -f Makefile.docker clean     - Stop and remove all containers"
+	@echo "  make -f Makefile.docker logs      - Show container logs"
+	@echo "  make -f Makefile.docker shell     - Open shell in Playwright container"
+	@echo "  make -f Makefile.docker status    - Show container status"
+	@echo "  make -f Makefile.docker rebuild   - Rebuild images (no cache)"
+	@echo ""
+	@echo "Environment Variables:"
+	@echo "  DEBUG=true         - Enable debug output"
+	@echo "  KEEP_RUNNING=true  - Keep containers running after tests"
+	@echo "  BROWSERS='chromium firefox' - Browsers to test"
+
+# Build Docker images
+build:
+	@echo "🔨 Building Docker images..."
+	docker compose -f docker-compose.test.yml build
+
+# Rebuild without cache
+rebuild:
+	@echo "🔨 Rebuilding Docker images (no cache)..."
+	docker compose -f docker-compose.test.yml build --no-cache
+
+# Run E2E tests
+test:
+	@echo "🎭 Running E2E tests in Docker..."
+	@chmod +x scripts/docker-e2e-test.sh 2>/dev/null || true
+	@./scripts/docker-e2e-test.sh
+
+# Run tests in watch mode
+test-watch:
+	@echo "👁️  Running E2E tests in watch mode..."
+	@chmod +x scripts/docker-e2e-test.sh 2>/dev/null || true
+	@./scripts/docker-e2e-test.sh --watch
+
+# Run tests with debug output
+debug:
+	@echo "🔍 Running E2E tests with debug output..."
+	@chmod +x scripts/docker-e2e-test.sh 2>/dev/null || true
+	@DEBUG=true ./scripts/docker-e2e-test.sh --debug
+
+# Clean up Docker resources
+clean:
+	@echo "🧹 Cleaning up Docker resources..."
+	docker compose -f docker-compose.test.yml down -v --remove-orphans
+	rm -rf playwright-report test-results artifacts coverage
+	@echo "✅ Cleanup complete"
+
+# Show container logs
+logs:
+	@echo "📋 Container logs:"
+	docker compose -f docker-compose.test.yml logs -f
+
+# Show specific service logs
+logs-%:
+	@echo "📋 Logs for $*:"
+	docker compose -f docker-compose.test.yml logs -f $*
+
+# Open shell in Playwright container
+shell:
+	@echo "🐚 Opening shell in Playwright container..."
+	docker compose -f docker-compose.test.yml run --rm playwright /bin/bash
+
+# Show container status
+status:
+	@echo "📊 Container status:"
+	@docker compose -f docker-compose.test.yml ps
+	@echo ""
+	@echo "🏥 Health check status:"
+	@docker compose -f docker-compose.test.yml ps | grep -E "healthy|unhealthy" || echo "No health status available"
+
+# Start services without running tests
+start:
+	@echo "🚀 Starting services..."
+	docker compose -f docker-compose.test.yml up -d postgres-test api-test web-test
+	@echo "✅ Services started. Use 'make -f Makefile.docker status' to check status"
+
+# Stop services
+stop:
+	@echo "🛑 Stopping services..."
+	docker compose -f docker-compose.test.yml stop
+	@echo "✅ Services stopped"
+
+# Run specific test file
+test-file:
+	@echo "🎯 Running specific test file..."
+	@read -p "Enter test file path (e.g., e2e/basic.spec.ts): " TEST_FILE; \
+	./scripts/docker-e2e-test.sh $$TEST_FILE
+
+# Run tests matching pattern
+test-grep:
+	@echo "🔍 Running tests matching pattern..."
+	@read -p "Enter pattern to match: " PATTERN; \
+	./scripts/docker-e2e-test.sh --grep "$$PATTERN"
+
+# Check Docker setup
+check:
+	@echo "🔍 Checking Docker setup..."
+	@command -v docker >/dev/null 2>&1 && echo "✅ Docker is installed" || echo "❌ Docker is not installed"
+	@command -v docker compose version >/dev/null 2>&1 && echo "✅ Docker Compose is installed" || echo "❌ Docker Compose is not installed"
+	@docker info >/dev/null 2>&1 && echo "✅ Docker daemon is running" || echo "❌ Docker daemon is not running"
+	@echo ""
+	@echo "📦 Docker version:"
+	@docker --version
+	@docker compose version

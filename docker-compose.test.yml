@@ -1,5 +1,12 @@
 # Docker Compose configuration for E2E testing
 # This configuration provides an isolated test environment that mimics CI
+# Features:
+# - Complete network isolation (no host ports exposed by default)
+# - Robust health checks for all services
+# - Proper dependency management
+# - Optimized for CI/CD environments
+
+version: '3.8'
 
 services:
   postgres-test:
@@ -9,23 +16,38 @@ services:
       POSTGRES_USER: test
       POSTGRES_PASSWORD: test
       POSTGRES_DB: bookkeeping_test
-    ports:
-      - '5433:5432' # Different port to avoid conflicts with dev DB
+      # Performance optimization for test environment
+      POSTGRES_INITDB_ARGS: '--encoding=UTF-8 --lc-collate=C --lc-ctype=C'
+      POSTGRES_HOST_AUTH_METHOD: md5
+    # Remove host port mapping for complete isolation (can be enabled for debugging)
+    # ports:
+    #   - '5433:5432'
     volumes:
-      - postgres_test_data:/var/lib/postgresql/data
+      # Use tmpfs for better performance in CI
+      - type: tmpfs
+        target: /var/lib/postgresql/data
+        tmpfs:
+          size: 256M
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U test']
-      interval: 5s
-      timeout: 5s
-      retries: 10
+      test: ['CMD-SHELL', 'pg_isready -d bookkeeping_test -U test']
+      interval: 2s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
     networks:
       - simple-bookkeeping-test
+    restart: unless-stopped
 
   api-test:
     build:
       context: .
-      dockerfile: apps/api/Dockerfile
-      target: production
+      dockerfile: apps/api/Dockerfile.test
+      target: test
+      cache_from:
+        - simple-bookkeeping-api-test:latest
+      args:
+        NODE_ENV: test
+    image: simple-bookkeeping-api-test:latest
     container_name: simple-bookkeeping-api-test
     depends_on:
       postgres-test:
@@ -34,54 +56,96 @@ services:
       DATABASE_URL: postgresql://test:test@postgres-test:5432/bookkeeping_test?schema=public
       API_PORT: 3001
       NODE_ENV: test
-      JWT_SECRET: test-secret-key
+      JWT_SECRET: test-secret-key-for-e2e-testing
       JWT_EXPIRES_IN: 1h
-      JWT_REFRESH_SECRET: test-refresh-secret
+      JWT_REFRESH_SECRET: test-refresh-secret-for-e2e
       JWT_REFRESH_EXPIRES_IN: 7d
-      CORS_ORIGIN: http://web-test:3000
-    ports:
-      - '3011:3001' # Different port to avoid conflicts
+      CORS_ORIGIN: http://web-test:3000,http://localhost:3000
+      # Disable rate limiting in test environment
+      DISABLE_RATE_LIMIT: 'true'
+      # Test-specific settings
+      LOG_LEVEL: debug
+    # Remove host port mapping for complete isolation (can be enabled for debugging)
+    # ports:
+    #   - '3011:3001'
     networks:
       - simple-bookkeeping-test
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3001/api/v1/']
-      interval: 5s
-      timeout: 5s
-      retries: 10
+      test:
+        [
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://localhost:3001/api/v1/health',
+        ]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+    restart: unless-stopped
+    volumes:
+      # Mount source for hot reloading in development
+      - ./apps/api/src:/app/apps/api/src:ro
+      - ./packages:/app/packages:ro
 
   web-test:
     build:
       context: .
-      dockerfile: apps/web/Dockerfile
-      target: production
+      dockerfile: apps/web/Dockerfile.test
+      target: test
+      cache_from:
+        - simple-bookkeeping-web-test:latest
+      args:
+        NODE_ENV: test
+        NEXT_PUBLIC_API_URL: http://api-test:3001/api/v1
+    image: simple-bookkeeping-web-test:latest
     container_name: simple-bookkeeping-web-test
     depends_on:
       api-test:
         condition: service_healthy
     environment:
       NEXT_PUBLIC_API_URL: http://api-test:3001/api/v1
-      NEXTAUTH_SECRET: test-nextauth-secret
-      NEXTAUTH_URL: http://localhost:3010
+      NEXTAUTH_SECRET: test-nextauth-secret-for-e2e
+      NEXTAUTH_URL: http://web-test:3000
       NODE_ENV: test
-    ports:
-      - '3010:3000' # Different port to avoid conflicts
+      # Test-specific settings
+      NEXT_TELEMETRY_DISABLED: '1'
+    # Remove host port mapping for complete isolation (can be enabled for debugging)
+    # ports:
+    #   - '3010:3000'
     networks:
       - simple-bookkeeping-test
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3000']
-      interval: 5s
-      timeout: 5s
-      retries: 10
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000']
+      interval: 2s
+      timeout: 3s
+      retries: 20
+      start_period: 20s
+    restart: unless-stopped
+    volumes:
+      # Mount source for hot reloading in development
+      - ./apps/web/src:/app/apps/web/src:ro
+      - ./apps/web/public:/app/apps/web/public:ro
+      - ./packages:/app/packages:ro
 
   playwright:
     build:
       context: .
       dockerfile: Dockerfile.playwright
+      cache_from:
+        - simple-bookkeeping-playwright:latest
+      args:
+        PLAYWRIGHT_VERSION: 'v1.48.0'
+    image: simple-bookkeeping-playwright:latest
     container_name: simple-bookkeeping-playwright
     depends_on:
       web-test:
         condition: service_healthy
       api-test:
+        condition: service_healthy
+      postgres-test:
         condition: service_healthy
     environment:
       # Playwright environment variables
@@ -91,19 +155,55 @@ services:
       NODE_ENV: test
       # Test database connection for setup/teardown
       DATABASE_URL: postgresql://test:test@postgres-test:5432/bookkeeping_test?schema=public
+      # Playwright specific settings
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '0'
+      PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: ''
+      # Test execution settings
+      TEST_RETRIES: '2'
+      TEST_WORKERS: '2'
+      TEST_TIMEOUT: '60000'
+      # Debug settings (can be enabled for troubleshooting)
+      DEBUG: ''
+      PWDEBUG: ''
     volumes:
-      - ./apps/web/e2e:/app/apps/web/e2e
-      - ./apps/web/playwright.config.ts:/app/apps/web/playwright.config.ts
-      - ./apps/web/playwright-report:/app/apps/web/playwright-report
-      - ./apps/web/test-results:/app/apps/web/test-results
+      # Mount test files and config (read-only for consistency)
+      - ./apps/web/e2e:/app/apps/web/e2e:ro
+      - ./apps/web/playwright.config.ts:/app/apps/web/playwright.config.ts:ro
+      # Mount output directories (read-write for results)
+      - ./playwright-report:/app/playwright-report:rw
+      - ./test-results:/app/test-results:rw
+      - ./coverage:/app/coverage:rw
+      # Screenshots and videos
+      - ./artifacts:/app/artifacts:rw
     networks:
       - simple-bookkeeping-test
-    command: sh -c "cd /app/apps/web && npx playwright test"
+    command: >
+      sh -c "
+        echo 'Waiting for services to be ready...' &&
+        sleep 5 &&
+        echo 'Running database migrations...' &&
+        cd /app && pnpm --filter @simple-bookkeeping/database db:migrate &&
+        echo 'Running E2E tests...' &&
+        cd /app/apps/web &&
+        npx playwright test --reporter=html,list --output=/app/artifacts
+      "
+    # Set resource limits for CI environments
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
 
 volumes:
-  postgres_test_data:
-    name: simple-bookkeeping-postgres-test-data
+  # No persistent volumes needed for test environment
+  # Using tmpfs for PostgreSQL data (defined inline above)
 
 networks:
   simple-bookkeeping-test:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
