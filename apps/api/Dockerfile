@@ -18,10 +18,9 @@ FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY . .
-# Ensure Prisma CLI is available and generate Prisma client
+# Generate Prisma client using existing prisma from node_modules
 RUN cd packages/database && \
-    pnpm add -D prisma@6.10.1 && \
-    npx prisma generate
+    npx --yes prisma@6.10.1 generate
 # Build shared packages first
 RUN pnpm -F @simple-bookkeeping/database build || true
 RUN pnpm -F @simple-bookkeeping/types build || true
