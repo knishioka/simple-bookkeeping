@@ -23,6 +23,12 @@ on:
         required: false
         default: false
 
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+  issues: write
+
 env:
   DOCKER_BUILDKIT: 1
   COMPOSE_DOCKER_CLI_BUILD: 1

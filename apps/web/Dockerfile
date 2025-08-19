@@ -25,7 +25,8 @@ RUN pnpm -F @simple-bookkeeping/database build || true
 RUN pnpm -F @simple-bookkeeping/types build || true
 RUN pnpm -F @simple-bookkeeping/errors build || true
 RUN pnpm -F @simple-bookkeeping/shared build || true
-# Build web app
+# Build web app with standalone output for Docker
+ENV DOCKER_BUILD=true
 RUN pnpm -F @simple-bookkeeping/web build
 
 # Runner

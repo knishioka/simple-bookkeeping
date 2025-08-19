@@ -61,6 +61,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/bookkeeping_test
           NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
+          DOCKER_BUILD: false
 
       - name: Install Playwright browsers
         run: pnpm --filter @simple-bookkeeping/web exec playwright install --with-deps chromium
