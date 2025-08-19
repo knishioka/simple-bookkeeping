@@ -18,11 +18,9 @@ FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY . .
-# Install prisma CLI if not present and generate Prisma client
+# Ensure Prisma CLI is available and generate Prisma client
 RUN cd packages/database && \
-    if ! command -v prisma &> /dev/null; then \
-        npm install -g prisma@6.10.1; \
-    fi && \
+    pnpm add -D prisma@6.10.1 && \
     npx prisma generate
 # Build shared packages first
 RUN pnpm -F @simple-bookkeeping/database build || true
