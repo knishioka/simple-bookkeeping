@@ -7,6 +7,8 @@ FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/database/package.json ./packages/database/
+COPY packages/types/package.json ./packages/types/
+COPY packages/errors/package.json ./packages/errors/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 RUN pnpm install --frozen-lockfile
@@ -16,7 +18,14 @@ FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY . .
-RUN pnpm -F @simple-bookkeeping/database generate
+# Generate Prisma client before building
+RUN cd packages/database && npx prisma generate
+# Build shared packages first
+RUN pnpm -F @simple-bookkeeping/database build || true
+RUN pnpm -F @simple-bookkeeping/types build || true
+RUN pnpm -F @simple-bookkeeping/errors build || true
+RUN pnpm -F @simple-bookkeeping/shared build || true
+# Build API
 RUN pnpm -F @simple-bookkeeping/api build
 
 # Runner
@@ -29,6 +38,7 @@ COPY --from=build --chown=nodejs:nodejs /app/package.json ./package.json
 COPY --from=build --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=build --chown=nodejs:nodejs /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=build --chown=nodejs:nodejs /app/apps/api/dist ./apps/api/dist
+COPY --from=build --chown=nodejs:nodejs /app/apps/api/package.json ./apps/api/package.json
 COPY --from=build --chown=nodejs:nodejs /app/packages ./packages
 
 USER nodejs
