@@ -10,6 +10,7 @@ COPY packages/database/package.json ./packages/database/
 COPY packages/types/package.json ./packages/types/
 COPY packages/errors/package.json ./packages/errors/
 COPY packages/shared/package.json ./packages/shared/
+COPY packages/config/package.json ./packages/config/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 RUN pnpm install --frozen-lockfile
 
@@ -21,6 +22,7 @@ COPY --from=deps /app/packages/database/node_modules ./packages/database/node_mo
 COPY --from=deps /app/packages/types/node_modules ./packages/types/node_modules
 COPY --from=deps /app/packages/errors/node_modules ./packages/errors/node_modules
 COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
+COPY --from=deps /app/packages/config/node_modules ./packages/config/node_modules
 COPY . .
 # Generate Prisma client using prisma from database package node_modules
 RUN cd packages/database && \
@@ -30,6 +32,7 @@ RUN pnpm -F @simple-bookkeeping/database build
 RUN pnpm -F @simple-bookkeeping/types build
 RUN pnpm -F @simple-bookkeeping/errors build
 RUN pnpm -F @simple-bookkeeping/shared build
+RUN pnpm -F @simple-bookkeeping/config build
 # Build API
 RUN pnpm -F @simple-bookkeeping/api build
 
@@ -51,6 +54,7 @@ COPY --from=build --chown=nodejs:nodejs /app/packages/database/node_modules ./pa
 COPY --from=build --chown=nodejs:nodejs /app/packages/types/node_modules ./packages/types/node_modules
 COPY --from=build --chown=nodejs:nodejs /app/packages/errors/node_modules ./packages/errors/node_modules
 COPY --from=build --chown=nodejs:nodejs /app/packages/shared/node_modules ./packages/shared/node_modules
+COPY --from=build --chown=nodejs:nodejs /app/packages/config/node_modules ./packages/config/node_modules
 # Copy built packages with their dist directories
 COPY --from=build --chown=nodejs:nodejs /app/packages/database/dist ./packages/database/dist
 COPY --from=build --chown=nodejs:nodejs /app/packages/database/package.json ./packages/database/package.json
@@ -60,6 +64,8 @@ COPY --from=build --chown=nodejs:nodejs /app/packages/errors/dist ./packages/err
 COPY --from=build --chown=nodejs:nodejs /app/packages/errors/package.json ./packages/errors/package.json
 COPY --from=build --chown=nodejs:nodejs /app/packages/shared/dist ./packages/shared/dist
 COPY --from=build --chown=nodejs:nodejs /app/packages/shared/package.json ./packages/shared/package.json
+COPY --from=build --chown=nodejs:nodejs /app/packages/config/dist ./packages/config/dist
+COPY --from=build --chown=nodejs:nodejs /app/packages/config/package.json ./packages/config/package.json
 # Copy Prisma schema files
 COPY --from=build --chown=nodejs:nodejs /app/packages/database/prisma ./packages/database/prisma
 

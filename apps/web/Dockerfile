@@ -10,6 +10,7 @@ COPY packages/database/package.json ./packages/database/
 COPY packages/types/package.json ./packages/types/
 COPY packages/errors/package.json ./packages/errors/
 COPY packages/shared/package.json ./packages/shared/
+COPY packages/config/package.json ./packages/config/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 RUN pnpm install --frozen-lockfile
 
@@ -21,6 +22,7 @@ COPY --from=deps /app/packages/database/node_modules ./packages/database/node_mo
 COPY --from=deps /app/packages/types/node_modules ./packages/types/node_modules
 COPY --from=deps /app/packages/errors/node_modules ./packages/errors/node_modules
 COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
+COPY --from=deps /app/packages/config/node_modules ./packages/config/node_modules
 COPY . .
 # Generate Prisma client using prisma from database package node_modules
 RUN cd packages/database && \
@@ -30,6 +32,7 @@ RUN pnpm -F @simple-bookkeeping/database build
 RUN pnpm -F @simple-bookkeeping/types build
 RUN pnpm -F @simple-bookkeeping/errors build
 RUN pnpm -F @simple-bookkeeping/shared build
+RUN pnpm -F @simple-bookkeeping/config build
 # Build web app with standalone output for Docker
 ENV DOCKER_BUILD=true
 RUN pnpm -F @simple-bookkeeping/web build

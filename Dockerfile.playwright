@@ -33,6 +33,7 @@ COPY packages/errors/package.json ./packages/errors/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/test-utils/package.json ./packages/test-utils/
 COPY packages/core/package.json ./packages/core/
+COPY packages/config/package.json ./packages/config/
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
@@ -52,6 +53,7 @@ RUN pnpm --filter @simple-bookkeeping/database build || true
 RUN pnpm --filter @simple-bookkeeping/types build || true
 RUN pnpm --filter @simple-bookkeeping/errors build || true
 RUN pnpm --filter @simple-bookkeeping/shared build || true
+RUN pnpm --filter @simple-bookkeeping/config build || true
 RUN pnpm --filter @simple-bookkeeping/test-utils build || true
 
 # Stage 4: Test runtime
@@ -93,11 +95,14 @@ fi
 if [ -f "/app/packages/database/prisma/schema.prisma" ]; then
     echo "🔄 Running database migrations..."
     cd /app
-    pnpm --filter @simple-bookkeeping/database db:migrate || {
-        echo "⚠️  Migration failed, attempting to reset database..."
-        pnpm --filter @simple-bookkeeping/database db:reset --force
+    # Use db:push for test environment (doesn't need shadow database)
+    pnpm --filter @simple-bookkeeping/database db:push || {
+        echo "⚠️  Database setup failed, attempting to reset..."
+        echo "Creating fresh database schema..."
+        cd /app/packages/database
+        npx prisma db push --force-reset
     }
-    echo "✅ Database migrations completed"
+    echo "✅ Database setup completed"
 fi
 
 # Run E2E tests
