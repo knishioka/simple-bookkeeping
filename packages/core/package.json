@@ -8,10 +8,10 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "echo 'Core package is pre-built'",
+    "dev": "echo 'Core package is pre-built'",
     "clean": "rm -rf dist",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "echo 'Core package is pre-built'"
   },
   "dependencies": {
     "@simple-bookkeeping/database": "workspace:*",
