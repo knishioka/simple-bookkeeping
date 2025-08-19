@@ -13,7 +13,7 @@
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node",
     "emitDeclarationOnly": false,
-    "composite": false
+    "composite": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "prisma"]
