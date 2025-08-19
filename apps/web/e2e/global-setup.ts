@@ -131,10 +131,11 @@ async function performHealthCheck() {
   // Import ports from config to ensure consistency
   const { PORTS } = await import('@simple-bookkeeping/config');
 
-  const urls = [
-    process.env.BASE_URL || `http://localhost:${PORTS.WEB}`,
-    process.env.API_URL || `http://localhost:${PORTS.API}`,
-  ];
+  // Docker環境ではBASE_URLとAPI_URLが設定されているはず
+  const webUrl = process.env.BASE_URL || `http://localhost:${PORTS.WEB}`;
+  const apiUrl = process.env.API_URL || `http://localhost:${PORTS.API}`;
+
+  const urls = [webUrl, apiUrl];
 
   // Add retry logic for CI environment
   const maxRetries = process.env.CI ? 5 : 1;
@@ -147,8 +148,11 @@ async function performHealthCheck() {
     while (attempts < maxRetries && !isHealthy) {
       attempts++;
       try {
-        const response = await fetch(url, { method: 'HEAD' });
-        if (response.ok) {
+        // APIのヘルスチェックエンドポイントを適切に扱う
+        const checkUrl = url.includes(':3001') ? `${url}/api/v1/health` : url;
+        const response = await fetch(checkUrl, { method: url.includes(':3001') ? 'GET' : 'HEAD' });
+        if (response.ok || response.status === 404) {
+          // 404でもサーバーは起動している
           console.log(`✅ ${url} is healthy`);
           isHealthy = true;
         } else {

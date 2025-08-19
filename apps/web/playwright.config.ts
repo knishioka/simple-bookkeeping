@@ -78,8 +78,8 @@ export default defineConfig({
 
   // 共有設定
   use: {
-    // ベースURL
-    baseURL: TEST_CONFIG.webUrl || `http://localhost:${PORTS.WEB}`,
+    // ベースURL（環境変数を直接チェック）
+    baseURL: process.env.BASE_URL || TEST_CONFIG.webUrl || `http://localhost:${PORTS.WEB}`,
 
     // トレース設定（失敗時のみ）
     trace: isCI ? 'on-first-retry' : 'retain-on-failure',
