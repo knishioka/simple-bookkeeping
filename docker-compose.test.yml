@@ -161,16 +161,9 @@ services:
       - ./artifacts:/app/artifacts:rw
     networks:
       - simple-bookkeeping-test
-    command: >
-      sh -c "
-        echo 'Waiting for services to be ready...' &&
-        sleep 5 &&
-        echo 'Running database migrations...' &&
-        cd /app && pnpm --filter @simple-bookkeeping/database db:migrate &&
-        echo 'Running E2E tests...' &&
-        cd /app/apps/web &&
-        npx playwright test --reporter=html,list --output=/app/artifacts
-      "
+    # Use the entrypoint from Dockerfile.playwright
+    # The run-tests.sh script handles database setup and service checks
+    command: []
     # Set resource limits for CI environments
     deploy:
       resources:

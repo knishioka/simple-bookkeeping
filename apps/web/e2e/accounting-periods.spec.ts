@@ -15,7 +15,8 @@ test.describe('Accounting Periods Management', () => {
     // 統一認証ヘルパーでモックをセットアップ
     await UnifiedAuth.setupMockRoutes(context);
 
-    // 直接認証トークンを設定してダッシュボードへ移動
+    // まずページを開いてから認証データを設定
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await UnifiedAuth.setAuthData(page);
     await page.goto('/dashboard/settings/accounting-periods', { waitUntil: 'domcontentloaded' });
 
@@ -33,7 +34,8 @@ test.describe('Accounting Periods Management', () => {
     // 統一ヘルパーで認証とモックをセットアップ
     await UnifiedAuth.setupMockRoutes(context);
 
-    // 直接認証トークンを設定してダッシュボードへ移動（ログインフォームをスキップ）
+    // まずページを開いてから認証データを設定
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await UnifiedAuth.setAuthData(page);
   });
 

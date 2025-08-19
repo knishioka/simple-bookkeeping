@@ -219,7 +219,9 @@ export class UnifiedAuth {
     // ページが読み込まれていない場合は、最小限のページを読み込む
     const currentUrl = page.url();
     if (currentUrl === 'about:blank' || !currentUrl.startsWith('http')) {
-      await page.goto('/');
+      // Docker環境では BASE_URL を使用、それ以外は / を使用
+      const baseUrl = process.env.BASE_URL || '/';
+      await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
     }
 
     // localStorageとsessionStorageに認証情報を設定
