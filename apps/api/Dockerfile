@@ -40,11 +40,22 @@ RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nodejs -u 1001
 
 COPY --from=build --chown=nodejs:nodejs /app/package.json ./package.json
+# Copy entire node_modules with resolved symlinks
 COPY --from=build --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=build --chown=nodejs:nodejs /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=build --chown=nodejs:nodejs /app/apps/api/dist ./apps/api/dist
 COPY --from=build --chown=nodejs:nodejs /app/apps/api/package.json ./apps/api/package.json
-COPY --from=build --chown=nodejs:nodejs /app/packages ./packages
+# Copy built packages with their dist directories
+COPY --from=build --chown=nodejs:nodejs /app/packages/database/dist ./packages/database/dist
+COPY --from=build --chown=nodejs:nodejs /app/packages/database/package.json ./packages/database/package.json
+COPY --from=build --chown=nodejs:nodejs /app/packages/types/dist ./packages/types/dist
+COPY --from=build --chown=nodejs:nodejs /app/packages/types/package.json ./packages/types/package.json
+COPY --from=build --chown=nodejs:nodejs /app/packages/errors/dist ./packages/errors/dist
+COPY --from=build --chown=nodejs:nodejs /app/packages/errors/package.json ./packages/errors/package.json
+COPY --from=build --chown=nodejs:nodejs /app/packages/shared/dist ./packages/shared/dist
+COPY --from=build --chown=nodejs:nodejs /app/packages/shared/package.json ./packages/shared/package.json
+# Copy Prisma schema files
+COPY --from=build --chown=nodejs:nodejs /app/packages/database/prisma ./packages/database/prisma
 
 USER nodejs
 WORKDIR /app/apps/api
