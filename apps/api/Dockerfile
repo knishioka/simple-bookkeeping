@@ -40,11 +40,17 @@ RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nodejs -u 1001
 
 COPY --from=build --chown=nodejs:nodejs /app/package.json ./package.json
+COPY --from=build --chown=nodejs:nodejs /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
 # Copy entire node_modules with resolved symlinks
 COPY --from=build --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=build --chown=nodejs:nodejs /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=build --chown=nodejs:nodejs /app/apps/api/dist ./apps/api/dist
 COPY --from=build --chown=nodejs:nodejs /app/apps/api/package.json ./apps/api/package.json
+# Copy all package node_modules for proper resolution
+COPY --from=build --chown=nodejs:nodejs /app/packages/database/node_modules ./packages/database/node_modules
+COPY --from=build --chown=nodejs:nodejs /app/packages/types/node_modules ./packages/types/node_modules
+COPY --from=build --chown=nodejs:nodejs /app/packages/errors/node_modules ./packages/errors/node_modules
+COPY --from=build --chown=nodejs:nodejs /app/packages/shared/node_modules ./packages/shared/node_modules
 # Copy built packages with their dist directories
 COPY --from=build --chown=nodejs:nodejs /app/packages/database/dist ./packages/database/dist
 COPY --from=build --chown=nodejs:nodejs /app/packages/database/package.json ./packages/database/package.json

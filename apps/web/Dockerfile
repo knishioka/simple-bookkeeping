@@ -43,6 +43,8 @@ RUN adduser -S nodejs -u 1001
 # Copy the standalone build output (Next.js creates this with output: 'standalone')
 COPY --from=build --chown=nodejs:nodejs /app/apps/web/.next/standalone ./
 COPY --from=build --chown=nodejs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
+# Copy Prisma client with engine binaries
+COPY --from=build --chown=nodejs:nodejs /app/node_modules/.pnpm/@prisma+client@*/node_modules/.prisma ./node_modules/.pnpm/@prisma+client@6.10.1_prisma@6.10.1_typescript@5.8.3__typescript@5.8.3/node_modules/.prisma
 
 USER nodejs
 
