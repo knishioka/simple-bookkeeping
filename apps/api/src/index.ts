@@ -172,14 +172,19 @@ if (process.env.NODE_ENV !== 'test') {
     });
 
     // Configure and start database monitoring
-    const { checkDatabaseHealth, getConnectionPoolMetrics, warmupConnectionPool } = await import(
-      './lib/prisma'
-    );
-    databaseMonitor.configure(checkDatabaseHealth, getConnectionPoolMetrics);
-    databaseMonitor.start();
+    try {
+      const { checkDatabaseHealth, getConnectionPoolMetrics, warmupConnectionPool } = await import(
+        './lib/prisma'
+      );
+      databaseMonitor.configure(checkDatabaseHealth, getConnectionPoolMetrics);
+      databaseMonitor.start();
 
-    // Warmup database connections
-    await warmupConnectionPool();
+      // Warmup database connections
+      await warmupConnectionPool();
+    } catch (error) {
+      defaultLogger.error('Failed to initialize database monitoring', error as Error);
+      // Continue running even if monitoring fails
+    }
   });
 
   // Graceful shutdown
