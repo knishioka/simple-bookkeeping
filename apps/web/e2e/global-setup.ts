@@ -1,6 +1,6 @@
 /**
  * Playwright グローバルセットアップ
- * Issue #95対応: E2Eテスト実行前の環境準備
+ * Issue #203対応: E2Eテスト環境の環境変数管理を統一
  */
 
 import { chromium, FullConfig } from '@playwright/test';
@@ -128,13 +128,13 @@ async function setupTestDatabase() {
 async function performHealthCheck() {
   console.log('🏥 Performing health check...');
 
-  // Import port constants
-  const { PORTS } = await import('@simple-bookkeeping/config');
+  // Import unified test environment configuration
+  const { getTestEnvironment } = await import('@simple-bookkeeping/config');
 
-  // Use environment variables with fallbacks
-  const webUrl =
-    process.env.BASE_URL || process.env.TEST_WEB_URL || `http://localhost:${PORTS.WEB}`;
-  const apiUrl = process.env.API_URL || process.env.TEST_API_URL || `http://localhost:${PORTS.API}`;
+  // Use unified test environment
+  const testEnv = getTestEnvironment();
+  const webUrl = testEnv.webUrl;
+  const apiUrl = testEnv.apiUrl;
 
   const urls = [
     { url: webUrl, name: 'Web' },
