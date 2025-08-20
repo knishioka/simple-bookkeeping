@@ -132,12 +132,18 @@ services:
       postgres-test:
         condition: service_healthy
     environment:
-      # Playwright environment variables
+      # Unified test environment variables
+      TEST_WEB_URL: http://web-test:3000
+      TEST_API_URL: http://api-test:3001
+      # Legacy variables for backward compatibility (will be removed in future)
       BASE_URL: http://web-test:3000
       API_URL: http://api-test:3001
+      # Environment detection
+      DOCKER_ENV: 'true'
       CI: 'true'
       NODE_ENV: test
       # Test database connection for setup/teardown
+      TEST_DATABASE_URL: postgresql://test:test@postgres-test:5432/bookkeeping_test?schema=public
       DATABASE_URL: postgresql://test:test@postgres-test:5432/bookkeeping_test?schema=public
       # Playwright specific settings
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '0'

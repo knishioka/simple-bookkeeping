@@ -1,8 +1,10 @@
 /**
  * Application-specific configurations
+ * Issue #203: E2Eテスト環境の環境変数管理を統一
  */
 
 import { PORTS, API_URLS, TIMEOUTS, AUTH, DATABASE, RATE_LIMIT } from './constants';
+import { getTestEnvironment } from './test-env';
 
 // Web Application Configuration
 export const WEB_CONFIG = {
@@ -44,10 +46,11 @@ export const DB_CONFIG = {
   enableLogging: process.env.DATABASE_LOGGING === 'true',
 } as const;
 
-// Test Configuration
+// Test Configuration (using unified test environment)
+const testEnv = getTestEnvironment();
 export const TEST_CONFIG = {
-  apiUrl: process.env.API_URL || process.env.TEST_API_URL || `http://localhost:${PORTS.API}`,
-  webUrl: process.env.BASE_URL || process.env.TEST_WEB_URL || `http://localhost:${PORTS.WEB}`,
+  apiUrl: testEnv.apiUrl,
+  webUrl: testEnv.webUrl,
   databaseUrl:
     process.env.TEST_DATABASE_URL ||
     'postgresql://test:test@localhost:5432/simple_bookkeeping_test',
