@@ -32,7 +32,7 @@ jobs:
         run: pnpm build:packages
 
       - name: Run linting
-        run: pnpm lint --max-warnings 0
+        run: pnpm lint && pnpm eslint . --max-warnings 0
 
       - name: Check formatting
         run: pnpm format:check
