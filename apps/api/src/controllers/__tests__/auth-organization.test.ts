@@ -126,6 +126,18 @@ describe('Organization-based Authentication', () => {
   });
 
   describe('POST /api/v1/auth/refresh', () => {
+    beforeEach(async () => {
+      // Ensure we have a valid token before running refresh tests
+      if (!refreshToken) {
+        const loginResponse = await request(app).post('/api/v1/auth/login').send({
+          email: 'test-org@example.com',
+          password: 'TestPassword123!',
+        });
+        accessToken = loginResponse.body.data.token;
+        refreshToken = loginResponse.body.data.refreshToken;
+      }
+    });
+
     it('should maintain organization context when refreshing token', async () => {
       const response = await request(app).post('/api/v1/auth/refresh').send({
         refreshToken,
@@ -148,6 +160,18 @@ describe('Organization-based Authentication', () => {
   });
 
   describe('POST /api/v1/auth/switch-organization', () => {
+    beforeEach(async () => {
+      // Ensure we have a valid token before running switch tests
+      if (!accessToken) {
+        const loginResponse = await request(app).post('/api/v1/auth/login').send({
+          email: 'test-org@example.com',
+          password: 'TestPassword123!',
+        });
+        accessToken = loginResponse.body.data.token;
+        refreshToken = loginResponse.body.data.refreshToken;
+      }
+    });
+
     it('should switch to another organization successfully', async () => {
       const response = await request(app)
         .post('/api/v1/auth/switch-organization')
@@ -254,6 +278,15 @@ describe('Organization-based Authentication', () => {
     });
 
     it('should deny access when role is insufficient', async () => {
+      // Ensure we have a valid token
+      if (!accessToken) {
+        const loginResponse = await request(app).post('/api/v1/auth/login').send({
+          email: 'test-org@example.com',
+          password: 'TestPassword123!',
+        });
+        accessToken = loginResponse.body.data.token;
+      }
+
       // Switch to org2 where user is VIEWER
       const switchResponse = await request(app)
         .post('/api/v1/auth/switch-organization')
