@@ -1,14 +1,15 @@
 import { defineConfig, devices } from '@playwright/test';
-import { PORTS, TIMEOUTS, TEST_CONFIG } from '@simple-bookkeeping/config';
+import { PORTS, TIMEOUTS, TEST_ENV, getTestConfig } from '@simple-bookkeeping/config';
 
 /**
  * Optimized Playwright configuration for E2E tests
  * Issue #95対応: E2Eテストインフラの改善と安定化
  */
 
-// 環境変数の読み込み
-const isCI = !!process.env.CI;
-const isDebug = !!process.env.DEBUG;
+// 統一されたテスト設定を取得
+const testConfig = getTestConfig();
+const isCI = testConfig.environment.isCI;
+const isDebug = testConfig.debug.enabled;
 
 // タイムアウト設定（最適化済み - Issue #129）
 const TEST_TIMEOUTS = {
@@ -78,8 +79,8 @@ export default defineConfig({
 
   // 共有設定
   use: {
-    // ベースURL（環境変数を直接チェック）
-    baseURL: process.env.BASE_URL || TEST_CONFIG.webUrl || `http://localhost:${PORTS.WEB}`,
+    // ベースURL（統一された設定から取得）
+    baseURL: testConfig.urls.web,
 
     // トレース設定（失敗時のみ）
     trace: isCI ? 'on-first-retry' : 'retain-on-failure',
