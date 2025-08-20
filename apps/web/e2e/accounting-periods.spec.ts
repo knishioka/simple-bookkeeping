@@ -69,7 +69,7 @@ test.describe('Accounting Periods Management', () => {
     await page.goto('/dashboard/settings', { waitUntil: 'domcontentloaded' });
 
     // Wait for the settings page to load - more flexible selector
-    await page.waitForLoadState('networkidle', { timeout: 3000 });
+    await page.waitForSelector('main, [role="main"], h1', { state: 'visible', timeout: 5000 });
     const settingsIndicator = await page
       .locator('h1, h2, h3, [role="heading"]')
       .filter({ hasText: /設定|Settings/i })
@@ -120,7 +120,7 @@ test.describe('Accounting Periods Management', () => {
     await expect(page).toHaveURL('/dashboard/settings/accounting-periods');
 
     // The page should at least have some content area
-    await page.waitForLoadState('networkidle', { timeout: 3000 });
+    await page.waitForSelector('body', { state: 'visible', timeout: 3000 });
     const hasContent = await page.locator('body').isVisible();
     expect(hasContent).toBeTruthy();
 
@@ -253,12 +253,12 @@ test.describe('Accounting Periods Management', () => {
     await page.click('button[type="submit"]:has-text("更新")');
 
     // Wait for dialog to close
-    await page.waitForLoadState('networkidle', { timeout: 3000 });
+    await page.waitForFunction(() => !document.querySelector('[role="dialog"]'), { timeout: 3000 });
 
     // Wait for the table to update or page to reload
     await Promise.race([
       page.waitForSelector('text=2025年度（修正版）', { timeout: 5000 }).catch(() => null),
-      page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => null),
+      new Promise((resolve) => setTimeout(resolve, 500)),
     ]);
 
     // Force a page refresh to ensure we see the updated data
@@ -269,7 +269,7 @@ test.describe('Accounting Periods Management', () => {
     await page.waitForSelector('table', { timeout: 5000 });
 
     // Check if the period was updated - more lenient check
-    await page.waitForLoadState('networkidle', { timeout: 5000 });
+    await page.waitForSelector('table', { state: 'visible', timeout: 5000 });
     const tableText = await page.locator('table').textContent();
     const hasUpdatedPeriod =
       tableText?.includes('2025年度（修正版）') || tableText?.includes('2025年度');
@@ -587,7 +587,10 @@ test.describe('Accounting Periods Management', () => {
 
     // Try to create overlapping period
     await page.click('button:has-text("新規作成")');
-    await page.waitForLoadState('networkidle', { timeout: 3000 }); // Give dialog more time to open
+    await page.waitForSelector('[role="dialog"], [data-state="open"]', {
+      state: 'visible',
+      timeout: 5000,
+    });
 
     // Wait for the dialog to be fully visible
     const dialogNameInput = page
