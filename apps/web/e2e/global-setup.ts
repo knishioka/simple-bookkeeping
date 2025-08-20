@@ -128,13 +128,17 @@ async function setupTestDatabase() {
 async function performHealthCheck() {
   console.log('🏥 Performing health check...');
 
-  // Import unified test configuration
-  const { getTestConfig, getHealthCheckUrl } = await import('@simple-bookkeeping/config');
-  const testConfig = getTestConfig();
+  // Import port constants
+  const { PORTS } = await import('@simple-bookkeeping/config');
+
+  // Use environment variables with fallbacks
+  const webUrl =
+    process.env.BASE_URL || process.env.TEST_WEB_URL || `http://localhost:${PORTS.WEB}`;
+  const apiUrl = process.env.API_URL || process.env.TEST_API_URL || `http://localhost:${PORTS.API}`;
 
   const urls = [
-    { url: testConfig.urls.web, name: 'Web' },
-    { url: getHealthCheckUrl('api'), name: 'API' },
+    { url: webUrl, name: 'Web' },
+    { url: `${apiUrl}/api/v1/health`, name: 'API' },
   ];
 
   // Add retry logic for CI environment
