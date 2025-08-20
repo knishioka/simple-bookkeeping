@@ -6,6 +6,7 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@simple-bookkeeping/database', '@simple-bookkeeping/shared'],
+  output: process.env.DOCKER_BUILD === 'true' ? 'standalone' : undefined,
   eslint: {
     ignoreDuringBuilds: true,
   },

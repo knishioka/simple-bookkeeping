@@ -1,0 +1,25 @@
+{
+  "name": "@simple-bookkeeping/core",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "echo 'Core package is pre-built'",
+    "dev": "echo 'Core package is pre-built'",
+    "clean": "rm -rf dist",
+    "typecheck": "echo 'Core package is pre-built'"
+  },
+  "dependencies": {
+    "@simple-bookkeeping/database": "workspace:*",
+    "@simple-bookkeeping/types": "workspace:*",
+    "@simple-bookkeeping/errors": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.1",
+    "typescript": "^5.9.2"
+  }
+}

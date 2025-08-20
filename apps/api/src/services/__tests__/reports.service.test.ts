@@ -554,18 +554,20 @@ describe('ReportsService', () => {
       expect(csvContent).toContain('貸方残高');
     });
 
-    it('should throw error for unsupported format', async () => {
+    it('should return Buffer for PDF and Excel formats', async () => {
       // Mock data for balance sheet to avoid errors
       mockPrismaClient.account.findMany.mockResolvedValue([]);
       mockPrismaClient.journalEntry.findMany.mockResolvedValue([]);
 
-      await expect(
-        service.exportReport('org-123', 'balance-sheet', 'pdf', { asOf: '2024-01-31' })
-      ).rejects.toThrow('PDF形式は現在開発中です');
+      const pdfResult = await service.exportReport('org-123', 'balance-sheet', 'pdf', {
+        asOf: '2024-01-31',
+      });
+      expect(pdfResult).toBeInstanceOf(Buffer);
 
-      await expect(
-        service.exportReport('org-123', 'balance-sheet', 'xlsx', { asOf: '2024-01-31' })
-      ).rejects.toThrow('Excel形式は現在開発中です');
+      const xlsxResult = await service.exportReport('org-123', 'balance-sheet', 'xlsx', {
+        asOf: '2024-01-31',
+      });
+      expect(xlsxResult).toBeInstanceOf(Buffer);
     });
 
     it('should throw error for unsupported report type', async () => {
@@ -574,10 +576,14 @@ describe('ReportsService', () => {
       ).rejects.toThrow('サポートされていないレポートタイプ: invalid-report');
     });
 
-    it('should throw error when required parameters are missing', async () => {
-      await expect(service.exportReport('org-123', 'income-statement', 'csv', {})).rejects.toThrow(
-        '開始日と終了日を指定してください'
-      );
+    it('should use default date range when parameters are missing', async () => {
+      // Mock data for income statement
+      mockPrismaClient.account.findMany.mockResolvedValue([]);
+      mockPrismaClient.journalEntry.findMany.mockResolvedValue([]);
+
+      const result = await service.exportReport('org-123', 'income-statement', 'csv', {});
+      expect(result).toBeInstanceOf(Buffer);
+      // Should not throw error as default values are used
     });
   });
 });

@@ -126,3 +126,7 @@ supabase/.env.*
 
 # direnv
 .envrc
+# Test artifacts
+artifacts/
+playwright-report/
+test-results/
