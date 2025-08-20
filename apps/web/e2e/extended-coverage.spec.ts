@@ -14,7 +14,6 @@ test.describe('拡張テストカバレッジ', () => {
       await page.goto('/demo/accounts', { waitUntil: 'networkidle' });
 
       // ページタイトルまたはヘッダーの確認
-      await page.waitForTimeout(2000);
 
       // デモページ特有の要素を確認
       await expect(page.locator('h1').filter({ hasText: '勘定科目管理' })).toBeVisible({
@@ -25,14 +24,15 @@ test.describe('拡張テストカバレッジ', () => {
 
     test('デモ勘定科目の検索機能', async ({ page }) => {
       await page.goto('/demo/accounts', { waitUntil: 'networkidle' });
-      await page.waitForTimeout(2000);
 
       // 検索フィールドを探す
       const searchInput = page.locator('input[placeholder*="検索"]').first();
       await expect(searchInput).toBeVisible({ timeout: 5000 });
       await searchInput.fill('現金');
       await page.keyboard.press('Enter');
-      await page.waitForTimeout(500);
+
+      // 検索結果を待つ
+      await page.waitForLoadState('networkidle');
 
       // 検索結果の確認
       await expect(page.locator('text=現金')).toBeVisible();
@@ -42,7 +42,6 @@ test.describe('拡張テストカバレッジ', () => {
       await page.goto('/demo/journal-entries', { waitUntil: 'networkidle' });
 
       // ページの読み込みを待つ
-      await page.waitForTimeout(2000);
 
       // デモページの確認
       await expect(page.locator('h1').filter({ hasText: '仕訳入力' }).first()).toBeVisible({
@@ -54,7 +53,6 @@ test.describe('拡張テストカバレッジ', () => {
       await page.goto('/demo/partners', { waitUntil: 'networkidle' });
 
       // ページの読み込みを待つ
-      await page.waitForTimeout(2000);
 
       // ページコンテンツの確認
       await expect(
@@ -69,7 +67,6 @@ test.describe('拡張テストカバレッジ', () => {
       await page.goto('/demo', { waitUntil: 'networkidle' });
 
       // ページの読み込みを待つ
-      await page.waitForTimeout(2000);
 
       // デモトップページの確認
       await expect(
@@ -179,7 +176,6 @@ test.describe('拡張テストカバレッジ', () => {
       await page.goto('/dashboard/accounts', { waitUntil: 'domcontentloaded' });
 
       // ページタイトルまたはヘッダーの確認
-      await page.waitForTimeout(2000);
 
       // ページコンテンツの確認（複数の可能性を許容）
       const pageHasContent = await page.evaluate(() => {
@@ -225,7 +221,6 @@ test.describe('拡張テストカバレッジ', () => {
       await page.goto('/dashboard/journal-entries', { waitUntil: 'domcontentloaded' });
 
       // ページの読み込みを待つ
-      await page.waitForTimeout(2000);
 
       // ページコンテンツの確認（ナビゲーションがあるかエラーページでないか確認）
       const pageHasContent = await page.evaluate(() => {
@@ -255,7 +250,6 @@ test.describe('拡張テストカバレッジ', () => {
       await page.goto('/dashboard/ledgers/cash-book', { waitUntil: 'domcontentloaded' });
 
       // ページの読み込みを待つ
-      await page.waitForTimeout(2000);
 
       // ページコンテンツの確認
       const pageHasContent = await page.evaluate(() => {
@@ -280,7 +274,6 @@ test.describe('拡張テストカバレッジ', () => {
       await page.goto('/dashboard/ledgers/bank-book', { waitUntil: 'domcontentloaded' });
 
       // ページの読み込みを待つ
-      await page.waitForTimeout(2000);
 
       // ページコンテンツの確認
       const pageHasContent = await page.evaluate(() => {
@@ -305,7 +298,6 @@ test.describe('拡張テストカバレッジ', () => {
       await page.goto('/dashboard/reports/balance-sheet', { waitUntil: 'domcontentloaded' });
 
       // ページの読み込みを待つ
-      await page.waitForTimeout(2000);
 
       // ページコンテンツの確認
       const pageHasContent = await page.evaluate(() => {
@@ -331,7 +323,6 @@ test.describe('拡張テストカバレッジ', () => {
       await page.goto('/dashboard/reports/profit-loss', { waitUntil: 'domcontentloaded' });
 
       // ページの読み込みを待つ
-      await page.waitForTimeout(2000);
 
       // ページコンテンツの確認
       const pageHasContent = await page.evaluate(() => {
@@ -357,7 +348,6 @@ test.describe('拡張テストカバレッジ', () => {
       await page.goto('/dashboard/reports/trial-balance', { waitUntil: 'domcontentloaded' });
 
       // ページの読み込みを待つ
-      await page.waitForTimeout(2000);
 
       // ページコンテンツの確認
       const pageHasContent = await page.evaluate(() => {
@@ -383,7 +373,6 @@ test.describe('拡張テストカバレッジ', () => {
       await page.goto('/dashboard/settings/organization', { waitUntil: 'domcontentloaded' });
 
       // ページの読み込みを待つ
-      await page.waitForTimeout(2000);
 
       // ページコンテンツの確認
       const pageHasContent = await page.evaluate(() => {
@@ -408,7 +397,6 @@ test.describe('拡張テストカバレッジ', () => {
       await page.goto('/dashboard/settings/account', { waitUntil: 'domcontentloaded' });
 
       // ページの読み込みを待つ
-      await page.waitForTimeout(2000);
 
       // ページコンテンツの確認
       const pageHasContent = await page.evaluate(() => {

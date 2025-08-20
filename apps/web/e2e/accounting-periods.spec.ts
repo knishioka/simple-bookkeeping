@@ -20,12 +20,11 @@ test.describe('Accounting Periods Management', () => {
     await UnifiedAuth.setAuthData(page);
     await page.goto('/dashboard/settings/accounting-periods', { waitUntil: 'domcontentloaded' });
 
-    // Wait for navigation to complete
-    await page.waitForTimeout(1000);
-
-    // Verify we're on the accounting periods page
+    // Wait for navigation to complete and verify we're on the accounting periods page
     await expect(page).toHaveURL(/.*accounting-periods.*/);
+
     // Check that the page has loaded (title or main content)
+    await page.waitForSelector('h1, main, [role="main"]', { state: 'visible', timeout: 3000 });
     const pageLoaded = await page.locator('h1, main, [role="main"]').first().isVisible();
     expect(pageLoaded).toBeTruthy();
   });
@@ -70,7 +69,7 @@ test.describe('Accounting Periods Management', () => {
     await page.goto('/dashboard/settings', { waitUntil: 'domcontentloaded' });
 
     // Wait for the settings page to load - more flexible selector
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('networkidle', { timeout: 3000 });
     const settingsIndicator = await page
       .locator('h1, h2, h3, [role="heading"]')
       .filter({ hasText: /設定|Settings/i })
@@ -121,7 +120,7 @@ test.describe('Accounting Periods Management', () => {
     await expect(page).toHaveURL('/dashboard/settings/accounting-periods');
 
     // The page should at least have some content area
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('networkidle', { timeout: 3000 });
     const hasContent = await page.locator('body').isVisible();
     expect(hasContent).toBeTruthy();
 
@@ -223,7 +222,10 @@ test.describe('Accounting Periods Management', () => {
     // Create a period first
     await page.click('button:has-text("新規作成")');
     // Wait for dialog and fill in the form
-    await page.waitForTimeout(500); // Give dialog time to open
+    await page.waitForSelector('[role="dialog"], [data-state="open"]', {
+      state: 'visible',
+      timeout: 2000,
+    });
     const nameInput = page.locator('input[name="name"]').first();
     await nameInput.waitFor({ state: 'visible', timeout: 10000 });
     await nameInput.fill('2025年度');
@@ -239,7 +241,10 @@ test.describe('Accounting Periods Management', () => {
     await editButton.first().click();
 
     // Wait for dialog to open and update the name
-    await page.waitForTimeout(500); // Give dialog time to open
+    await page.waitForSelector('[role="dialog"], [data-state="open"]', {
+      state: 'visible',
+      timeout: 2000,
+    });
     const editNameInput = page.locator('input[name="name"]').first();
     await editNameInput.waitFor({ state: 'visible', timeout: 10000 });
     await editNameInput.fill('2025年度（修正版）');
@@ -248,7 +253,7 @@ test.describe('Accounting Periods Management', () => {
     await page.click('button[type="submit"]:has-text("更新")');
 
     // Wait for dialog to close
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('networkidle', { timeout: 3000 });
 
     // Wait for the table to update or page to reload
     await Promise.race([
@@ -264,7 +269,7 @@ test.describe('Accounting Periods Management', () => {
     await page.waitForSelector('table', { timeout: 5000 });
 
     // Check if the period was updated - more lenient check
-    await page.waitForTimeout(2000); // Give more time for update
+    await page.waitForLoadState('networkidle', { timeout: 5000 });
     const tableText = await page.locator('table').textContent();
     const hasUpdatedPeriod =
       tableText?.includes('2025年度（修正版）') || tableText?.includes('2025年度');
@@ -512,7 +517,10 @@ test.describe('Accounting Periods Management', () => {
 
     // Click create button
     await page.click('button:has-text("新規作成")');
-    await page.waitForTimeout(500); // Give dialog time to open
+    await page.waitForSelector('[role="dialog"], [data-state="open"]', {
+      state: 'visible',
+      timeout: 2000,
+    });
     const nameInput = page.locator('input[name="name"]').first();
     await nameInput.waitFor({ state: 'visible', timeout: 10000 });
 
@@ -579,7 +587,7 @@ test.describe('Accounting Periods Management', () => {
 
     // Try to create overlapping period
     await page.click('button:has-text("新規作成")');
-    await page.waitForTimeout(1000); // Give dialog more time to open
+    await page.waitForLoadState('networkidle', { timeout: 3000 }); // Give dialog more time to open
 
     // Wait for the dialog to be fully visible
     const dialogNameInput = page
@@ -603,7 +611,7 @@ test.describe('Accounting Periods Management', () => {
     await page.click('button[type="submit"]:has-text("作成")');
 
     // Wait for API response and potential error message
-    await page.waitForTimeout(2000); // Give more time for API response
+    await page.waitForResponse('**/api/v1/accounting-periods/*', { timeout: 5000 });
 
     // Since the mock returns 409 error, the dialog should stay open with error
     // Check if dialog is still open (indicating error)
