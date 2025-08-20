@@ -253,13 +253,12 @@ test.describe('Accounting Periods Management', () => {
     await page.click('button[type="submit"]:has-text("更新")');
 
     // Wait for dialog to close
-    await page.waitForTimeout(500);
-    await page.waitForFunction(() => !document.querySelector('[role="dialog"]'), { timeout: 5000 });
+    await page.waitForFunction(() => !document.querySelector('[role="dialog"]'), { timeout: 3000 });
 
     // Wait for the table to update or page to reload
     await Promise.race([
       page.waitForSelector('text=2025年度（修正版）', { timeout: 5000 }).catch(() => null),
-      page.waitForTimeout(500),
+      new Promise((resolve) => setTimeout(resolve, 500)),
     ]);
 
     // Force a page refresh to ensure we see the updated data
