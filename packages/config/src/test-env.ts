@@ -1,6 +1,6 @@
 /**
  * Unified Test Environment Configuration
- * Issue #201: Docker E2Eテスト環境の改善
+ * Issue #203: E2Eテスト環境の環境変数管理を統一する
  *
  * This module provides a centralized configuration for test environments,
  * reducing duplication and confusion around environment variables.
@@ -9,7 +9,42 @@
 import { PORTS } from './constants';
 
 /**
- * Test environment detection
+ * Unified environment variable names
+ * Priority: New unified vars > Legacy vars > Defaults
+ */
+export interface TestEnvironment {
+  webUrl: string;
+  apiUrl: string;
+  isDocker: boolean;
+  isCI: boolean;
+  isE2E: boolean;
+}
+
+/**
+ * Get test environment configuration with proper fallbacks
+ * Priority order:
+ * 1. TEST_WEB_URL / TEST_API_URL (new unified variables)
+ * 2. BASE_URL / API_URL (legacy Docker variables)
+ * 3. Default localhost URLs
+ */
+export function getTestEnvironment(): TestEnvironment {
+  // Prioritize new unified variables over legacy ones
+  const webUrl =
+    process.env.TEST_WEB_URL || process.env.BASE_URL || `http://localhost:${PORTS.WEB}`;
+
+  const apiUrl = process.env.TEST_API_URL || process.env.API_URL || `http://localhost:${PORTS.API}`;
+
+  return {
+    webUrl,
+    apiUrl,
+    isDocker: process.env.DOCKER_ENV === 'true' || !!process.env.DOCKER_CONTAINER,
+    isCI: process.env.CI === 'true',
+    isE2E: process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'e2e',
+  };
+}
+
+/**
+ * Test environment detection (backward compatibility)
  */
 export const TEST_ENV = {
   // Environment detection
@@ -18,16 +53,16 @@ export const TEST_ENV = {
   isE2E: process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'e2e',
 
   // Unified URL configuration
-  // Priority: Docker env vars > Legacy env vars > Defaults
-  webUrl: process.env.BASE_URL || process.env.TEST_WEB_URL || `http://localhost:${PORTS.WEB}`,
+  // Priority: New unified vars > Legacy vars > Defaults
+  webUrl: process.env.TEST_WEB_URL || process.env.BASE_URL || `http://localhost:${PORTS.WEB}`,
 
-  apiUrl: process.env.API_URL || process.env.TEST_API_URL || `http://localhost:${PORTS.API}`,
+  apiUrl: process.env.TEST_API_URL || process.env.API_URL || `http://localhost:${PORTS.API}`,
 
   // API endpoints
-  apiBaseUrl: process.env.API_URL || process.env.TEST_API_URL || `http://localhost:${PORTS.API}`,
+  apiBaseUrl: process.env.TEST_API_URL || process.env.API_URL || `http://localhost:${PORTS.API}`,
 
   apiV1Url: `${
-    process.env.API_URL || process.env.TEST_API_URL || `http://localhost:${PORTS.API}`
+    process.env.TEST_API_URL || process.env.API_URL || `http://localhost:${PORTS.API}`
   }/api/v1`,
 
   // Database configuration
