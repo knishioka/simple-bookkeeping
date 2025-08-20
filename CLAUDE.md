@@ -1042,6 +1042,71 @@ supabase/.env
    pnpm --filter web test:e2e:ui  # UIモードで確認
    ```
 
+## 📋 GitHub Issue/PR管理
+
+### ラベル管理
+
+AIアシスタントがIssueやPRを作成する際のラベル管理について：
+
+1. **既存ラベルの優先使用**
+   - まず`gh label list`で既存のラベルを確認
+   - 既存のラベルで適切なものがあれば使用
+
+2. **新規ラベルの作成**
+   - 適切なラベルが存在しない場合は作成可能
+   - `gh label create`コマンドを使用
+   - 一貫性のある命名規則に従う
+
+3. **ラベル作成例**
+
+   ```bash
+   # 新しいラベルを作成
+   gh label create "code-quality" \
+     --description "Code quality improvements" \
+     --color "0e8a16"
+
+   # 色の参考
+   # - 緑系 (0e8a16): 改善・品質向上
+   # - 青系 (0366d6, 2b7489): 機能・タイプ
+   # - 黄系 (fef2c0, fbca04): 注意・メンテナンス
+   # - 赤系 (d73a4a): バグ・重要
+   # - 紫系 (5319e7): リファクタリング
+   ```
+
+4. **推奨ラベルカテゴリー**
+   - **タイプ**: bug, feature, refactor, docs, test, chore
+   - **優先度**: critical, high-priority, low-priority
+   - **状態**: in-progress, blocked, ready-for-review
+   - **技術**: typescript, react, database, api
+   - **その他**: technical-debt, code-quality, performance, security, follow-up
+
+### Issue作成時のベストプラクティス
+
+1. **適切なタイトル**
+
+   ```bash
+   # ✅ Good: 明確で具体的
+   "[Feature] ユーザー認証機能の実装"
+   "[Bug] 仕訳入力時のバリデーションエラー"
+   "[Refactor] 勘定科目サービスのリファクタリング"
+
+   # ❌ Bad: 曖昧
+   "修正"
+   "エラー"
+   ```
+
+2. **Issue本文の構成**
+   - **概要**: 問題や要望の簡潔な説明
+   - **背景**: なぜこの変更が必要か
+   - **詳細**: 具体的な内容や再現手順
+   - **受け入れ条件**: 完了の定義
+   - **関連Issue/PR**: 関連する他のIssueやPRへのリンク
+
+3. **フォローアップIssue**
+   - 実装中に発見した別の問題は`follow-up`ラベルを付けて新規Issueを作成
+   - 元のIssue/PR番号を必ず参照
+   - スコープを明確に分離
+
 ## 🚀 Vercel デプロイメント
 
 ### Vercel CLIの使用
