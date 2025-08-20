@@ -306,7 +306,7 @@ export async function waitForSelectOpen(
   });
 
   // アニメーション完了を待つ
-  await page.waitForTimeout(100);
+  await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 100)));
 }
 
 /**
@@ -366,7 +366,7 @@ export async function waitForModal(
   }
 
   // アニメーション完了を待つ
-  await page.waitForTimeout(200);
+  await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 200)));
 }
 
 /**

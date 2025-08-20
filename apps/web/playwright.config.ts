@@ -10,13 +10,13 @@ import { PORTS, TIMEOUTS } from '@simple-bookkeeping/config';
 const isCI = process.env.CI === 'true';
 const isDebug = process.env.DEBUG === 'true' || process.env.PWDEBUG === '1';
 
-// タイムアウト設定（最適化済み - Issue #129）
+// タイムアウト設定（さらに最適化 - Issue #202）
 const TEST_TIMEOUTS = {
-  test: isCI ? TIMEOUTS.E2E_TEST : 10000, // テスト全体のタイムアウト (20000→10000ms)
-  expect: TIMEOUTS.TEST_ELEMENT, // アサーションタイムアウト (2000ms)
-  action: TIMEOUTS.TEST_ACTION, // アクションタイムアウト (10000→3000ms)
-  navigation: TIMEOUTS.TEST_NAVIGATION, // ナビゲーションタイムアウト (3000ms)
-  server: 30000, // サーバー起動タイムアウト (60000→30000ms)
+  test: isCI ? 15000 : 8000, // テスト全体のタイムアウト（短縮）
+  expect: 1500, // アサーションタイムアウト (2000ms→1500ms)
+  action: 2000, // アクションタイムアウト (3000ms→2000ms)
+  navigation: 2500, // ナビゲーションタイムアウト (3000ms→2500ms)
+  server: 20000, // サーバー起動タイムアウト (30000ms→20000ms)
 };
 
 // リトライ設定
@@ -25,10 +25,10 @@ const RETRIES = {
   local: 0, // ローカルではリトライなし（1回から削減）
 };
 
-// ワーカー設定
+// ワーカー設定（最適化済み）
 const WORKERS = {
-  ci: 4, // CI環境では4ワーカー（2から増加）
-  local: '75%', // ローカルではCPUコアの75%を使用
+  ci: 6, // CI環境では6ワーカー（より積極的な並列化）
+  local: '100%', // ローカルでは全CPUコアを使用（高速化優先）
 };
 
 export default defineConfig({
