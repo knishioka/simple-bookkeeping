@@ -1,0 +1,254 @@
+# Optimized Docker Compose configuration for E2E testing
+# Issue #201: Docker E2Eテスト環境の改善
+#
+# Improvements:
+# - Uses .env files for configuration
+# - Reduced duplication with extends
+# - Better build caching
+# - Optimized health checks
+# - Resource limits for CI
+
+services:
+  # PostgreSQL Test Database
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: sb-postgres-test
+    environment:
+      POSTGRES_USER: ${TEST_DB_USER:-test}
+      POSTGRES_PASSWORD: ${TEST_DB_PASSWORD:-test}
+      POSTGRES_DB: ${TEST_DB_NAME:-bookkeeping_test}
+      # Performance optimizations
+      POSTGRES_INITDB_ARGS: '--encoding=UTF-8 --lc-collate=C --lc-ctype=C'
+      POSTGRES_HOST_AUTH_METHOD: md5
+      # Tune PostgreSQL for testing
+      POSTGRES_EXTRA_ARGS: >-
+        -c shared_buffers=128MB
+        -c max_connections=100
+        -c work_mem=4MB
+        -c maintenance_work_mem=64MB
+        -c effective_cache_size=256MB
+        -c synchronous_commit=off
+        -c checkpoint_segments=32
+        -c checkpoint_completion_target=0.9
+        -c wal_buffers=16MB
+    volumes:
+      # Use tmpfs for better performance
+      - type: tmpfs
+        target: /var/lib/postgresql/data
+        tmpfs:
+          size: 512M
+    healthcheck:
+      test:
+        ['CMD-SHELL', 'pg_isready -d ${TEST_DB_NAME:-bookkeeping_test} -U ${TEST_DB_USER:-test}']
+      interval: 2s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    networks:
+      sb-test:
+        aliases:
+          - postgres
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+
+  # API Test Service
+  api-test:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: runner
+      cache_from:
+        - simple-bookkeeping-api:latest
+        - simple-bookkeeping-api:test
+      args:
+        - NODE_ENV=production
+    image: simple-bookkeeping-api:test
+    container_name: sb-api-test
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    environment:
+      # Database
+      DATABASE_URL: postgresql://${TEST_DB_USER:-test}:${TEST_DB_PASSWORD:-test}@postgres:5432/${TEST_DB_NAME:-bookkeeping_test}?schema=public
+      # Server
+      API_PORT: ${TEST_API_PORT:-3001}
+      NODE_ENV: ${NODE_ENV:-production}
+      # Authentication
+      JWT_SECRET: ${TEST_JWT_SECRET:-test-secret-key}
+      JWT_EXPIRES_IN: ${TEST_JWT_EXPIRES_IN:-1h}
+      JWT_REFRESH_SECRET: ${TEST_JWT_REFRESH_SECRET:-test-refresh-secret}
+      JWT_REFRESH_EXPIRES_IN: ${TEST_JWT_REFRESH_EXPIRES_IN:-7d}
+      # CORS
+      CORS_ORIGIN: http://web:3000,http://localhost:3000
+      # Test settings
+      DISABLE_RATE_LIMIT: 'true'
+      LOG_LEVEL: ${TEST_LOG_LEVEL:-info}
+    networks:
+      sb-test:
+        aliases:
+          - api
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://localhost:3001/api/v1/health',
+        ]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+
+  # Web Test Service
+  web-test:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: runner
+      cache_from:
+        - simple-bookkeeping-web:latest
+        - simple-bookkeeping-web:test
+      args:
+        - NODE_ENV=production
+    image: simple-bookkeeping-web:test
+    container_name: sb-web-test
+    depends_on:
+      api-test:
+        condition: service_healthy
+    environment:
+      # API Configuration
+      NEXT_PUBLIC_API_URL: http://api:3001/api/v1
+      # NextAuth
+      NEXTAUTH_SECRET: ${TEST_NEXTAUTH_SECRET:-test-nextauth-secret}
+      NEXTAUTH_URL: http://web:3000
+      # Node settings
+      NODE_ENV: ${NODE_ENV:-production}
+      # Next.js settings
+      NEXT_TELEMETRY_DISABLED: '1'
+    networks:
+      sb-test:
+        aliases:
+          - web
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://127.0.0.1:3000']
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 768M
+
+  # Playwright Test Runner
+  playwright:
+    build:
+      context: .
+      dockerfile: Dockerfile.playwright
+      cache_from:
+        - simple-bookkeeping-playwright:latest
+      args:
+        PLAYWRIGHT_VERSION: ${PLAYWRIGHT_VERSION:-v1.48.0}
+    image: simple-bookkeeping-playwright:latest
+    container_name: sb-playwright
+    depends_on:
+      web-test:
+        condition: service_healthy
+      api-test:
+        condition: service_healthy
+      postgres-test:
+        condition: service_healthy
+    environment:
+      # Use unified test environment configuration
+      BASE_URL: http://web:3000
+      API_URL: http://api:3001
+      TEST_WEB_URL: http://web:3000
+      TEST_API_URL: http://api:3001
+      # Docker environment flag
+      DOCKER_ENV: 'true'
+      CI: ${CI:-true}
+      NODE_ENV: test
+      # Database for setup/teardown
+      DATABASE_URL: postgresql://${TEST_DB_USER:-test}:${TEST_DB_PASSWORD:-test}@postgres:5432/${TEST_DB_NAME:-bookkeeping_test}?schema=public
+      # Test execution settings
+      TEST_RETRIES: ${TEST_RETRIES:-2}
+      TEST_WORKERS: ${TEST_WORKERS:-2}
+      TEST_TIMEOUT: ${TEST_TIMEOUT:-60000}
+      # Debug settings
+      DEBUG: ${DEBUG:-}
+      VERBOSE: ${VERBOSE:-}
+      PWDEBUG: ${PWDEBUG:-}
+      # Global setup
+      USE_GLOBAL_SETUP: ${USE_GLOBAL_SETUP:-true}
+      REUSE_SERVER: 'false'
+    volumes:
+      # Test files (read-only)
+      - ./apps/web/e2e:/app/apps/web/e2e:ro
+      - ./apps/web/playwright.config.ts:/app/apps/web/playwright.config.ts:ro
+      # Output directories (read-write)
+      - ${TEST_OUTPUT_DIR:-./test-results}:/app/test-results:rw
+      - ${PLAYWRIGHT_REPORT_DIR:-./playwright-report}:/app/playwright-report:rw
+      - ${COVERAGE_DIR:-./coverage}:/app/coverage:rw
+      - ${ARTIFACTS_DIR:-./artifacts}:/app/artifacts:rw
+    networks:
+      - sb-test
+    command: []
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+networks:
+  sb-test:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.29.0.0/16
+# Optional: Add these services for debugging
+# Uncomment when needed for troubleshooting
+
+# Debug proxy to expose services on host
+# nginx-debug:
+#   image: nginx:alpine
+#   container_name: sb-nginx-debug
+#   depends_on:
+#     - web-test
+#     - api-test
+#   ports:
+#     - "3010:80"   # Web
+#     - "3011:81"   # API
+#   volumes:
+#     - ./nginx-debug.conf:/etc/nginx/nginx.conf:ro
+#   networks:
+#     - sb-test
+
+# Database admin tool
+# pgadmin:
+#   image: dpage/pgadmin4:latest
+#   container_name: sb-pgadmin
+#   environment:
+#     PGADMIN_DEFAULT_EMAIL: admin@test.com
+#     PGADMIN_DEFAULT_PASSWORD: admin
+#   ports:
+#     - "5050:80"
+#   networks:
+#     - sb-test
