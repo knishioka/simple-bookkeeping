@@ -128,44 +128,55 @@ async function setupTestDatabase() {
 async function performHealthCheck() {
   console.log('🏥 Performing health check...');
 
-  // Import ports from config to ensure consistency
+  // Import port constants
   const { PORTS } = await import('@simple-bookkeeping/config');
 
-  // Docker環境ではBASE_URLとAPI_URLが設定されているはず
-  const webUrl = process.env.BASE_URL || `http://localhost:${PORTS.WEB}`;
-  const apiUrl = process.env.API_URL || `http://localhost:${PORTS.API}`;
+  // Use environment variables with fallbacks
+  const webUrl =
+    process.env.BASE_URL || process.env.TEST_WEB_URL || `http://localhost:${PORTS.WEB}`;
+  const apiUrl = process.env.API_URL || process.env.TEST_API_URL || `http://localhost:${PORTS.API}`;
 
-  const urls = [webUrl, apiUrl];
+  const urls = [
+    { url: webUrl, name: 'Web' },
+    { url: `${apiUrl}/api/v1/health`, name: 'API' },
+  ];
 
   // Add retry logic for CI environment
   const maxRetries = process.env.CI ? 5 : 1;
   const retryDelay = 2000; // 2 seconds
 
-  for (const url of urls) {
+  for (const { url, name } of urls) {
     let attempts = 0;
     let isHealthy = false;
 
     while (attempts < maxRetries && !isHealthy) {
       attempts++;
       try {
-        // APIのヘルスチェックエンドポイントを適切に扱う
-        const checkUrl = url.includes(':3001') ? `${url}/api/v1/health` : url;
-        const response = await fetch(checkUrl, { method: url.includes(':3001') ? 'GET' : 'HEAD' });
-        if (response.ok || response.status === 404) {
-          // 404でもサーバーは起動している
-          console.log(`✅ ${url} is healthy`);
+        // Use appropriate HTTP method based on service type
+        const method = name === 'API' ? 'GET' : 'HEAD';
+        const response = await fetch(url, { method });
+
+        if (response.ok) {
+          console.log(`✅ ${name} service at ${url} is healthy`);
+          isHealthy = true;
+        } else if (response.status === 404 && name === 'Web') {
+          // For web service, 404 might be acceptable during startup
+          console.log(`✅ ${name} service at ${url} is responding (404)`);
           isHealthy = true;
         } else {
-          console.warn(`⚠️ ${url} returned status ${response.status}`);
+          console.warn(`⚠️ ${name} service at ${url} returned status ${response.status}`);
         }
       } catch (error) {
         if (attempts < maxRetries) {
           console.warn(
-            `⚠️ Could not reach ${url}, retrying in ${retryDelay}ms... (${attempts}/${maxRetries})`
+            `⚠️ Could not reach ${name} service at ${url}, retrying in ${retryDelay}ms... (${attempts}/${maxRetries})`
           );
           await new Promise((resolve) => setTimeout(resolve, retryDelay));
         } else {
-          console.warn(`⚠️ Could not reach ${url} after ${maxRetries} attempts:`, error);
+          console.warn(
+            `⚠️ Could not reach ${name} service at ${url} after ${maxRetries} attempts:`,
+            error
+          );
         }
       }
     }
