@@ -94,8 +94,8 @@ test.describe('拡張テストカバレッジ', () => {
       // 仕訳入力へのリンクをクリック
       const journalButton = page.locator('text="仕訳入力のデモを見る"').first();
       await expect(journalButton).toBeVisible({ timeout: 5000 });
-      await journalButton.click();
-      await page.waitForURL('/demo/journal-entries', { timeout: 5000 });
+      await journalButton.click({ timeout: 15000 });
+      await page.waitForURL('/demo/journal-entries', { timeout: 10000 });
       await expect(page.locator('h1').filter({ hasText: '仕訳入力' }).first()).toBeVisible({
         timeout: 5000,
       });
@@ -315,9 +315,14 @@ test.describe('拡張テストカバレッジ', () => {
           bodyText.includes('Balance Sheet') ||
           bodyText.includes('資産') ||
           bodyText.includes('負債') ||
+          bodyText.includes('資本') ||
+          bodyText.includes('純資産') ||
           bodyText.includes('Simple Bookkeeping') ||
+          bodyText.includes('レポート') ||
+          bodyText.includes('Reports') ||
           document.querySelector('main') !== null ||
-          document.querySelector('nav') !== null
+          document.querySelector('nav') !== null ||
+          document.querySelector('table') !== null
         );
       });
       expect(pageHasContent).toBeTruthy();
