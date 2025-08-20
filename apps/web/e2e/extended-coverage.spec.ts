@@ -11,7 +11,7 @@ test.describe('拡張テストカバレッジ', () => {
 
   test.describe('デモページ機能', () => {
     test('デモ勘定科目ページが表示される', async ({ page }) => {
-      await page.goto('/demo/accounts', { waitUntil: 'networkidle' });
+      await page.goto('/demo/accounts', { waitUntil: 'domcontentloaded' });
 
       // ページタイトルまたはヘッダーの確認
 
@@ -23,7 +23,7 @@ test.describe('拡張テストカバレッジ', () => {
     });
 
     test('デモ勘定科目の検索機能', async ({ page }) => {
-      await page.goto('/demo/accounts', { waitUntil: 'networkidle' });
+      await page.goto('/demo/accounts', { waitUntil: 'domcontentloaded' });
 
       // 検索フィールドを探す
       const searchInput = page.locator('input[placeholder*="検索"]').first();
@@ -31,15 +31,15 @@ test.describe('拡張テストカバレッジ', () => {
       await searchInput.fill('現金');
       await page.keyboard.press('Enter');
 
-      // 検索結果を待つ
-      await page.waitForLoadState('networkidle');
+      // 検索結果を待つ - 現金のテキストが表示されるまで待機
+      await page.waitForSelector('text=現金', { state: 'visible', timeout: 3000 });
 
       // 検索結果の確認
       await expect(page.locator('text=現金')).toBeVisible();
     });
 
     test('デモ仕訳入力ページが表示される', async ({ page }) => {
-      await page.goto('/demo/journal-entries', { waitUntil: 'networkidle' });
+      await page.goto('/demo/journal-entries', { waitUntil: 'domcontentloaded' });
 
       // ページの読み込みを待つ
 
@@ -50,7 +50,7 @@ test.describe('拡張テストカバレッジ', () => {
     });
 
     test('デモパートナーページが表示される', async ({ page }) => {
-      await page.goto('/demo/partners', { waitUntil: 'networkidle' });
+      await page.goto('/demo/partners', { waitUntil: 'domcontentloaded' });
 
       // ページの読み込みを待つ
 
@@ -64,7 +64,7 @@ test.describe('拡張テストカバレッジ', () => {
     });
 
     test('デモトップページから各ページへナビゲート', async ({ page }) => {
-      await page.goto('/demo', { waitUntil: 'networkidle' });
+      await page.goto('/demo', { waitUntil: 'domcontentloaded' });
 
       // ページの読み込みを待つ
 
@@ -86,7 +86,7 @@ test.describe('拡張テストカバレッジ', () => {
       });
 
       // デモページに戻る
-      await page.goto('/demo', { waitUntil: 'networkidle' });
+      await page.goto('/demo', { waitUntil: 'domcontentloaded' });
 
       // 仕訳入力へのリンクをクリック
       const journalButton = page.locator('text="仕訳入力のデモを見る"').first();
