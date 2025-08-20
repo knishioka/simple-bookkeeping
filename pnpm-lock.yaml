@@ -549,6 +549,9 @@ importers:
         specifier: ^9.0.2
         version: 9.0.2
     devDependencies:
+      '@playwright/test':
+        specifier: ^1.48.0
+        version: 1.54.2
       '@types/jsonwebtoken':
         specifier: ^9.0.5
         version: 9.0.10

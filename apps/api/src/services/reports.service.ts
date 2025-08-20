@@ -78,7 +78,7 @@ interface ExportParams {
   endDate?: string;
   compareFrom?: string;
   compareTo?: string;
-  [key: string]: any;
+  [key: string]: string | undefined;
 }
 
 interface FinancialRatiosData {
@@ -726,7 +726,13 @@ export class ReportsService {
     params: ExportParams
   ): Promise<Buffer> {
     // Get report data based on type
-    let reportData: any;
+    let reportData:
+      | BalanceSheetData
+      | IncomeStatementData
+      | TrialBalanceData
+      | FinancialRatiosData
+      | CashFlowData
+      | AgedData;
     const asOfDateParam = params.asOf || params.asOfDate;
     const startDateParam = params.from || params.startDate;
     const endDateParam = params.to || params.endDate;
@@ -787,13 +793,31 @@ export class ReportsService {
     }
   }
 
-  private generatePdfReport(type: string, data: any): Buffer {
+  private generatePdfReport(
+    type: string,
+    data:
+      | BalanceSheetData
+      | IncomeStatementData
+      | TrialBalanceData
+      | FinancialRatiosData
+      | CashFlowData
+      | AgedData
+  ): Buffer {
     // Simplified PDF generation - in production would use a library like pdfkit
     const content = `${type.toUpperCase()}\n\n${JSON.stringify(data, null, 2)}`;
     return Buffer.from(content, 'utf-8');
   }
 
-  private generateExcelReport(type: string, data: any): Buffer {
+  private generateExcelReport(
+    type: string,
+    data:
+      | BalanceSheetData
+      | IncomeStatementData
+      | TrialBalanceData
+      | FinancialRatiosData
+      | CashFlowData
+      | AgedData
+  ): Buffer {
     // Simplified Excel generation - in production would use a library like exceljs
     const content = `${type}\t${JSON.stringify(data)}`;
     return Buffer.from(content, 'utf-8');
@@ -801,7 +825,13 @@ export class ReportsService {
 
   private generateCsvReport(
     type: string,
-    data: BalanceSheetData | IncomeStatementData | TrialBalanceData | FinancialRatiosData | any
+    data:
+      | BalanceSheetData
+      | IncomeStatementData
+      | TrialBalanceData
+      | FinancialRatiosData
+      | CashFlowData
+      | AgedData
   ): Buffer {
     let csvContent: string;
 
@@ -851,7 +881,16 @@ export class ReportsService {
     return rows.map((row) => row.join(',')).join('\n');
   }
 
-  private generateGenericCsv(type: string, data: any): string {
+  private generateGenericCsv(
+    type: string,
+    data:
+      | BalanceSheetData
+      | IncomeStatementData
+      | TrialBalanceData
+      | FinancialRatiosData
+      | CashFlowData
+      | AgedData
+  ): string {
     const rows: (string | number)[][] = [];
     rows.push([`Report Type: ${type}`]);
     rows.push(['']);

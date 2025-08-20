@@ -193,6 +193,7 @@ export function validateTestEnvironment(): { valid: boolean; errors: string[] } 
 /**
  * Log test environment configuration (for debugging)
  */
+/* eslint-disable no-console */
 export function logTestEnvironment(): void {
   const config = getTestConfig();
   const validation = validateTestEnvironment();
@@ -232,3 +233,4 @@ export function logTestEnvironment(): void {
 
   console.log('═══════════════════════════════════════');
 }
+/* eslint-enable no-console */

@@ -1,5 +1,7 @@
 import { TEST_CREDENTIALS, TEST_API_CONFIG } from '../test-config';
 
+import type { Page, Locator, BrowserContext, Response } from '@playwright/test';
+
 /**
  * Interface for Playwright Page-like object
  */
@@ -8,7 +10,8 @@ interface PageLike {
   fill(selector: string, value: string): Promise<void>;
   click(selector: string): Promise<void>;
   waitForURL(url: string | RegExp): Promise<void>;
-  locator(selector: string): any;
+  locator(selector: string): Locator;
+  context(): BrowserContext;
 }
 
 /**
@@ -136,20 +139,24 @@ export async function setupTestSession(
   // to simulate an authenticated session
 
   // Example: Set auth cookie (adjust based on your auth implementation)
-  await (page as any).context().addCookies([
-    {
-      name: 'auth-token',
-      value: `test-token-${role}`,
-      domain: 'localhost',
-      path: '/',
-      httpOnly: true,
-      secure: false,
-      sameSite: 'Lax',
-    },
-  ]);
+  if ('context' in page) {
+    const pageWithContext = page as unknown as Page;
+    await pageWithContext.context().addCookies([
+      {
+        name: 'auth-token',
+        value: `test-token-${role}`,
+        domain: 'localhost',
+        path: '/',
+        httpOnly: true,
+        secure: false,
+        sameSite: 'Lax',
+      },
+    ]);
+  }
 
-  if (organizationId) {
-    await (page as any).context().addCookies([
+  if (organizationId && 'context' in page) {
+    const pageWithContext = page as unknown as Page;
+    await pageWithContext.context().addCookies([
       {
         name: 'organization-id',
         value: organizationId,
@@ -167,14 +174,17 @@ export async function setupTestSession(
  * @param method - HTTP method to match
  */
 export async function waitForAPI(
-  page: any,
+  page: Page | PageLike,
   urlPattern: string | RegExp,
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET'
 ): Promise<void> {
-  await page.waitForResponse(
-    (response: any) =>
-      response.url().match(urlPattern) &&
-      response.request().method() === method &&
-      response.status() === 200
-  );
+  if ('waitForResponse' in page) {
+    const pageAsPlaywright = page as unknown as Page;
+    await pageAsPlaywright.waitForResponse(
+      (response: Response) =>
+        !!response.url().match(urlPattern) &&
+        response.request().method() === method &&
+        response.status() === 200
+    );
+  }
 }
