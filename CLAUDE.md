@@ -177,8 +177,8 @@ interface User {
   role: 'admin' | 'accountant' | 'viewer';
 }
 
-// ❌ Bad: any型の使用
-const processData = (data: any) => { ... }
+// ❌ Bad: any型の使用（厳格に禁止）
+const processData = (data: any) => { ... }  // ESLintエラーになります
 ```
 
 ### 非同期処理
@@ -612,11 +612,12 @@ try {
 
 **厳守事項：**
 
-- `any` 型は絶対に使用しない（既存コードの修正時を除く）
+- **`any` 型は絶対に使用しない** - ESLintでエラーとして扱われ、CIも失敗します
 - `as` によるアサーションは最小限に
 - 型推論で十分な場合は明示的な型注釈を避ける
 - ジェネリクスを適切に使用する
 - **エラーオブジェクトの型は必ず適切に処理する**
+- 不明な型には`unknown`を使用し、型ガードで絞り込む
 
 ```typescript
 // ❌ Bad: 型を適当に決める

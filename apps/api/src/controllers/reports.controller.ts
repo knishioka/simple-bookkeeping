@@ -332,11 +332,22 @@ export const exportReport = async (req: AuthenticatedRequest, res: Response) => 
       });
     }
 
+    const exportParams = {
+      asOf: params.asOf,
+      asOfDate: params.asOf,
+      from: params.from,
+      startDate: params.from,
+      to: params.to,
+      endDate: params.to,
+      compareFrom: params.compareFrom,
+      compareTo: params.compareTo,
+    };
+
     const exportData = await reportsService.exportReport(
       organizationId,
       type as string,
       format as string,
-      params
+      exportParams
     );
 
     // Set appropriate headers based on format
