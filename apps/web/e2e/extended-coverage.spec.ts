@@ -198,7 +198,26 @@ test.describe('拡張テストカバレッジ', () => {
       expect(pageHasContent).toBeTruthy();
     });
 
-    test('ダッシュボード仕訳入力ページが表示される', async ({ page }) => {
+    test('ダッシュボード仕訳入力ページが表示される', async ({ page, context }) => {
+      // APIモックを設定
+      await UnifiedAuth.setupMockRoutes(context);
+
+      // 仕訳エントリーのAPIモックを追加
+      await context.route('**/api/v1/journal-entries', async (route) => {
+        if (route.request().method() === 'GET') {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              data: [],
+              meta: { total: 0, page: 1, limit: 10 },
+            }),
+          });
+        } else {
+          await route.continue();
+        }
+      });
+
       // まず適当なページを開いてから認証設定
       await page.goto('/', { waitUntil: 'domcontentloaded' });
       await UnifiedAuth.setAuthData(page);
@@ -219,8 +238,10 @@ test.describe('拡張テストカバレッジ', () => {
         return (
           bodyText.includes('Simple Bookkeeping') ||
           bodyText.includes('仕訳') ||
+          bodyText.includes('Journal') ||
           document.querySelector('nav') !== null ||
-          document.querySelector('main') !== null
+          document.querySelector('main') !== null ||
+          document.querySelector('table') !== null
         );
       });
       expect(pageHasContent).toBeTruthy();

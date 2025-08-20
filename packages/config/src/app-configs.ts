@@ -46,8 +46,8 @@ export const DB_CONFIG = {
 
 // Test Configuration
 export const TEST_CONFIG = {
-  apiUrl: process.env.TEST_API_URL || `http://localhost:${PORTS.API}`,
-  webUrl: process.env.TEST_WEB_URL || `http://localhost:${PORTS.WEB}`,
+  apiUrl: process.env.API_URL || process.env.TEST_API_URL || `http://localhost:${PORTS.API}`,
+  webUrl: process.env.BASE_URL || process.env.TEST_WEB_URL || `http://localhost:${PORTS.WEB}`,
   databaseUrl:
     process.env.TEST_DATABASE_URL ||
     'postgresql://test:test@localhost:5432/simple_bookkeeping_test',

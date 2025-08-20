@@ -115,7 +115,7 @@ export const speedLimiters = {
   auth: slowDown({
     windowMs: 15 * 60 * 1000, // 15 minutes
     delayAfter: process.env.DISABLE_RATE_LIMIT === 'true' ? 999999 : 2, // Allow 2 requests at full speed
-    delayMs: process.env.DISABLE_RATE_LIMIT === 'true' ? 0 : 1000, // Add 1 second delay per request after delayAfter
+    delayMs: () => (process.env.DISABLE_RATE_LIMIT === 'true' ? 0 : 1000), // Add 1 second delay per request after delayAfter
     maxDelayMs: process.env.DISABLE_RATE_LIMIT === 'true' ? 0 : 5000, // Maximum delay of 5 seconds
     skip: () => process.env.DISABLE_RATE_LIMIT === 'true',
   }),
@@ -124,7 +124,7 @@ export const speedLimiters = {
   api: slowDown({
     windowMs: 1 * 60 * 1000, // 1 minute
     delayAfter: process.env.DISABLE_RATE_LIMIT === 'true' ? 999999 : 50, // Allow 50 requests at full speed
-    delayMs: process.env.DISABLE_RATE_LIMIT === 'true' ? 0 : 100, // Add 100ms delay per request after delayAfter
+    delayMs: () => (process.env.DISABLE_RATE_LIMIT === 'true' ? 0 : 100), // Add 100ms delay per request after delayAfter
     maxDelayMs: process.env.DISABLE_RATE_LIMIT === 'true' ? 0 : 1000, // Maximum delay of 1 second
     skip: () => process.env.DISABLE_RATE_LIMIT === 'true',
   }),
