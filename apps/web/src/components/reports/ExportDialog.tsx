@@ -27,7 +27,7 @@ interface ExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   reportType: 'balance-sheet' | 'profit-loss' | 'trial-balance';
-  reportParams?: Record<string, any>;
+  reportParams?: Record<string, string | number | boolean | undefined>;
 }
 
 export function ExportDialog({

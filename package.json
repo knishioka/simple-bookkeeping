@@ -16,6 +16,7 @@
     "build:web": "pnpm --filter @simple-bookkeeping/database prisma:generate && pnpm build:packages && NODE_ENV=production pnpm --filter @simple-bookkeeping/web build",
     "start": "turbo run start",
     "lint": "turbo run lint",
+    "lint:strict": "turbo run lint && npx eslint 'apps/**/*.{ts,tsx}' 'packages/**/*.ts' --max-warnings 0",
     "lint:fix": "turbo run lint:fix",
     "test": "turbo run test",
     "test:watch": "turbo run test:watch",
@@ -101,7 +102,7 @@
   "packageManager": "pnpm@10.12.3",
   "lint-staged": {
     "*.{ts,tsx}": [
-      "eslint --fix",
+      "eslint --fix --max-warnings 0",
       "prettier --write"
     ],
     "*.{js,jsx,json,md}": [

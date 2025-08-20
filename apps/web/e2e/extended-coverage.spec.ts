@@ -103,7 +103,7 @@ test.describe('拡張テストカバレッジ', () => {
   });
 
   test.describe('認証が必要なページ', () => {
-    test.beforeEach(async ({ page, context }) => {
+    test.beforeEach(async ({ context }) => {
       // APIモックをセットアップ
       await UnifiedAuth.setupMockRoutes(context);
 
