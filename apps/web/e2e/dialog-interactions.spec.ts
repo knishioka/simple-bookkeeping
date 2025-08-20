@@ -9,7 +9,7 @@ test.describe('ダイアログ操作テスト（デモページ）', () => {
 
   test.describe('勘定科目ダイアログ', () => {
     test('勘定科目作成ダイアログの開閉', async ({ page }) => {
-      await page.goto('/demo/accounts', { waitUntil: 'domcontentloaded' });
+      await page.goto('/demo/accounts', { waitUntil: 'networkidle' });
 
       // 新規作成ボタンを待つ
       const createButton = page.locator('button').filter({ hasText: '新規作成' }).first();
@@ -46,7 +46,7 @@ test.describe('ダイアログ操作テスト（デモページ）', () => {
     });
 
     test('勘定科目編集ダイアログの操作', async ({ page }) => {
-      await page.goto('/demo/accounts', { waitUntil: 'domcontentloaded' });
+      await page.goto('/demo/accounts', { waitUntil: 'networkidle' });
 
       // 編集ボタンの出現を待つ
       const editButton = page.locator('button').filter({ hasText: '編集' }).first();
@@ -88,7 +88,7 @@ test.describe('ダイアログ操作テスト（デモページ）', () => {
 
   test.describe('仕訳ダイアログ', () => {
     test('仕訳作成ダイアログの開閉', async ({ page }) => {
-      await page.goto('/demo/journal-entries', { waitUntil: 'domcontentloaded' });
+      await page.goto('/demo/journal-entries', { waitUntil: 'networkidle' });
 
       // 新規作成ボタンの出現を待つ
       const createButton = page
@@ -129,7 +129,7 @@ test.describe('ダイアログ操作テスト（デモページ）', () => {
 
   test.describe('フォーカス管理', () => {
     test('ダイアログ開閉時のフォーカス管理', async ({ page }) => {
-      await page.goto('/demo/accounts', { waitUntil: 'domcontentloaded' });
+      await page.goto('/demo/accounts', { waitUntil: 'networkidle' });
 
       // 新規作成ボタンの出現を待つ
       const createButton = page.locator('button').filter({ hasText: '新規作成' }).first();
