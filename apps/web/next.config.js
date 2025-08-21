@@ -18,6 +18,9 @@ const nextConfig = {
   },
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons', 'date-fns'],
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
   },
   images: {
     domains: [],
