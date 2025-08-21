@@ -1595,8 +1595,8 @@ pnpm vercel:logs runtime    # ランタイムログ
 
 ### 必読ドキュメント
 
-- [SYSTEM-ARCHITECTURE.md](./SYSTEM-ARCHITECTURE.md) - システム構成とポート番号
-- [docs/e2e-test-implementation.md](./docs/e2e-test-implementation.md) - E2Eテストの実装方法
+- [システム構成](./docs/architecture/README.md) - システム構成とポート番号
+- [E2Eテストドキュメント](./docs/testing/e2e/) - E2Eテストの実装方法
 - [docs/user-story-testing-guide.md](./docs/user-story-testing-guide.md) - ユーザーストーリーテスト
 - [docs/npm-scripts-guide.md](./docs/npm-scripts-guide.md) - npmスクリプトの一覧と説明
 - [docs/direnv-setup.md](./docs/direnv-setup.md) - direnvを使用した環境変数管理

@@ -183,7 +183,7 @@ pnpm db:studio              # Prisma Studio
 
 | ドキュメント                                              | 内容                       |
 | --------------------------------------------------------- | -------------------------- |
-| [システム構成](../SYSTEM-ARCHITECTURE.md)                 | システム全体アーキテクチャ |
+| [システム構成](./architecture/README.md)                  | システム全体アーキテクチャ |
 | [システム仕様書](./specifications/system-requirements.md) | 機能要件・非機能要件       |
 | [データモデル](./specifications/data-model.md)            | ER図・テーブル定義         |
 | [API仕様書](./specifications/api-design.md)               | REST API エンドポイント    |
@@ -192,7 +192,7 @@ pnpm db:studio              # Prisma Studio
 
 | ドキュメント                                                            | 内容                  |
 | ----------------------------------------------------------------------- | --------------------- |
-| [E2Eテスト実装ガイド](./e2e-test-implementation.md)                     | Playwrightテスト詳細  |
+| [E2Eテスト実装ガイド](./testing/e2e/)                                   | Playwrightテスト詳細  |
 | [ユーザーストーリーテスト](./user-story-testing-guide.md)               | ストーリー駆動テスト  |
 | [フロントエンドテスト](./testing/frontend-testing-guide.md)             | React Testing Library |
 | [テストアンチパターン](./testing/testing-antipatterns-and-solutions.md) | よくある問題と解決策  |
