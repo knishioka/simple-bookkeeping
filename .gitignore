@@ -83,6 +83,8 @@ Thumbs.db
 *.bak
 *.backup
 *.old
+*.orig
+*.tmp
 
 # Certificates
 *.pem
@@ -130,3 +132,6 @@ supabase/.env.*
 artifacts/
 playwright-report/
 test-results/
+*.webm
+*.zip
+results.xml
