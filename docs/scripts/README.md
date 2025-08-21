@@ -1,6 +1,6 @@
-# Scripts Reference Guide
+# 📜 Scripts Documentation
 
-このドキュメントは、Simple Bookkeepingプロジェクトの全スクリプトの用途と使用方法をまとめたリファレンスガイドです。
+このディレクトリには、Simple Bookkeepingプロジェクトのスクリプトに関する包括的なドキュメントが含まれています。
 
 ## 📁 ディレクトリ構造
 
@@ -9,35 +9,60 @@ scripts/
 ├── db/
 │   └── sql/           # SQL関連ファイル
 ├── lib/               # 共有ライブラリ
-└── [各種スクリプト]    # 用途別スクリプト
+│   └── config.sh      # 共通設定
+├── *.sh               # シェルスクリプト
+├── *.js               # Node.jsスクリプト
+└── *.ts               # TypeScriptスクリプト
 ```
 
-## 🏗️ ビルド・検証スクリプト
+## 🚀 クイックリファレンス
 
-### check-build.sh
+### よく使うコマンド
+
+```bash
+# 開発環境
+pnpm dev                # Web・API両方の開発サーバー起動
+pnpm db:init            # データベース初期化
+
+# デプロイメント監視
+pnpm deploy:check       # Vercel/Render両方の状態確認
+pnpm render:logs runtime # Renderのランタイムログ
+pnpm vercel:logs build   # Vercelのビルドログ
+
+# 品質チェック
+pnpm precommit:check    # コミット前の軽量チェック
+pnpm prepush:check      # プッシュ前の完全チェック
+pnpm env:validate       # 環境変数検証
+```
+
+## 📋 スクリプト詳細リファレンス
+
+### 🏗️ ビルド・検証スクリプト
+
+#### check-build.sh
 
 - **用途**: Pre-commit時の軽量TypeScript型チェック
 - **実行方法**: `pnpm precommit:check` または Gitのpre-commitフックで自動実行
 - **特徴**: 変更されたパッケージのみチェックするため高速
 - **使用場面**: コミット前の簡易チェック
 
-### check-full-build.sh
+#### check-full-build.sh
 
 - **用途**: Pre-push時の完全ビルドチェック（Vercel・Render両方）
 - **実行方法**: `pnpm prepush:check` または Gitのpre-pushフックで自動実行
 - **特徴**: 本番環境と同じビルド設定で検証
 - **使用場面**: pushやデプロイ前の包括的検証
 
-## 🚀 デプロイメント管理スクリプト
+### 🚀 デプロイメント管理スクリプト
 
-### check-deployments.sh
+#### check-deployments.sh
 
 - **用途**: Render（API）とVercel（Web）の両プラットフォームのデプロイ状況確認
 - **実行方法**: `pnpm deploy:check`
 - **必要環境変数**: `RENDER_API_KEY`, `VERCEL_TOKEN`
 - **出力**: 各プラットフォームの最新デプロイメント状態、ビルド状況、健全性
 
-### render-api-status.sh
+#### render-api-status.sh
 
 - **用途**: Render APIを使用した詳細なサービス状態監視
 - **実行方法**: `pnpm render:status`
@@ -48,7 +73,7 @@ scripts/
   - ヘルスチェック状態
   - デプロイメント統計
 
-### vercel-api-status.sh
+#### vercel-api-status.sh
 
 - **用途**: Vercel APIを使用した詳細なデプロイメント状態監視
 - **実行方法**: `pnpm vercel:status`
@@ -59,7 +84,7 @@ scripts/
   - プロジェクト統計
   - エラー情報
 
-### render-logs.sh
+#### render-logs.sh
 
 - **用途**: Renderのログ取得・管理
 - **実行方法**: `pnpm render:logs <command> [options]`
@@ -72,7 +97,7 @@ scripts/
   - `stats`: ログ統計
 - **例**: `pnpm render:logs errors --lines 50`
 
-### vercel-logs.sh
+#### vercel-logs.sh
 
 - **用途**: Vercelのログ取得・管理
 - **実行方法**: `pnpm vercel:logs <command> [options]`
@@ -85,9 +110,9 @@ scripts/
   - `deployment <url>`: 特定デプロイメントのログ
 - **例**: `pnpm vercel:logs build --lines 100`
 
-## 🗄️ データベース管理スクリプト
+### 🗄️ データベース管理スクリプト
 
-### init-db.sh
+#### init-db.sh
 
 - **用途**: データベースの完全初期化（Prisma生成、マイグレーション、シード）
 - **実行方法**: `pnpm db:init`
@@ -97,19 +122,19 @@ scripts/
   3. シードデータ投入
 - **使用場面**: 新規環境セットアップ、開発環境リセット
 
-### migrate-render-db.sh
+#### migrate-render-db.sh
 
 - **用途**: Render環境向けのデータベースマイグレーション
 - **実行方法**: 手動実行
 - **特徴**: Render固有の環境変数を使用
 
-### seed-render-db.sh
+#### seed-render-db.sh
 
 - **用途**: Render環境のデータベースへのシードデータ投入
 - **実行方法**: 手動実行
 - **特徴**: 本番環境向けの初期データセットアップ
 
-### db/sql/ディレクトリ
+#### db/sql/ ディレクトリ
 
 SQLファイルが整理されています：
 
@@ -119,9 +144,9 @@ SQLファイルが整理されています：
 - `insert-accounts.sql`: 勘定科目データ
 - `reset-render-db.sql`: DBリセット用
 
-## 🧪 開発・テストスクリプト
+### 🧪 開発・テストスクリプト
 
-### start-dev.sh
+#### start-dev.sh
 
 - **用途**: Web・API両方の開発サーバー起動
 - **実行方法**: `pnpm dev` または直接実行
@@ -131,7 +156,7 @@ SQLファイルが整理されています：
   - グレースフルシャットダウン
 - **必要設定**: `.env`ファイル（WEB_PORT, API_PORT）
 
-### e2e-test.sh
+#### e2e-test.sh / docker-e2e-test.sh
 
 - **用途**: Docker環境での隔離されたE2Eテスト実行
 - **実行方法**: `pnpm test:e2e [options]`
@@ -141,27 +166,27 @@ SQLファイルが整理されています：
   - `--test <pattern>`: テストファイルパターン
 - **例**: `pnpm test:e2e --browser chromium --test auth`
 
-### e2e-basic-test.js
+#### e2e-basic-test.js
 
 - **用途**: 軽量E2Eテストスクリプト
 - **実行方法**: 直接Node.jsで実行
 - **特徴**: 基本的な機能の簡易チェック
 
-### check-ports.js
+#### check-ports.js / check-ports.sh
 
 - **用途**: ポート競合検出ユーティリティ
 - **実行方法**: `pnpm dev:ports`
 - **チェック対象**: 3000（Web）、3001（API）ポート
 
-### create-test-user.js
+#### create-test-user.js
 
 - **用途**: テスト用ユーザー作成
 - **実行方法**: 直接Node.jsで実行
 - **使用場面**: E2Eテスト環境のセットアップ
 
-## 🔧 環境・設定スクリプト
+### 🔧 環境・設定スクリプト
 
-### validate-env.ts
+#### validate-env.ts
 
 - **用途**: 環境変数の包括的検証
 - **実行方法**:
@@ -171,26 +196,26 @@ SQLファイルが整理されています：
   - `pnpm env:validate:strict` - 厳格モード検証
 - **特徴**: TypeScript実装、型安全な環境変数チェック
 
-### setup-local.sh
+#### setup-local.sh
 
 - **用途**: ローカル開発環境の初期セットアップ
 - **実行方法**: 手動実行（新規開発者向け）
 - **処理内容**: 依存関係インストール、環境変数設定、DB初期化
 
-### render-env-set.sh
+#### render-env-set.sh
 
 - **用途**: Render環境変数の一括設定
 - **実行方法**: 手動実行
 - **必要条件**: Render CLIのインストールと認証
 
-### update-to-singapore.sh
+#### update-to-singapore.sh
 
 - **用途**: Renderリージョン移行（シンガポール）
 - **実行方法**: 手動実行（一度きりのマイグレーション）
 
-## 📚 共有ライブラリ
+### 📚 共有ライブラリ
 
-### lib/config.sh
+#### lib/config.sh
 
 - **用途**: スクリプト間で共有される設定・ユーティリティ関数
 - **内容**:
@@ -289,6 +314,8 @@ pnpm vercel:status
 - `VERCEL_TOKEN`: Vercel APIアクセス用
 - `DATABASE_URL`: データベース接続URL
 - `NODE_ENV`: 環境指定（development/production）
+- `WEB_PORT`: Webサーバーポート（デフォルト: 3000）
+- `API_PORT`: APIサーバーポート（デフォルト: 3001）
 
 詳細は`.env.example`を参照してください。
 
@@ -298,6 +325,7 @@ pnpm vercel:status
 2. **環境依存**: 一部のスクリプトは特定の環境（Docker、Node.js等）が必要
 3. **API制限**: 外部APIを使用するスクリプトはレート制限に注意
 4. **セキュリティ**: 環境変数やAPIキーは適切に管理すること
+5. **プラットフォーム**: 一部のスクリプトはmacOS/Linux環境を前提としています
 
 ## 🆘 サポート
 
