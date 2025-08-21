@@ -147,7 +147,7 @@ packages/
 - **ドキュメント**: 翻訳・改善
 - **テスト**: カバレッジ向上
 
-詳細は[CONTRIBUTING.md](../CONTRIBUTING.md)をご覧ください。
+詳細は[貢献ガイド](./contributing/README.md)をご覧ください。
 
 ---
 

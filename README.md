@@ -178,7 +178,7 @@ API_PORT=3011  # デフォルト: 3001
 
 ### 🏗️ アーキテクチャ・設計
 
-- [システム構成](./SYSTEM-ARCHITECTURE.md) - システム全体のアーキテクチャ
+- [システム構成](./docs/architecture/README.md) - システム全体のアーキテクチャ
 - [システム仕様書](./docs/specifications/system-requirements.md) - 機能要件・非機能要件
 - [データモデル仕様書](./docs/specifications/data-model.md) - データベース設計
 - [API設計仕様書](./docs/specifications/api-design.md) - RESTful API仕様
