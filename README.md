@@ -78,7 +78,7 @@ simple-bookkeeping/
 ### 推奨：asdfを使った環境構築
 
 プロジェクトではasdfを使用したバージョン管理を推奨しています。
-詳細は[asdfセットアップガイド](./docs/setup-with-asdf.md)を参照してください。
+詳細は[asdfセットアップガイド](./docs/setup/setup-with-asdf.md)を参照してください。
 
 ```bash
 # asdfがインストール済みの場合
@@ -113,56 +113,15 @@ pnpm dev
 
 ## セットアップ
 
+詳細なセットアップ手順は[セットアップガイド](./docs/setup/)を参照してください。
+
 ### Docker環境（推奨）
 
-```bash
-# リポジトリのクローン
-git clone https://github.com/knishioka/simple-bookkeeping.git
-cd simple-bookkeeping
-
-# 環境変数の設定
-cp .env.docker .env
-
-# Dockerコンテナの起動
-pnpm docker:up
-
-# データベースの初期化
-docker-compose exec api pnpm -F @simple-bookkeeping/database db:migrate
-docker-compose exec api pnpm -F @simple-bookkeeping/database db:seed
-```
-
-アプリケーションは以下のURLでアクセス可能です：
-
-- Web: http://localhost:3000
-- API: http://localhost:3001
+[Dockerセットアップガイド](./docs/setup/docker-setup.md)を参照
 
 ### ローカル環境
 
-```bash
-# リポジトリのクローン
-git clone https://github.com/knishioka/simple-bookkeeping.git
-cd simple-bookkeeping
-
-# 依存関係のインストール
-pnpm install
-
-# 環境変数の設定
-cp .env.example .env.local
-# 重要: .env.localを編集して必要な値を設定
-# 特にNEXT_PUBLIC_API_URLは必ず/api/v1を含めてください
-# 詳細は docs/ENVIRONMENT_VARIABLES.md を参照
-
-# PostgreSQLの起動（別途インストールが必要）
-# データベースのセットアップ
-pnpm db:migrate
-pnpm db:seed
-
-# 環境変数の検証（オプション）
-pnpm env:validate
-
-# 開発サーバーの起動
-pnpm dev
-```
+[ローカル開発環境ガイド](./docs/setup/local-development.md)を参照
 
 ### ポート設定
 
@@ -186,7 +145,7 @@ API_PORT=3011  # デフォルト: 3001
 
 ### 🧪 テスト・品質管理
 
-- [E2Eテスト実装ガイド](./docs/e2e-test-implementation.md) - Playwrightテストの詳細
+- [E2Eテスト実装ガイド](./docs/testing/e2e/) - Playwrightテストの詳細
 - [ユーザーストーリーテスティング](./docs/user-story-testing-guide.md) - ストーリー駆動テスト
 - [フロントエンドテストガイド](./docs/testing/frontend-testing-guide.md) - React Testing Library
 - [テストアンチパターン](./docs/testing/testing-antipatterns-and-solutions.md) - よくある問題と解決策
@@ -196,9 +155,8 @@ API_PORT=3011  # デフォルト: 3001
 - [環境変数ガイド](./docs/ENVIRONMENT_VARIABLES.md) - 環境変数の詳細設定
 - [実装計画](./docs/implementation-plan/roadmap.md) - フェーズ別開発計画
 - [技術スタック選定書](./docs/implementation-plan/tech-stack.md) - 技術選定の理由
-- [Docker環境構築](./docs/docker-setup.md) - Docker開発環境
+- [Docker環境構築](./docs/setup/docker-setup.md) - Docker開発環境
 - [AIコーディングガイドライン](./CLAUDE.md) - AIアシスタント向けガイド
-- [リファクタリング概要](./REFACTORING-SUMMARY.md) - 最新のリファクタリング内容
 
 ## 現在の開発状況
 
