@@ -1,15 +1,6 @@
-import { Account, JournalEntry, JournalEntryLine, PrismaClient } from '@prisma/client';
+import { JournalStatus } from '@prisma/client';
 
-type JournalEntryLineWithRelations = JournalEntryLine & {
-  journalEntry: JournalEntry & {
-    lines: (JournalEntryLine & {
-      account: Account;
-    })[];
-  };
-  account: Account;
-};
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma';
 
 export interface LedgerEntry {
   id: string;
@@ -95,10 +86,16 @@ export class LedgerService {
     });
 
     if (!account) {
-      throw new Error(`Account not found: ${accountCode}`);
+      console.error('Account not found:', {
+        accountCode,
+        organizationId,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      });
+      return [];
     }
 
-    // 該当する仕訳明細を取得
+    // 該当する仕訳明細を取得（includeを最小限に）
     const journalLines = await prisma.journalEntryLine.findMany({
       where: {
         accountId: account.id,
@@ -109,21 +106,12 @@ export class LedgerService {
           },
           organizationId,
           status: {
-            in: ['APPROVED', 'LOCKED'],
+            in: [JournalStatus.APPROVED, JournalStatus.LOCKED],
           },
         },
       },
       include: {
-        account: true,
-        journalEntry: {
-          include: {
-            lines: {
-              include: {
-                account: true,
-              },
-            },
-          },
-        },
+        journalEntry: true,
       },
       orderBy: {
         journalEntry: {
@@ -147,8 +135,7 @@ export class LedgerService {
         balance += creditAmount - debitAmount;
       }
 
-      // 相手勘定を特定
-      const counterAccount = this.getCounterAccount(line);
+      // 相手勘定を特定（パフォーマンス改善のため一旦省略）
 
       entries.push({
         id: line.id,
@@ -158,31 +145,11 @@ export class LedgerService {
         debitAmount,
         creditAmount,
         balance,
-        counterAccountName: counterAccount?.name,
+        counterAccountName: undefined,
       });
     }
 
     return entries;
-  }
-
-  /**
-   * 相手勘定を特定する
-   */
-  private getCounterAccount(line: JournalEntryLineWithRelations): { name: string } | undefined {
-    const journalEntry = line.journalEntry;
-    const otherLines = journalEntry.lines.filter((l) => l.id !== line.id);
-
-    // 単純な2行仕訳の場合
-    if (otherLines.length === 1) {
-      return otherLines[0].account;
-    }
-
-    // 複数行の場合は「諸口」として扱う
-    if (otherLines.length > 1) {
-      return { name: '諸口' };
-    }
-
-    return undefined;
   }
 
   /**
@@ -201,6 +168,11 @@ export class LedgerService {
     });
 
     if (!account) {
+      console.warn('Account not found for opening balance:', {
+        accountCode,
+        organizationId,
+        startDate: startDate.toISOString(),
+      });
       return 0;
     }
 
@@ -214,7 +186,7 @@ export class LedgerService {
           },
           organizationId,
           status: {
-            in: ['APPROVED', 'LOCKED'],
+            in: [JournalStatus.APPROVED, JournalStatus.LOCKED],
           },
         },
       },
