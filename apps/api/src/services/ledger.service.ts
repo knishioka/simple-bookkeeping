@@ -1,4 +1,6 @@
-import { Account, JournalEntry, JournalEntryLine, PrismaClient } from '@prisma/client';
+import { Account, JournalEntry, JournalEntryLine, JournalStatus } from '@prisma/client';
+
+import { prisma } from '../lib/prisma';
 
 type JournalEntryLineWithRelations = JournalEntryLine & {
   journalEntry: JournalEntry & {
@@ -8,8 +10,6 @@ type JournalEntryLineWithRelations = JournalEntryLine & {
   };
   account: Account;
 };
-
-const prisma = new PrismaClient();
 
 export interface LedgerEntry {
   id: string;
@@ -95,7 +95,13 @@ export class LedgerService {
     });
 
     if (!account) {
-      throw new Error(`Account not found: ${accountCode}`);
+      console.error('Account not found:', {
+        accountCode,
+        organizationId,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      });
+      return [];
     }
 
     // 該当する仕訳明細を取得
@@ -109,7 +115,7 @@ export class LedgerService {
           },
           organizationId,
           status: {
-            in: ['APPROVED', 'LOCKED'],
+            in: [JournalStatus.APPROVED, JournalStatus.LOCKED],
           },
         },
       },
@@ -201,6 +207,11 @@ export class LedgerService {
     });
 
     if (!account) {
+      console.warn('Account not found for opening balance:', {
+        accountCode,
+        organizationId,
+        startDate: startDate.toISOString(),
+      });
       return 0;
     }
 
@@ -214,7 +225,7 @@ export class LedgerService {
           },
           organizationId,
           status: {
-            in: ['APPROVED', 'LOCKED'],
+            in: [JournalStatus.APPROVED, JournalStatus.LOCKED],
           },
         },
       },

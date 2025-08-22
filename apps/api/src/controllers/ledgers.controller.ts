@@ -43,6 +43,26 @@ export const getCashBook = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Start date and end date are required' });
     }
 
+    // 勘定科目の存在確認
+    const account = await prisma.account.findFirst({
+      where: { code: '1110', organizationId },
+    });
+
+    if (!account) {
+      console.warn('Cash account not found for organization:', {
+        organizationId,
+        accountCode: '1110',
+      });
+      // 勘定科目が存在しない場合は空のデータを返す
+      return res.json({
+        data: {
+          openingBalance: 0,
+          entries: [],
+          closingBalance: 0,
+        },
+      });
+    }
+
     const entries = await ledgerService.getCashBook({
       accountCode: '1110',
       startDate: new Date(startDate as string),
@@ -65,7 +85,13 @@ export const getCashBook = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    console.error('Failed to get cash book:', error);
+    console.error('Failed to get cash book:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      organizationId: (req as AuthenticatedRequest).user?.organizationId,
+      startDate: req.query.startDate,
+      endDate: req.query.endDate,
+    });
     res.status(500).json({ error: 'Failed to get cash book' });
   }
 };
@@ -86,6 +112,30 @@ export const getBankBook = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Start date and end date are required' });
     }
 
+    // 預金科目の存在確認
+    const bankCodes = ['1120', '1130'];
+    const bankAccounts = await prisma.account.findMany({
+      where: {
+        code: { in: bankCodes },
+        organizationId,
+      },
+    });
+
+    if (bankAccounts.length === 0) {
+      console.warn('No bank accounts found for organization:', {
+        organizationId,
+        accountCodes: bankCodes,
+      });
+      // 預金科目が存在しない場合は空のデータを返す
+      return res.json({
+        data: {
+          openingBalance: 0,
+          entries: [],
+          closingBalance: 0,
+        },
+      });
+    }
+
     const entries = await ledgerService.getBankBook({
       accountCode: '', // 複数の預金科目を扱うため空文字
       startDate: new Date(startDate as string),
@@ -94,7 +144,6 @@ export const getBankBook = async (req: Request, res: Response) => {
     });
 
     // 預金科目の合計開始残高を取得
-    const bankCodes = ['1120', '1130'];
     let totalOpeningBalance = 0;
     for (const code of bankCodes) {
       const balance = await ledgerService.getOpeningBalance(
@@ -117,7 +166,13 @@ export const getBankBook = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    console.error('Failed to get bank book:', error);
+    console.error('Failed to get bank book:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      organizationId: (req as AuthenticatedRequest).user?.organizationId,
+      startDate: req.query.startDate,
+      endDate: req.query.endDate,
+    });
     res.status(500).json({ error: 'Failed to get bank book' });
   }
 };
@@ -136,6 +191,26 @@ export const getAccountsReceivable = async (req: Request, res: Response) => {
 
     if (!startDate || !endDate) {
       return res.status(400).json({ error: 'Start date and end date are required' });
+    }
+
+    // 勘定科目の存在確認
+    const account = await prisma.account.findFirst({
+      where: { code: '1140', organizationId },
+    });
+
+    if (!account) {
+      console.warn('Accounts receivable account not found for organization:', {
+        organizationId,
+        accountCode: '1140',
+      });
+      // 勘定科目が存在しない場合は空のデータを返す
+      return res.json({
+        data: {
+          openingBalance: 0,
+          entries: [],
+          closingBalance: 0,
+        },
+      });
     }
 
     const entries = await ledgerService.getAccountsReceivable({
@@ -159,7 +234,13 @@ export const getAccountsReceivable = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    console.error('Failed to get accounts receivable:', error);
+    console.error('Failed to get accounts receivable:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      organizationId: (req as AuthenticatedRequest).user?.organizationId,
+      startDate: req.query.startDate,
+      endDate: req.query.endDate,
+    });
     res.status(500).json({ error: 'Failed to get accounts receivable' });
   }
 };
@@ -178,6 +259,26 @@ export const getAccountsPayable = async (req: Request, res: Response) => {
 
     if (!startDate || !endDate) {
       return res.status(400).json({ error: 'Start date and end date are required' });
+    }
+
+    // 勘定科目の存在確認
+    const account = await prisma.account.findFirst({
+      where: { code: '2110', organizationId },
+    });
+
+    if (!account) {
+      console.warn('Accounts payable account not found for organization:', {
+        organizationId,
+        accountCode: '2110',
+      });
+      // 勘定科目が存在しない場合は空のデータを返す
+      return res.json({
+        data: {
+          openingBalance: 0,
+          entries: [],
+          closingBalance: 0,
+        },
+      });
     }
 
     const entries = await ledgerService.getAccountsPayable({
@@ -201,7 +302,13 @@ export const getAccountsPayable = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    console.error('Failed to get accounts payable:', error);
+    console.error('Failed to get accounts payable:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      organizationId: (req as AuthenticatedRequest).user?.organizationId,
+      startDate: req.query.startDate,
+      endDate: req.query.endDate,
+    });
     res.status(500).json({ error: 'Failed to get accounts payable' });
   }
 };
