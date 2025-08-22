@@ -75,16 +75,53 @@ export const getJournalEntries = async (
     let total = 0;
 
     try {
-      // First, just try to count entries - this should work
+      // First, get the count
       total = await prisma.journalEntry.count({ where });
 
-      // If count works, return empty array for now to test the response
-      entries = [];
+      // Then get the actual entries - try without createdBy first
+      const rawEntries = await prisma.journalEntry.findMany({
+        where,
+        select: {
+          id: true,
+          entryDate: true,
+          entryNumber: true,
+          description: true,
+          documentNumber: true,
+          status: true,
+          accountingPeriodId: true,
+          partnerId: true,
+          createdById: true,
+          createdAt: true,
+          updatedAt: true,
+          organizationId: true,
+          lines: {
+            include: {
+              account: {
+                select: {
+                  id: true,
+                  code: true,
+                  name: true,
+                },
+              },
+            },
+          },
+          partner: true,
+        },
+        orderBy: {
+          entryDate: 'desc',
+        },
+        skip: (pageNum - 1) * limitNum,
+        take: limitNum,
+      });
+
+      // Convert to expected format
+      entries = rawEntries as Record<string, unknown>[];
 
       // Log success for debugging
-      logger.info('Journal entries count successful', {
+      logger.info('Journal entries fetched successfully', {
         organizationId,
         total,
+        count: entries.length,
       });
     } catch (innerError) {
       logger.error('Database query error', innerError as Error, {
