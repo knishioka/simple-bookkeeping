@@ -1,6 +1,14 @@
-import { JournalStatus } from '@prisma/client';
+import { Account, JournalEntry, JournalEntryLine, JournalStatus } from '@prisma/client';
 
 import { prisma } from '../lib/prisma';
+
+type JournalLineWithRelations = JournalEntryLine & {
+  journalEntry: JournalEntry & {
+    lines: (JournalEntryLine & {
+      account: Pick<Account, 'id' | 'name' | 'code'>;
+    })[];
+  };
+};
 
 export interface LedgerEntry {
   id: string;
@@ -95,8 +103,8 @@ export class LedgerService {
       return [];
     }
 
-    // 該当する仕訳明細を取得（includeを最小限に）
-    const journalLines = await prisma.journalEntryLine.findMany({
+    // 該当する仕訳明細を取得
+    const journalLines = (await prisma.journalEntryLine.findMany({
       where: {
         accountId: account.id,
         journalEntry: {
@@ -111,14 +119,28 @@ export class LedgerService {
         },
       },
       include: {
-        journalEntry: true,
+        journalEntry: {
+          include: {
+            lines: {
+              include: {
+                account: {
+                  select: {
+                    id: true,
+                    name: true,
+                    code: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
       orderBy: {
         journalEntry: {
           entryDate: 'asc',
         },
       },
-    });
+    })) as JournalLineWithRelations[];
 
     // 補助簿エントリーに変換
     let balance = 0;
@@ -135,7 +157,8 @@ export class LedgerService {
         balance += creditAmount - debitAmount;
       }
 
-      // 相手勘定を特定（パフォーマンス改善のため一旦省略）
+      // 相手勘定を特定
+      const counterAccountName = this.getCounterAccountName(line);
 
       entries.push({
         id: line.id,
@@ -145,7 +168,7 @@ export class LedgerService {
         debitAmount,
         creditAmount,
         balance,
-        counterAccountName: undefined,
+        counterAccountName,
       });
     }
 
@@ -205,6 +228,30 @@ export class LedgerService {
     } else {
       return totalCredit - totalDebit;
     }
+  }
+
+  /**
+   * 相手勘定名を取得する
+   */
+  private getCounterAccountName(line: JournalLineWithRelations): string | undefined {
+    const journalEntry = line.journalEntry;
+    if (!journalEntry.lines) {
+      return undefined;
+    }
+
+    const otherLines = journalEntry.lines.filter((l) => l.id !== line.id);
+
+    // 単純な2行仕訳の場合
+    if (otherLines.length === 1) {
+      return otherLines[0].account?.name;
+    }
+
+    // 複数行の場合は「諸口」として扱う
+    if (otherLines.length > 1) {
+      return '諸口';
+    }
+
+    return undefined;
   }
 }
 
