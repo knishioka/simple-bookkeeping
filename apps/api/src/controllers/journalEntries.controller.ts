@@ -78,7 +78,7 @@ export const getJournalEntries = async (
       // First, get the count
       total = await prisma.journalEntry.count({ where });
 
-      // Then get the actual entries - try without createdBy first
+      // Then get the actual entries without complex relations that might fail
       const rawEntries = await prisma.journalEntry.findMany({
         where,
         select: {
@@ -88,14 +88,17 @@ export const getJournalEntries = async (
           description: true,
           documentNumber: true,
           status: true,
-          accountingPeriodId: true,
-          partnerId: true,
-          createdById: true,
           createdAt: true,
           updatedAt: true,
-          organizationId: true,
           lines: {
-            include: {
+            select: {
+              id: true,
+              accountId: true,
+              debitAmount: true,
+              creditAmount: true,
+              description: true,
+              taxRate: true,
+              lineNumber: true,
               account: {
                 select: {
                   id: true,
@@ -104,8 +107,10 @@ export const getJournalEntries = async (
                 },
               },
             },
+            orderBy: {
+              lineNumber: 'asc',
+            },
           },
-          partner: true,
         },
         orderBy: {
           entryDate: 'desc',
