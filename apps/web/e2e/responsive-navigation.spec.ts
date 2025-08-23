@@ -73,21 +73,29 @@ test.describe('Responsive Navigation', () => {
     // ハンバーガーメニューが非表示であることを確認
     await expect(page.locator('button[aria-label="メニューを開く"]')).not.toBeVisible();
 
-    // 主要メニューがnavに表示されていることを確認（デスクトップかタブレットメニューのいずれか）
-    const dashboardLink = page.locator('nav a:has-text("ダッシュボード")').first();
+    // タブレットメニューコンテナを特定（md:flex lg:hidden のクラスを持つ要素）
+    // Tailwindの md は 768px以上、lg は 1024px以上なので、900pxではこのコンテナが表示されるはず
+    const tabletMenuContainer = page.locator('div.md\\:flex.lg\\:hidden').first();
+
+    // タブレットメニューコンテナが表示されているか確認
+    await expect(tabletMenuContainer).toBeVisible();
+
+    // タブレットメニュー内の主要ナビゲーションリンクを確認
+    const dashboardLink = tabletMenuContainer.locator('a[href="/dashboard"]').first();
     await expect(dashboardLink).toBeVisible();
 
-    const journalLink = page.locator('nav a:has-text("仕訳入力")').first();
+    const journalLink = tabletMenuContainer.locator('a[href="/dashboard/journal-entries"]').first();
     await expect(journalLink).toBeVisible();
 
-    const accountLink = page.locator('nav a:has-text("勘定科目")').first();
+    const accountLink = tabletMenuContainer.locator('a[href="/dashboard/accounts"]').first();
     await expect(accountLink).toBeVisible();
 
     // ドロップダウンメニューボタンが表示されていることを確認（MoreVertical アイコン）
-    const moreButton = page
-      .locator('nav button')
+    // タブレットメニューコンテナ内のドロップダウンボタンを探す
+    const moreButton = tabletMenuContainer
+      .locator('button')
       .filter({ has: page.locator('svg') })
-      .last();
+      .first();
     await expect(moreButton).toBeVisible();
 
     // ドロップダウンメニューをクリックして開く
@@ -151,32 +159,43 @@ test.describe('Responsive Navigation', () => {
     // 1024px（lg）でデスクトップメニュー
     await page.setViewportSize({ width: 1024, height: 768 });
     await page.waitForTimeout(300);
-    const dashboardLinkLg = page.locator('nav a:has-text("ダッシュボード")').first();
+    // デスクトップメニューコンテナを確認
+    const desktopMenu = page.locator('div.lg\\:flex').first();
+    await expect(desktopMenu).toBeVisible();
+    const dashboardLinkLg = desktopMenu.locator('a[href="/dashboard"]').first();
     await expect(dashboardLinkLg).toBeVisible();
     await expect(page.locator('button[aria-label="メニューを開く"]')).not.toBeVisible();
 
     // 1023pxでタブレットメニュー
     await page.setViewportSize({ width: 1023, height: 768 });
     await page.waitForTimeout(300);
-    const dashboardLinkMd = page.locator('nav a:has-text("ダッシュボード")').first();
+    // タブレットメニューコンテナを確認
+    const tabletMenu = page.locator('div.md\\:flex.lg\\:hidden').first();
+    await expect(tabletMenu).toBeVisible();
+    const dashboardLinkMd = tabletMenu.locator('a[href="/dashboard"]').first();
     await expect(dashboardLinkMd).toBeVisible();
-    const moreButton = page.locator('nav button svg').first().locator('..');
+    // ドロップダウンボタンの存在を確認
+    const moreButton = tabletMenu
+      .locator('button')
+      .filter({ has: page.locator('svg') })
+      .first();
     await expect(moreButton).toBeVisible();
 
     // 768px（md）でタブレットメニュー維持
     await page.setViewportSize({ width: 768, height: 600 });
     await page.waitForTimeout(300);
-    const dashboardLinkMd2 = page.locator('nav a:has-text("ダッシュボード")').first();
+    const tabletMenu2 = page.locator('div.md\\:flex.lg\\:hidden').first();
+    await expect(tabletMenu2).toBeVisible();
+    const dashboardLinkMd2 = tabletMenu2.locator('a[href="/dashboard"]').first();
     await expect(dashboardLinkMd2).toBeVisible();
 
     // 767pxでモバイルメニュー
     await page.setViewportSize({ width: 767, height: 600 });
     await page.waitForTimeout(300);
     await expect(page.locator('button[aria-label="メニューを開く"]')).toBeVisible();
-    // モバイルではデスクトップメニューは非表示
-    const navContainer = page.locator('nav > div > div > div').nth(1);
-    const visibleLinks = await navContainer.locator('a:visible').count();
-    expect(visibleLinks).toBe(0);
+    // モバイルではタブレット・デスクトップメニューは非表示
+    await expect(page.locator('div.md\\:flex.lg\\:hidden').first()).not.toBeVisible();
+    await expect(page.locator('div.lg\\:flex').first()).not.toBeVisible();
   });
 
   test('メニュー項目のクリックでページ遷移する', async ({ page }) => {
