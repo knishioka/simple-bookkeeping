@@ -201,15 +201,14 @@ export function JournalEntryDialog({
 
   const fetchPartners = async () => {
     try {
-      const response =
-        await apiClient.get<
-          Array<{
-            id: string;
-            code: string;
-            name: string;
-            partnerType: 'CUSTOMER' | 'VENDOR' | 'BOTH';
-          }>
-        >('/partners?active=true');
+      const response = await apiClient.get<
+        Array<{
+          id: string;
+          code: string;
+          name: string;
+          partnerType: 'CUSTOMER' | 'VENDOR' | 'BOTH';
+        }>
+      >('/partners?active=true');
       if (response.data) {
         setPartners(response.data);
       }
