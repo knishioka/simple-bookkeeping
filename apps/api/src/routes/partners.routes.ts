@@ -26,6 +26,12 @@ router.get('/', partnersController.getPartners as RouteHandler);
 // Get single partner
 router.get('/:id', partnersController.getPartnerById as RouteHandler);
 
+// Get partner transactions
+router.get('/:id/transactions', partnersController.getPartnerTransactions as RouteHandler);
+
+// Get partner balance
+router.get('/:id/balance', partnersController.getPartnerBalance as RouteHandler);
+
 // Create partner (Admin/Accountant only)
 router.post(
   '/',
