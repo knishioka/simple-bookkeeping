@@ -36,16 +36,29 @@ import { AccountType } from '@simple-bookkeeping/database';
 
 import { ReportsService } from '../reports.service';
 
-// Using 'any' for mockPrismaClient to avoid complex mock typing issues
-// This is acceptable in test files for mocking purposes
+// Type for mocked Prisma client with only the methods we use in tests
+type MockPrismaClient = {
+  accountingPeriod: {
+    findUnique: jest.Mock;
+    findFirst: jest.Mock;
+  };
+  journalEntry: {
+    findMany: jest.Mock;
+  };
+  account: {
+    findMany: jest.Mock;
+    findFirst: jest.Mock;
+  };
+};
+
 describe('ReportsService', () => {
   let service: ReportsService;
 
-  let mockPrismaClient: any;
+  let mockPrismaClient: MockPrismaClient;
 
   beforeEach(() => {
     service = new ReportsService();
-    mockPrismaClient = new PrismaClient();
+    mockPrismaClient = new PrismaClient() as unknown as MockPrismaClient;
     jest.clearAllMocks();
   });
 

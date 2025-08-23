@@ -30,4 +30,9 @@ export interface Account {
   organizationType?: string | null;
   createdAt: Date;
   updatedAt: Date;
+  parent?: {
+    id: string;
+    code: string;
+    name: string;
+  } | null;
 }

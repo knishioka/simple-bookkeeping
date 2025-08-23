@@ -15,9 +15,10 @@ import {
 
 describe('PartnersController', () => {
   let testSetup: Awaited<ReturnType<typeof createFullTestSetup>>;
-  let adminUser: any;
+  // Using a more flexible type for test data to avoid CI issues
+  let adminUser: Awaited<ReturnType<typeof createTestUser>>;
   let adminToken: string;
-  let testPartner: any;
+  let testPartner: Awaited<ReturnType<typeof prisma.partner.create>>;
 
   beforeEach(async () => {
     await cleanupTestData();
