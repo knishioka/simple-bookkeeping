@@ -1,7 +1,7 @@
 // Setup test environment variables first
 import '../../test-utils/env-setup';
 
-import { PartnerType, UserRole, User, Partner } from '@simple-bookkeeping/database';
+import { PartnerType, UserRole } from '@simple-bookkeeping/database';
 import request from 'supertest';
 
 import app from '../../index';
@@ -15,9 +15,10 @@ import {
 
 describe('PartnersController', () => {
   let testSetup: Awaited<ReturnType<typeof createFullTestSetup>>;
-  let adminUser: User;
+  // Using a more flexible type for test data to avoid CI issues
+  let adminUser: Awaited<ReturnType<typeof createTestUser>>;
   let adminToken: string;
-  let testPartner: Partner;
+  let testPartner: Awaited<ReturnType<typeof prisma.partner.create>>;
 
   beforeEach(async () => {
     await cleanupTestData();
