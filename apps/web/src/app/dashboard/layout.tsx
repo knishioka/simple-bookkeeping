@@ -1,11 +1,21 @@
 'use client';
 
+import { Menu, MoreVertical } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 
 import ProtectedRoute from '@/components/layout/protected-route';
+import { MobileMenu } from '@/components/navigation/mobile-menu';
 import { OrganizationSwitcher } from '@/components/organization-switcher';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/auth-context';
 
 const navigation = [
@@ -37,6 +47,11 @@ const navigation = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // タブレット用の主要ナビゲーション項目
+  const primaryNavigation = navigation.slice(0, 3); // ダッシュボード、仕訳入力、勘定科目
+  const secondaryNavigation = navigation.slice(3); // 補助簿、帳票、設定
 
   return (
     <ProtectedRoute>
@@ -45,10 +60,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between h-16">
               <div className="flex">
-                <div className="flex-shrink-0 flex items-center">
-                  <h1 className="text-xl font-bold">Simple Bookkeeping</h1>
+                {/* モバイル用ハンバーガーメニュー (768px未満) */}
+                <div className="flex items-center md:hidden">
+                  <button
+                    onClick={() => setMobileMenuOpen(true)}
+                    className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+                    aria-label="メニューを開く"
+                  >
+                    <Menu className="h-6 w-6" />
+                  </button>
                 </div>
-                <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+
+                <div className="flex-shrink-0 flex items-center ml-2 lg:ml-0">
+                  <h1 className="text-lg sm:text-xl font-bold">Simple Bookkeeping</h1>
+                </div>
+
+                {/* デスクトップ用フルメニュー (1024px以上) */}
+                <div className="hidden lg:ml-6 lg:flex lg:space-x-6 xl:space-x-8">
                   {navigation.map((item) =>
                     item.children ? (
                       <div key={item.name} className="relative group inline-flex items-center">
@@ -90,17 +118,76 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     )
                   )}
                 </div>
+
+                {/* タブレット用簡略メニュー (768px-1023px) */}
+                <div className="hidden md:ml-6 md:flex lg:hidden md:space-x-4">
+                  {primaryNavigation.map((item) => (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                        pathname === item.href
+                          ? 'border-indigo-500 text-gray-900'
+                          : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                      }`}
+                    >
+                      {item.name}
+                    </Link>
+                  ))}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">
+                      <MoreVertical className="h-5 w-5" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-48">
+                      {secondaryNavigation.map((item) =>
+                        item.children ? (
+                          <div key={item.name}>
+                            <DropdownMenuSeparator />
+                            <div className="px-2 py-1.5 text-xs font-semibold text-gray-500">
+                              {item.name}
+                            </div>
+                            {item.children.map((child) => (
+                              <DropdownMenuItem key={child.name} asChild>
+                                <Link href={child.href} className="cursor-pointer">
+                                  {child.name}
+                                </Link>
+                              </DropdownMenuItem>
+                            ))}
+                          </div>
+                        ) : (
+                          <DropdownMenuItem key={item.name} asChild>
+                            <Link href={item.href} className="cursor-pointer">
+                              {item.name}
+                            </Link>
+                          </DropdownMenuItem>
+                        )
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
-              <div className="flex items-center space-x-4">
-                <OrganizationSwitcher />
-                <span className="text-sm text-gray-700">{user?.name}</span>
-                <Button variant="outline" size="sm" onClick={logout}>
+
+              {/* 右側のユーザー情報 */}
+              <div className="flex items-center space-x-2 sm:space-x-4">
+                <div className="hidden sm:block">
+                  <OrganizationSwitcher />
+                </div>
+                <span className="hidden md:block text-sm text-gray-700">{user?.name}</span>
+                <Button variant="outline" size="sm" onClick={logout} className="text-xs sm:text-sm">
                   ログアウト
                 </Button>
               </div>
             </div>
           </div>
         </nav>
+
+        {/* モバイルメニューコンポーネント */}
+        <MobileMenu
+          isOpen={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
+          navigation={navigation}
+          pathname={pathname}
+        />
         <main className="py-10">
           <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">{children}</div>
         </main>
