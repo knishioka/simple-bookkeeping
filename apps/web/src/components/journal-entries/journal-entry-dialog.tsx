@@ -26,6 +26,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { PartnerSelect } from '@/components/ui/partner-select';
 import { Textarea } from '@/components/ui/textarea';
 import { apiClient } from '@/lib/api-client';
 
@@ -45,6 +46,7 @@ const journalEntrySchema = z
       .min(1, '摘要は必須です')
       .max(200, '摘要は200文字以内で入力してください'),
     documentNumber: z.string().optional(),
+    partnerId: z.string().optional(),
     lines: z.array(journalEntryLineSchema).min(2, '最低2行の仕訳明細が必要です'),
   })
   .refine(
@@ -91,6 +93,7 @@ interface JournalEntry {
   description: string;
   status: 'DRAFT' | 'APPROVED' | 'CANCELLED';
   documentNumber?: string;
+  partnerId?: string;
   lines: Array<{
     id: string;
     accountId: string;
@@ -120,6 +123,9 @@ export function JournalEntryDialog({
   onSuccess,
 }: JournalEntryDialogProps) {
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [partners, setPartners] = useState<
+    Array<{ id: string; code: string; name: string; partnerType: 'CUSTOMER' | 'VENDOR' | 'BOTH' }>
+  >([]);
   const [loading, setLoading] = useState(false);
 
   const form = useForm<JournalEntryFormData>({
@@ -128,6 +134,7 @@ export function JournalEntryDialog({
       entryDate: entry?.entryDate || new Date().toISOString().split('T')[0],
       description: entry?.description || '',
       documentNumber: entry?.documentNumber || '',
+      partnerId: entry?.partnerId || '',
       lines: entry?.lines.map((line) => ({
         accountId: line.accountId,
         debitAmount: line.debitAmount,
@@ -149,12 +156,14 @@ export function JournalEntryDialog({
   useEffect(() => {
     if (open) {
       fetchAccounts();
+      fetchPartners();
       // Reset form when dialog opens
       if (entry) {
         form.reset({
           entryDate: entry.entryDate,
           description: entry.description,
           documentNumber: entry.documentNumber || '',
+          partnerId: entry.partnerId || '',
           lines: entry.lines.map((line) => ({
             accountId: line.accountId,
             debitAmount: line.debitAmount,
@@ -168,6 +177,7 @@ export function JournalEntryDialog({
           entryDate: new Date().toISOString().split('T')[0],
           description: '',
           documentNumber: '',
+          partnerId: '',
           lines: [
             { accountId: '', debitAmount: 0, creditAmount: 0, description: '', taxRate: 0 },
             { accountId: '', debitAmount: 0, creditAmount: 0, description: '', taxRate: 0 },
@@ -186,6 +196,25 @@ export function JournalEntryDialog({
     } catch (error) {
       console.error('Failed to fetch accounts:', error);
       toast.error('勘定科目の取得に失敗しました');
+    }
+  };
+
+  const fetchPartners = async () => {
+    try {
+      const response = await apiClient.get<
+        Array<{
+          id: string;
+          code: string;
+          name: string;
+          partnerType: 'CUSTOMER' | 'VENDOR' | 'BOTH';
+        }>
+      >('/partners?active=true');
+      if (response.data) {
+        setPartners(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch partners:', error);
+      // Partners are optional, so we don't show an error toast
     }
   };
 
@@ -248,7 +277,7 @@ export function JournalEntryDialog({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="entryDate"
@@ -270,6 +299,27 @@ export function JournalEntryDialog({
                     <FormLabel>証憑番号（任意）</FormLabel>
                     <FormControl>
                       <Input {...field} placeholder="請求書番号など" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="partnerId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>取引先（任意）</FormLabel>
+                    <FormControl>
+                      <PartnerSelect
+                        partners={partners}
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        placeholder="取引先を選択..."
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
