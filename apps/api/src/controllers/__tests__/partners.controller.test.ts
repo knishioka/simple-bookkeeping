@@ -1,7 +1,7 @@
 // Setup test environment variables first
 import '../../test-utils/env-setup';
 
-import { PartnerType, UserRole } from '@simple-bookkeeping/database';
+import { PartnerType, UserRole, User, Partner } from '@simple-bookkeeping/database';
 import request from 'supertest';
 
 import app from '../../index';
@@ -15,9 +15,9 @@ import {
 
 describe('PartnersController', () => {
   let testSetup: Awaited<ReturnType<typeof createFullTestSetup>>;
-  let adminUser: any;
+  let adminUser: User;
   let adminToken: string;
-  let testPartner: any;
+  let testPartner: Partner;
 
   beforeEach(async () => {
     await cleanupTestData();

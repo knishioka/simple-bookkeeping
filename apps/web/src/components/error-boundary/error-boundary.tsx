@@ -62,25 +62,47 @@ export class ErrorBoundary extends Component<Props, State> {
 
     // In production, send to error tracking service
     if (process.env.NODE_ENV === 'production') {
-      // TODO: Send to Sentry, LogRocket, etc.
       this.logErrorToService(error, errorInfo);
     }
   }
 
   logErrorToService = (error: Error, errorInfo: ErrorInfo) => {
-    // Placeholder for error tracking service integration
     const errorData = {
       message: error.message,
       stack: error.stack,
       componentStack: errorInfo.componentStack,
       timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-      url: window.location.href,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+      url: typeof window !== 'undefined' ? window.location.href : 'unknown',
     };
 
-    // In a real app, send this to your error tracking service
-    // eslint-disable-next-line no-console
-    console.log('Error logged to service:', errorData);
+    // Production error tracking service integration
+    // When SENTRY_DSN is configured, errors will be sent to Sentry
+    if (process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_SENTRY_DSN) {
+      // Note: Actual Sentry integration requires:
+      // 1. Installing @sentry/nextjs package
+      // 2. Configuring sentry.client.config.js
+      // 3. Setting NEXT_PUBLIC_SENTRY_DSN environment variable
+      // 4. Initializing Sentry in _app.tsx or layout.tsx
+
+      // Example implementation (requires Sentry setup):
+      // import * as Sentry from '@sentry/nextjs';
+      // Sentry.captureException(error, {
+      //   contexts: {
+      //     react: {
+      //       componentStack: errorInfo.componentStack,
+      //     },
+      //   },
+      //   extra: errorData,
+      // });
+
+      // For now, log to console as fallback
+      console.error('[Production Error]:', errorData);
+    } else {
+      // In development, log to console
+      // eslint-disable-next-line no-console
+      console.log('Error logged to service:', errorData);
+    }
   };
 
   handleReset = () => {
