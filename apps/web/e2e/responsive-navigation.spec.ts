@@ -11,8 +11,37 @@ test.describe('Responsive Navigation', () => {
     await UnifiedAuth.setupMockRoutes(context);
     await UnifiedAuth.setAuthData(page);
 
+    // 追加のAPIモック設定
+    await context.route('**/api/v1/auth/me', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          data: {
+            user: {
+              id: '1',
+              email: 'admin@example.com',
+              name: 'Admin User',
+              organizations: [
+                {
+                  id: '1',
+                  name: 'Test Organization',
+                  role: 'admin',
+                },
+              ],
+            },
+            currentOrganization: {
+              id: '1',
+              name: 'Test Organization',
+              role: 'admin',
+            },
+          },
+        }),
+      });
+    });
+
     // ダッシュボードへ移動
-    await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+    await page.goto('/dashboard', { waitUntil: 'networkidle' });
   });
 
   test('デスクトップ表示でメニューが正しく表示される', async ({ page }) => {
@@ -21,6 +50,7 @@ test.describe('Responsive Navigation', () => {
 
     // ページが完全に読み込まれるまで待つ
     await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
 
     // ナビゲーションメニューが表示されていることを確認
     await expect(page.locator('nav').locator('text=ダッシュボード').first()).toBeVisible();
@@ -38,6 +68,7 @@ test.describe('Responsive Navigation', () => {
     // タブレットサイズに設定
     await page.setViewportSize({ width: 900, height: 600 });
     await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
 
     // 主要メニューが表示されていることを確認
     await expect(page.locator('nav').locator('text=ダッシュボード').first()).toBeVisible();
@@ -65,6 +96,7 @@ test.describe('Responsive Navigation', () => {
     // モバイルサイズに設定
     await page.setViewportSize({ width: 375, height: 667 });
     await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
 
     // ハンバーガーメニューボタンが表示されていることを確認
     const hamburgerButton = page.locator('button[aria-label="メニューを開く"]');
@@ -110,6 +142,7 @@ test.describe('Responsive Navigation', () => {
 
   test('レスポンシブブレークポイントで正しく切り替わる', async ({ page }) => {
     await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
 
     // 1024px（lg）でデスクトップメニュー
     await page.setViewportSize({ width: 1024, height: 768 });
@@ -150,6 +183,7 @@ test.describe('Responsive Navigation', () => {
     // モバイルサイズで確認
     await page.setViewportSize({ width: 375, height: 667 });
     await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(500);
 
     // ハンバーガーメニューを開く
     await page.locator('button[aria-label="メニューを開く"]').click();

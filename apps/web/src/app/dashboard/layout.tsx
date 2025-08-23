@@ -60,8 +60,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between h-16">
               <div className="flex">
-                {/* モバイル用ハンバーガーメニュー */}
-                <div className="flex items-center lg:hidden">
+                {/* モバイル用ハンバーガーメニュー (768px未満) */}
+                <div className="flex items-center md:hidden">
                   <button
                     onClick={() => setMobileMenuOpen(true)}
                     className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
