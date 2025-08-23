@@ -28,19 +28,11 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
 });
 
-// Mock window.location - Jest 30 compatible way
-const mockLocation = {
-  href: '',
-  assign: jest.fn(),
-  reload: jest.fn(),
-};
-delete (window as { location?: Location }).location;
-window.location = mockLocation as unknown as Location;
+// window.locationのモックは不要（実際のコードでは使用されていない）
 
 describe('ApiClient - エラーハンドリングとローディング状態', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockLocation.href = '';
   });
 
   describe('ネットワークエラーのユーザーシナリオ', () => {
