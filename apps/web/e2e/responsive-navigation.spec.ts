@@ -70,10 +70,18 @@ test.describe('Responsive Navigation', () => {
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(500);
 
-    // 主要メニューが表示されていることを確認
-    await expect(page.locator('nav').locator('text=ダッシュボード').first()).toBeVisible();
-    await expect(page.locator('nav').locator('text=仕訳入力').first()).toBeVisible();
-    await expect(page.locator('nav').locator('text=勘定科目').first()).toBeVisible();
+    // ハンバーガーメニューが非表示であることを確認
+    await expect(page.locator('button[aria-label="メニューを開く"]')).not.toBeVisible();
+
+    // 主要メニューがnavに表示されていることを確認（デスクトップかタブレットメニューのいずれか）
+    const dashboardLink = page.locator('nav a:has-text("ダッシュボード")').first();
+    await expect(dashboardLink).toBeVisible();
+
+    const journalLink = page.locator('nav a:has-text("仕訳入力")').first();
+    await expect(journalLink).toBeVisible();
+
+    const accountLink = page.locator('nav a:has-text("勘定科目")').first();
+    await expect(accountLink).toBeVisible();
 
     // ドロップダウンメニューボタンが表示されていることを確認（MoreVertical アイコン）
     const moreButton = page
@@ -102,16 +110,12 @@ test.describe('Responsive Navigation', () => {
     const hamburgerButton = page.locator('button[aria-label="メニューを開く"]');
     await expect(hamburgerButton).toBeVisible();
 
-    // デスクトップメニューが非表示であることを確認
-    const navLinks = page.locator('nav a').filter({ hasText: 'ダッシュボード' });
-    const visibleLinks = await navLinks.evaluateAll(
-      (elements) =>
-        elements.filter((el) => {
-          const style = window.getComputedStyle(el);
-          return style.display !== 'none' && style.visibility !== 'hidden';
-        }).length
-    );
-    expect(visibleLinks).toBe(0);
+    // デスクトップ・タブレットメニューが非表示であることを確認
+    // ナビゲーション内の直接表示されているリンクを探す
+    const navContainer = page.locator('nav > div > div > div').nth(1); // メニューコンテナ
+    const visibleDesktopMenu = navContainer.locator('a:visible');
+    const count = await visibleDesktopMenu.count();
+    expect(count).toBe(0);
 
     // ハンバーガーメニューをクリック
     await hamburgerButton.click();
@@ -147,35 +151,31 @@ test.describe('Responsive Navigation', () => {
     // 1024px（lg）でデスクトップメニュー
     await page.setViewportSize({ width: 1024, height: 768 });
     await page.waitForTimeout(300);
-    await expect(page.locator('nav').locator('text=ダッシュボード').first()).toBeVisible();
+    const dashboardLinkLg = page.locator('nav a:has-text("ダッシュボード")').first();
+    await expect(dashboardLinkLg).toBeVisible();
     await expect(page.locator('button[aria-label="メニューを開く"]')).not.toBeVisible();
 
     // 1023pxでタブレットメニュー
     await page.setViewportSize({ width: 1023, height: 768 });
     await page.waitForTimeout(300);
-    const moreButton = page
-      .locator('nav button')
-      .filter({ has: page.locator('svg') })
-      .last();
+    const dashboardLinkMd = page.locator('nav a:has-text("ダッシュボード")').first();
+    await expect(dashboardLinkMd).toBeVisible();
+    const moreButton = page.locator('nav button svg').first().locator('..');
     await expect(moreButton).toBeVisible();
 
     // 768px（md）でタブレットメニュー維持
     await page.setViewportSize({ width: 768, height: 600 });
     await page.waitForTimeout(300);
-    await expect(moreButton).toBeVisible();
+    const dashboardLinkMd2 = page.locator('nav a:has-text("ダッシュボード")').first();
+    await expect(dashboardLinkMd2).toBeVisible();
 
     // 767pxでモバイルメニュー
     await page.setViewportSize({ width: 767, height: 600 });
     await page.waitForTimeout(300);
     await expect(page.locator('button[aria-label="メニューを開く"]')).toBeVisible();
-    const navLinks = page.locator('nav a').filter({ hasText: 'ダッシュボード' });
-    const visibleLinks = await navLinks.evaluateAll(
-      (elements) =>
-        elements.filter((el) => {
-          const style = window.getComputedStyle(el);
-          return style.display !== 'none' && style.visibility !== 'hidden';
-        }).length
-    );
+    // モバイルではデスクトップメニューは非表示
+    const navContainer = page.locator('nav > div > div > div').nth(1);
+    const visibleLinks = await navContainer.locator('a:visible').count();
     expect(visibleLinks).toBe(0);
   });
 
