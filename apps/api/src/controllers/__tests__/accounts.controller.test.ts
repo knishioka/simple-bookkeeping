@@ -15,6 +15,21 @@ import {
   createTestUser,
 } from '../../test-utils/test-helpers';
 
+// Type for account response in tests
+interface AccountResponse {
+  id: string;
+  code: string;
+  name: string;
+  accountType: AccountType;
+  parent?: {
+    id: string;
+    code: string;
+    name: string;
+  };
+  description?: string;
+  isActive: boolean;
+}
+
 describe('AccountsController', () => {
   let testSetup: Awaited<ReturnType<typeof createFullTestSetup>>;
 
@@ -121,7 +136,7 @@ describe('AccountsController', () => {
         .set('Authorization', `Bearer ${testSetup.token}`);
 
       expect(response.status).toBe(200);
-      const childAccount = response.body.data.find((a: any) => a.code === childCode);
+      const childAccount = response.body.data.find((a: AccountResponse) => a.code === childCode);
       expect(childAccount).toBeDefined();
       expect(childAccount.parent).toBeDefined();
       expect(childAccount.parent.code).toBe(parentCode);

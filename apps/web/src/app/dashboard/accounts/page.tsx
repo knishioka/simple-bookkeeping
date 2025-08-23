@@ -175,8 +175,13 @@ export default function AccountsPage() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      {/* TODO: Implement parent account display */}
-                      <span className="text-gray-400">-</span>
+                      {account.parent ? (
+                        <span className="text-sm">
+                          {account.parent.code} - {account.parent.name}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <span
