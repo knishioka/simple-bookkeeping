@@ -3,6 +3,7 @@ export * from './organization';
 export * from './account';
 export * from './accountingPeriod';
 export * from './journal';
+export * from './partner';
 export * from './ledger';
 export * from './report';
 export * from './api';

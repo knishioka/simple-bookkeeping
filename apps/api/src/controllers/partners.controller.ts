@@ -575,3 +575,270 @@ export const deletePartner = async (req: AuthenticatedRequest, res: Response): P
     });
   }
 };
+
+/**
+ * @swagger
+ * /api/v1/partners/{id}/transactions:
+ *   get:
+ *     summary: Get partner transactions
+ *     description: Retrieve all journal entries related to a specific partner
+ *     tags: [Partners]
+ *     parameters:
+ *       - $ref: '#/components/parameters/organizationId'
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         description: Partner ID
+ *         schema:
+ *           type: string
+ *       - name: startDate
+ *         in: query
+ *         description: Start date for filtering transactions
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - name: endDate
+ *         in: query
+ *         description: End date for filtering transactions
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: List of partner transactions
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/JournalEntry'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
+ */
+export const getPartnerTransactions = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { startDate, endDate } = req.query;
+    const organizationId = req.user?.organizationId;
+
+    // Check if partner exists
+    const partner = await prisma.partner.findFirst({
+      where: {
+        id,
+        organizationId,
+      },
+    });
+
+    if (!partner) {
+      res.status(404).json({
+        error: {
+          code: 'NOT_FOUND',
+          message: '取引先が見つかりません',
+        },
+      });
+      return;
+    }
+
+    // Build query filters
+    const where: Record<string, unknown> = {
+      partnerId: id,
+      organizationId,
+    };
+
+    if (startDate || endDate) {
+      where.entryDate = {};
+      if (startDate) {
+        (where.entryDate as Record<string, unknown>).gte = new Date(startDate as string);
+      }
+      if (endDate) {
+        (where.entryDate as Record<string, unknown>).lte = new Date(endDate as string);
+      }
+    }
+
+    // Get transactions with related data
+    const transactions = await prisma.journalEntry.findMany({
+      where,
+      include: {
+        lines: {
+          include: {
+            account: true,
+          },
+        },
+        accountingPeriod: true,
+      },
+      orderBy: {
+        entryDate: 'desc',
+      },
+    });
+
+    res.json({
+      data: transactions,
+    });
+  } catch (error) {
+    logger.error('Get partner transactions error:', error);
+    res.status(500).json({
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: '取引履歴の取得中にエラーが発生しました',
+      },
+    });
+  }
+};
+
+/**
+ * @swagger
+ * /api/v1/partners/{id}/balance:
+ *   get:
+ *     summary: Get partner balance
+ *     description: Calculate and retrieve the current balance for a specific partner
+ *     tags: [Partners]
+ *     parameters:
+ *       - $ref: '#/components/parameters/organizationId'
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         description: Partner ID
+ *         schema:
+ *           type: string
+ *       - name: asOfDate
+ *         in: query
+ *         description: Calculate balance as of this date
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: Partner balance information
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     partnerId:
+ *                       type: string
+ *                     partnerName:
+ *                       type: string
+ *                     receivableBalance:
+ *                       type: number
+ *                       description: Amount receivable from partner (売掛金)
+ *                     payableBalance:
+ *                       type: number
+ *                       description: Amount payable to partner (買掛金)
+ *                     netBalance:
+ *                       type: number
+ *                       description: Net balance (receivable - payable)
+ *                     asOfDate:
+ *                       type: string
+ *                       format: date
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         $ref: '#/components/responses/NotFound'
+ *       500:
+ *         $ref: '#/components/responses/InternalError'
+ */
+export const getPartnerBalance = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { asOfDate } = req.query;
+    const organizationId = req.user?.organizationId;
+
+    // Check if partner exists
+    const partner = await prisma.partner.findFirst({
+      where: {
+        id,
+        organizationId,
+      },
+    });
+
+    if (!partner) {
+      res.status(404).json({
+        error: {
+          code: 'NOT_FOUND',
+          message: '取引先が見つかりません',
+        },
+      });
+      return;
+    }
+
+    // Build query filters
+    const where: Record<string, unknown> = {
+      partnerId: id,
+      organizationId,
+    };
+
+    if (asOfDate) {
+      where.entryDate = { lte: new Date(asOfDate as string) };
+    }
+
+    // Get all transactions for this partner
+    const transactions = await prisma.journalEntry.findMany({
+      where,
+      include: {
+        lines: {
+          include: {
+            account: true,
+          },
+        },
+      },
+    });
+
+    // Calculate balances
+    let receivableBalance = 0; // 売掛金
+    let payableBalance = 0; // 買掛金
+
+    for (const transaction of transactions) {
+      for (const line of transaction.lines) {
+        // Check if account is receivable (売掛金) or payable (買掛金)
+        // Assuming accounts have codes like '1140' for receivables and '2110' for payables
+        if (line.account.accountType === 'ASSET' && line.account.code.startsWith('114')) {
+          // Receivables: Debit increases, Credit decreases
+          receivableBalance += Number(line.debitAmount) - Number(line.creditAmount);
+        } else if (
+          line.account.accountType === 'LIABILITY' &&
+          line.account.code.startsWith('211')
+        ) {
+          // Payables: Credit increases, Debit decreases
+          payableBalance += Number(line.creditAmount) - Number(line.debitAmount);
+        }
+      }
+    }
+
+    const netBalance = receivableBalance - payableBalance;
+
+    res.json({
+      data: {
+        partnerId: partner.id,
+        partnerName: partner.name,
+        receivableBalance,
+        payableBalance,
+        netBalance,
+        asOfDate: asOfDate || new Date().toISOString().split('T')[0],
+      },
+    });
+  } catch (error) {
+    logger.error('Get partner balance error:', error);
+    res.status(500).json({
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: '残高の取得中にエラーが発生しました',
+      },
+    });
+  }
+};
