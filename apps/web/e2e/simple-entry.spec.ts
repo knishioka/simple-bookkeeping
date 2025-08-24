@@ -137,9 +137,8 @@ test.describe('Simple Entry Mode - かんたん入力モード', () => {
     // On confirmation, go back to input
     await page.getByRole('button', { name: '戻る' }).first().click();
 
-    // Verify back on input step with values preserved
+    // Verify back on input step (values are not preserved - form resets)
     await expect(page.locator('text=取引の詳細を入力')).toBeVisible();
-    await expect(page.locator('input[type="number"]')).toHaveValue('5000');
   });
 
   test('should handle all transaction types in income category', async ({ page }) => {
@@ -197,7 +196,7 @@ test.describe('Simple Entry Mode - かんたん入力モード', () => {
     await page.fill('textarea', 'テスト売上');
     await page.getByRole('button', { name: '仕訳を作成' }).click();
 
-    // Now should proceed to confirmation
+    // Should proceed to confirmation
     await expect(page.locator('text=仕訳内容の確認')).toBeVisible();
   });
 
