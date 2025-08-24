@@ -9,3 +9,4 @@ export * from './report';
 export * from './api';
 export * from './common';
 export * from './enums';
+export * from './simple-entry';
