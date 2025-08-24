@@ -63,7 +63,13 @@
     "check:all": "pnpm check:deps && pnpm check:types && pnpm check:imports",
     "precommit:check": "./scripts/check-build.sh",
     "prepush:check": "./scripts/check-full-build.sh",
-    "build:check": "pnpm build:packages && NODE_ENV=production pnpm --filter @simple-bookkeeping/web build && pnpm --filter @simple-bookkeeping/api build"
+    "build:check": "pnpm build:packages && NODE_ENV=production pnpm --filter @simple-bookkeeping/web build && pnpm --filter @simple-bookkeeping/api build",
+    "health": "node scripts/check-service-health.js",
+    "health:quick": "echo '🏥 サービス状態チェック' && (curl -s -o /dev/null -w 'Web (3000): %{http_code}\\n' http://localhost:3000 || echo 'Web (3000): ❌') && (curl -s -o /dev/null -w 'API (3001): %{http_code}\\n' http://localhost:3001/api/v1/health || echo 'API (3001): ❌')",
+    "test:failing": "cd apps/web && REUSE_SERVER=true npx playwright test e2e/accounting-periods.spec.ts:55:174 e2e/audit-logs.spec.ts:81:95:122:145:193 e2e/extended-coverage.spec.ts:68 --project=chromium --reporter=list --timeout=20000",
+    "test:accounting": "cd apps/web && REUSE_SERVER=true npx playwright test e2e/accounting-periods.spec.ts --project=chromium --reporter=list",
+    "test:audit": "cd apps/web && REUSE_SERVER=true npx playwright test e2e/audit-logs.spec.ts --project=chromium --reporter=list",
+    "test:demo": "cd apps/web && REUSE_SERVER=true npx playwright test e2e/extended-coverage.spec.ts --project=chromium --reporter=list"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",

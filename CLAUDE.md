@@ -42,6 +42,17 @@ pnpm test                    # 全テスト
 pnpm test:e2e               # E2Eテスト
 pnpm test:coverage          # カバレッジ付きテスト
 
+# 問題のあるテストの確認
+pnpm test:failing           # 失敗した8つのテストのみ実行
+pnpm test:accounting        # 会計期間管理のテスト
+pnpm test:audit            # 監査ログのテスト
+pnpm test:demo             # デモページのテスト
+
+# サービス状態確認
+pnpm health                 # Web/APIサービスの状態確認
+pnpm health:services       # HTTP応答確認
+pnpm health:api           # Port 3001の使用状況確認
+
 # DB操作
 pnpm db:init                # DB初期化（マイグレーション＋シード）
 pnpm db:migrate             # マイグレーション
