@@ -217,6 +217,15 @@ pnpm lint                    # ESLint/Prettier
 pnpm typecheck              # TypeScript型チェック
 ```
 
+### サービス状態確認
+
+```bash
+# サービスのヘルスチェック
+pnpm health                 # Web/APIサービスの状態確認
+pnpm health:services       # HTTP応答確認
+pnpm health:api           # Port 3001の使用状況確認
+```
+
 詳細は[npmスクリプトガイド](./docs/npm-scripts-guide.md)を参照。
 
 ## テスト
@@ -238,6 +247,18 @@ pnpm --filter @simple-bookkeeping/web test:e2e:stories
 
 # カバレッジレポート
 pnpm test:coverage
+```
+
+### 問題のあるテストの確認
+
+```bash
+# 失敗したテストのみ再実行
+pnpm test:failing           # 失敗した8つのテストのみ実行
+
+# カテゴリ別テスト実行
+pnpm test:accounting        # 会計期間管理のテスト
+pnpm test:audit            # 監査ログのテスト
+pnpm test:demo             # デモページのテスト
 ```
 
 ### データベースコマンド
