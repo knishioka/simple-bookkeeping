@@ -43,7 +43,7 @@ test.describe('Simple Entry Mode - かんたん入力モード', () => {
     await page.fill('textarea', 'テスト売上');
 
     // Submit the form
-    await page.locator('button:has-text("仕訳を作成")').click();
+    await page.getByRole('button', { name: '仕訳を作成' }).first().click();
 
     // Step 3: Verify confirmation page
     await expect(page.locator('text=仕訳内容の確認')).toBeVisible();
@@ -54,7 +54,7 @@ test.describe('Simple Entry Mode - かんたん入力モード', () => {
     await expect(page.locator('td:has-text("4110 - 売上高")')).toBeVisible();
 
     // Confirm creation
-    await page.locator('button:has-text("仕訳を作成")').click();
+    await page.getByRole('button', { name: '仕訳を作成' }).last().click();
 
     // Verify success message
     await expect(page.locator('text=仕訳が正常に作成されました')).toBeVisible();
@@ -79,7 +79,7 @@ test.describe('Simple Entry Mode - かんたん入力モード', () => {
     await page.fill('textarea', '電車代');
 
     // Submit
-    await page.locator('button:has-text("仕訳を作成")').click();
+    await page.getByRole('button', { name: '仕訳を作成' }).click();
 
     // Step 3: Verify confirmation
     await expect(page.locator('text=仕訳内容の確認')).toBeVisible();
@@ -99,13 +99,13 @@ test.describe('Simple Entry Mode - かんたん入力モード', () => {
 
     // Select tax rate
     await page.locator('button[role="combobox"]').last().click();
-    await page.locator('text=10%').click();
+    await page.getByRole('option', { name: '10%' }).click();
 
     // Fill description
     await page.fill('textarea', '消費税込み売上');
 
     // Submit
-    await page.locator('button:has-text("仕訳を作成")').click();
+    await page.getByRole('button', { name: '仕訳を作成' }).click();
 
     // Verify tax is calculated in confirmation
     await expect(page.locator('text=仕訳内容の確認')).toBeVisible();
@@ -123,7 +123,7 @@ test.describe('Simple Entry Mode - かんたん入力モード', () => {
     await expect(page.locator('text=取引の詳細を入力')).toBeVisible();
 
     // Go back to selection
-    await page.locator('button:has-text("戻る")').click();
+    await page.getByRole('button', { name: '戻る' }).first().click();
 
     // Verify back on selection step
     await expect(page.locator('text=取引の種類を選択')).toBeVisible();
@@ -132,10 +132,10 @@ test.describe('Simple Entry Mode - かんたん入力モード', () => {
     await page.locator('text=現金売上').click();
     await page.fill('input[type="number"]', '5000');
     await page.fill('textarea', 'テスト');
-    await page.locator('button:has-text("仕訳を作成")').click();
+    await page.getByRole('button', { name: '仕訳を作成' }).click();
 
     // On confirmation, go back to input
-    await page.locator('button:has-text("戻る")').click();
+    await page.getByRole('button', { name: '戻る' }).first().click();
 
     // Verify back on input step with values preserved
     await expect(page.locator('text=取引の詳細を入力')).toBeVisible();
@@ -156,13 +156,13 @@ test.describe('Simple Entry Mode - かんたん入力モード', () => {
       await page.fill('textarea', `${type}のテスト`);
 
       // Submit
-      await page.locator('button:has-text("仕訳を作成")').click();
+      await page.getByRole('button', { name: '仕訳を作成' }).click();
 
       // Verify confirmation page appears
       await expect(page.locator('text=仕訳内容の確認')).toBeVisible();
 
       // Go back to start for next iteration
-      await page.locator('button:has-text("仕訳を作成")').click();
+      await page.getByRole('button', { name: '仕訳を作成' }).click();
       await expect(page.locator('text=仕訳が正常に作成されました')).toBeVisible();
     }
   });
@@ -181,21 +181,21 @@ test.describe('Simple Entry Mode - かんたん入力モード', () => {
     await page.locator('text=現金売上').click();
 
     // Try to submit without filling required fields
-    await page.locator('button:has-text("仕訳を作成")').click();
+    await page.getByRole('button', { name: '仕訳を作成' }).click();
 
     // Should show validation errors (form should not proceed)
     await expect(page.locator('text=取引の詳細を入力')).toBeVisible();
 
     // Fill only amount and try again
     await page.fill('input[type="number"]', '5000');
-    await page.locator('button:has-text("仕訳を作成")').click();
+    await page.getByRole('button', { name: '仕訳を作成' }).click();
 
     // Should still be on input page due to missing description
     await expect(page.locator('text=取引の詳細を入力')).toBeVisible();
 
     // Fill description
     await page.fill('textarea', 'テスト売上');
-    await page.locator('button:has-text("仕訳を作成")').click();
+    await page.getByRole('button', { name: '仕訳を作成' }).click();
 
     // Now should proceed to confirmation
     await expect(page.locator('text=仕訳内容の確認')).toBeVisible();
@@ -210,7 +210,7 @@ test.describe('Simple Entry Mode - かんたん入力モード', () => {
     await page.fill('textarea', '現金を銀行に預入');
 
     // Submit
-    await page.locator('button:has-text("仕訳を作成")').click();
+    await page.getByRole('button', { name: '仕訳を作成' }).click();
 
     // Check that debit and credit are balanced
     const debitTotal = page.locator('tr.font-medium td').nth(1);
