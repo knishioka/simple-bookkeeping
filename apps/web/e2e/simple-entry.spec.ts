@@ -47,11 +47,11 @@ test.describe('Simple Entry Mode - かんたん入力モード', () => {
 
     // Step 3: Verify confirmation page
     await expect(page.locator('text=仕訳内容の確認')).toBeVisible();
-    await expect(page.locator('text=作成される仕訳')).toBeVisible();
+    await expect(page.getByRole('heading', { name: '作成される仕訳' })).toBeVisible();
 
     // Check the journal entry preview
-    await expect(page.locator('text=1110 - 現金')).toBeVisible();
-    await expect(page.locator('text=4110 - 売上高')).toBeVisible();
+    await expect(page.locator('td:has-text("1110 - 現金")')).toBeVisible();
+    await expect(page.locator('td:has-text("4110 - 売上高")')).toBeVisible();
 
     // Confirm creation
     await page.locator('button:has-text("仕訳を作成")').click();
@@ -72,7 +72,7 @@ test.describe('Simple Entry Mode - かんたん入力モード', () => {
 
     // Select an expense account
     await page.locator('button[role="combobox"]').first().click();
-    await page.locator('text=5230 - 旅費交通費').click();
+    await page.getByRole('option', { name: '5230 - 旅費交通費' }).click();
 
     // Fill in other fields
     await page.fill('input[type="number"]', '5000');
@@ -83,8 +83,8 @@ test.describe('Simple Entry Mode - かんたん入力モード', () => {
 
     // Step 3: Verify confirmation
     await expect(page.locator('text=仕訳内容の確認')).toBeVisible();
-    await expect(page.locator('text=5230 - 旅費交通費')).toBeVisible();
-    await expect(page.locator('text=1110 - 現金')).toBeVisible();
+    await expect(page.locator('td:has-text("5230 - 旅費交通費")')).toBeVisible();
+    await expect(page.locator('td:has-text("1110 - 現金")')).toBeVisible();
   });
 
   test('should handle tax calculation for sales', async ({ page }) => {
