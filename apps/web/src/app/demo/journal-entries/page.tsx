@@ -1,9 +1,10 @@
 'use client';
 
-import { Calendar, Plus, Search } from 'lucide-react';
+import { Calendar, Plus, Search, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
 import { JournalEntryDialogDemo } from '@/components/journal-entries/journal-entry-dialog-demo';
+import { SimpleEntryDialog } from '@/components/simple-entry/simple-entry-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -176,11 +177,32 @@ const mockEntries: JournalEntry[] = [
   },
 ];
 
+// Mock accounts for demo
+const mockAccounts = [
+  { id: '1', code: '1110', name: '現金', accountType: 'ASSET' },
+  { id: '2', code: '1120', name: '当座預金', accountType: 'ASSET' },
+  { id: '3', code: '1130', name: '普通預金', accountType: 'ASSET' },
+  { id: '4', code: '1140', name: '売掛金', accountType: 'ASSET' },
+  { id: '5', code: '1150', name: '仮払消費税', accountType: 'ASSET' },
+  { id: '6', code: '2110', name: '買掛金', accountType: 'LIABILITY' },
+  { id: '7', code: '2140', name: '仮受消費税', accountType: 'LIABILITY' },
+  { id: '8', code: '4110', name: '売上高', accountType: 'REVENUE' },
+  { id: '9', code: '5110', name: '仕入高', accountType: 'EXPENSE' },
+  { id: '10', code: '5210', name: '給料手当', accountType: 'EXPENSE' },
+  { id: '11', code: '5220', name: '法定福利費', accountType: 'EXPENSE' },
+  { id: '12', code: '5230', name: '旅費交通費', accountType: 'EXPENSE' },
+  { id: '13', code: '5240', name: '通信費', accountType: 'EXPENSE' },
+  { id: '14', code: '5250', name: '消耗品費', accountType: 'EXPENSE' },
+  { id: '15', code: '5260', name: '水道光熱費', accountType: 'EXPENSE' },
+  { id: '16', code: '5270', name: '支払手数料', accountType: 'EXPENSE' },
+];
+
 export default function DemoJournalEntriesPage() {
   const [entries] = useState<JournalEntry[]>(mockEntries);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [simpleDialogOpen, setSimpleDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>('');
 
@@ -236,10 +258,16 @@ export default function DemoJournalEntriesPage() {
 
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">仕訳入力</h1>
-        <Button onClick={handleCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          新規作成
-        </Button>
+        <div className="flex space-x-2">
+          <Button onClick={() => setSimpleDialogOpen(true)} variant="outline">
+            <Sparkles className="mr-2 h-4 w-4" />
+            かんたん入力
+          </Button>
+          <Button onClick={handleCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            新規作成
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -368,6 +396,17 @@ export default function DemoJournalEntriesPage() {
         onSuccess={() => {
           // Demo: Journal entry saved
           setDialogOpen(false);
+        }}
+      />
+
+      <SimpleEntryDialog
+        open={simpleDialogOpen}
+        onOpenChange={setSimpleDialogOpen}
+        accounts={mockAccounts}
+        onSubmit={async (journalEntry) => {
+          // Demo: Simple entry converted to journal entry
+          void journalEntry; // Acknowledge parameter
+          setSimpleDialogOpen(false);
         }}
       />
     </div>

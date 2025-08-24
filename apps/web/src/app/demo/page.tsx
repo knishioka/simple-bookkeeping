@@ -34,6 +34,19 @@ export default function DemoPage() {
       ],
     },
     {
+      title: 'かんたん入力',
+      description: '会計知識不要の簡易入力モードのデモ',
+      href: '/demo/simple-entry',
+      features: [
+        '取引パターンから選ぶだけ',
+        '借方・貸方を意識しない入力',
+        '自動的に複式簿記の仕訳を生成',
+        '消費税の自動計算',
+        '初心者にやさしいUI',
+        'わかりやすいアイコン表示',
+      ],
+    },
+    {
       title: '取引先管理',
       description: '顧客と仕入先の情報を管理する機能のデモ',
       href: '/demo/partners',
