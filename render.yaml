@@ -4,8 +4,8 @@ services:
     runtime: node
     plan: free # 無料プランを明示的に指定
     region: singapore
-    buildCommand: pnpm install --prod=false && cd packages/database && npx prisma generate && cd ../.. && pnpm --filter @simple-bookkeeping/database build && pnpm --filter @simple-bookkeeping/types build && pnpm --filter @simple-bookkeeping/errors build && pnpm --filter @simple-bookkeeping/core build && pnpm --filter @simple-bookkeeping/shared build && pnpm --filter @simple-bookkeeping/api build && chmod +x scripts/start-production.sh
-    startCommand: ./scripts/start-production.sh
+    buildCommand: pnpm install --prod=false && cd packages/database && npx prisma generate && cd ../.. && pnpm --filter @simple-bookkeeping/database build && pnpm --filter @simple-bookkeeping/types build && pnpm --filter @simple-bookkeeping/errors build && pnpm --filter @simple-bookkeeping/core build && pnpm --filter @simple-bookkeeping/shared build && pnpm --filter @simple-bookkeeping/api build && chmod +x scripts/start-production.sh && chmod +x scripts/start-production-fast.sh
+    startCommand: ./scripts/start-production-fast.sh
     envVars:
       - key: NODE_ENV
         value: production
