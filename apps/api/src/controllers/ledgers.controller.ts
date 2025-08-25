@@ -91,7 +91,21 @@ export const getCashBook = async (req: Request, res: Response) => {
       organizationId: (req as AuthenticatedRequest).user?.organizationId,
       startDate: req.query.startDate,
       endDate: req.query.endDate,
+      prismaError: error instanceof Error && 'code' in error ? error.code : undefined,
+      fullError: error,
     });
+
+    // Check for specific Prisma errors
+    if (error instanceof Error) {
+      if ('code' in error && (error.code === 'P2021' || error.code === 'P2022')) {
+        console.error('Database schema issue detected. Migration may be required.', error);
+        return res.status(500).json({
+          error: 'Database schema is out of sync. Please contact support.',
+          code: 'DB_SCHEMA_ERROR',
+        });
+      }
+    }
+
     res.status(500).json({ error: 'Failed to get cash book' });
   }
 };
@@ -172,7 +186,24 @@ export const getBankBook = async (req: Request, res: Response) => {
       organizationId: (req as AuthenticatedRequest).user?.organizationId,
       startDate: req.query.startDate,
       endDate: req.query.endDate,
+      prismaError: error instanceof Error && 'code' in error ? error.code : undefined,
+      fullError: error,
     });
+
+    // Check for specific Prisma errors
+    if (error instanceof Error) {
+      // P2002: Unique constraint violation
+      // P2021: Table does not exist
+      // P2022: Column does not exist
+      if ('code' in error && (error.code === 'P2021' || error.code === 'P2022')) {
+        console.error('Database schema issue detected. Migration may be required.', error);
+        return res.status(500).json({
+          error: 'Database schema is out of sync. Please contact support.',
+          code: 'DB_SCHEMA_ERROR',
+        });
+      }
+    }
+
     res.status(500).json({ error: 'Failed to get bank book' });
   }
 };
@@ -240,7 +271,21 @@ export const getAccountsReceivable = async (req: Request, res: Response) => {
       organizationId: (req as AuthenticatedRequest).user?.organizationId,
       startDate: req.query.startDate,
       endDate: req.query.endDate,
+      prismaError: error instanceof Error && 'code' in error ? error.code : undefined,
+      fullError: error,
     });
+
+    // Check for specific Prisma errors
+    if (error instanceof Error) {
+      if ('code' in error && (error.code === 'P2021' || error.code === 'P2022')) {
+        console.error('Database schema issue detected. Migration may be required.', error);
+        return res.status(500).json({
+          error: 'Database schema is out of sync. Please contact support.',
+          code: 'DB_SCHEMA_ERROR',
+        });
+      }
+    }
+
     res.status(500).json({ error: 'Failed to get accounts receivable' });
   }
 };
@@ -308,7 +353,21 @@ export const getAccountsPayable = async (req: Request, res: Response) => {
       organizationId: (req as AuthenticatedRequest).user?.organizationId,
       startDate: req.query.startDate,
       endDate: req.query.endDate,
+      prismaError: error instanceof Error && 'code' in error ? error.code : undefined,
+      fullError: error,
     });
+
+    // Check for specific Prisma errors
+    if (error instanceof Error) {
+      if ('code' in error && (error.code === 'P2021' || error.code === 'P2022')) {
+        console.error('Database schema issue detected. Migration may be required.', error);
+        return res.status(500).json({
+          error: 'Database schema is out of sync. Please contact support.',
+          code: 'DB_SCHEMA_ERROR',
+        });
+      }
+    }
+
     res.status(500).json({ error: 'Failed to get accounts payable' });
   }
 };
