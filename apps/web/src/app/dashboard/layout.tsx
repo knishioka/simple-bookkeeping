@@ -89,7 +89,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         >
                           {item.name}
                         </button>
-                        <div className="absolute left-0 top-full mt-1 w-48 rounded-md shadow-lg bg-white/98 backdrop-blur-md ring-1 ring-black ring-opacity-5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                        <div className="absolute left-0 top-full mt-1 w-48 rounded-md shadow-lg bg-white dark:bg-gray-900 ring-1 ring-black ring-opacity-5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                           <div className="py-1">
                             {item.children.map((child) => (
                               <Link
