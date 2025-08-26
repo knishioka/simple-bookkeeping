@@ -94,10 +94,9 @@ services:
         condition: service_healthy
     environment:
       NEXT_PUBLIC_API_URL: http://api-test:3001/api/v1
-      # Supabase Auth settings for test environment (using dummy values)
-      # These are test-only values that don't connect to any real Supabase instance
-      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-https://dummy.supabase.co}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bW15Iiwicm9sZSI6ImFub24iLCJpYXQiOjE2NDU1NzY4MDAsImV4cCI6MTk2MTE1MjgwMH0.dummy_key_for_testing}
+      # Supabase Auth settings (must be provided via environment variables or .env file)
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
       # Legacy auth settings (kept for backward compatibility)
       NEXTAUTH_SECRET: test-nextauth-secret-for-e2e
       NEXTAUTH_URL: http://web-test:3000
@@ -143,10 +142,9 @@ services:
       # Legacy variables for backward compatibility (will be removed in future)
       BASE_URL: http://web-test:3000
       API_URL: http://api-test:3001
-      # Supabase Auth settings for test environment (using dummy values)
-      # These are test-only values that don't connect to any real Supabase instance
-      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-https://dummy.supabase.co}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bW15Iiwicm9sZSI6ImFub24iLCJpYXQiOjE2NDU1NzY4MDAsImV4cCI6MTk2MTE1MjgwMH0.dummy_key_for_testing}
+      # Supabase Auth settings (must be provided via environment variables or .env file)
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
       # Environment detection
       DOCKER_ENV: 'true'
       CI: 'true'
