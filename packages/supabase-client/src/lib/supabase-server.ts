@@ -5,7 +5,7 @@ import type { Database } from '../types/database.types';
 
 // Create Supabase client for server components
 export async function createSupabaseServerClient() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

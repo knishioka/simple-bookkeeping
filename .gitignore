@@ -139,3 +139,4 @@ test-results/
 *.webm
 *.zip
 results.xml
+.env.docker
