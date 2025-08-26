@@ -31,12 +31,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Skip authentication in test environment when using dummy Supabase
-  if (
-    process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://dummy.supabase.co' &&
-    process.env.NODE_ENV !== 'production'
-  ) {
-    // In test environment with dummy Supabase, allow all routes
+  // Skip authentication in test/development environment when Supabase is not configured
+  const isTestMode =
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://dummy.supabase.co' ||
+    process.env.NODE_ENV === 'test';
+
+  if (isTestMode && process.env.NODE_ENV !== 'production') {
+    // In test environment, allow all routes without authentication
     const response = NextResponse.next();
 
     // Set dummy user context for API routes
