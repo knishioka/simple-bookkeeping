@@ -6,6 +6,13 @@ import { PORTS, TIMEOUTS, getTestEnvironment } from '@simple-bookkeeping/config'
  * Issue #203対応: E2Eテスト環境の環境変数管理を統一
  */
 
+// Set Supabase env vars for E2E tests (required by middleware in feature branch)
+process.env.NEXT_PUBLIC_SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://dummy.supabase.co';
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bW15Iiwicm9sZSI6ImFub24iLCJpYXQiOjE2NDU1NzY4MDAsImV4cCI6MTk2MTE1MjgwMH0.dummy_key_for_testing';
+
 // Get unified test environment configuration
 const testEnv = getTestEnvironment();
 
