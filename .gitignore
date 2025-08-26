@@ -122,6 +122,10 @@ railway.json
 supabase/.env
 supabase/.env.*
 !supabase/.env.example
+supabase/.branches
+supabase/.temp
+.env.supabase
+!.env.supabase.example
 
 # Render
 .render/
