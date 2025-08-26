@@ -65,9 +65,7 @@ test.describe('拡張テストカバレッジ', () => {
       ).toBeVisible({ timeout: 5000 });
     });
 
-    test.skip('デモトップページから各ページへナビゲート（basic.spec.tsと重複のため一時スキップ）', async ({
-      page,
-    }) => {
+    test.skip('デモトップページから各ページへナビゲート（basic.spec.tsと重複のため一時スキップ）', async () => {
       // このテストはbasic.spec.tsのデモページテストと重複しているため一時的にスキップ
     });
   });
