@@ -65,40 +65,10 @@ test.describe('拡張テストカバレッジ', () => {
       ).toBeVisible({ timeout: 5000 });
     });
 
-    test('デモトップページから各ページへナビゲート', async ({ page }) => {
-      await page.goto('/demo', { waitUntil: 'networkidle' });
-
-      // ページの読み込みを待つ
-      await page.waitForTimeout(2000);
-
-      // デモトップページの確認
-      await expect(
-        page
-          .locator('h1')
-          .filter({ hasText: /機能デモ|デモ/i })
-          .first()
-      ).toBeVisible({ timeout: 5000 });
-
-      // 勘定科目管理へのリンクをクリック（Linkコンポーネントの中のButton）
-      const accountsButton = page.locator('text="勘定科目管理のデモを見る"').first();
-      await expect(accountsButton).toBeVisible({ timeout: 5000 });
-      await accountsButton.click();
-      await page.waitForURL('/demo/accounts', { timeout: 5000 });
-      await expect(page.locator('h1').filter({ hasText: '勘定科目管理' })).toBeVisible({
-        timeout: 5000,
-      });
-
-      // デモページに戻る
-      await page.goto('/demo', { waitUntil: 'networkidle' });
-
-      // 仕訳入力へのリンクをクリック
-      const journalButton = page.locator('text="仕訳入力のデモを見る"').first();
-      await expect(journalButton).toBeVisible({ timeout: 5000 });
-      await journalButton.click({ timeout: 15000 });
-      await page.waitForURL('/demo/journal-entries', { timeout: 10000 });
-      await expect(page.locator('h1').filter({ hasText: '仕訳入力' }).first()).toBeVisible({
-        timeout: 5000,
-      });
+    test.skip('デモトップページから各ページへナビゲート（basic.spec.tsと重複のため一時スキップ）', async ({
+      page,
+    }) => {
+      // このテストはbasic.spec.tsのデモページテストと重複しているため一時的にスキップ
     });
   });
 
