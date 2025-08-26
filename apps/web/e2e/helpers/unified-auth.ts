@@ -114,8 +114,29 @@ export class UnifiedAuth {
     options: UnifiedAuthOptions = {}
   ): Promise<void> {
     const { role: userRole = 'admin', customUser, customTokens } = options;
-    const user = { ...PRESET_USERS[userRole], ...customUser };
+    const baseUser = { ...PRESET_USERS[userRole], ...customUser };
     const tokens = { ...DEFAULT_TOKENS, ...customTokens };
+
+    // Add organizations and currentOrganization structure
+    const user = {
+      ...baseUser,
+      organizations: [
+        {
+          id: baseUser.organizationId || 'org-1',
+          name: 'Test Organization',
+          code: 'TEST',
+          role: baseUser.role.toUpperCase() as 'ADMIN' | 'ACCOUNTANT' | 'VIEWER',
+          isDefault: true,
+        },
+      ],
+      currentOrganization: {
+        id: baseUser.organizationId || 'org-1',
+        name: 'Test Organization',
+        code: 'TEST',
+        role: baseUser.role.toUpperCase() as 'ADMIN' | 'ACCOUNTANT' | 'VIEWER',
+        isDefault: true,
+      },
+    };
 
     // ログインAPIモック
     await context.route('**/api/v1/auth/login', async (route) => {
@@ -195,7 +216,7 @@ export class UnifiedAuth {
         body: JSON.stringify(
           isValid
             ? {
-                data: user,
+                data: { user },
               }
             : {
                 error: {

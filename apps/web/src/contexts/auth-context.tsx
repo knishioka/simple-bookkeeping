@@ -56,6 +56,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     // Check if user is already logged in
     const checkAuth = async () => {
+      // Skip auth check for demo pages to avoid 401 errors
+      if (typeof window !== 'undefined' && window.location.pathname.startsWith('/demo')) {
+        setLoading(false);
+        return;
+      }
+
       try {
         const token = localStorage.getItem('token');
         const refreshToken = localStorage.getItem('refreshToken');
