@@ -31,6 +31,23 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Skip authentication in test environment when using dummy Supabase
+  if (
+    process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://dummy.supabase.co' &&
+    process.env.NODE_ENV !== 'production'
+  ) {
+    // In test environment with dummy Supabase, allow all routes
+    const response = NextResponse.next();
+
+    // Set dummy user context for API routes
+    if (pathname.startsWith('/api/')) {
+      response.headers.set('x-user-id', 'test-user-id');
+      response.headers.set('x-organization-id', 'test-org-id');
+    }
+
+    return response;
+  }
+
   // Create Supabase client
   const response = NextResponse.next();
   const supabase = createMiddlewareClient({ req: request, res: response });

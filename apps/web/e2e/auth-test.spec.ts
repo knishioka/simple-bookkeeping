@@ -12,7 +12,7 @@ import { UnifiedMock } from './helpers/unified-mock';
 test.describe('認証フロー', () => {
   test('ログイン処理が正常に動作する', async ({ page, context }) => {
     // 統一モックでAPIレスポンスをセットアップ
-    await UnifiedMock.setupAuthMocks(context);
+    await UnifiedAuth.setupMockRoutes(context);
 
     // ログインフォーム入力ヘルパーを使用（TEST_CREDENTIALSから認証情報を取得）
     await UnifiedAuth.fillLoginForm(page);
