@@ -17,7 +17,7 @@
     "dev": "tsup --watch",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src --ext .ts,.tsx",
+    "lint": "eslint src",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:generate-types": "supabase gen types typescript --project-id=$SUPABASE_PROJECT_ID > src/types/database.types.ts"
   },
@@ -29,9 +29,6 @@
     "@types/node": "^20.11.1",
     "tsup": "^8.0.1",
     "typescript": "^5.3.3",
-    "eslint": "^8.56.0",
-    "@typescript-eslint/parser": "^6.19.0",
-    "@typescript-eslint/eslint-plugin": "^6.19.0",
     "tsx": "^4.7.0",
     "supabase": "^1.142.2",
     "dotenv": "^16.3.1",
