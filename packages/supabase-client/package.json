@@ -22,21 +22,23 @@
     "db:generate-types": "supabase gen types typescript --project-id=$SUPABASE_PROJECT_ID > src/types/database.types.ts"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.3",
-    "@supabase/ssr": "^0.1.0"
+    "@supabase/ssr": "^0.1.0",
+    "@supabase/supabase-js": "^2.39.3"
   },
   "devDependencies": {
+    "@simple-bookkeeping/database": "workspace:*",
     "@types/node": "^20.11.1",
-    "tsup": "^8.0.1",
-    "typescript": "^5.3.3",
-    "tsx": "^4.7.0",
-    "supabase": "^1.142.2",
+    "@types/react": "^19.1.9",
     "dotenv": "^16.3.1",
-    "@simple-bookkeeping/database": "workspace:*"
+    "supabase": "^1.142.2",
+    "tsup": "^8.0.1",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
   },
   "peerDependencies": {
     "@simple-bookkeeping/types": "workspace:*",
-    "next": "^14.0.0",
-    "react": "^18.0.0"
+    "next": ">=14.0.0",
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
   }
 }
