@@ -94,11 +94,10 @@ services:
         condition: service_healthy
     environment:
       NEXT_PUBLIC_API_URL: http://api-test:3001/api/v1
-      NEXTAUTH_SECRET: test-nextauth-secret-for-e2e
-      NEXTAUTH_URL: http://web-test:3000
       NODE_ENV: production
       # Test-specific settings
       NEXT_TELEMETRY_DISABLED: '1'
+      # Note: Authentication is mocked in E2E tests - no real auth provider needed
     # Remove host port mapping for complete isolation (can be enabled for debugging)
     # ports:
     #   - '3010:3000'
@@ -142,6 +141,7 @@ services:
       DOCKER_ENV: 'true'
       CI: 'true'
       NODE_ENV: test
+      # Note: Authentication is mocked in E2E tests - no real auth provider needed
       # Test database connection for setup/teardown
       TEST_DATABASE_URL: postgresql://test:test@postgres-test:5432/bookkeeping_test?schema=public
       DATABASE_URL: postgresql://test:test@postgres-test:5432/bookkeeping_test?schema=public

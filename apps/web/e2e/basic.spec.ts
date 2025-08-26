@@ -50,11 +50,8 @@ test.describe('基本的なページアクセス', () => {
     await expect(page.locator('text=パスワード')).toBeVisible();
   });
 
-  test('デモページが正常に表示される', async ({ page, context }) => {
-    // デモページ用のモックをセットアップ
-    await UnifiedMock.setupDashboardMocks(context);
-
-    // デモページにアクセス
+  test('デモページが正常に表示される', async ({ page }) => {
+    // デモページにアクセス（認証不要）
     await page.goto('/demo');
     await waitForPageReady(page, { waitForSelector: 'h1' });
 
@@ -66,11 +63,8 @@ test.describe('基本的なページアクセス', () => {
     await expect(page.locator('text=仕訳入力のデモを見る')).toBeVisible();
   });
 
-  test('デモ勘定科目ページが正常に表示される', async ({ page, context }) => {
-    // 勘定科目用のモックをセットアップ
-    await UnifiedMock.setupAccountsMocks(context);
-
-    // デモ勘定科目ページにアクセス
+  test('デモ勘定科目ページが正常に表示される', async ({ page }) => {
+    // デモ勘定科目ページにアクセス（認証不要）
     await page.goto('/demo/accounts');
     await waitForPageReady(page, { waitForSelector: 'h1', skipNetworkIdle: true });
 
@@ -86,11 +80,8 @@ test.describe('基本的なページアクセス', () => {
     await expect(page.locator('text=普通預金')).toBeVisible();
   });
 
-  test('デモ仕訳入力ページが正常に表示される', async ({ page, context }) => {
-    // 仕訳用のモックをセットアップ
-    await UnifiedMock.setupJournalMocks(context);
-
-    // デモ仕訳入力ページにアクセス
+  test('デモ仕訳入力ページが正常に表示される', async ({ page }) => {
+    // デモ仕訳入力ページにアクセス（認証不要）
     await page.goto('/demo/journal-entries');
     await page.waitForLoadState('networkidle');
 

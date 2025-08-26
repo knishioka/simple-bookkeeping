@@ -80,10 +80,10 @@ test.describe('Accounting Periods Management', () => {
     });
 
     // Navigate to settings
-    await page.goto('/dashboard/settings', { waitUntil: 'domcontentloaded' });
+    await page.goto('/dashboard/settings', { waitUntil: 'networkidle' });
 
     // Wait for the settings page to load - more flexible selector
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(2000);
     const settingsIndicator = await page
       .locator('h1, h2, h3, [role="heading"]')
       .filter({ hasText: /設定|Settings/i })

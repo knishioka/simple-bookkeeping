@@ -143,6 +143,10 @@ test.describe('Audit Logs', () => {
   });
 
   test('should export audit logs as CSV', async ({ page }) => {
+    // First go to root page and set auth data
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await UnifiedAuth.setAuthData(page, { role: 'admin' });
+
     await page.goto('/dashboard/settings/audit-logs');
     await waitForTestId(page, 'audit-logs-table', { timeout: 5000 });
 
@@ -164,6 +168,10 @@ test.describe('Audit Logs', () => {
   });
 
   test('should paginate through audit logs', async ({ page }) => {
+    // First go to root page and set auth data
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await UnifiedAuth.setAuthData(page, { role: 'admin' });
+
     await page.goto('/dashboard/settings/audit-logs');
 
     // Check if pagination controls exist
