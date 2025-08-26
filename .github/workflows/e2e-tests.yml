@@ -50,6 +50,9 @@ jobs:
 
       - name: Build packages first
         run: pnpm build:packages
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
 
       - name: Build API application
         run: pnpm --filter @simple-bookkeeping/api build
@@ -62,6 +65,8 @@ jobs:
           DATABASE_URL: postgresql://test:test@localhost:5432/bookkeeping_test
           NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
           DOCKER_BUILD: false
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
 
       - name: Install Playwright browsers
         run: pnpm --filter @simple-bookkeeping/web exec playwright install --with-deps chromium
@@ -82,6 +87,8 @@ jobs:
           NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
           NEXTAUTH_SECRET: test-nextauth-secret
           NEXTAUTH_URL: http://localhost:3000
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
         run: |
           cd apps/web
           npm run start &
@@ -106,6 +113,8 @@ jobs:
           CI: true
           NODE_ENV: test
           REUSE_SERVER: true
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
           # Test credentials from secrets (with fallbacks)
           TEST_JWT_SECRET: ${{ secrets.TEST_JWT_SECRET || 'test-jwt-secret-do-not-use-in-production' }}
           TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL || 'admin.test@localhost' }}
