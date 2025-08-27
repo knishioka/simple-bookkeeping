@@ -1,7 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
 
-import { UnifiedMock } from './helpers/unified-mock';
-
 /**
  * CSSスタイルとTailwind CSSの適用確認テスト
  *
