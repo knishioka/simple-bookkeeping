@@ -12,7 +12,7 @@ test.describe('ダイアログ操作テスト（デモページ）', () => {
       await page.goto('/demo/accounts', { waitUntil: 'domcontentloaded' });
 
       // ページの読み込みを待つ
-      await page.waitForTimeout(2000);
+      await page.waitForLoadState('networkidle');
 
       // 新規作成ボタンを探す（Plusアイコンとテキストを含む）
       const createButton = page.locator('button').filter({ hasText: '新規作成' }).first();
@@ -20,7 +20,7 @@ test.describe('ダイアログ操作テスト（デモページ）', () => {
       await createButton.click();
 
       // ダイアログが開くのを待つ
-      await page.waitForTimeout(1000);
+      await page.waitForSelector('[data-state="open"], h2:has-text("勘定科目")', { timeout: 2000 });
 
       // ダイアログの中身が表示されているか確認（data-state="open" が表示されるかタイトルが表示される）
       const dialogVisible = await page
@@ -35,7 +35,8 @@ test.describe('ダイアログ操作テスト（デモページ）', () => {
 
       // ESCキーでダイアログを閉じる
       await page.keyboard.press('Escape');
-      await page.waitForTimeout(500);
+      // 短い待機で安定性確保
+      await page.waitForLoadState('domcontentloaded');
 
       // ダイアログが閉じたことを確認
       const dialogClosed = (await page.locator('[data-state="open"]').count()) === 0;
@@ -46,7 +47,7 @@ test.describe('ダイアログ操作テスト（デモページ）', () => {
       await page.goto('/demo/accounts', { waitUntil: 'domcontentloaded' });
 
       // ページの読み込みを待つ
-      await page.waitForTimeout(2000);
+      await page.waitForLoadState('networkidle');
 
       // 最初の編集ボタンをクリック
       const editButton = page.locator('button').filter({ hasText: '編集' }).first();
@@ -54,7 +55,7 @@ test.describe('ダイアログ操作テスト（デモページ）', () => {
       await editButton.click();
 
       // ダイアログが開くことを確認
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('domcontentloaded');
 
       const dialogVisible = await page.evaluate(() => {
         const dialogElement = document.querySelector('[role="dialog"], [data-state="open"]');
@@ -68,7 +69,8 @@ test.describe('ダイアログ操作テスト（デモページ）', () => {
 
       // ESCキーでダイアログを閉じる
       await page.keyboard.press('Escape');
-      await page.waitForTimeout(500);
+      // 短い待機で安定性確保
+      await page.waitForLoadState('domcontentloaded');
 
       const dialogClosed = await page.evaluate(() => {
         const dialogElement = document.querySelector('[role="dialog"], [data-state="open"]');
@@ -83,7 +85,7 @@ test.describe('ダイアログ操作テスト（デモページ）', () => {
       await page.goto('/demo/journal-entries', { waitUntil: 'domcontentloaded' });
 
       // ページの読み込みを待つ
-      await page.waitForTimeout(2000);
+      await page.waitForLoadState('networkidle');
 
       // 新規作成ボタンをクリック
       const createButton = page
@@ -94,7 +96,7 @@ test.describe('ダイアログ操作テスト（デモページ）', () => {
       await createButton.click();
 
       // ダイアログが開くことを確認
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('domcontentloaded');
 
       const dialogVisible = await page.evaluate(() => {
         const dialogElement = document.querySelector('[role="dialog"], [data-state="open"]');
@@ -104,7 +106,8 @@ test.describe('ダイアログ操作テスト（デモページ）', () => {
 
       // ESCキーでダイアログを閉じる
       await page.keyboard.press('Escape');
-      await page.waitForTimeout(500);
+      // 短い待機で安定性確保
+      await page.waitForLoadState('domcontentloaded');
 
       const dialogClosed = await page.evaluate(() => {
         const dialogElement = document.querySelector('[role="dialog"], [data-state="open"]');
@@ -119,7 +122,7 @@ test.describe('ダイアログ操作テスト（デモページ）', () => {
       await page.goto('/demo/accounts', { waitUntil: 'domcontentloaded' });
 
       // ページの読み込みを待つ
-      await page.waitForTimeout(2000);
+      await page.waitForLoadState('networkidle');
 
       // 新規作成ボタンにフォーカス
       const createButton = page.locator('button').filter({ hasText: '新規作成' }).first();
@@ -141,7 +144,8 @@ test.describe('ダイアログ操作テスト（デモページ）', () => {
 
       // ESCキーでダイアログを閉じる
       await page.keyboard.press('Escape');
-      await page.waitForTimeout(500);
+      // 短い待機で安定性確保
+      await page.waitForLoadState('domcontentloaded');
 
       // ダイアログが閉じたことを確認
       const dialogClosed = await page.evaluate(() => {
