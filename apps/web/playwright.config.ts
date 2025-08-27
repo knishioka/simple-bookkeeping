@@ -20,24 +20,24 @@ const testEnv = getTestEnvironment();
 const isCI = testEnv.isCI;
 const isDebug = process.env.DEBUG === 'true' || process.env.PWDEBUG === '1';
 
-// タイムアウト設定（最適化済み - Issue #129）
+// タイムアウト設定（最適化済み - Issue #129, #244）
 const TEST_TIMEOUTS = {
-  test: isCI ? TIMEOUTS.E2E_TEST : 30000, // テスト全体のタイムアウト (CI: 20000ms, local: 30000ms)
-  expect: TIMEOUTS.TEST_ELEMENT, // アサーションタイムアウト (2000ms)
-  action: TIMEOUTS.TEST_ACTION, // アクションタイムアウト (10000→3000ms)
-  navigation: isCI ? 10000 : TIMEOUTS.TEST_NAVIGATION, // ナビゲーションタイムアウト (CI: 10000ms, local: 3000ms)
-  server: 30000, // サーバー起動タイムアウト (60000→30000ms)
+  test: isCI ? 15000 : 20000, // テスト全体のタイムアウト (CI: 20000→15000ms, local: 30000→20000ms)
+  expect: 1500, // アサーションタイムアウト (2000→1500ms)
+  action: 2000, // アクションタイムアウト (3000→2000ms)
+  navigation: isCI ? 5000 : 3000, // ナビゲーションタイムアウト (CI: 10000→5000ms, local: 3000ms)
+  server: 30000, // サーバー起動タイムアウト
 };
 
 // リトライ設定
 const RETRIES = {
-  ci: 2, // CI環境では2回（3回から削減）
-  local: 0, // ローカルではリトライなし（1回から削減）
+  ci: 1, // CI環境では1回（2回から削減）
+  local: 0, // ローカルではリトライなし
 };
 
 // ワーカー設定
 const WORKERS = {
-  ci: 4, // CI環境では4ワーカー（2から増加）
+  ci: 6, // CI環境では6ワーカー（4から増加して並列度を上げる）
   local: '75%', // ローカルではCPUコアの75%を使用
 };
 
