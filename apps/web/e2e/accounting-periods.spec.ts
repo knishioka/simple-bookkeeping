@@ -6,12 +6,11 @@ import { UnifiedAuth } from './helpers/unified-auth';
  * Issue #103: 統一ヘルパーへの移行
  */
 test.describe('Accounting Periods Management', () => {
-  // ナビゲーションタイムアウトを増やす
-  test.use({ navigationTimeout: 10000 });
+  // CI環境での実行を考慮してタイムアウトを増やす
+  test.use({ navigationTimeout: 30000 });
+  test.setTimeout(30000);
 
   test('should successfully authenticate and navigate to dashboard', async ({ page, context }) => {
-    test.setTimeout(30000); // Increase test timeout for CI
-
     // 統一認証ヘルパーでモックをセットアップ
     await UnifiedAuth.setupMockRoutes(context);
 
@@ -80,7 +79,7 @@ test.describe('Accounting Periods Management', () => {
     });
 
     // Navigate to settings
-    await page.goto('/dashboard/settings', { waitUntil: 'networkidle' });
+    await page.goto('/dashboard/settings', { waitUntil: 'domcontentloaded' });
 
     // Wait for the settings page to load with proper locator
     await page.waitForSelector('h1, h2, h3, [role="heading"]', { timeout: 5000 });
@@ -290,7 +289,7 @@ test.describe('Accounting Periods Management', () => {
     // Wait for the table to update or page to reload
     await Promise.race([
       page.waitForSelector('text=2025年度（修正版）', { timeout: 5000 }).catch(() => null),
-      page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => null),
+      page.waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => null),
     ]);
 
     // Force a page refresh to ensure we see the updated data

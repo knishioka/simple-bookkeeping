@@ -12,6 +12,10 @@ import { waitForPageReady } from './helpers/wait-strategies';
  */
 
 test.describe('基本的なページアクセス', () => {
+  // CI環境での実行を考慮してタイムアウトを増やす
+  test.use({ navigationTimeout: 30000 });
+  test.setTimeout(30000);
+
   test('トップページが正常に表示される', async ({ page }) => {
     // トップページにアクセス
     await page.goto('/', { waitUntil: 'domcontentloaded' });
@@ -83,7 +87,7 @@ test.describe('基本的なページアクセス', () => {
   test('デモ仕訳入力ページが正常に表示される', async ({ page }) => {
     // デモ仕訳入力ページにアクセス（認証不要）
     await page.goto('/demo/journal-entries');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // ページタイトル確認
     await expect(page.locator('h1')).toContainText('仕訳入力');

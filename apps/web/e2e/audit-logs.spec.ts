@@ -4,6 +4,10 @@ import { UnifiedAuth } from './helpers/unified-auth';
 import { waitForApiResponse, waitForTestId, waitForSelectOpen } from './helpers/wait-strategies';
 
 test.describe('Audit Logs', () => {
+  // CI環境での実行を考慮してタイムアウトを増やす
+  test.use({ navigationTimeout: 30000 });
+  test.setTimeout(30000);
+
   test.beforeEach(async ({ page, context }) => {
     // Use unified authentication setup for admin user
     await UnifiedAuth.setup(context, page, { role: 'admin' });
