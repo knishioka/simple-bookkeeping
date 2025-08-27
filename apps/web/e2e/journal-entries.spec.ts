@@ -8,7 +8,7 @@ test.describe('仕訳入力テスト（デモページ）', () => {
   test.use({ navigationTimeout: 10000 });
 
   test('デモ仕訳入力ページが表示される', async ({ page }) => {
-    await page.goto('/demo/journal-entries', { waitUntil: 'networkidle' });
+    await page.goto('/demo/journal-entries', { waitUntil: 'domcontentloaded' });
 
     // ページの読み込みを待つ
     await page.waitForTimeout(2000);
@@ -20,7 +20,7 @@ test.describe('仕訳入力テスト（デモページ）', () => {
   });
 
   test('仕訳フォームの基本要素が存在する', async ({ page }) => {
-    await page.goto('/demo/journal-entries', { waitUntil: 'networkidle' });
+    await page.goto('/demo/journal-entries', { waitUntil: 'domcontentloaded' });
 
     // ページの読み込みを待つ
     await page.waitForTimeout(2000);
@@ -31,7 +31,7 @@ test.describe('仕訳入力テスト（デモページ）', () => {
   });
 
   test('デモ仕訳テーブルが表示される', async ({ page }) => {
-    await page.goto('/demo/journal-entries', { waitUntil: 'networkidle' });
+    await page.goto('/demo/journal-entries', { waitUntil: 'domcontentloaded' });
 
     // ページの読み込みを待つ
     await page.waitForTimeout(2000);

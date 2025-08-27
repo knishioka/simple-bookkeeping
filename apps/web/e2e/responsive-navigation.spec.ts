@@ -3,6 +3,10 @@ import { test, expect } from '@playwright/test';
 import { UnifiedAuth } from './helpers/unified-auth';
 
 test.describe('Responsive Navigation', () => {
+  // CI環境での実行を考慮してタイムアウトを増やす
+  test.use({ navigationTimeout: 30000 });
+  test.setTimeout(30000);
+
   test.beforeEach(async ({ page, context }) => {
     // まず適当なページを開く
     await page.goto('/', { waitUntil: 'domcontentloaded' });
@@ -41,7 +45,7 @@ test.describe('Responsive Navigation', () => {
     });
 
     // ダッシュボードへ移動
-    await page.goto('/dashboard', { waitUntil: 'networkidle' });
+    await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
   });
 
   test('デスクトップ表示でメニューが正しく表示される', async ({ page }) => {
@@ -49,7 +53,7 @@ test.describe('Responsive Navigation', () => {
     await page.setViewportSize({ width: 1280, height: 720 });
 
     // ページが完全に読み込まれるまで待つ
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(500);
 
     // ナビゲーションメニューが表示されていることを確認
@@ -67,7 +71,7 @@ test.describe('Responsive Navigation', () => {
   test('タブレット表示で簡略メニューが表示される', async ({ page }) => {
     // タブレットサイズに設定
     await page.setViewportSize({ width: 900, height: 600 });
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(500);
 
     // ハンバーガーメニューが非表示であることを確認
@@ -111,7 +115,7 @@ test.describe('Responsive Navigation', () => {
   test('モバイル表示でハンバーガーメニューが動作する', async ({ page }) => {
     // モバイルサイズに設定
     await page.setViewportSize({ width: 375, height: 667 });
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(500);
 
     // ハンバーガーメニューボタンが表示されていることを確認
@@ -153,7 +157,7 @@ test.describe('Responsive Navigation', () => {
   });
 
   test('レスポンシブブレークポイントで正しく切り替わる', async ({ page }) => {
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(500);
 
     // 1024px（lg）でデスクトップメニュー
@@ -201,7 +205,7 @@ test.describe('Responsive Navigation', () => {
   test('メニュー項目のクリックでページ遷移する', async ({ page }) => {
     // モバイルサイズで確認
     await page.setViewportSize({ width: 375, height: 667 });
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(500);
 
     // ハンバーガーメニューを開く
