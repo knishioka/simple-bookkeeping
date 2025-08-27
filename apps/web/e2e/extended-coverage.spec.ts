@@ -13,7 +13,7 @@ test.describe('拡張テストカバレッジ', () => {
 
   test.describe('デモページ機能', () => {
     test('デモ勘定科目ページが表示される', async ({ page }) => {
-      await page.goto('/demo/accounts', { waitUntil: 'networkidle' });
+      await page.goto('/demo/accounts', { waitUntil: 'domcontentloaded' });
 
       // ページタイトルまたはヘッダーの確認
       await page.waitForTimeout(2000);
@@ -26,7 +26,7 @@ test.describe('拡張テストカバレッジ', () => {
     });
 
     test('デモ勘定科目の検索機能', async ({ page }) => {
-      await page.goto('/demo/accounts', { waitUntil: 'networkidle' });
+      await page.goto('/demo/accounts', { waitUntil: 'domcontentloaded' });
       await page.waitForTimeout(2000);
 
       // 検索フィールドを探す
@@ -41,7 +41,7 @@ test.describe('拡張テストカバレッジ', () => {
     });
 
     test('デモ仕訳入力ページが表示される', async ({ page }) => {
-      await page.goto('/demo/journal-entries', { waitUntil: 'networkidle' });
+      await page.goto('/demo/journal-entries', { waitUntil: 'domcontentloaded' });
 
       // ページの読み込みを待つ
       await page.waitForTimeout(2000);
@@ -53,7 +53,7 @@ test.describe('拡張テストカバレッジ', () => {
     });
 
     test('デモパートナーページが表示される', async ({ page }) => {
-      await page.goto('/demo/partners', { waitUntil: 'networkidle' });
+      await page.goto('/demo/partners', { waitUntil: 'domcontentloaded' });
 
       // ページの読み込みを待つ
       await page.waitForTimeout(2000);

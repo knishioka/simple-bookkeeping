@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Simple Entry Mode - かんたん入力モード', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/demo/simple-entry', { waitUntil: 'networkidle' });
+    await page.goto('/demo/simple-entry', { waitUntil: 'domcontentloaded' });
     // Wait for the page to be fully hydrated
     await page.waitForTimeout(1000);
   });
@@ -164,7 +164,7 @@ test.describe('Simple Entry Mode - かんたん入力モード', () => {
     const incomeTypes = ['現金売上'];
 
     for (const type of incomeTypes) {
-      await page.goto('/demo/simple-entry', { waitUntil: 'networkidle' });
+      await page.goto('/demo/simple-entry', { waitUntil: 'domcontentloaded' });
       // Wait for the page to be fully hydrated
       await page.waitForTimeout(1000);
 

@@ -87,7 +87,7 @@ test.describe('基本的なページアクセス', () => {
   test('デモ仕訳入力ページが正常に表示される', async ({ page }) => {
     // デモ仕訳入力ページにアクセス（認証不要）
     await page.goto('/demo/journal-entries');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // ページタイトル確認
     await expect(page.locator('h1')).toContainText('仕訳入力');
