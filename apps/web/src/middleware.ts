@@ -35,9 +35,15 @@ export async function middleware(request: NextRequest) {
   const isTestMode =
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
     process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://dummy.supabase.co' ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://placeholder.supabase.co' ||
     process.env.NODE_ENV === 'test';
 
-  if (isTestMode && process.env.NODE_ENV !== 'production') {
+  // Allow test mode in production if using placeholder Supabase URLs (for CI E2E tests)
+  const allowTestModeInProduction =
+    process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://placeholder.supabase.co' ||
+    process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://dummy.supabase.co';
+
+  if (isTestMode && (process.env.NODE_ENV !== 'production' || allowTestModeInProduction)) {
     // In test environment, allow all routes without authentication
     const response = NextResponse.next();
 
