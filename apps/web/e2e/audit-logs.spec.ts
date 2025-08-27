@@ -148,17 +148,19 @@ test.describe('Audit Logs', () => {
     await UnifiedAuth.setAuthData(page, { role: 'admin' });
 
     await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'networkidle' });
-    
+
     // Wait for page to load with more flexible selectors
-    await page.waitForSelector('[data-testid="audit-logs-table"], table, .audit-logs', { 
-      timeout: 10000 
+    await page.waitForSelector('[data-testid="audit-logs-table"], table, .audit-logs', {
+      timeout: 10000,
     });
 
     // Look for export button with more flexible selectors
-    const exportButton = page.locator(
-      '[data-testid="audit-export-button"], button:has-text("Export"), button:has-text("CSV"), button:has-text("エクスポート")'
-    ).first();
-    
+    const exportButton = page
+      .locator(
+        '[data-testid="audit-export-button"], button:has-text("Export"), button:has-text("CSV"), button:has-text("エクスポート")'
+      )
+      .first();
+
     // Check if export button exists and is visible
     const buttonCount = await exportButton.count();
     if (buttonCount > 0) {
