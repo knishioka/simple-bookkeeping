@@ -102,8 +102,8 @@ jobs:
             -e BASE_URL=http://web-test:3000 \
             -e API_URL=http://api-test:3001 \
             -e DEBUG=${{ github.event.inputs.debug || 'false' }} \
-            -e TEST_RETRIES=2 \
-            -e TEST_WORKERS=2 \
+            -e TEST_RETRIES=1 \
+            -e TEST_WORKERS=4 \
             playwright || TEST_EXIT_CODE=$?
 
           # Export test exit code
