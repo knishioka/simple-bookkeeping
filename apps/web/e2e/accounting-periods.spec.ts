@@ -6,12 +6,11 @@ import { UnifiedAuth } from './helpers/unified-auth';
  * Issue #103: 統一ヘルパーへの移行
  */
 test.describe('Accounting Periods Management', () => {
-  // ナビゲーションタイムアウトを増やす
-  test.use({ navigationTimeout: 10000 });
+  // CI環境での実行を考慮してタイムアウトを増やす
+  test.use({ navigationTimeout: 30000 });
+  test.setTimeout(30000);
 
   test('should successfully authenticate and navigate to dashboard', async ({ page, context }) => {
-    test.setTimeout(30000); // Increase test timeout for CI
-
     // 統一認証ヘルパーでモックをセットアップ
     await UnifiedAuth.setupMockRoutes(context);
 

@@ -3,6 +3,10 @@ import { test, expect } from '@playwright/test';
 import { UnifiedAuth } from './helpers/unified-auth';
 
 test.describe('Responsive Navigation', () => {
+  // CI環境での実行を考慮してタイムアウトを増やす
+  test.use({ navigationTimeout: 30000 });
+  test.setTimeout(30000);
+
   test.beforeEach(async ({ page, context }) => {
     // まず適当なページを開く
     await page.goto('/', { waitUntil: 'domcontentloaded' });

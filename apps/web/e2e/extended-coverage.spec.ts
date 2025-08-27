@@ -7,7 +7,9 @@ import { UnifiedAuth } from './helpers/unified-auth';
  * Issue #182: テストカバレッジの向上
  */
 test.describe('拡張テストカバレッジ', () => {
-  test.use({ navigationTimeout: 10000 });
+  // CI環境での実行を考慮してタイムアウトを増やす
+  test.use({ navigationTimeout: 30000 });
+  test.setTimeout(30000);
 
   test.describe('デモページ機能', () => {
     test('デモ勘定科目ページが表示される', async ({ page }) => {

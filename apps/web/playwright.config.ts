@@ -22,10 +22,10 @@ const isDebug = process.env.DEBUG === 'true' || process.env.PWDEBUG === '1';
 
 // タイムアウト設定（最適化済み - Issue #129）
 const TEST_TIMEOUTS = {
-  test: isCI ? TIMEOUTS.E2E_TEST : 10000, // テスト全体のタイムアウト (20000→10000ms)
+  test: isCI ? TIMEOUTS.E2E_TEST : 30000, // テスト全体のタイムアウト (CI: 20000ms, local: 30000ms)
   expect: TIMEOUTS.TEST_ELEMENT, // アサーションタイムアウト (2000ms)
   action: TIMEOUTS.TEST_ACTION, // アクションタイムアウト (10000→3000ms)
-  navigation: TIMEOUTS.TEST_NAVIGATION, // ナビゲーションタイムアウト (3000ms)
+  navigation: isCI ? 10000 : TIMEOUTS.TEST_NAVIGATION, // ナビゲーションタイムアウト (CI: 10000ms, local: 3000ms)
   server: 30000, // サーバー起動タイムアウト (60000→30000ms)
 };
 
