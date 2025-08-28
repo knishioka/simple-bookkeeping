@@ -29,23 +29,25 @@ GitHub Issueの解決を自動化し、標準的な開発ワークフローを�
 
 ### 2. Issue妥当性検証
 
-実装前にIssueの要件を検証し、問題のある要件や実装不可能な内容を早期に検出します。
+実装前にIssueの要件を詳細に検証し、問題のある要件や実装不可能な内容を早期に検出します。
 
 #### 検証カテゴリー
 
 **A. 技術的実現可能性**
 
-- 現在の技術スタックで実装可能か
-- 必要な依存関係が利用可能か
+- 現在の技術スタック（Next.js/Supabase/PostgreSQL）で実装可能か
+- 必要な依存関係が利用可能か（package.jsonの確認）
 - ブラウザ/Node.jsバージョンとの互換性
 - 外部APIの制限との互換性
+- モノレポ構造での実装可能性
 
 **B. システム互換性**
 
 - 既存アーキテクチャとの衝突がないか
-- データベーススキーマへの影響評価
-- 既存APIとの互換性
-- デザインパターンの一貫性
+- データベーススキーマへの影響評価（Prisma）
+- 既存APIとの互換性（RESTful設計）
+- デザインパターンの一貫性（shadcn/ui、Zustand）
+- Vercelデプロイメント互換性
 
 **C. セキュリティ評価**
 
@@ -56,17 +58,19 @@ GitHub Issueの解決を自動化し、標準的な開発ワークフローを�
 
 **D. パフォーマンス影響**
 
-- データベースクエリの複雑さ
-- フロントエンドバンドルサイズへの影響
-- APIレスポンス時間への影響
+- データベースクエリの複雑さ（N+1問題の回避）
+- フロントエンドバンドルサイズへの影響（Next.js最適化）
+- APIレスポンス時間への影響（100ms以内目標）
 - メモリ使用量増加の予測
+- Server Components vs Client Componentsの選択
 
 **E. 要件の明確さ**
 
 - 受け入れ条件が明確か
 - エッジケースが考慮されているか
 - エラーハンドリングが明記されているか
-- UI/UX仕様が明確か
+- UI/UX仕様が明確か（shadcn/uiコンポーネント使用）
+- 会計ルールとの整合性（借方貸方バランス等）
 
 #### 検証結果の処理
 
@@ -84,10 +88,17 @@ GitHub Issueの解決を自動化し、標準的な開発ワークフローを�
 
 ### 4. テスト駆動開発計画
 
+**Simple Bookkeepingのテスト戦略：**
+
 - 実装前に失敗するテストを作成（該当する場合）
 - 必要な機能を捉えるテストケースを定義
+  - Unit Test: `apps/*/src/**/__tests__/*.test.ts`
+  - E2E Test: `apps/web/e2e/*.spec.ts`
 - 実装前にテスト構造を作成
 - コードベースの既存のテストパターンに従う
+  - Jest for Unit Tests
+  - Playwright for E2E Tests
+- カバレッジ目標: Unit 80%以上
 
 ### 5. 開発計画
 
@@ -110,23 +121,32 @@ GitHub Issueの解決を自動化し、標準的な開発ワークフローを�
 
 ### 7. 実装
 
-- 既存のコードパターンと規約に従う
+- 既存のコードパターンと規約に従う（CLAUDE.mdを参照）
 - 変更を段階的に実装
 - 明確なメッセージでアトミックなコミットを作成
 - コミットメッセージでIssue番号を参照
 - 実装をシンプルに保ち、過度なエンジニアリングを避ける
-- TypeScriptの型安全性を維持
+- TypeScriptの型安全性を維持（any型の使用禁止）
+- 共通型定義の使用（`@simple-bookkeeping/types`）
+- エラークラスの使用（`@simple-bookkeeping/errors`）
 
-#### 実装中の問題追跡
+#### 実装中の問題追跡【重要機能】
 
-実装中に以下のような問題を発見した場合は記録しておく:
+実装中に以下のような問題を発見した場合は、TodoWriteツールを使用して記録し、後でフォローアップIssue作成時に参照する:
 
 - **スコープ外の問題**: 現在のIssueの範囲外だが修正が必要な問題
 - **技術的負債**: リファクタリングが必要だが今回は見送る箇所
+  - 例: 古いReactパターンの使用、重複コード
 - **パフォーマンス改善**: 最適化の余地があるが今回は実装しない改善
+  - 例: データベースクエリ最適化、バンドルサイズ削減
 - **セキュリティ考慮事項**: 将来的に対処が必要なセキュリティ関連の改善
+  - 例: より厳格な入力検証、レート制限
 - **テストカバレッジ**: 追加のテストが望ましいが今回は省略する箇所
+  - 例: エッジケースのE2Eテスト、エラーパスのUnit Test
 - **ドキュメント更新**: 更新が必要だが今回は対象外のドキュメント
+  - 例: API仕様書、アーキテクチャドキュメント
+- **データベース最適化**: インデックスやクエリの最適化
+- **UI/UX改善**: より良いユーザー体験のための改善点
 
 これらは後でフォローアップIssue作成時に参照される。
 
@@ -136,9 +156,14 @@ GitHub Issueの解決を自動化し、標準的な開発ワークフローを�
 
 - `pnpm lint` - ESLintとPrettierチェック
 - `pnpm typecheck` - TypeScriptの型チェック
-- `pnpm test` - すべてのテストを実行
-- `pnpm test:e2e` - E2Eテストを実行（該当する場合）
+- `pnpm test` - すべてのUnit Testを実行
+- `pnpm --filter web test:e2e` - E2Eテストを実行（該当する場合）
+  - 失敗時: `npx playwright show-trace` でトレース確認
 - `pnpm build` - ビルドが成功することを確認
+  - `pnpm build:web` - Vercel用ビルド確認
+- データベース変更がある場合:
+  - `pnpm --filter database prisma:generate`
+  - `pnpm db:migrate` でマイグレーション確認
 
 ### 9. コミット作成
 
@@ -169,10 +194,18 @@ GitHub Issueの解決を自動化し、標準的な開発ワークフローを�
 
 ### 11. CIモニタリングと解決
 
+**Simple BookkeepingのCI環境：**
+
 - PR作成後のGitHub Actionsステータスを監視
+  - E2E Tests (Docker) - 最重要、約13分
+  - Unit Tests - 全パッケージのテスト
+  - Lint & Type Check
 - すべてのCIチェックが完了するまで待機
 - CIが失敗した場合:
-  - 失敗ログを分析
+  - 失敗ログを分析（`gh run view`コマンド使用）
+  - E2Eテスト失敗時:
+    - `REUSE_SERVER=true npx playwright test --project=chromium-desktop`
+    - トレースファイル確認: `npx playwright show-trace`
   - ローカルで問題を修正
   - 品質チェックを再度実行
   - 同じブランチに修正をプッシュ
@@ -305,30 +338,53 @@ PR #<PR番号> での Issue #<元のIssue番号> の実装中に発見された�
 - プロジェクトの品質ゲートと要件を尊重
 - 既存のCI/CDパイプラインとの互換性を維持
 
-## プロジェクト固有の考慮事項
+## プロジェクト固有の考慮事項【Simple Bookkeeping】
 
 ### モノレポ構造
 
 - 変更がどのワークスペースに影響するか確認
+  - `apps/web`: Next.jsアプリケーション（Port 3000）
+  - `apps/web/src/app/api`: Next.js API Routes
+  - `packages/database`: Prismaスキーマ
+  - `packages/types`: 共通型定義
+  - `packages/errors`: エラー定義
+  - `packages/shared`: 共有ユーティリティ
 - 共有パッケージへの変更は全体への影響を考慮
 - 適切なフィルターでコマンドを実行（例: `pnpm --filter @simple-bookkeeping/web test`）
 
 ### 環境変数
 
 - 新しい環境変数を追加する場合は `.env.example` を更新
-- `NEXT_PUBLIC_API_URL` は完全なパス（`/api/v1`を含む）を使用
+- Supabase関連の環境変数:
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  - `SUPABASE_SERVICE_ROLE_KEY` (server-side only)
 - 機密情報は絶対にコミットしない
 
 ### データベース変更
 
-- Prismaスキーマの変更後は必ずマイグレーションを作成
-- `pnpm db:migrate` でマイグレーションを実行
+- Supabaseマイグレーションの管理:
+  - Supabase Dashboardでのスキーマ変更
+  - SQLマイグレーションファイルの作成
+  - Row Level Security (RLS)ポリシーの更新
+- Prismaスキーマの同期（Supabaseをソースとして）
 - 必要に応じてシードデータを更新
+- トランザクション処理の適切な使用（特に仕訳入力）
+- ソフトデリート（deletedAt）の考慮
+- 会計期間との整合性確認
 
 ### デプロイメント考慮事項
 
-- Vercel（フロントエンド）とRender（API）の両方でビルドが成功することを確認
+- Vercelでビルドが成功することを確認
+  - `pnpm build:web` でローカルチェック
+  - API Routesのビルドも含まれる
 - 環境固有の設定を考慮
+  - Vercel環境変数: `NEXT_PUBLIC_*` プレフィックス必須
+  - Supabase環境変数の設定
+- デプロイメント状態の確認:
+  - `vercel` - プレビューデプロイ
+  - `vercel --prod` - 本番デプロイ
+  - `vercel logs` - ログ確認
 
 ## 検証の例
 
