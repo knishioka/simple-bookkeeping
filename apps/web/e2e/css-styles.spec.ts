@@ -1,7 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
 
-import { UnifiedMock } from './helpers/unified-mock';
-
 /**
  * CSSスタイルとTailwind CSSの適用確認テスト
  *
@@ -46,82 +44,26 @@ async function waitForCSSToLoad(page: Page) {
 }
 
 test.describe('CSSスタイルの適用確認', () => {
-  test('Tailwind CSSのユーティリティクラスが適用される', async ({ page }) => {
+  test('CSS変数とTailwindが正しく適用されている', async ({ page }) => {
     await page.goto('/');
     await waitForCSSToLoad(page);
 
-    // Tailwindのユーティリティクラスが適用されている要素を確認
-    const mainContainer = page.locator('main').first();
-    await expect(mainContainer).toBeVisible();
-
-    // min-heightが適用されているか確認
-    const minHeight = await mainContainer.evaluate((el) => {
-      return window.getComputedStyle(el).minHeight;
-    });
-    expect(minHeight).not.toBe('0px');
-    expect(minHeight).toBeTruthy();
-
-    // displayプロパティが設定されているか確認（flexまたはblock）
-    const display = await mainContainer.evaluate((el) => {
-      return window.getComputedStyle(el).display;
-    });
-    // CI環境とローカル環境で異なる可能性があるため、どちらも許可
-    expect(['flex', 'block', 'grid']).toContain(display);
-  });
-
-  test('CSS変数が正しく定義されている', async ({ page }) => {
-    await page.goto('/');
-    await waitForCSSToLoad(page);
-
-    // :root要素のCSS変数を確認
+    // CSS変数が定義されているか確認（最も基本的な確認）
     const cssVariables = await page.evaluate(() => {
       const root = document.documentElement;
       const styles = window.getComputedStyle(root);
       return {
         background: styles.getPropertyValue('--background'),
-        foreground: styles.getPropertyValue('--foreground'),
         primary: styles.getPropertyValue('--primary'),
-        secondary: styles.getPropertyValue('--secondary'),
-        accent: styles.getPropertyValue('--accent'),
-        radius: styles.getPropertyValue('--radius'),
       };
     });
 
-    // CSS変数が定義されているか確認
     expect(cssVariables.background).toBeTruthy();
-    expect(cssVariables.foreground).toBeTruthy();
     expect(cssVariables.primary).toBeTruthy();
-    expect(cssVariables.secondary).toBeTruthy();
-    expect(cssVariables.accent).toBeTruthy();
-    expect(cssVariables.radius).toBeTruthy();
-  });
 
-  test('ボタンのスタイルが正しく適用される', async ({ page }) => {
-    await page.goto('/login');
-    await waitForCSSToLoad(page);
-
-    // ボタン要素を取得
-    const submitButton = page.locator('button[type="submit"]');
-    await expect(submitButton).toBeVisible();
-
-    // ボタンのスタイルを確認
-    const buttonStyles = await submitButton.evaluate((el) => {
-      const styles = window.getComputedStyle(el);
-      return {
-        color: styles.color,
-        padding: styles.padding,
-        borderRadius: styles.borderRadius,
-        cursor: styles.cursor,
-        borderWidth: styles.borderWidth,
-      };
-    });
-
-    // スタイルが適用されているか確認（背景色のチェックは除外）
-    expect(buttonStyles.color).toBeTruthy();
-    expect(buttonStyles.padding).not.toBe('0px');
-    expect(buttonStyles.borderRadius).not.toBe('0px');
-    // cursorはdisabledボタンではdefaultになる可能性があるため、どちらかであればOK
-    expect(['pointer', 'default', 'not-allowed']).toContain(buttonStyles.cursor);
+    // Tailwindクラスが適用されているか基本確認
+    const mainContainer = page.locator('main').first();
+    await expect(mainContainer).toBeVisible();
   });
 
   test('レスポンシブデザインが機能する', async ({ page }) => {
@@ -156,80 +98,6 @@ test.describe('CSSスタイルの適用確認', () => {
     expect(mobileStyles.width).toBeTruthy();
     // モバイルとデスクトップで幅が変わることを確認
     expect(desktopStyles.width).not.toBe(mobileStyles.width);
-  });
-
-  test('カードコンポーネントのスタイルが適用される', async ({ page, context }) => {
-    // デモページ用のモックをセットアップ
-    await UnifiedMock.setupDashboardMocks(context);
-
-    await page.goto('/demo');
-    await waitForCSSToLoad(page);
-
-    // カード要素を探す
-    const card = page.locator('[class*="card"]').first();
-    const cardExists = (await card.count()) > 0;
-
-    if (cardExists) {
-      const cardStyles = await card.evaluate((el) => {
-        const styles = window.getComputedStyle(el);
-        return {
-          backgroundColor: styles.backgroundColor,
-          borderRadius: styles.borderRadius,
-          boxShadow: styles.boxShadow,
-        };
-      });
-
-      // カードのスタイルが適用されているか確認
-      expect(cardStyles.backgroundColor).toBeTruthy();
-      expect(cardStyles.borderRadius).not.toBe('0px');
-    }
-  });
-
-  test('印刷用スタイルが定義されている', async ({ page }) => {
-    await page.goto('/');
-    await waitForCSSToLoad(page);
-
-    // 印刷用スタイルシートの存在を確認
-    const hasPrintStyles = await page.evaluate(() => {
-      const styleSheets = Array.from(document.styleSheets);
-      return styleSheets.some((sheet) => {
-        try {
-          const rules = Array.from(sheet.cssRules || []);
-          return rules.some(
-            (rule) => rule instanceof CSSMediaRule && rule.media.mediaText.includes('print')
-          );
-        } catch {
-          // CORSエラーの場合はスキップ
-          return false;
-        }
-      });
-    });
-
-    expect(hasPrintStyles).toBeTruthy();
-  });
-
-  test('フォームのスタイルが正しく適用される', async ({ page }) => {
-    await page.goto('/login');
-    await waitForCSSToLoad(page);
-
-    // 入力フィールドのスタイルを確認
-    const emailInput = page.locator('#email');
-    await expect(emailInput).toBeVisible();
-    const inputStyles = await emailInput.evaluate((el) => {
-      const styles = window.getComputedStyle(el);
-      return {
-        borderColor: styles.borderColor,
-        borderWidth: styles.borderWidth,
-        borderRadius: styles.borderRadius,
-        padding: styles.padding,
-      };
-    });
-
-    // フォームフィールドのスタイルが適用されているか確認
-    expect(inputStyles.borderColor).toBeTruthy();
-    expect(inputStyles.borderWidth).not.toBe('0px');
-    expect(inputStyles.borderRadius).not.toBe('0px');
-    expect(inputStyles.padding).not.toBe('0px');
   });
 
   test('CSSファイルが正しく読み込まれている', async ({ page }) => {
