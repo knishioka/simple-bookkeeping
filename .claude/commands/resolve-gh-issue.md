@@ -2,6 +2,8 @@
 
 GitHub Issueの解決を自動化し、標準的な開発ワークフローを実行します。
 
+**⚠️ 重要**: このコマンドは必ずTodoWriteツールを使用して進捗を追跡します。TodoWriteなしではワークフローが適切に実行されません。
+
 ## 使用方法
 
 ```
@@ -20,12 +22,33 @@ GitHub Issueの解決を自動化し、標準的な開発ワークフローを�
 
 ## ワークフローステップ
 
+### 0. TodoWrite初期化【最重要】
+
+**最初に必ず実行**：TodoWriteツールでタスクリストを作成し、進捗を追跡する
+
+```
+タスクリスト:
+- [ ] Issue分析と理解
+- [ ] Issue妥当性検証
+- [ ] コードベース分析
+- [ ] ブランチ作成とセットアップ
+- [ ] 実装
+- [ ] テスト作成/実行
+- [ ] 品質保証チェック
+- [ ] コミット作成
+- [ ] ドラフトPR作成
+- [ ] CI監視と修正
+- [ ] フォローアップ確認
+```
+
 ### 1. Issue分析と理解
 
+- TodoWriteのステータスを「in_progress」に更新
 - `gh issue view <issue-number>` でGitHub Issueを取得
 - Issue内容、要件、受け入れ条件を分析
 - Issueタイプを特定し、適切なブランチプレフィックスを決定
 - 必要な変更の範囲と複雑さを理解
+- TodoWriteのステータスを「completed」に更新
 
 ### 2. Issue妥当性検証
 
@@ -100,12 +123,28 @@ GitHub Issueの解決を自動化し、標準的な開発ワークフローを�
   - Playwright for E2E Tests
 - カバレッジ目標: Unit 80%以上
 
-### 5. 開発計画
+### 5. 開発計画【重要：TodoWrite必須】
 
-- TodoWriteツールを使用して構造化された開発計画を作成
+- **必須**: TodoWriteツールを使用して構造化された開発計画を作成
 - 複雑なタスクを管理可能なステップに分解
 - 依存関係に基づいてタスクの優先順位を決定
 - 既存の規約に従った実装アプローチを計画
+
+**TodoWriteの必須タスクリスト例：**
+
+```
+1. Issue分析と理解（in_progress → completed）
+2. Issue妥当性検証（pending → in_progress → completed）
+3. コードベース分析（pending → in_progress → completed）
+4. ブランチ作成（pending → in_progress → completed）
+5. 実装（pending → in_progress → completed）
+6. テスト作成/実行（pending → in_progress → completed）
+7. コミット作成（pending → in_progress → completed）
+8. PR作成（pending → in_progress → completed）
+9. CI監視（pending → in_progress → completed）
+```
+
+**注意**: TodoWriteを使用せずに進めるとワークフローが適切に実行されません
 
 ### 6. ブランチ作成とセットアップ
 
@@ -197,10 +236,31 @@ GitHub Issueの解決を自動化し、標準的な開発ワークフローを�
 **Simple BookkeepingのCI環境：**
 
 - PR作成後のGitHub Actionsステータスを監視
-  - E2E Tests (Docker) - 最重要、約13分
+  - E2E Tests (Docker) - 最重要、**約13-15分**
   - Unit Tests - 全パッケージのテスト
   - Lint & Type Check
-- すべてのCIチェックが完了するまで待機
+
+**⚠️ CI監視のベストプラクティス：**
+
+```bash
+# 推奨: gh pr checksを使用（自動的に待機）
+gh pr checks --watch --interval 60  # 60秒間隔でチェック
+
+# 手動チェックの場合
+gh pr checks  # 現在の状態を確認
+
+# タイムアウトを考慮（E2Eテストは時間がかかる）
+# 最初のチェックは2-3分後に実行
+sleep 180 && gh pr checks
+```
+
+**注意事項：**
+
+- E2Eテストは13-15分かかるため、頻繁なチェックは避ける
+- 最初のチェックは2-3分後に実施
+- その後は2-3分間隔でチェック（過度なAPI呼び出しを避ける）
+- `--watch`オプションを使用すると自動的に適切な間隔でチェック
+
 - CIが失敗した場合:
   - 失敗ログを分析（`gh run view`コマンド使用）
   - E2Eテスト失敗時:
