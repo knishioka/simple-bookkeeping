@@ -400,6 +400,9 @@ importers:
       '@size-limit/preset-app':
         specifier: ^11.2.0
         version: 11.2.0(size-limit@11.2.0)
+      '@supabase/ssr':
+        specifier: ^0.1.0
+        version: 0.1.0(@supabase/supabase-js@2.50.0)
       '@tailwindcss/postcss':
         specifier: ^4.1.10
         version: 4.1.10
