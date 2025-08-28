@@ -54,7 +54,7 @@ test.describe('Responsive Navigation', () => {
 
     // ページが完全に読み込まれるまで待つ
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('domcontentloaded');
 
     // ナビゲーションメニューが表示されていることを確認
     await expect(page.locator('nav').locator('text=ダッシュボード').first()).toBeVisible();
@@ -72,7 +72,7 @@ test.describe('Responsive Navigation', () => {
     // タブレットサイズに設定
     await page.setViewportSize({ width: 900, height: 600 });
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('domcontentloaded');
 
     // ハンバーガーメニューが非表示であることを確認
     await expect(page.locator('button[aria-label="メニューを開く"]')).not.toBeVisible();
@@ -104,7 +104,7 @@ test.describe('Responsive Navigation', () => {
 
     // ドロップダウンメニューをクリックして開く
     await moreButton.click();
-    await page.waitForTimeout(300);
+    await page.waitForLoadState('domcontentloaded');
 
     // ドロップダウン内のメニュー項目を確認
     await expect(page.locator('[role="menu"]').locator('text=補助簿').first()).toBeVisible();
@@ -116,7 +116,7 @@ test.describe('Responsive Navigation', () => {
     // モバイルサイズに設定
     await page.setViewportSize({ width: 375, height: 667 });
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('domcontentloaded');
 
     // ハンバーガーメニューボタンが表示されていることを確認
     const hamburgerButton = page.locator('button[aria-label="メニューを開く"]');
@@ -133,7 +133,7 @@ test.describe('Responsive Navigation', () => {
     await hamburgerButton.click();
 
     // モバイルメニューが開くのを待つ
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('domcontentloaded');
 
     // モバイルメニュー内のナビゲーション項目を確認
     const mobileMenu = page.locator('[role="dialog"]');
@@ -146,23 +146,23 @@ test.describe('Responsive Navigation', () => {
 
     // 補助簿のサブメニューを開く
     await mobileMenu.locator('text=補助簿').click();
-    await page.waitForTimeout(300);
+    await page.waitForLoadState('domcontentloaded');
     await expect(mobileMenu.locator('text=現金出納帳')).toBeVisible();
     await expect(mobileMenu.locator('text=預金出納帳')).toBeVisible();
 
     // メニューを閉じる
     await page.keyboard.press('Escape');
-    await page.waitForTimeout(300);
+    await page.waitForLoadState('domcontentloaded');
     await expect(mobileMenu).not.toBeVisible();
   });
 
   test('レスポンシブブレークポイントで正しく切り替わる', async ({ page }) => {
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('domcontentloaded');
 
     // 1024px（lg）でデスクトップメニュー
     await page.setViewportSize({ width: 1024, height: 768 });
-    await page.waitForTimeout(300);
+    await page.waitForLoadState('domcontentloaded');
     // デスクトップメニューコンテナを確認
     const desktopMenu = page.locator('div.lg\\:flex').first();
     await expect(desktopMenu).toBeVisible();
@@ -172,7 +172,7 @@ test.describe('Responsive Navigation', () => {
 
     // 1023pxでタブレットメニュー
     await page.setViewportSize({ width: 1023, height: 768 });
-    await page.waitForTimeout(300);
+    await page.waitForLoadState('domcontentloaded');
     // タブレットメニューコンテナを確認
     const tabletMenu = page.locator('div.md\\:flex.lg\\:hidden').first();
     await expect(tabletMenu).toBeVisible();
@@ -187,7 +187,7 @@ test.describe('Responsive Navigation', () => {
 
     // 768px（md）でタブレットメニュー維持
     await page.setViewportSize({ width: 768, height: 600 });
-    await page.waitForTimeout(300);
+    await page.waitForLoadState('domcontentloaded');
     const tabletMenu2 = page.locator('div.md\\:flex.lg\\:hidden').first();
     await expect(tabletMenu2).toBeVisible();
     const dashboardLinkMd2 = tabletMenu2.locator('a[href="/dashboard"]').first();
@@ -195,7 +195,7 @@ test.describe('Responsive Navigation', () => {
 
     // 767pxでモバイルメニュー
     await page.setViewportSize({ width: 767, height: 600 });
-    await page.waitForTimeout(300);
+    await page.waitForLoadState('domcontentloaded');
     await expect(page.locator('button[aria-label="メニューを開く"]')).toBeVisible();
     // モバイルではタブレット・デスクトップメニューは非表示
     await expect(page.locator('div.md\\:flex.lg\\:hidden').first()).not.toBeVisible();
@@ -206,11 +206,11 @@ test.describe('Responsive Navigation', () => {
     // モバイルサイズで確認
     await page.setViewportSize({ width: 375, height: 667 });
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('domcontentloaded');
 
     // ハンバーガーメニューを開く
     await page.locator('button[aria-label="メニューを開く"]').click();
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('domcontentloaded');
 
     // 仕訳入力をクリック
     const mobileMenu = page.locator('[role="dialog"]');
@@ -221,7 +221,7 @@ test.describe('Responsive Navigation', () => {
     await expect(page).toHaveURL(/\/dashboard\/journal-entries/);
 
     // メニューが閉じていることを確認
-    await page.waitForTimeout(300);
+    await page.waitForLoadState('domcontentloaded');
     await expect(mobileMenu).not.toBeVisible();
   });
 });
