@@ -62,50 +62,8 @@ enable_signup = false
 # If enabled, users need to confirm their phone number before signing in.
 enable_confirmations = false
 
-# Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
-[auth.sms.twilio]
-enabled = false
-account_sid = ""
-message_service_sid = ""
-auth_token = ""
-
-[auth.external.apple]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[auth.external.azure]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[auth.external.bitbucket]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[auth.external.discord]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[auth.external.facebook]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
+# Use pre-built deployment flows
 [auth.external.github]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[auth.external.gitlab]
 enabled = false
 client_id = ""
 secret = ""
@@ -117,63 +75,7 @@ client_id = ""
 secret = ""
 redirect_uri = ""
 
-[auth.external.keycloak]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-url = ""
-
-[auth.external.linkedin]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[auth.external.notion]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[auth.external.slack]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[auth.external.spotify]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[auth.external.twitch]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[auth.external.twitter]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-
-[auth.external.workos]
-enabled = false
-client_id = ""
-secret = ""
-redirect_uri = ""
-url = ""
-
 [analytics]
 enabled = false
 port = 54327
 vector_port = 54328
-# Setup BigQuery project to enable log viewer on local development stack.
-# See: https://supabase.com/docs/guides/getting-started/local-development#enabling-local-logging
-gcp_project_id = ""
-gcp_project_number = ""
-gcp_jwt_path = "supabase/gcloud.json"
-
