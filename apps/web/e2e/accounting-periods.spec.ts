@@ -81,8 +81,8 @@ test.describe('Accounting Periods Management', () => {
     // Navigate to settings
     await page.goto('/dashboard/settings', { waitUntil: 'domcontentloaded' });
 
-    // Wait for the settings page to load - more flexible selector
-    await page.waitForTimeout(2000);
+    // Wait for the settings page to load with proper locator
+    await page.waitForSelector('h1, h2, h3, [role="heading"]', { timeout: 5000 });
     const settingsIndicator = await page
       .locator('h1, h2, h3, [role="heading"]')
       .filter({ hasText: /設定|Settings/i })
@@ -99,7 +99,7 @@ test.describe('Accounting Periods Management', () => {
     await expect(page).toHaveURL('/dashboard/settings/accounting-periods');
 
     // Check for page content - the page should exist even if empty
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState('networkidle');
     const pageHasContent = await page.evaluate(() => {
       const bodyText = document.body.innerText || '';
       return (
