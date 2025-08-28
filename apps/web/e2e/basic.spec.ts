@@ -166,7 +166,8 @@ test.describe('基本的なページアクセス', () => {
       await registerLink.click();
 
       // 登録フォームが表示されるのを待つ
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('domcontentloaded');
+      await page.waitForSelector('#email', { timeout: 5000 });
 
       // フォームに入力
       const emailInput = page.locator('input[name="email"], input[type="email"]').first();
@@ -191,7 +192,7 @@ test.describe('基本的なページアクセス', () => {
         await submitButton.click();
 
         // 登録成功後のリダイレクトまたは成功メッセージを確認
-        await page.waitForTimeout(1000);
+        await page.waitForLoadState('networkidle');
         const success =
           (await page.url().includes('/dashboard')) ||
           (await page.locator('text=/登録.*成功|完了/i').count()) > 0;
