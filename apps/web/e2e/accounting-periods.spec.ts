@@ -20,12 +20,13 @@ test.describe('Accounting Periods Management', () => {
     await page.goto('/dashboard/settings/accounting-periods', { waitUntil: 'domcontentloaded' });
 
     // Wait for navigation to complete
-    await page.waitForTimeout(1000);
+    await page.waitForLoadState('networkidle');
 
     // Verify we're on the accounting periods page
     await expect(page).toHaveURL(/.*accounting-periods.*/);
     // Check that the page has loaded (title or main content)
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState('networkidle');
+    await page.waitForSelector('main, nav, h1', { timeout: 5000 });
     const pageLoaded = await page.evaluate(() => {
       const bodyText = document.body.innerText || '';
       return (

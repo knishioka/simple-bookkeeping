@@ -2,9 +2,9 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Simple Entry Mode - かんたん入力モード', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/demo/simple-entry', { waitUntil: 'domcontentloaded' });
-    // Wait for the page to be fully hydrated
-    await page.waitForTimeout(1000);
+    await page.goto('/demo/simple-entry', { waitUntil: 'networkidle' });
+    // Wait for the page to be fully interactive
+    await page.waitForSelector('h1', { timeout: 5000 });
   });
 
   test('should display simple entry page', async ({ page }) => {
@@ -37,7 +37,7 @@ test.describe('Simple Entry Mode - かんたん入力モード', () => {
     await page.locator('text=現金売上').click();
 
     // Wait for the transition to complete
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('domcontentloaded');
 
     // Step 2: Verify we're on the input details step
     await expect(page.locator('text=取引の詳細を入力')).toBeVisible({ timeout: 5000 });
@@ -70,7 +70,7 @@ test.describe('Simple Entry Mode - かんたん入力モード', () => {
     await page.locator('text=現金経費').click();
 
     // Wait for the transition to complete
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('domcontentloaded');
 
     // Step 2: Fill in the expense form
     await expect(page.locator('text=取引の詳細を入力')).toBeVisible({ timeout: 5000 });
@@ -100,7 +100,7 @@ test.describe('Simple Entry Mode - かんたん入力モード', () => {
     await page.locator('text=現金売上').click();
 
     // Wait for the transition to complete
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('domcontentloaded');
 
     // Fill amount
     await page.fill('input[type="number"]', '11000');
@@ -131,7 +131,7 @@ test.describe('Simple Entry Mode - かんたん入力モード', () => {
     await page.locator('text=現金売上').click();
 
     // Wait for the transition to complete
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('domcontentloaded');
 
     // Verify on input step
     await expect(page.locator('text=取引の詳細を入力')).toBeVisible({ timeout: 5000 });
@@ -146,7 +146,7 @@ test.describe('Simple Entry Mode - かんたん入力モード', () => {
     await page.locator('text=現金売上').click();
 
     // Wait for the transition to complete
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('domcontentloaded');
 
     await page.fill('input[type="number"]', '5000');
     await page.fill('textarea', 'テスト');
@@ -164,9 +164,9 @@ test.describe('Simple Entry Mode - かんたん入力モード', () => {
     const incomeTypes = ['現金売上'];
 
     for (const type of incomeTypes) {
-      await page.goto('/demo/simple-entry', { waitUntil: 'domcontentloaded' });
-      // Wait for the page to be fully hydrated
-      await page.waitForTimeout(1000);
+      await page.goto('/demo/simple-entry', { waitUntil: 'networkidle' });
+      // Wait for the page to be fully interactive
+      await page.waitForSelector('h1', { timeout: 5000 });
 
       // Select transaction type
       await page.locator(`text="${type}"`).click();
@@ -185,7 +185,7 @@ test.describe('Simple Entry Mode - かんたん入力モード', () => {
       await expect(page.locator('text=仕訳内容の確認')).toBeVisible();
 
       // Wait for confirmation page to be ready
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('domcontentloaded');
 
       // Go back to start for next iteration - clicking the second button
       await page.getByRole('button', { name: '仕訳を作成' }).last().click();
@@ -237,7 +237,7 @@ test.describe('Simple Entry Mode - かんたん入力モード', () => {
     await page.locator('text=預金預入').click();
 
     // Wait for the transition to complete
-    await page.waitForTimeout(500);
+    await page.waitForLoadState('domcontentloaded');
 
     // Fill form
     await page.fill('input[type="number"]', '50000');

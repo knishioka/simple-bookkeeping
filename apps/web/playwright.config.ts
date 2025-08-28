@@ -20,24 +20,24 @@ const testEnv = getTestEnvironment();
 const isCI = testEnv.isCI;
 const isDebug = process.env.DEBUG === 'true' || process.env.PWDEBUG === '1';
 
-// タイムアウト設定（最適化済み - Issue #129, #244）
+// タイムアウト設定（最適化済み - Issue #129, #244, #254）
 const TEST_TIMEOUTS = {
-  test: isCI ? 15000 : 20000, // テスト全体のタイムアウト (CI: 20000→15000ms, local: 30000→20000ms)
-  expect: 1500, // アサーションタイムアウト (2000→1500ms)
-  action: 2000, // アクションタイムアウト (3000→2000ms)
-  navigation: isCI ? 5000 : 3000, // ナビゲーションタイムアウト (CI: 10000→5000ms, local: 3000ms)
-  server: 30000, // サーバー起動タイムアウト
+  test: isCI ? 30000 : 20000, // テスト全体のタイムアウト (CI環境で安定性を優先)
+  expect: isCI ? 5000 : 1500, // アサーションタイムアウト (CI環境で余裕を持たせる)
+  action: isCI ? 10000 : 2000, // アクションタイムアウト (CI環境でより寛容に)
+  navigation: isCI ? 15000 : 3000, // ナビゲーションタイムアウト (CI環境で十分な時間を確保)
+  server: 45000, // サーバー起動タイムアウト (CI環境対応)
 };
 
 // リトライ設定
 const RETRIES = {
-  ci: 1, // CI環境では1回（2回から削減）
+  ci: 2, // CI環境では2回リトライ (安定性を優先 - Issue #254)
   local: 0, // ローカルではリトライなし
 };
 
 // ワーカー設定
 const WORKERS = {
-  ci: 6, // CI環境では6ワーカー（4から増加して並列度を上げる）
+  ci: 2, // CI環境では2ワーカーに制限 (GitHub Actionsのリソース制約対応 - Issue #254)
   local: '75%', // ローカルではCPUコアの75%を使用
 };
 
