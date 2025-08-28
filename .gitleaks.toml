@@ -5,8 +5,8 @@ useDefault = true
 [allowlist]
 paths = [
   # Examples and documentation
-  '''.env.example''',
-  '''.env.*.example''',
+  # Note: .env.example files are NOT automatically excluded
+  # to prevent accidental commit of real secrets
   '''docs/.*''',
   '''README.md''',
   '''CLAUDE.md''',
@@ -38,13 +38,15 @@ paths = [
 regexes = [
   '''test@example\.com''',
   '''Test1234!''',
-  '''your[-_]?(secret|password|token|key|value)[-_]?here''',
+  '''your[-_]?(secret|password|token|key|value|anon|service|role)[-_]?(key|token)?[-_]?here''',
+  '''your[-_]?project[-_]?ref''',
   '''sk[-_]test''',
   '''pk[-_]test''',
   '''dummy[-_]?(secret|password|token|key)''',
   '''placeholder''',
   '''example\.com''',
-  '''localhost'''
+  '''localhost''',
+  '''rnd_xxxxxxxxxxxxxxxxxxxxxxxxxx'''
 ]
 
 # Allow specific test tokens
