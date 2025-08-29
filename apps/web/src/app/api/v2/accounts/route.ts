@@ -13,6 +13,14 @@ export const revalidate = 300; // 5分間キャッシュ
  */
 export async function GET(request: NextRequest) {
   try {
+    // Supabase環境変数が設定されていない場合は、エラーレスポンスを返す
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      return NextResponse.json(
+        { error: 'Supabase configuration is not available' },
+        { status: 503 }
+      );
+    }
+
     const supabase = await createClient();
 
     // クエリパラメータの取得
