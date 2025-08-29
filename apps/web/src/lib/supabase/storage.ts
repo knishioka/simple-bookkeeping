@@ -87,8 +87,8 @@ export class StorageService {
       limit?: number;
       offset?: number;
       sortBy?: { column: string; order: 'asc' | 'desc' };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<any[]> {
     const { data, error } = await this.supabase.storage.from(this.bucketName).list(folder, {
       limit: options?.limit || 100,
