@@ -82,57 +82,55 @@ export async function GET(request: NextRequest) {
     runningBalance = openingBalance;
 
     entries?.forEach((entry) => {
-      // @ts-expect-error - Supabase query result typing needs refinement
-      entry.journal_entry_lines?.forEach(
-        (line: {
+      const typedLines = entry.journal_entry_lines as unknown as Array<{
+        id: string;
+        debit_amount?: number | null;
+        credit_amount?: number | null;
+        description?: string;
+        accounts: {
           id: string;
-          debit_amount?: number | null;
-          credit_amount?: number | null;
-          description?: string;
-          accounts: {
-            id: string;
-            code: string;
-            name: string;
-            subcategory: string;
-          };
-        }) => {
-          // Only process cash account lines
-          if (line.accounts.subcategory === 'CASH' || line.accounts.subcategory === 'PETTY_CASH') {
-            const isDebit = (line.debit_amount || 0) > 0;
-            const amount = isDebit ? line.debit_amount : line.credit_amount;
+          code: string;
+          name: string;
+          subcategory: string;
+        };
+      }>;
+      typedLines?.forEach((line) => {
+        // Only process cash account lines
+        if (line.accounts.subcategory === 'CASH' || line.accounts.subcategory === 'PETTY_CASH') {
+          const isDebit = (line.debit_amount || 0) > 0;
+          const amount = isDebit ? line.debit_amount : line.credit_amount;
 
-            // Update running balance
-            if (isDebit) {
-              runningBalance += amount || 0;
-            } else {
-              runningBalance -= amount || 0;
-            }
-
-            // Find corresponding account (the other side of the entry)
-            const otherLines = entry.journal_entry_lines?.filter(
-              (l: { id: string }) => l.id !== line.id
-            );
-            const firstOtherLine = otherLines?.[0];
-            const counterAccount = firstOtherLine?.accounts || null;
-
-            cashBookEntries.push({
-              id: line.id,
-              date: entry.entry_date,
-              entryNumber: entry.entry_number,
-              description: line.description || entry.description,
-              counterAccount: counterAccount
-                ? {
-                    code: (counterAccount as unknown as { code: string; name: string }).code,
-                    name: (counterAccount as unknown as { code: string; name: string }).name,
-                  }
-                : null,
-              receipt: isDebit ? amount : null,
-              payment: !isDebit ? amount : null,
-              balance: runningBalance,
-            });
+          // Update running balance
+          if (isDebit) {
+            runningBalance += amount || 0;
+          } else {
+            runningBalance -= amount || 0;
           }
+
+          // Find corresponding account (the other side of the entry)
+          const otherLines = entry.journal_entry_lines?.filter(
+            (l: { id: string }) => l.id !== line.id
+          );
+          const firstOtherLine = otherLines?.[0];
+          const counterAccount = firstOtherLine?.accounts || null;
+
+          cashBookEntries.push({
+            id: line.id,
+            date: entry.entry_date,
+            entryNumber: entry.entry_number,
+            description: line.description || entry.description,
+            counterAccount: counterAccount
+              ? {
+                  code: (counterAccount as unknown as { code: string; name: string }).code,
+                  name: (counterAccount as unknown as { code: string; name: string }).name,
+                }
+              : null,
+            receipt: isDebit ? amount : null,
+            payment: !isDebit ? amount : null,
+            balance: runningBalance,
+          });
         }
-      );
+      });
     });
 
     // Calculate totals

@@ -116,35 +116,36 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      const payable = partnerPayables.get(partnerKey)!;
+      const payable = partnerPayables.get(partnerKey);
+      if (payable) {
+        entry.journal_entry_lines?.forEach((line: unknown) => {
+          const typedLine = line as JournalEntryLine;
+          if (typedLine.accounts?.subcategory === 'ACCOUNTS_PAYABLE') {
+            const isCredit = (typedLine.credit_amount || 0) > 0;
+            const amount = isCredit ? typedLine.credit_amount : typedLine.debit_amount;
 
-      entry.journal_entry_lines?.forEach((line: unknown) => {
-        const typedLine = line as JournalEntryLine;
-        if (typedLine.accounts?.subcategory === 'ACCOUNTS_PAYABLE') {
-          const isCredit = (typedLine.credit_amount || 0) > 0;
-          const amount = isCredit ? typedLine.credit_amount : typedLine.debit_amount;
+            // Update balance (credit increases payables, debit decreases)
+            if (isCredit) {
+              payable.balance += amount || 0;
+            } else {
+              payable.balance -= amount || 0;
+            }
 
-          // Update balance (credit increases payables, debit decreases)
-          if (isCredit) {
-            payable.balance += amount || 0;
-          } else {
-            payable.balance -= amount || 0;
+            payable.entries.push({
+              id: typedLine.id,
+              date: entry.entry_date,
+              entryNumber: entry.entry_number,
+              description: typedLine.description || entry.description,
+              dueDate: null, // TODO: Add due date field from entry
+              amount,
+              bill: isCredit ? amount : null,
+              payment: !isCredit ? amount : null,
+              balance: payable.balance,
+              partner: null, // Partner is already tracked at the parent level
+            });
           }
-
-          payable.entries.push({
-            id: typedLine.id,
-            date: entry.entry_date,
-            entryNumber: entry.entry_number,
-            description: typedLine.description || entry.description,
-            dueDate: null, // TODO: Add due date field from entry
-            amount,
-            bill: isCredit ? amount : null,
-            payment: !isCredit ? amount : null,
-            balance: payable.balance,
-            partner: null, // Partner is already tracked at the parent level
-          });
-        }
-      });
+        });
+      }
     });
 
     // Convert to array and structure response

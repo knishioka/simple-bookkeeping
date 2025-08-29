@@ -109,9 +109,9 @@ export async function GET(request: NextRequest) {
     runningBalance = openingBalance;
 
     // Transform entries with running balance
-    // @ts-expect-error - Supabase query result typing needs refinement
+    const typedLines = lines as unknown as JournalEntryLine[];
     const ledgerEntries =
-      lines?.map((line: JournalEntryLine) => {
+      typedLines?.map((line: JournalEntryLine) => {
         const debitAmount = line.debit_amount || 0;
         const creditAmount = line.credit_amount || 0;
 

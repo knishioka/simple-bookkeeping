@@ -51,7 +51,10 @@ export async function GET(request: NextRequest) {
     if (periodId) {
       query = query.eq('accounting_period_id', periodId);
     } else {
-      query = query.gte('entry_date', startDate!).lte('entry_date', endDate!);
+      if (!startDate || !endDate) {
+        return NextResponse.json({ error: 'Invalid date range' }, { status: 400 });
+      }
+      query = query.gte('entry_date', startDate).lte('entry_date', endDate);
     }
 
     const { data: entries, error: entriesError } = await query;
