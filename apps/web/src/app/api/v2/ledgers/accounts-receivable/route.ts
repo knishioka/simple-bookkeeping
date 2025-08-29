@@ -109,35 +109,36 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      const receivable = partnerReceivables.get(partnerKey)!;
+      const receivable = partnerReceivables.get(partnerKey);
+      if (receivable) {
+        entry.journal_entry_lines?.forEach((line: unknown) => {
+          const typedLine = line as JournalEntryLine;
+          if (typedLine.accounts?.subcategory === 'ACCOUNTS_RECEIVABLE') {
+            const isDebit = (typedLine.debit_amount || 0) > 0;
+            const amount = isDebit ? typedLine.debit_amount : typedLine.credit_amount;
 
-      entry.journal_entry_lines?.forEach((line: unknown) => {
-        const typedLine = line as JournalEntryLine;
-        if (typedLine.accounts?.subcategory === 'ACCOUNTS_RECEIVABLE') {
-          const isDebit = (typedLine.debit_amount || 0) > 0;
-          const amount = isDebit ? typedLine.debit_amount : typedLine.credit_amount;
+            // Update balance (debit increases receivables, credit decreases)
+            if (isDebit) {
+              receivable.balance += amount || 0;
+            } else {
+              receivable.balance -= amount || 0;
+            }
 
-          // Update balance (debit increases receivables, credit decreases)
-          if (isDebit) {
-            receivable.balance += amount || 0;
-          } else {
-            receivable.balance -= amount || 0;
+            receivable.entries.push({
+              id: typedLine.id,
+              date: entry.entry_date,
+              entryNumber: entry.entry_number,
+              description: typedLine.description || entry.description,
+              dueDate: null, // TODO: Add due date field from entry
+              amount,
+              invoice: isDebit ? amount : null,
+              payment: !isDebit ? amount : null,
+              balance: receivable.balance,
+              partner: null, // Partner is already tracked at the parent level
+            });
           }
-
-          receivable.entries.push({
-            id: typedLine.id,
-            date: entry.entry_date,
-            entryNumber: entry.entry_number,
-            description: typedLine.description || entry.description,
-            dueDate: null, // TODO: Add due date field from entry
-            amount,
-            invoice: isDebit ? amount : null,
-            payment: !isDebit ? amount : null,
-            balance: receivable.balance,
-            partner: null, // Partner is already tracked at the parent level
-          });
-        }
-      });
+        });
+      }
     });
 
     // Convert to array and structure response

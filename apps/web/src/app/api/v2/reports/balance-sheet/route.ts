@@ -53,6 +53,10 @@ export async function GET(request: NextRequest) {
       accountingPeriod = data;
     }
 
+    if (!accountingPeriod) {
+      return NextResponse.json({ error: 'Accounting period not found' }, { status: 404 });
+    }
+
     // Get all accounts with their balances
     const { data: accounts, error: accountsError } = await supabase
       .from('accounts')
@@ -69,7 +73,7 @@ export async function GET(request: NextRequest) {
         )
       `
       )
-      .eq('journal_entry_lines.journal_entries.accounting_period_id', accountingPeriod!.id)
+      .eq('journal_entry_lines.journal_entries.accounting_period_id', accountingPeriod.id)
       .order('code');
 
     if (accountsError) {

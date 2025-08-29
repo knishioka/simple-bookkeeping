@@ -91,34 +91,34 @@ export async function GET(request: NextRequest) {
     >();
 
     entries?.forEach((entry) => {
-      // @ts-expect-error - Supabase query result typing needs refinement
-      entry.journal_entry_lines?.forEach(
-        (line: {
+      const typedLines = entry.journal_entry_lines as unknown as Array<{
+        id: string;
+        debit_amount?: number | null;
+        credit_amount?: number | null;
+        description?: string;
+        account_id: string;
+        accounts: {
           id: string;
-          debit_amount?: number | null;
-          credit_amount?: number | null;
-          description?: string;
-          account_id: string;
-          accounts: {
-            id: string;
-            code: string;
-            name: string;
-            subcategory: string;
-          };
-        }) => {
-          // Only process bank account lines
-          if (line.accounts.subcategory === 'BANK') {
-            const accountKey = line.account_id;
+          code: string;
+          name: string;
+          subcategory: string;
+        };
+      }>;
+      typedLines?.forEach((line) => {
+        // Only process bank account lines
+        if (line.accounts.subcategory === 'BANK') {
+          const accountKey = line.account_id;
 
-            if (!bankAccounts.has(accountKey)) {
-              bankAccounts.set(accountKey, {
-                account: line.accounts,
-                entries: [],
-                balance: 0,
-              });
-            }
+          if (!bankAccounts.has(accountKey)) {
+            bankAccounts.set(accountKey, {
+              account: line.accounts,
+              entries: [],
+              balance: 0,
+            });
+          }
 
-            const bankAccount = bankAccounts.get(accountKey)!;
+          const bankAccount = bankAccounts.get(accountKey);
+          if (bankAccount) {
             const isDebit = (line.debit_amount || 0) > 0;
             const amount = isDebit ? line.debit_amount : line.credit_amount;
 
@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
             });
           }
         }
-      );
+      });
     });
 
     // Convert to array and structure response
