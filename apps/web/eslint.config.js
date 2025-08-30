@@ -3,7 +3,14 @@ import baseConfig from '../../eslint.config.js';
 export default [
   ...baseConfig,
   {
-    ignores: ['test-results/**', 'playwright-report/**', '.next/**', 'dist/**', 'coverage/**'],
+    ignores: [
+      'test-results/**',
+      'playwright-report/**',
+      '.next/**',
+      'dist/**',
+      'coverage/**',
+      'next-env.d.ts',
+    ],
   },
   {
     files: ['**/*.{js,jsx,ts,tsx}'],
