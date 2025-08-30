@@ -74,9 +74,9 @@ services:
           'http://localhost:3001/api/v1/health',
         ]
       interval: 5s
-      timeout: 10s
-      retries: 30
-      start_period: 30s
+      timeout: 15s
+      retries: 40
+      start_period: 45s
     restart: unless-stopped
     # Remove volume mounts that break the standalone container
     # volumes:
@@ -106,9 +106,9 @@ services:
     healthcheck:
       test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://127.0.0.1:3000']
       interval: 5s
-      timeout: 10s
-      retries: 30
-      start_period: 60s
+      timeout: 15s
+      retries: 40
+      start_period: 90s
     restart: unless-stopped
     # Remove volume mounts that break the standalone container
     # volumes:
@@ -159,6 +159,7 @@ services:
       # Mount test files and config (read-only for consistency)
       - ./apps/web/e2e:/app/apps/web/e2e:ro
       - ./apps/web/playwright.config.ts:/app/apps/web/playwright.config.ts:ro
+      - ./apps/web/playwright.config.ci.ts:/app/apps/web/playwright.config.ci.ts:ro
       # Mount output directories (read-write for results)
       - ./playwright-report:/app/playwright-report:rw
       - ./test-results:/app/test-results:rw

@@ -18,21 +18,21 @@ export default defineConfig({
 
   expect: {
     ...baseConfig.expect,
-    timeout: 10000, // 10 seconds for assertions in CI
+    timeout: 15000, // 15 seconds for assertions in CI (increased for Docker)
   },
 
   // More aggressive retries in CI
   retries: 3,
 
-  // Reduce workers to avoid resource contention
-  workers: 1,
+  // Use 2 workers for better parallelization while avoiding contention
+  workers: 2,
 
   // Force slower, more stable execution
   use: {
     ...baseConfig.use,
-    // Extended timeouts for CI
-    actionTimeout: 15000,
-    navigationTimeout: 30000,
+    // Extended timeouts for CI/Docker environment
+    actionTimeout: 20000, // Increased from 15000 for Docker stability
+    navigationTimeout: 45000, // Increased from 30000 for Docker environment
 
     // Always capture traces in CI for debugging
     trace: 'on',
@@ -45,7 +45,7 @@ export default defineConfig({
 
     // Add artificial delay between actions for stability
     launchOptions: {
-      slowMo: 100, // 100ms delay between actions
+      slowMo: 50, // Reduced from 100ms to balance speed and stability
     },
   },
 

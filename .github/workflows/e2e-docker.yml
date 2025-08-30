@@ -104,7 +104,7 @@ jobs:
             -e DEBUG=${{ github.event.inputs.debug || 'false' }} \
             -e TEST_RETRIES=2 \
             -e TEST_WORKERS=2 \
-            -e PLAYWRIGHT_CONFIG=playwright.config.ci.ts \
+            -e PLAYWRIGHT_ARGS="--config playwright.config.ci.ts" \
             playwright || TEST_EXIT_CODE=$?
 
           # Export test exit code
