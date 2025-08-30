@@ -165,7 +165,17 @@ export PLAYWRIGHT_HTML_REPORT=/app/playwright-report
 export PLAYWRIGHT_JUNIT_OUTPUT_NAME=/app/test-results/results.xml
 
 # Execute tests with proper reporter configuration
+# Use the CI config if it exists, otherwise use the default config
+if [ -f "playwright.config.ci.ts" ]; then
+    echo "📝 Using CI-specific Playwright configuration"
+    CONFIG_ARG="--config playwright.config.ci.ts"
+else
+    echo "📝 Using default Playwright configuration"
+    CONFIG_ARG=""
+fi
+
 npx playwright test \
+    ${CONFIG_ARG} \
     --reporter=html,list,junit \
     --output=/app/artifacts \
     ${PLAYWRIGHT_ARGS} || TEST_EXIT_CODE=$?
