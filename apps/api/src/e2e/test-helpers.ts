@@ -2,7 +2,6 @@ import { UserRole } from '@prisma/client';
 import { hash } from 'bcryptjs';
 
 import { prisma } from '../lib/prisma';
-import { generateTokens } from '../utils/jwt';
 
 export interface TestUser {
   user: { id: string; email: string; name: string };
@@ -44,12 +43,15 @@ export async function createTestUser(
     },
   });
 
-  const tokens = generateTokens(user.id, user.email, role);
+  // Generate a stub token for testing
+  // Note: Authentication is now handled by Supabase Auth
+  // This is only for backward compatibility with existing tests
+  const stubToken = `test-token-${user.id}-${organization.id}`;
 
   return {
     user,
     organization,
-    token: tokens.accessToken,
+    token: stubToken,
   };
 }
 
