@@ -3,7 +3,7 @@
 # ============================================================================
 # check-full-build.sh - Pre-push Comprehensive Build Validation
 # ============================================================================
-# Purpose: Full build validation for both Vercel (Web) and Render (API) platforms
+# Purpose: Full build validation for Vercel (Web) platform
 # Usage: Automatically run by pre-push hook or manually via pnpm prepush:check
 # Scope: Builds all packages to ensure deployment readiness
 # ============================================================================
@@ -25,15 +25,6 @@ if NODE_ENV=production pnpm --filter @simple-bookkeeping/web build; then
     echo -e "${GREEN}✅ Web app build successful${NC}"
 else
     echo -e "${RED}❌ Web app build failed!${NC}"
-    ERRORS=$((ERRORS + 1))
-fi
-
-# Check API server build (Render)
-echo -e "\n${YELLOW}🔨 Building API server (Render)...${NC}"
-if pnpm --filter @simple-bookkeeping/api build; then
-    echo -e "${GREEN}✅ API server build successful${NC}"
-else
-    echo -e "${RED}❌ API server build failed!${NC}"
     ERRORS=$((ERRORS + 1))
 fi
 

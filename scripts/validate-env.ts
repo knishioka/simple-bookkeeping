@@ -4,7 +4,6 @@
  *
  * 使用方法:
  *   pnpm env:validate          # 全環境変数をチェック
- *   pnpm env:validate --api     # APIサーバーの環境変数のみチェック
  *   pnpm env:validate --web     # フロントエンドの環境変数のみチェック
  *   pnpm env:validate --strict  # 警告もエラーとして扱う
  */
@@ -32,10 +31,9 @@ const log = {
 
 // コマンドライン引数の解析
 const args = process.argv.slice(2);
-const checkApi = args.includes('--api');
 const checkWeb = args.includes('--web');
 const strictMode = args.includes('--strict');
-const checkAll = !checkApi && !checkWeb;
+const checkAll = !checkWeb;
 
 // 環境変数ファイルの読み込み
 const rootDir = path.join(__dirname, '..');
@@ -71,7 +69,7 @@ let hasWarning = false;
 log.header('環境変数バリデーション開始');
 
 // データベース設定のチェック
-if (checkAll || checkApi) {
+if (checkAll) {
   log.header('データベース設定');
 
   if (!process.env.DATABASE_URL) {
@@ -85,102 +83,19 @@ if (checkAll || checkApi) {
   }
 }
 
-// APIサーバー設定のチェック
-if (checkAll || checkApi) {
-  log.header('APIサーバー設定');
-
-  // JWT_SECRET
-  if (!process.env.JWT_SECRET) {
-    log.error('JWT_SECRETが設定されていません');
-    hasError = true;
-  } else if (process.env.JWT_SECRET.length < 32) {
-    log.error('JWT_SECRETは最低32文字以上にしてください（セキュリティ）');
-    hasError = true;
-  } else if (process.env.JWT_SECRET === 'local-dev-secret-change-in-production') {
-    if (process.env.NODE_ENV === 'production') {
-      log.error('本番環境でデフォルトのJWT_SECRETを使用しています！');
-      hasError = true;
-    } else {
-      log.warning(
-        '開発環境でデフォルトのJWT_SECRETを使用しています（本番環境では変更してください）'
-      );
-      hasWarning = true;
-    }
-  }
-
-  // JWT_REFRESH_SECRET
-  if (!process.env.JWT_REFRESH_SECRET) {
-    log.error('JWT_REFRESH_SECRETが設定されていません');
-    hasError = true;
-  } else if (process.env.JWT_REFRESH_SECRET.length < 32) {
-    log.error('JWT_REFRESH_SECRETは最低32文字以上にしてください');
-    hasError = true;
-  } else if (process.env.JWT_REFRESH_SECRET === 'local-dev-refresh-secret-change-in-production') {
-    if (process.env.NODE_ENV === 'production') {
-      log.error('本番環境でデフォルトのJWT_REFRESH_SECRETを使用しています！');
-      hasError = true;
-    }
-  }
-
-  // CORS_ORIGIN (development環境ではオプション)
-  if (!process.env.CORS_ORIGIN) {
-    if (process.env.NODE_ENV === 'production') {
-      log.error('本番環境ではCORS_ORIGINが必須です');
-      hasError = true;
-    } else {
-      log.warning(
-        'CORS_ORIGINが設定されていません（開発環境では localhost:3000 がデフォルトで使用されます）'
-      );
-      hasWarning = true;
-    }
-  }
-
-  // API_PORT
-  if (process.env.API_PORT) {
-    const port = parseInt(process.env.API_PORT, 10);
-    if (isNaN(port) || port < 1 || port > 65535) {
-      log.error('API_PORTは1-65535の範囲で指定してください');
-      hasError = true;
-    }
-  }
-
-  // NODE_ENV
+// NODE_ENV
+if (checkAll) {
   if (process.env.NODE_ENV) {
     if (!['development', 'production', 'test'].includes(process.env.NODE_ENV)) {
       log.warning(`NODE_ENVの値が不正です: ${process.env.NODE_ENV}`);
       hasWarning = true;
     }
   }
-
-  if (!hasError) {
-    log.success('APIサーバー設定: OK');
-  }
 }
 
 // フロントエンド設定のチェック
 if (checkAll || checkWeb) {
   log.header('フロントエンド設定');
-
-  // NEXT_PUBLIC_API_URL
-  if (!process.env.NEXT_PUBLIC_API_URL) {
-    log.error('NEXT_PUBLIC_API_URLが設定されていません');
-    hasError = true;
-  } else {
-    try {
-      new URL(process.env.NEXT_PUBLIC_API_URL);
-      if (!process.env.NEXT_PUBLIC_API_URL.endsWith('/api/v1')) {
-        log.error(
-          'NEXT_PUBLIC_API_URLは /api/v1 で終わる必要があります（例: http://localhost:3001/api/v1）'
-        );
-        hasError = true;
-      } else {
-        log.success('フロントエンド設定: OK');
-      }
-    } catch {
-      log.error('NEXT_PUBLIC_API_URLが有効なURLではありません');
-      hasError = true;
-    }
-  }
 
   // NEXT_PUBLIC_APP_URL
   if (process.env.NEXT_PUBLIC_APP_URL) {
@@ -192,16 +107,7 @@ if (checkAll || checkWeb) {
     }
   }
 
-  // API URLの一貫性チェック
-  if (process.env.CORS_ORIGIN && process.env.NEXT_PUBLIC_APP_URL) {
-    const corsOrigins = process.env.CORS_ORIGIN.split(',').map((o) => o.trim());
-    if (!corsOrigins.includes(process.env.NEXT_PUBLIC_APP_URL)) {
-      log.warning(
-        `NEXT_PUBLIC_APP_URL (${process.env.NEXT_PUBLIC_APP_URL}) がCORS_ORIGINに含まれていません`
-      );
-      hasWarning = true;
-    }
-  }
+  log.success('フロントエンド設定: OK');
 }
 
 // オプション設定のチェック

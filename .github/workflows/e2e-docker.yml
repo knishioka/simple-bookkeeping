@@ -10,7 +10,6 @@ on:
       - main
     paths:
       - 'apps/web/**'
-      - 'apps/api/**'
       - 'packages/**'
       - 'docker-compose.test.yml'
       - 'Dockerfile.playwright'
@@ -69,14 +68,11 @@ jobs:
 
       - name: Start services
         run: |
-          docker compose -f docker-compose.test.yml up -d postgres-test api-test web-test
+          docker compose -f docker-compose.test.yml up -d postgres-test web-test
           echo "Waiting for services to be healthy..."
 
           # Wait for postgres
           timeout 60 bash -c 'until docker compose -f docker-compose.test.yml exec -T postgres-test pg_isready; do sleep 2; done' || true
-
-          # Wait for API (allow failure as it might restart)
-          timeout 60 bash -c 'until docker compose -f docker-compose.test.yml exec -T api-test wget --no-verbose --tries=1 --spider http://localhost:3001/api/v1/health; do sleep 2; done' || true
 
           # Wait for Web (allow failure as it might restart)
           timeout 60 bash -c 'until docker compose -f docker-compose.test.yml exec -T web-test wget --no-verbose --tries=1 --spider http://localhost:3000; do sleep 2; done' || true

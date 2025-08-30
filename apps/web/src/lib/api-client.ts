@@ -391,8 +391,8 @@ class ApiClient {
   }
 }
 
-// Use environment variable for API URL, fallback to localhost for development
-const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+// API routes are now in Next.js
+const baseUrl = '/api';
 
 export const apiClient = new ApiClient({
   baseUrl,
