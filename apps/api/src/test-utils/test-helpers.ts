@@ -1,8 +1,7 @@
 import { TEST_ACCOUNTS } from '@simple-bookkeeping/config';
 import { UserRole, JournalStatus, AccountType } from '@simple-bookkeeping/database';
-import { TEST_CREDENTIALS, TEST_JWT_CONFIG } from '@simple-bookkeeping/test-utils';
+import { TEST_CREDENTIALS } from '@simple-bookkeeping/test-utils';
 import bcrypt from 'bcryptjs';
-import jwt, { SignOptions } from 'jsonwebtoken';
 
 import { prisma } from '../lib/prisma';
 
@@ -87,21 +86,11 @@ export const generateTestToken = (
   organizationId: string,
   role: UserRole = UserRole.VIEWER
 ) => {
-  // Use centralized JWT config
-  const secret = process.env.JWT_SECRET || TEST_JWT_CONFIG.secret;
-  return jwt.sign(
-    {
-      sub: userId, // JWT standard claim for subject (user ID)
-      userId, // Keep for backwards compatibility
-      organizationId,
-      role, // Include the role for the organization
-      iat: Math.floor(Date.now() / 1000),
-    },
-    secret,
-    {
-      expiresIn: TEST_JWT_CONFIG.expiresIn,
-    } as SignOptions
-  );
+  // Return a stub token for testing
+  // Note: Authentication is now handled by Supabase Auth
+  // This is only for backward compatibility with existing tests
+  // The format includes user info for test identification
+  return `test-token-${userId}-${organizationId}-${role}`;
 };
 
 // Create test accounting period
