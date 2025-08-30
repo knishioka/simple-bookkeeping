@@ -54,16 +54,10 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
 
-      - name: Build API application
-        run: pnpm --filter @simple-bookkeeping/api build
-        env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/bookkeeping_test
-
       - name: Build Web application
         run: pnpm --filter @simple-bookkeeping/web build
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/bookkeeping_test
-          NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
           DOCKER_BUILD: false
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
@@ -71,20 +65,9 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm --filter @simple-bookkeeping/web exec playwright install --with-deps chromium
 
-      - name: Start API server in background
-        env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/bookkeeping_test
-          JWT_SECRET: test-secret-key
-        run: |
-          cd apps/api
-          node dist/index.js &
-          sleep 5
-          curl -f http://localhost:3001/api/v1/ || exit 1
-
       - name: Start Web server in background
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/bookkeeping_test
-          NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
           NEXTAUTH_SECRET: test-nextauth-secret
           NEXTAUTH_URL: http://localhost:3000
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
@@ -109,7 +92,6 @@ jobs:
           JWT_SECRET: test-secret-key
           NEXTAUTH_SECRET: test-nextauth-secret
           NEXTAUTH_URL: http://localhost:3000
-          NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
           CI: true
           NODE_ENV: test
           REUSE_SERVER: true

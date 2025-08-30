@@ -36,53 +36,6 @@ services:
       - simple-bookkeeping-test
     restart: unless-stopped
 
-  api-test:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
-      target: runner
-    container_name: simple-bookkeeping-api-test
-    depends_on:
-      postgres-test:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql://test:test@postgres-test:5432/bookkeeping_test?schema=public
-      API_PORT: 3001
-      NODE_ENV: production
-      JWT_SECRET: test-secret-key-for-e2e-testing
-      JWT_EXPIRES_IN: 1h
-      JWT_REFRESH_SECRET: test-refresh-secret-for-e2e
-      JWT_REFRESH_EXPIRES_IN: 7d
-      CORS_ORIGIN: http://web-test:3000,http://localhost:3000
-      # Disable rate limiting in test environment
-      DISABLE_RATE_LIMIT: 'true'
-      # Test-specific settings
-      LOG_LEVEL: debug
-    # Remove host port mapping for complete isolation (can be enabled for debugging)
-    # ports:
-    #   - '3011:3001'
-    networks:
-      - simple-bookkeeping-test
-    healthcheck:
-      test:
-        [
-          'CMD',
-          'wget',
-          '--no-verbose',
-          '--tries=1',
-          '--spider',
-          'http://localhost:3001/api/v1/health',
-        ]
-      interval: 5s
-      timeout: 15s
-      retries: 40
-      start_period: 45s
-    restart: unless-stopped
-    # Remove volume mounts that break the standalone container
-    # volumes:
-    #   - ./apps/api/src:/app/apps/api/src:ro
-    #   - ./packages:/app/packages:ro
-
   web-test:
     build:
       context: .
@@ -90,10 +43,10 @@ services:
       target: runner
     container_name: simple-bookkeeping-web-test
     depends_on:
-      api-test:
+      postgres-test:
         condition: service_healthy
     environment:
-      NEXT_PUBLIC_API_URL: http://api-test:3001/api/v1
+      # API routes are now in Next.js
       NODE_ENV: production
       # Test-specific settings
       NEXT_TELEMETRY_DISABLED: '1'
@@ -126,17 +79,13 @@ services:
     depends_on:
       web-test:
         condition: service_healthy
-      api-test:
-        condition: service_healthy
       postgres-test:
         condition: service_healthy
     environment:
       # Unified test environment variables
       TEST_WEB_URL: http://web-test:3000
-      TEST_API_URL: http://api-test:3001
       # Legacy variables for backward compatibility (will be removed in future)
       BASE_URL: http://web-test:3000
-      API_URL: http://api-test:3001
       # Environment detection
       DOCKER_ENV: 'true'
       CI: 'true'

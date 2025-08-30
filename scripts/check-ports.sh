@@ -9,9 +9,8 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Default ports (can be overridden by environment variables)
+# Default port (can be overridden by environment variables)
 WEB_PORT=${WEB_PORT:-3000}
-API_PORT=${API_PORT:-3001}
 
 # Function to check if a port is in use
 check_port() {
@@ -50,75 +49,48 @@ find_available_port() {
 echo "🔍 Checking port availability..."
 echo ""
 
-# Check ports
+# Check port
 web_available=0
-api_available=0
 
 check_port $WEB_PORT "Web Server" || web_available=1
-check_port $API_PORT "API Server" || api_available=1
 
 echo ""
 
-# If ports are not available, suggest alternatives
-if [ $web_available -ne 0 ] || [ $api_available -ne 0 ]; then
-    echo -e "${YELLOW}⚠️  Some ports are not available${NC}"
+# If port is not available, suggest alternatives
+if [ $web_available -ne 0 ]; then
+    echo -e "${YELLOW}⚠️  Port is not available${NC}"
     echo ""
     
     if [ "$CI" = "true" ]; then
-        # In CI, try to find alternative ports automatically
-        echo "CI environment detected. Finding alternative ports..."
+        # In CI, try to find alternative port automatically
+        echo "CI environment detected. Finding alternative port..."
         
-        if [ $web_available -ne 0 ]; then
-            new_web_port=$(find_available_port $((WEB_PORT + 1)))
-            if [ $? -eq 0 ]; then
-                echo -e "${GREEN}Found alternative web port: $new_web_port${NC}"
-                export WEB_PORT=$new_web_port
-            fi
-        fi
-        
-        if [ $api_available -ne 0 ]; then
-            new_api_port=$(find_available_port $((API_PORT + 1)))
-            if [ $? -eq 0 ]; then
-                echo -e "${GREEN}Found alternative API port: $new_api_port${NC}"
-                export API_PORT=$new_api_port
-            fi
+        new_web_port=$(find_available_port $((WEB_PORT + 1)))
+        if [ $? -eq 0 ]; then
+            echo -e "${GREEN}Found alternative web port: $new_web_port${NC}"
+            export WEB_PORT=$new_web_port
         fi
         
         # Update environment for subsequent processes
         echo "WEB_PORT=$WEB_PORT" >> $GITHUB_ENV 2>/dev/null || true
-        echo "API_PORT=$API_PORT" >> $GITHUB_ENV 2>/dev/null || true
     else
         # In local environment, provide instructions
-        echo "To use alternative ports, run:"
+        echo "To use alternative port, run:"
         echo ""
         
-        if [ $web_available -ne 0 ]; then
-            new_web_port=$(find_available_port $((WEB_PORT + 1)))
-            echo "  export WEB_PORT=$new_web_port"
-        fi
-        
-        if [ $api_available -ne 0 ]; then
-            new_api_port=$(find_available_port $((API_PORT + 1)))
-            echo "  export API_PORT=$new_api_port"
-        fi
+        new_web_port=$(find_available_port $((WEB_PORT + 1)))
+        echo "  export WEB_PORT=$new_web_port"
         
         echo ""
-        echo "Or stop the processes using the ports:"
+        echo "Or stop the process using the port:"
         echo ""
         
-        if [ $web_available -ne 0 ]; then
-            pid=$(lsof -t -i:$WEB_PORT -sTCP:LISTEN)
-            echo "  kill $pid  # Stop process on port $WEB_PORT"
-        fi
-        
-        if [ $api_available -ne 0 ]; then
-            pid=$(lsof -t -i:$API_PORT -sTCP:LISTEN)
-            echo "  kill $pid  # Stop process on port $API_PORT"
-        fi
+        pid=$(lsof -t -i:$WEB_PORT -sTCP:LISTEN)
+        echo "  kill $pid  # Stop process on port $WEB_PORT"
     fi
     
     exit 1
 else
-    echo -e "${GREEN}✅ All required ports are available${NC}"
+    echo -e "${GREEN}✅ Required port is available${NC}"
     exit 0
 fi
