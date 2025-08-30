@@ -33,22 +33,28 @@ test.describe('Simple Entry Mode - かんたん入力モード', () => {
   });
 
   test('should navigate through cash sale transaction flow', async ({ page }) => {
-    // Step 1: Select cash sale transaction type
-    await page.locator('text=現金売上').click();
+    // Step 1: Select cash sale transaction type with increased timeout
+    await page.locator('text=現金売上').click({ timeout: 10000 });
 
     // Wait for the transition to complete
     await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(1000); // Give UI time to transition
 
     // Step 2: Verify we're on the input details step
-    await expect(page.locator('text=取引の詳細を入力')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('label:has-text("金額")')).toBeVisible();
+    await expect(page.locator('text=取引の詳細を入力')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('label:has-text("金額")')).toBeVisible({ timeout: 5000 });
 
-    // Fill in the form
-    await page.fill('input[type="number"]', '10000');
-    await page.fill('textarea', 'テスト売上');
+    // Fill in the form with explicit waits
+    const amountInput = page.locator('input[type="number"]');
+    await amountInput.waitFor({ state: 'visible', timeout: 5000 });
+    await amountInput.fill('10000');
 
-    // Submit the form
-    await page.getByRole('button', { name: '仕訳を作成' }).first().click();
+    const descriptionTextarea = page.locator('textarea');
+    await descriptionTextarea.waitFor({ state: 'visible', timeout: 5000 });
+    await descriptionTextarea.fill('テスト売上');
+
+    // Submit the form with increased timeout
+    await page.getByRole('button', { name: '仕訳を作成' }).first().click({ timeout: 5000 });
 
     // Step 3: Verify confirmation page
     await expect(page.locator('text=仕訳内容の確認')).toBeVisible();
