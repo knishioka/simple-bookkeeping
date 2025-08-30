@@ -1,12 +1,22 @@
 import '@testing-library/jest-dom';
 
-// Suppress JSDOM navigation warnings
+// Configure React 19 testing environment for act() support
+// This is required for react-hook-form with React 19
+global.IS_REACT_ACT_ENVIRONMENT = true;
+
+// Suppress JSDOM navigation warnings and React act warnings
 const originalError = console.error;
 beforeAll(() => {
   console.error = (...args) => {
-    if (typeof args[0] === 'string' && args[0].includes('Not implemented: navigation')) {
+    if (typeof args[0] === 'string') {
       // Suppress navigation warnings from JSDOM
-      return;
+      if (args[0].includes('Not implemented: navigation')) {
+        return;
+      }
+      // Suppress React act warnings for react-hook-form
+      if (args[0].includes('The current testing environment is not configured to support act')) {
+        return;
+      }
     }
     originalError.call(console, ...args);
   };
