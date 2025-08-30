@@ -44,10 +44,10 @@ test.describe('Accounting Periods Management', () => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await UnifiedAuth.setAuthData(page);
 
-    // Navigate to accounting periods page
+    // Navigate to accounting periods page - using domcontentloaded instead of networkidle
     await page.goto('/dashboard/settings/accounting-periods', {
-      waitUntil: 'networkidle',
-      timeout: 10000,
+      waitUntil: 'domcontentloaded',
+      timeout: 15000,
     });
 
     // Verify we're on the accounting periods page

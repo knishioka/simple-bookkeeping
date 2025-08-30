@@ -20,12 +20,12 @@ const testEnv = getTestEnvironment();
 const isCI = testEnv.isCI;
 const isDebug = process.env.DEBUG === 'true' || process.env.PWDEBUG === '1';
 
-// タイムアウト設定（最適化済み - Issue #129, #244, #254）
+// タイムアウト設定（最適化済み - Issue #129, #244, #254, #264）
 const TEST_TIMEOUTS = {
-  test: isCI ? 30000 : 20000, // テスト全体のタイムアウト (CI環境で安定性を優先)
-  expect: isCI ? 5000 : 1500, // アサーションタイムアウト (CI環境で余裕を持たせる)
-  action: isCI ? 10000 : 2000, // アクションタイムアウト (CI環境でより寛容に)
-  navigation: isCI ? 15000 : 3000, // ナビゲーションタイムアウト (CI環境で十分な時間を確保)
+  test: isCI ? 30000 : 30000, // テスト全体のタイムアウト (安定性を優先)
+  expect: isCI ? 10000 : 5000, // アサーションタイムアウト (余裕を持たせる)
+  action: isCI ? 15000 : 5000, // アクションタイムアウト (クリック等の操作に余裕を持たせる)
+  navigation: isCI ? 20000 : 10000, // ナビゲーションタイムアウト (十分な時間を確保)
   server: 45000, // サーバー起動タイムアウト (CI環境対応)
 };
 

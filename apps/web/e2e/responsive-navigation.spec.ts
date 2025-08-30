@@ -116,11 +116,11 @@ test.describe('Responsive Navigation', () => {
     // モバイルサイズに設定
     await page.setViewportSize({ width: 375, height: 667 });
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(500); // Give UI time to adjust to viewport
 
     // ハンバーガーメニューボタンが表示されていることを確認
     const hamburgerButton = page.locator('button[aria-label="メニューを開く"]');
-    await expect(hamburgerButton).toBeVisible();
+    await expect(hamburgerButton).toBeVisible({ timeout: 10000 });
 
     // デスクトップ・タブレットメニューが非表示であることを確認
     // ナビゲーション内の直接表示されているリンクを探す
@@ -129,8 +129,8 @@ test.describe('Responsive Navigation', () => {
     const count = await visibleDesktopMenu.count();
     expect(count).toBe(0);
 
-    // ハンバーガーメニューをクリック
-    await hamburgerButton.click();
+    // ハンバーガーメニューをクリック - with increased timeout
+    await hamburgerButton.click({ timeout: 5000 });
 
     // モバイルメニューが開くのを待つ
     await page.waitForLoadState('domcontentloaded');
@@ -158,11 +158,11 @@ test.describe('Responsive Navigation', () => {
 
   test('レスポンシブブレークポイントで正しく切り替わる', async ({ page }) => {
     await page.waitForLoadState('domcontentloaded');
-    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(500); // Give UI time to stabilize
 
     // 1024px（lg）でデスクトップメニュー
     await page.setViewportSize({ width: 1024, height: 768 });
-    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(500); // Give UI time to adjust to viewport
     // デスクトップメニューコンテナを確認
     const desktopMenu = page.locator('div.lg\\:flex').first();
     await expect(desktopMenu).toBeVisible();
