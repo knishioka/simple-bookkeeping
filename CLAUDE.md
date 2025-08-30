@@ -9,29 +9,43 @@
 ### プロジェクト概要
 
 - **目的**: 日本の個人事業主・中小企業向け複式簿記システム
-- **技術**: Next.js 14 + TypeScript + Express.js + PostgreSQL
+- **技術**: Next.js 14 (App Router) + TypeScript + Supabase + PostgreSQL
 - **構成**: pnpm workspaceによるモノレポ
+- **アーキテクチャ**: Server Actions を使用したフルスタック Next.js アプリケーション
 
 ### 重要なディレクトリ構造
 
 ```
-apps/
-├── web/          # Next.js フロントエンド (port: 3000)
-└── api/          # Express.js バックエンド (port: 3001)
+apps/web/                 # Next.js フルスタックアプリケーション (port: 3000)
+├── app/
+│   ├── actions/         # Server Actions (ビジネスロジック)
+│   │   ├── accounts.ts
+│   │   ├── journal-entries.ts
+│   │   └── reports.ts
+│   ├── (auth)/         # 認証ページ
+│   ├── dashboard/      # ダッシュボード
+│   └── layout.tsx
+├── components/
+│   └── ui/            # shadcn/ui コンポーネント
+└── lib/
+    └── supabase.ts    # Supabase クライアント
+
 packages/
-├── database/     # Prisma スキーマ (@simple-bookkeeping/database)
-├── types/        # 共通型定義 (@simple-bookkeeping/types)
-├── errors/       # エラー定義 (@simple-bookkeeping/errors)
-└── shared/       # 共有ユーティリティ (@simple-bookkeeping/shared)
+├── database/          # Prisma スキーマ (@simple-bookkeeping/database)
+└── shared/           # 共有ユーティリティ (@simple-bookkeeping/shared)
+
+[廃止予定]
+apps/api/             # Express.js API (移行中につき使用禁止)
+packages/types/       # 型定義 (TypeScript推論で代替)
+packages/errors/      # エラー定義 (Server Actions内で定義)
 ```
 
 ### よく使うコマンド
 
 ```bash
 # 開発サーバー起動
-pnpm dev                     # 全サービス同時起動
-pnpm --filter web dev        # フロントエンドのみ
-pnpm --filter api dev        # バックエンドのみ
+pnpm dev                     # Next.js開発サーバー起動
+pnpm --filter web dev        # 同上（互換性のため残存）
 
 # ビルド
 pnpm build                   # 全体ビルド
@@ -51,7 +65,7 @@ pnpm test:demo             # デモページのテスト
 # サービス状態確認
 pnpm health                 # Web/APIサービスの状態確認
 pnpm health:services       # HTTP応答確認
-pnpm health:api           # Port 3001の使用状況確認
+pnpm health:api           # Port 3001の使用状況確認（廃止予定）
 
 # DB操作
 pnpm db:init                # DB初期化（マイグレーション＋シード）
@@ -65,6 +79,40 @@ pnpm vercel:logs build      # Vercelビルドログ確認
 ```
 
 詳細は [npm-scripts-guide.md](./docs/npm-scripts-guide.md) を参照してください。
+
+## ⚠️ アーキテクチャ移行中の注意事項
+
+### 現在進行中の移行
+
+**From (現在):**
+
+- Express.js APIサーバー (Port 3001)
+- Next.js フロントエンド (Port 3000)
+- JWT認証
+- Prisma ORM
+
+**To (移行先):**
+
+- Next.js Server Actions のみ
+- Supabase (Database + Auth)
+- Row Level Security (RLS)
+- Edge Functions (必要に応じて)
+
+### 実装時の重要な指針
+
+1. **新機能はServer Actionsで実装**
+   - `/app/actions/` ディレクトリに配置
+   - Express.js APIは使用しない
+   - 例: `app/actions/accounts.ts`
+
+2. **認証はSupabaseを使用**
+   - JWT認証コードは追加しない
+   - `@supabase/ssr` を使用
+   - サーバーコンポーネントでの認証チェック
+
+3. **データベースアクセス**
+   - 新規: Supabase Client経由
+   - 既存: Prisma (移行までの暫定)
 
 ## 基本原則
 
@@ -161,18 +209,31 @@ if (!account) {
 }
 ```
 
-### 3. 認証が必要なエンドポイント
+### 3. 認証が必要な処理（Server Actions）
 
 ```typescript
-// APIルート定義時は必ず認証ミドルウェアを使用
-import { authenticate, authorize } from '../middlewares/auth';
+// Server Actionでの認証チェック
+import { createClient } from '@/lib/supabase/server';
 
-router.post(
-  '/api/v1/accounts',
-  authenticate, // JWT認証
-  authorize('accountant'), // 権限チェック
-  createAccount
-);
+export async function createAccount(formData: FormData) {
+  'use server';
+
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error('Unauthorized');
+  }
+
+  // 処理を実装
+  const result = await supabase.from('accounts').insert({
+    /* ... */
+  });
+
+  return result;
+}
 ```
 
 ## TypeScript コーディング規約
@@ -362,21 +423,55 @@ const {
 });
 ```
 
-## API設計規約
+## Server Actions設計規約
 
-### RESTful エンドポイント
+### Server Actionsの実装パターン
 
 ```typescript
-// ✅ Good: RESTful な設計
-router.get('/api/v1/journal-entries', authenticate, getJournalEntries);
-router.post('/api/v1/journal-entries', authenticate, authorize('accountant'), createJournalEntry);
-router.put(
-  '/api/v1/journal-entries/:id',
-  authenticate,
-  authorize('accountant'),
-  updateJournalEntry
-);
-router.delete('/api/v1/journal-entries/:id', authenticate, authorize('admin'), deleteJournalEntry);
+// app/actions/journal-entries.ts
+'use server';
+
+import { createClient } from '@/lib/supabase/server';
+import { revalidatePath } from 'next/cache';
+
+// 取得
+export async function getJournalEntries() {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from('journal_entries')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data;
+}
+
+// 作成
+export async function createJournalEntry(formData: FormData) {
+  const supabase = createClient();
+
+  // 認証チェック
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Unauthorized');
+
+  const entry = {
+    date: formData.get('date') as string,
+    description: formData.get('description') as string,
+    // ...
+  };
+
+  const { data, error } = await supabase.from('journal_entries').insert(entry).select().single();
+
+  if (error) throw error;
+
+  // キャッシュの再検証
+  revalidatePath('/journal-entries');
+
+  return data;
+}
 ```
 
 ### レスポンス形式
@@ -447,37 +542,62 @@ const createJournalEntry = async (data: CreateJournalEntryDto) => {
 
 ## テスト記述規約
 
-### 単体テスト
+### Server Actionsのテスト
 
 ```typescript
-// ✅ Good: 明確なテストケース
-describe('JournalEntryService', () => {
-  describe('createEntry', () => {
+// ✅ Good: Server Actionsのテスト
+import { createJournalEntry, getJournalEntries } from '@/app/actions/journal-entries';
+import { createClient } from '@/lib/supabase/server';
+
+// モックの設定
+jest.mock('@/lib/supabase/server');
+
+describe('Journal Entry Actions', () => {
+  describe('createJournalEntry', () => {
     it('should create a balanced journal entry', async () => {
-      const entryData = {
-        date: '2024-01-15',
-        description: '売上計上',
-        lines: [
-          { accountId: 'cash-account-id', debitAmount: 1000, creditAmount: 0 },
-          { accountId: 'sales-account-id', debitAmount: 0, creditAmount: 1000 },
-        ],
+      const mockSupabase = {
+        auth: {
+          getUser: jest.fn().mockResolvedValue({
+            data: { user: { id: 'test-user' } },
+          }),
+        },
+        from: jest.fn().mockReturnValue({
+          insert: jest.fn().mockReturnValue({
+            select: jest.fn().mockReturnValue({
+              single: jest.fn().mockResolvedValue({
+                data: { id: '123', date: '2024-01-15' },
+              }),
+            }),
+          }),
+        }),
       };
 
-      const result = await service.createEntry(entryData);
+      (createClient as jest.Mock).mockReturnValue(mockSupabase);
 
-      expect(result).toBeDefined();
-      expect(result.lines).toHaveLength(2);
-      expect(result.status).toBe('approved');
+      const formData = new FormData();
+      formData.append('date', '2024-01-15');
+      formData.append('description', '売上計上');
+
+      const result = await createJournalEntry(formData);
+
+      expect(result.id).toBe('123');
+      expect(mockSupabase.from).toHaveBeenCalledWith('journal_entries');
     });
 
-    it('should throw error for unbalanced entry', async () => {
-      const unbalancedEntry = {
-        // ... 借方と貸方が不一致のデータ
+    it('should throw error if user is not authenticated', async () => {
+      const mockSupabase = {
+        auth: {
+          getUser: jest.fn().mockResolvedValue({
+            data: { user: null },
+          }),
+        },
       };
 
-      await expect(service.createEntry(unbalancedEntry)).rejects.toThrow(
-        '借方と貸方の合計が一致しません'
-      );
+      (createClient as jest.Mock).mockReturnValue(mockSupabase);
+
+      const formData = new FormData();
+
+      await expect(createJournalEntry(formData)).rejects.toThrow('Unauthorized');
     });
   });
 });
@@ -926,9 +1046,10 @@ curl -s http://localhost:3000/demo/journal-entries | grep -q "仕訳入力" && e
 # APIサーバー起動
 pnpm --filter @simple-bookkeeping/api dev
 
-# 疎通確認
-curl -I http://localhost:3001/api/v1/
-curl -s http://localhost:3001/api/v1/ | grep -q "Simple Bookkeeping API"
+# 疎通確認（廃止予定）
+# Express.js APIサーバーは段階的に廃止されます
+# curl -I http://localhost:3001/api/v1/
+# curl -s http://localhost:3001/api/v1/ | grep -q "Simple Bookkeeping API"
 ```
 
 ## 🔐 セキュリティ対策
@@ -1593,6 +1714,106 @@ pnpm vercel:logs runtime    # ランタイムログ
 - [troubleshooting.md](./docs/deployment/troubleshooting.md) - トラブルシューティング
 - [scripts-reference.md](./docs/deployment/scripts-reference.md) - スクリプトリファレンス
 
+## 🎯 よくある実装タスクの例（Server Actions版）
+
+### 新しい機能を追加する場合
+
+```typescript
+// ❌ Bad: Express.js APIを追加
+// apps/api/src/controllers/newFeature.controller.ts
+export const createNewFeature = async (req: Request, res: Response) => {
+  // Express.js APIは追加しない
+};
+
+// ✅ Good: Server Actionを追加
+// apps/web/app/actions/new-feature.ts
+('use server');
+
+import { createClient } from '@/lib/supabase/server';
+import { revalidatePath } from 'next/cache';
+
+export async function createNewFeature(formData: FormData) {
+  const supabase = createClient();
+
+  // 認証チェック
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Unauthorized');
+
+  // データ処理
+  const result = await supabase
+    .from('new_features')
+    .insert({
+      name: formData.get('name'),
+      user_id: user.id,
+    })
+    .select()
+    .single();
+
+  if (result.error) throw result.error;
+
+  // キャッシュ更新
+  revalidatePath('/new-features');
+
+  return result.data;
+}
+```
+
+### データ取得の実装
+
+```typescript
+// ✅ Good: Server Componentでのデータ取得
+// apps/web/app/accounts/page.tsx
+import { createClient } from '@/lib/supabase/server';
+
+export default async function AccountsPage() {
+  const supabase = createClient();
+
+  const { data: accounts, error } = await supabase
+    .from('accounts')
+    .select('*')
+    .order('code', { ascending: true });
+
+  if (error) {
+    console.error('Failed to fetch accounts:', error);
+    return <div>エラーが発生しました</div>;
+  }
+
+  return (
+    <div>
+      <h1>勘定科目一覧</h1>
+      <AccountsList accounts={accounts} />
+    </div>
+  );
+}
+```
+
+### フォーム処理の実装
+
+```typescript
+// ✅ Good: Server Actionを使用したフォーム
+// apps/web/app/accounts/new/page.tsx
+import { createAccount } from '@/app/actions/accounts';
+
+export default function NewAccountPage() {
+  return (
+    <form action={createAccount}>
+      <input name="code" type="text" required />
+      <input name="name" type="text" required />
+      <select name="type">
+        <option value="asset">資産</option>
+        <option value="liability">負債</option>
+        <option value="equity">資本</option>
+        <option value="revenue">収益</option>
+        <option value="expense">費用</option>
+      </select>
+      <button type="submit">作成</button>
+    </form>
+  );
+}
+```
+
 ## 継続的な改善
 
 このガイドラインは生きたドキュメントです。プロジェクトの成長に合わせて、以下の点を定期的に見直してください：
@@ -1613,12 +1834,14 @@ pnpm vercel:logs runtime    # ランタイムログ
 - [docs/direnv-setup.md](./docs/direnv-setup.md) - direnvを使用した環境変数管理
 - [docs/deployment/](./docs/deployment/) - デプロイメントガイド
 
-### API仕様
+### API仕様（廃止予定）
 
-- 認証エンドポイント: `/api/v1/auth/*`
-- 勘定科目: `/api/v1/accounts`
-- 仕訳: `/api/v1/journal-entries`
-- レポート: `/api/v1/reports/*`
+**注意: 以下のExpress.js APIエンドポイントは廃止予定です。新規実装ではServer Actionsを使用してください。**
+
+- ~~認証エンドポイント: `/api/v1/auth/*`~~ → Supabase Auth
+- ~~勘定科目: `/api/v1/accounts`~~ → Server Actions
+- ~~仕訳: `/api/v1/journal-entries`~~ → Server Actions
+- ~~レポート: `/api/v1/reports/*`~~ → Server Actions
 
 ### データベーススキーマ
 
