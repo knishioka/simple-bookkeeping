@@ -1,92 +1,37 @@
-import {
-  changePasswordSchema,
-  loginSchema,
-  updateUserProfileSchema,
-} from '@simple-bookkeeping/shared';
+/**
+ * Stub auth routes for backward compatibility
+ * Authentication is now handled by Supabase in Next.js
+ * This file is kept to avoid breaking Express API build
+ * The Express API will be completely removed in the next phase
+ */
+
 import { Router } from 'express';
-import { z } from 'zod';
 
-import * as authController from '../controllers/auth.controller';
-import { authenticate } from '../middlewares/auth';
-import { validate } from '../middlewares/validation';
+const router = Router();
 
-import type { Router as RouterType } from 'express';
-
-const router: RouterType = Router();
-
-// Register
-const registerBodySchema = z.object({
-  email: z.string().email('有効なメールアドレスを入力してください'),
-  password: z.string().min(8, 'パスワードは8文字以上で入力してください'),
-  name: z.string().min(1, '名前を入力してください'),
-  organizationName: z.string().min(1, '組織名を入力してください'),
+// Stub routes - return 501 Not Implemented
+router.post('/login', (_req, res) => {
+  res.status(501).json({
+    error: 'Authentication is now handled by Supabase. Use /api/auth/login in Next.js app',
+  });
 });
 
-const registerSchema = z.object({
-  body: registerBodySchema,
+router.post('/logout', (_req, res) => {
+  res.status(501).json({
+    error: 'Authentication is now handled by Supabase. Use /api/auth/logout in Next.js app',
+  });
 });
 
-router.post('/register', validate(registerSchema), authController.register);
-
-// Login
-const loginValidationSchema = z.object({
-  body: loginSchema,
+router.post('/signup', (_req, res) => {
+  res.status(501).json({
+    error: 'Authentication is now handled by Supabase. Use /api/auth/signup in Next.js app',
+  });
 });
-router.post('/login', validate(loginValidationSchema), authController.login);
 
-// Refresh token
-router.post(
-  '/refresh',
-  validate(
-    z.object({
-      body: z.object({
-        refreshToken: z.string(),
-      }),
-    })
-  ),
-  authController.refreshToken
-);
-
-// Logout
-router.post('/logout', authenticate, authController.logout);
-
-// Get current user
-router.get('/me', authenticate, authController.getMe);
-
-// Update profile
-const updateProfileValidationSchema = z.object({
-  body: updateUserProfileSchema,
+router.get('/me', (_req, res) => {
+  res.status(501).json({
+    error: 'Authentication is now handled by Supabase. Use /api/auth/me in Next.js app',
+  });
 });
-router.put(
-  '/profile',
-  authenticate,
-  validate(updateProfileValidationSchema),
-  authController.updateProfile
-);
-
-// Change password
-const changePasswordValidationSchema = z.object({
-  body: changePasswordSchema,
-});
-router.put(
-  '/password',
-  authenticate,
-  validate(changePasswordValidationSchema),
-  authController.changePassword
-);
-
-// Switch organization
-router.post(
-  '/switch-organization',
-  authenticate,
-  validate(
-    z.object({
-      body: z.object({
-        organizationId: z.string().uuid('有効な組織IDを入力してください'),
-      }),
-    })
-  ),
-  authController.switchOrganization
-);
 
 export default router;

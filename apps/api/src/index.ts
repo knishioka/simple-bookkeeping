@@ -10,10 +10,8 @@ import cors from 'cors';
 import { config } from 'dotenv';
 import express, { Express, json, urlencoded } from 'express';
 import helmet from 'helmet';
-import passport from 'passport';
 import { serve as swaggerServe, setup as swaggerSetup } from 'swagger-ui-express';
 
-import { jwtStrategy } from './config/passport';
 import { swaggerSpec } from './config/swagger';
 import { databaseMetricsMiddleware } from './middlewares/database.middleware';
 import {
@@ -102,9 +100,7 @@ app.use(urlencoded({ extended: true, limit: REQUEST_BODY_SIZE_LIMIT }));
 app.use(sanitizeInput);
 app.use(sqlInjectionProtection);
 
-// Passport
-passport.use(jwtStrategy);
-app.use(passport.initialize());
+// Authentication handled by Supabase in Next.js middleware
 
 // Health check endpoints
 app.get('/health', async (_req, res) => {
