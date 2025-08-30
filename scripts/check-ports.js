@@ -1,12 +1,11 @@
 #!/usr/bin/env node
 
+/* eslint-disable @typescript-eslint/no-require-imports */
 const net = require('net');
+/* eslint-enable @typescript-eslint/no-require-imports */
 
 // ポート設定
-const ports = [
-  { name: 'Web (Next.js)', port: process.env.WEB_PORT || 3000 },
-  { name: 'API (Express)', port: process.env.API_PORT || 3001 },
-];
+const ports = [{ name: 'Web (Next.js)', port: process.env.WEB_PORT || 3000 }];
 
 // ポートが利用可能かチェック
 async function checkPort(port) {
