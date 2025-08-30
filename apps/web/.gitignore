@@ -1,3 +1,4 @@
 .vercel
 test-results
 playwright-report
+apps/web/next-env.d.ts
