@@ -175,13 +175,12 @@ graph TD
 
 ## 使用例
 
-```bash
+```
 # Task toolから呼び出し
-Task(
-  subagent_type="pre-push-validator",
-  description="Run pre-push validation",
-  prompt="Execute all quality checks before pushing code"
-)
+Task toolを呼び出す際は、以下のパラメータを使用:
+- subagent_type: "pre-push-validator"
+- description: "Run pre-push validation"
+- prompt: "Execute all quality checks before pushing code"
 ```
 
 ## 成功基準
