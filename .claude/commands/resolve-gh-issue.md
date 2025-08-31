@@ -1,6 +1,24 @@
+---
+name: resolve-gh-issue
+description: GitHub Issueの解決を自動化し、標準的な開発ワークフローを実行します
+allowed-tools:
+  - gh
+  - Task
+  - TodoWrite
+  - Bash
+  - Edit
+  - MultiEdit
+  - Write
+  - Read
+  - Grep
+  - Glob
+  - WebFetch
+argument-hint: <issue-number> [--skip-checks] [--skip-review] [--validate-only]
+---
+
 # Resolve GitHub Issue
 
-GitHub Issueの解決を自動化し、標準的な開発ワークフローを実行します。
+GitHub Issueの解決を自動化し、標準的な開発ワークフローを実行します。品質チェックとコードレビューの自動化により、CI失敗を大幅に削減します。
 
 **⚠️ 重要**: このコマンドは必ずTodoWriteツールを使用して進捗を追跡します。TodoWriteなしではワークフローが適切に実行されません。
 
@@ -12,9 +30,9 @@ GitHub Issueの解決を自動化し、標準的な開発ワークフローを�
 
 ### オプション
 
+- `--skip-checks`: 品質チェック（lint, test, build）をスキップ（非推奨・緊急時のみ）
+- `--skip-review`: コードレビューをスキップ（非推奨）
 - `--validate-only`: 検証のみを実行し、実装は行わない
-- `--skip-validation`: 検証ステップをスキップ（推奨されません）
-- `--strict`: 厳格な検証モード（イエロー警告もエラーとして扱う）
 
 ## 説明
 
@@ -28,26 +46,27 @@ GitHub Issueの解決を自動化し、標準的な開発ワークフローを�
 
 ```
 タスクリスト:
-- [ ] Issue分析と理解
+- [ ] Issue分析と理解（issue-analyzer）
 - [ ] Issue妥当性検証
-- [ ] コードベース分析
+- [ ] コードベース分析（codebase-investigator）
 - [ ] ブランチ作成とセットアップ
-- [ ] 実装
-- [ ] テスト作成/実行
-- [ ] 品質保証チェック
+- [ ] 実装（implementation）
+- [ ] テスト作成/実行（test-runner）
+- [ ] 品質保証チェック（pre-push-validator）
+- [ ] コードレビュー（code-reviewer）
+- [ ] 自動修正（auto-fixer）※必要時
 - [ ] コミット作成
-- [ ] ドラフトPR作成
+- [ ] ドラフトPR作成（pr-creator）
 - [ ] CI監視と修正
-- [ ] フォローアップ確認
+- [ ] フォローアップ確認（follow-up-creator）
 ```
 
 ### 1. Issue分析と理解
 
-- TodoWriteのステータスを「in_progress」に更新
-- `gh issue view <issue-number> --repo knishioka/simple-bookkeeping` でGitHub Issueを取得
-- Issue内容、要件、受け入れ条件を分析
-- Issueタイプを特定し、適切なブランチプレフィックスを決定
-- 必要な変更の範囲と複雑さを理解
+- **Sub Agent呼び出し**: `Task tool` で `issue-analyzer` エージェントを実行
+  - GitHub Issueの詳細を取得・分析
+  - 要件と受け入れ条件を構造化
+  - 実装に必要な情報を抽出
 - TodoWriteのステータスを「completed」に更新
 
 ### 2. Issue妥当性検証
