@@ -36,7 +36,14 @@ GitHub Issueを詳細に分析し、実装に必要な情報を構造化して�
 
 ## 実行フロー
 
-1. `gh issue view <issue-number> --repo knishioka/simple-bookkeeping` でIssue取得
+1. **Issue存在確認とタイプ判定**
+   - まず `gh issue view <issue-number> --repo knishioka/simple-bookkeeping --json number,title,state,body,labels` でIssue取得
+   - JSONレスポンスを確実に解析
+   - 以下のチェックを実施：
+     - レスポンスに`body`フィールドが存在することを確認（IssueにはbodyがあるがPRにはない場合がある）
+     - タイトルや本文に "wants to merge", "commits into", "pull request" などのPR特有の文言がないか確認
+   - 疑わしい場合は `gh pr view <issue-number>` も試行し、どちらが正しいか判定
+   - PRの場合は明確なエラーメッセージを返却
 2. Issue本文のパース
 3. 関連するコメントの分析
 4. TodoWriteで分析進捗を記録

@@ -102,9 +102,6 @@ Claude Codeは、タスクの内容とサブエージェントの`description`�
   - 実装に必要な情報を抽出
 
   **注意**: `issue-analyzer`エージェントは`.claude/agents/issue-analyzer.md`に定義されています。Claude Codeが自動的に適切なタイミングで呼び出します。
-  - GitHub Issueの詳細を取得・分析
-  - 要件と受け入れ条件を構造化
-  - 実装に必要な情報を抽出
 
 - TodoWriteのステータスを「completed」に更新
 
@@ -165,15 +162,10 @@ Claude Codeは、タスクの内容とサブエージェントの`description`�
   - 現在の実装を理解するためコードベースを検索
   - 関連するファイル、モジュール、コンポーネントを特定
   - 既存のパターンと規約をレビュー
+  - ドキュメントと関連コードを分析
   - 変更の影響範囲を特定
 
   **注意**: `codebase-investigator`エージェントは`.claude/agents/codebase-investigator.md`に定義されています。
-
-- 現在の実装を理解するためコードベースを検索
-- 関連するファイル、モジュール、コンポーネントを特定
-- 既存のパターンと規約をレビュー
-- ドキュメントと関連コードを分析
-- 変更の影響範囲を特定
 
 ### 4. テスト駆動開発計画
 
@@ -230,18 +222,13 @@ Claude Codeは、タスクの内容とサブエージェントの`description`�
   - 既存のコードパターンと規約に従う（CLAUDE.mdを参照）
   - 変更を段階的に実装
   - 明確なメッセージでアトミックなコミットを作成
-  - TypeScriptの型安全性を維持
+  - コミットメッセージでIssue番号を参照
+  - 実装をシンプルに保ち、過度なエンジニアリングを避ける
+  - TypeScriptの型安全性を維持（any型の使用禁止）
+  - 共通型定義の使用（`@simple-bookkeeping/types`）
+  - エラークラスの使用（`@simple-bookkeeping/errors`）
 
   **注意**: `implementation`エージェントは`.claude/agents/implementation.md`に定義されています。
-
-- 既存のコードパターンと規約に従う（CLAUDE.mdを参照）
-- 変更を段階的に実装
-- 明確なメッセージでアトミックなコミットを作成
-- コミットメッセージでIssue番号を参照
-- 実装をシンプルに保ち、過度なエンジニアリングを避ける
-- TypeScriptの型安全性を維持（any型の使用禁止）
-- 共通型定義の使用（`@simple-bookkeeping/types`）
-- エラークラスの使用（`@simple-bookkeeping/errors`）
 
 #### 実装中の問題追跡【重要機能】
 
