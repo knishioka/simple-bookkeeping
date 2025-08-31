@@ -65,7 +65,7 @@ pnpm test:demo             # デモページのテスト
 # サービス状態確認
 pnpm health                 # Web/APIサービスの状態確認
 pnpm health:services       # HTTP応答確認
-pnpm health:api           # Port 3001の使用状況確認（廃止予定）
+# pnpm health:api は削除されました（Express.js API廃止済み）
 
 # DB操作
 pnpm db:init                # DB初期化（マイグレーション＋シード）
@@ -86,7 +86,8 @@ pnpm vercel:logs build      # Vercelビルドログ確認
 
 **From (現在):**
 
-- Express.js APIサーバー (Port 3001)
+# Express.js APIサーバーは廃止されました
+
 - Next.js フロントエンド (Port 3000)
 - JWT認証
 - Prisma ORM

@@ -178,7 +178,6 @@ fi
 # Run tests and capture exit code
 if docker compose -f docker-compose.test.yml run --rm \
     -e BASE_URL=http://web-test:3000 \
-    -e API_URL=http://api-test:3001 \
     -e CI=true \
     playwright sh -c "cd apps/web && $PLAYWRIGHT_CMD"; then
     print_success "E2E tests completed successfully!"

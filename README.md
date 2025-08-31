@@ -109,7 +109,7 @@ pnpm dev
 アプリケーションは以下のURLでアクセス可能：
 
 - Web: http://localhost:3000
-- API: http://localhost:3001
+- Web: http://localhost:3000
 
 ## セットアップ
 
@@ -130,7 +130,7 @@ pnpm dev
 ```bash
 # .env
 WEB_PORT=3010  # デフォルト: 3000
-API_PORT=3011  # デフォルト: 3001
+# API_PORT は削除されました（Express.js API廃止）
 ```
 
 ## ドキュメント
@@ -223,7 +223,7 @@ pnpm typecheck              # TypeScript型チェック
 # サービスのヘルスチェック
 pnpm health                 # Web/APIサービスの状態確認
 pnpm health:services       # HTTP応答確認
-pnpm health:api           # Port 3001の使用状況確認
+# pnpm health:api は削除されました（Express.js API廃止）
 ```
 
 詳細は[npmスクリプトガイド](./docs/npm-scripts-guide.md)を参照。
