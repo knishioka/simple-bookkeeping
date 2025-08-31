@@ -64,6 +64,7 @@ GitHub Issueの解決を自動化し、標準的な開発ワークフローを�
 ### 1. Issue分析と理解
 
 - **Sub Agent呼び出し**: `Task tool` で `issue-analyzer` エージェントを実行
+
   ```python
   Task(
     subagent_type="issue-analyzer",
@@ -75,6 +76,7 @@ GitHub Issueの解決を自動化し、標準的な開発ワークフローを�
   - GitHub Issueの詳細を取得・分析
   - 要件と受け入れ条件を構造化
   - 実装に必要な情報を抽出
+
 - TodoWriteのステータスを「completed」に更新
 
 ### 2. Issue妥当性検証
