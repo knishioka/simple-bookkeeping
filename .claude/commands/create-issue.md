@@ -38,8 +38,8 @@ find apps -name "*.tsx" -o -name "*.ts" | head -20
 find packages -name "*.ts" | head -10
 
 # 既存のIssueとPRの確認
-gh issue list --limit 10
-gh pr list --limit 10
+gh issue list --repo knishioka/simple-bookkeeping --limit 10
+gh pr list --repo knishioka/simple-bookkeeping --limit 10
 
 # プロジェクト構造の理解
 tree -L 3 -I 'node_modules|.git|dist|.next' apps/ packages/ 2>/dev/null
@@ -198,7 +198,7 @@ tree -L 3 -I 'node_modules|.git|dist|.next' apps/ packages/ 2>/dev/null
 
 ```bash
 # 現在のラベル確認
-gh label list --limit 50
+gh label list --repo knishioka/simple-bookkeeping --limit 50
 
 # AI開発用の推奨ラベルセット（既存ラベルを活用しつつ新規追加）
 LABELS=(
@@ -224,7 +224,7 @@ LABELS=(
 # ラベル作成（存在しない場合）
 for label_def in "${LABELS[@]}"; do
   IFS=':' read -r name color description <<< "$label_def"
-  gh label create "$name" --color "$color" --description "$description" 2>/dev/null || echo "Label $name already exists or skipped"
+  gh label create "$name" --repo knishioka/simple-bookkeeping --color "$color" --description "$description" 2>/dev/null || echo "Label $name already exists or skipped"
 done
 ```
 
@@ -243,7 +243,7 @@ done
 #### 4.2 Issue作成コマンド
 
 ```bash
-gh issue create \
+gh issue create --repo knishioka/simple-bookkeeping \
   --title "{簡潔で明確なタイトル}" \
   --body "{上記テンプレートに基づく内容}" \
   --label "ai-ready,{type},{priority},{size},{scope},{deploy}" \

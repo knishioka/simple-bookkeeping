@@ -1213,6 +1213,81 @@ AIアシスタントがIssueやPRを作成する際のラベル管理につい�
    - **技術**: typescript, react, database, api
    - **その他**: technical-debt, code-quality, performance, security, follow-up
 
+### GitHub CLI (gh) 使用時の必須ルール
+
+**重要：ghコマンド実行時は必ず対象リポジトリを明示的に指定し、誤操作を防止する**
+
+#### リポジトリの明示的指定
+
+ghコマンドを使用する際は、必ず以下のいずれかの方法でリポジトリを明示的に指定すること：
+
+1. **--repo オプションの使用（推奨）**
+
+   ```bash
+   # 必ず --repo オプションでリポジトリを指定
+   gh issue create --repo knishioka/simple-bookkeeping
+   gh pr create --repo knishioka/simple-bookkeeping
+   gh pr view --repo knishioka/simple-bookkeeping
+   gh label list --repo knishioka/simple-bookkeeping
+   ```
+
+2. **作業ディレクトリの確認と移動**
+
+   ```bash
+   # 現在のリポジトリを確認
+   gh repo view --json nameWithOwner -q .nameWithOwner
+
+   # 正しいディレクトリに移動してから実行
+   cd /Users/ken/Developer/private/simple-bookkeeping && gh pr create
+   ```
+
+3. **環境変数の使用（セッション全体で統一する場合）**
+
+   ```bash
+   # 環境変数でデフォルトリポジトリを設定
+   export GH_REPO="knishioka/simple-bookkeeping"
+
+   # 以降のghコマンドはこのリポジトリを対象とする
+   gh issue create  # GH_REPO環境変数が使用される
+   ```
+
+#### 実行前の確認事項
+
+**ghコマンド実行前に必ず以下を確認：**
+
+- [ ] 対象リポジトリが正しいか確認
+- [ ] 作業ディレクトリが適切か確認
+- [ ] --repo オプションを使用しているか確認
+
+#### 作業開始時の確認フロー
+
+```bash
+# セッション開始時またはディレクトリ移動後に必ず実行
+pwd  # 現在のディレクトリを確認
+git remote -v  # Gitリモートを確認
+gh repo view --json nameWithOwner -q .nameWithOwner  # 現在のリポジトリを確認
+```
+
+#### エラー防止のためのベストプラクティス
+
+1. **重要な操作前の再確認**
+   - Issue/PR作成前に必ずリポジトリを確認
+   - ラベル作成・削除前に対象リポジトリを確認
+
+2. **定期的なコンテキスト確認**
+   - ディレクトリ移動後は必ず確認
+   - 長時間の作業セッション中は定期的に確認
+
+3. **エラーハンドリング**
+   - 誤ったリポジトリが検出された場合は即座に中断
+   - 操作前に確認メッセージを表示
+
+#### AIアシスタント特有の注意事項
+
+- 長時間のセッション中に複数のプロジェクトを扱う可能性があるため、常に明示的な指定を行う
+- ファイルシステムの探索中にディレクトリが変更される可能性があるため、--repo オプションの使用を推奨
+- 並行タスク実行時のコンテキスト混乱を防ぐため、各コマンドで明示的にリポジトリを指定
+
 ### Issue作成時のベストプラクティス
 
 1. **適切なタイトル**
