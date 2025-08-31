@@ -193,7 +193,6 @@ wait_for_service "PostgreSQL" \
     $MAX_WAIT_TIME
 
 wait_for_service "API" \
-    "docker compose -f $COMPOSE_FILE exec -T api-test wget --spider -q http://localhost:3001/api/v1/health" \
     $MAX_WAIT_TIME
 
 wait_for_service "Web" \

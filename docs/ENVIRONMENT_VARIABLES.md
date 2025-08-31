@@ -78,11 +78,9 @@ pnpm env:validate
 
 ### APIサーバー設定
 
-#### `API_PORT`
+#### `API_PORT` （削除済み）
 
-- **説明**: APIサーバーのポート番号
-- **デフォルト**: `3001`
-- **注意**: フロントエンド（ポート3000）と重複しないように設定
+Express.js APIの廃止により、この環境変数は不要になりました。
 
 #### `JWT_SECRET`
 
@@ -99,20 +97,10 @@ pnpm env:validate
 
 ### フロントエンド設定
 
-#### `NEXT_PUBLIC_API_URL`
+#### `NEXT_PUBLIC_API_URL` （削除済み）
 
-- **説明**: フロントエンドからAPIにアクセスするためのURL
-- **形式**: `http[s]://[host]:[port]/api/v1`
-- **重要**: **必ず `/api/v1` を含めてください**
-- **例**:
-
-  ```
-  # ✅ 正しい
-  NEXT_PUBLIC_API_URL="http://localhost:3001/api/v1"
-
-  # ❌ 間違い（/api/v1がない）
-  NEXT_PUBLIC_API_URL="http://localhost:3001"
-  ```
+Express.js APIの廃止により、この環境変数は不要になりました。
+API機能はNext.jsのServer Actionsで提供されます。
 
 ## オプション環境変数
 

@@ -1,14 +1,15 @@
 /**
  * API-specific type definitions
+ * Note: Express types have been removed. Use Next.js request types instead.
  */
 
-import { Request } from 'express';
+// import { User } from './auth';
 
-import { User } from './auth';
-
-export interface AuthenticatedRequest extends Request {
-  user?: User;
-}
+// This interface has been removed as it depends on Express.
+// For Next.js, use NextRequest or the request object from API routes.
+// export interface AuthenticatedRequest extends Request {
+//   user?: User;
+// }
 
 export interface ValidationError {
   field: string;

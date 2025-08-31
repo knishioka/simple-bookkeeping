@@ -96,7 +96,6 @@ jobs:
             -e CI=true \
             -e REUSE_SERVER=true \
             -e BASE_URL=http://web-test:3000 \
-            -e API_URL=http://api-test:3001 \
             -e DEBUG=${{ github.event.inputs.debug || 'false' }} \
             -e TEST_RETRIES=2 \
             -e TEST_WORKERS=2 \

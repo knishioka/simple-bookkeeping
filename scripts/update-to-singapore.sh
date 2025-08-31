@@ -49,7 +49,7 @@ echo "2. Deploy new services:"
 echo "   ${GREEN}render blueprint deploy render-singapore.yaml${NC}"
 echo "3. Update .render/services.json with new service IDs"
 echo "4. Update Vercel environment variable:"
-echo "   ${GREEN}vercel env add NEXT_PUBLIC_API_URL${NC}"
+echo "   # NEXT_PUBLIC_API_URL は削除されました（Express.js API廃止）"
 echo "   Value: https://simple-bookkeeping-api-sg.onrender.com"
 
 echo -e "\n${YELLOW}5. After migration:${NC}"

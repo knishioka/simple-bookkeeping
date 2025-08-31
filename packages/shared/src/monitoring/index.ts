@@ -1,6 +1,5 @@
 import * as os from 'os';
 
-import { Request, Response, NextFunction } from 'express';
 import { Counter, Histogram, Gauge, Registry, collectDefaultMetrics } from 'prom-client';
 
 import { Logger } from '../logger';
@@ -243,20 +242,7 @@ export const metrics = new MetricsCollector({
   },
 });
 
-// Express middleware for automatic HTTP metrics
-export const metricsMiddleware = (req: Request, res: Response, next: NextFunction): void => {
-  const startTime = Date.now();
-
-  res.on('finish', () => {
-    const duration = (Date.now() - startTime) / 1000; // Convert to seconds
-    const route = req.route?.path || req.path || 'unknown';
-    const organizationId = (req as Request & { organizationId?: string }).organizationId;
-
-    metrics.recordHttpRequest(req.method, route, res.statusCode, duration, organizationId);
-  });
-
-  next();
-};
+// Note: Express middleware has been removed. Use Next.js middleware or API route handlers instead.
 
 // Health check with detailed status
 export interface HealthStatus {
