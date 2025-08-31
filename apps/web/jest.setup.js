@@ -4,6 +4,25 @@ import '@testing-library/jest-dom';
 // This is required for react-hook-form with React 19
 global.IS_REACT_ACT_ENVIRONMENT = true;
 
+// Mock Date.now() to return a fixed timestamp for test stability
+// This ensures consistent test results across multiple runs
+// We use a counter to simulate time passing for tests that measure time differences
+const FIXED_TIMESTAMP = 1704067200000; // 2024-01-01 00:00:00 UTC
+let mockTimeOffset = 0;
+
+Date.now = jest.fn(() => {
+  // Return fixed timestamp plus offset to handle tests that measure time differences
+  // The offset increments by 100ms each call to simulate time passing
+  const currentTime = FIXED_TIMESTAMP + mockTimeOffset;
+  mockTimeOffset += 100; // Increment by 100ms for each call
+  return currentTime;
+});
+
+// Reset the time offset before each test to ensure test isolation
+beforeEach(() => {
+  mockTimeOffset = 0;
+});
+
 // Suppress JSDOM navigation warnings and React act warnings
 const originalError = console.error;
 beforeAll(() => {
