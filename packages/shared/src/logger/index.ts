@@ -1,4 +1,3 @@
-import { Request } from 'express';
 import { createLogger, format, transports, addColors, Logform } from 'winston';
 
 // Define log levels
@@ -125,18 +124,7 @@ export class Logger {
     return new Logger({ ...this.context, ...additionalContext });
   }
 
-  // Create logger from Express request
-  static fromRequest(req: Request & { user?: { id?: string }; organizationId?: string }): Logger {
-    return new Logger({
-      userId: req.user?.id,
-      organizationId: req.organizationId,
-      requestId: req.headers['x-request-id'] as string,
-      method: req.method,
-      url: req.url,
-      ip: req.ip,
-      userAgent: req.headers['user-agent'],
-    });
-  }
+  // Note: Express request logger has been removed. Use Next.js request context instead.
 }
 
 // Export a default logger instance

@@ -4,3 +4,4 @@ playwright-report
 node_modules
 dist
 coverage
+next-env.d.ts

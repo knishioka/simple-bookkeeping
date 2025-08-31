@@ -28,7 +28,8 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001/api/v1}
+      # NEXT_PUBLIC_API_URL は削除されました（Express.js API廃止）
+      NODE_ENV: ${NODE_ENV:-development}
     ports:
       - '${WEB_PORT:-3000}:3000'
     networks:
