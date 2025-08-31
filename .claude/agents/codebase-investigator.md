@@ -1,6 +1,6 @@
 ---
 name: codebase-investigator
-description: Issueに関連するコードベースを調査し、既存実装パターンと影響範囲を特定します
+description: Use PROACTIVELY to investigate codebase related to GitHub issues, identify existing implementation patterns and impact areas for the resolve-gh-issue workflow
 tools:
   - Grep
   - Glob

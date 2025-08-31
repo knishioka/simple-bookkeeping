@@ -1,6 +1,6 @@
 ---
 name: issue-analyzer
-description: GitHub Issueを詳細に分析し、実装に必要な情報を構造化して抽出します
+description: Use PROACTIVELY when analyzing GitHub Issues. Analyzes GitHub issues to extract structured requirements, acceptance criteria, and implementation details for the resolve-gh-issue workflow
 tools:
   - gh
   - Read
