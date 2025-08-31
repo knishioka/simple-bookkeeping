@@ -64,6 +64,14 @@ GitHub Issueの解決を自動化し、標準的な開発ワークフローを�
 ### 1. Issue分析と理解
 
 - **Sub Agent呼び出し**: `Task tool` で `issue-analyzer` エージェントを実行
+  ```python
+  Task(
+    subagent_type="issue-analyzer",
+    description="Issue #<number> 分析",
+    prompt="GitHub Issue #<number>を詳細に分析し、実装に必要な情報を構造化して抽出してください。"
+  )
+  ```
+
   - GitHub Issueの詳細を取得・分析
   - 要件と受け入れ条件を構造化
   - 実装に必要な情報を抽出
@@ -122,6 +130,14 @@ GitHub Issueの解決を自動化し、標準的な開発ワークフローを�
 
 ### 3. コードベース分析
 
+- **Sub Agent呼び出し**: `codebase-investigator` エージェントを実行
+  ```python
+  Task(
+    subagent_type="codebase-investigator",
+    description="コードベース調査",
+    prompt="Issue #<number>の実装に必要なコードベースを調査し、既存実装パターンと影響範囲を特定してください。"
+  )
+  ```
 - 現在の実装を理解するためコードベースを検索
 - 関連するファイル、モジュール、コンポーネントを特定
 - 既存のパターンと規約をレビュー
@@ -179,6 +195,14 @@ GitHub Issueの解決を自動化し、標準的な開発ワークフローを�
 
 ### 7. 実装
 
+- **Sub Agent呼び出し**: `implementation` エージェントを実行
+  ```python
+  Task(
+    subagent_type="implementation",
+    description="機能実装",
+    prompt="Issue #<number>の要件に基づいてコードを実装し、既存のパターンに従った高品質なコードを生成してください。"
+  )
+  ```
 - 既存のコードパターンと規約に従う（CLAUDE.mdを参照）
 - 変更を段階的に実装
 - 明確なメッセージでアトミックなコミットを作成
