@@ -44,7 +44,7 @@ GitHub Issueの解決を自動化し、標準的な開発ワークフローを�
 ### 1. Issue分析と理解
 
 - TodoWriteのステータスを「in_progress」に更新
-- `gh issue view <issue-number>` でGitHub Issueを取得
+- `gh issue view <issue-number> --repo knishioka/simple-bookkeeping` でGitHub Issueを取得
 - Issue内容、要件、受け入れ条件を分析
 - Issueタイプを特定し、適切なブランチプレフィックスを決定
 - 必要な変更の範囲と複雑さを理解
@@ -220,7 +220,7 @@ GitHub Issueの解決を自動化し、標準的な開発ワークフローを�
 
 ### 10. ドラフトPR作成
 
-- `gh pr create --draft` を使用してドラフトPRを作成
+- `gh pr create --draft --repo knishioka/simple-bookkeeping` を使用してドラフトPRを作成
 - 適切なタイトル形式を使用:
   - `feat: [説明] (#issue-number)`
   - `fix: [説明] (#issue-number)`
@@ -244,14 +244,14 @@ GitHub Issueの解決を自動化し、標準的な開発ワークフローを�
 
 ```bash
 # 推奨: gh pr checksを使用（自動的に待機）
-gh pr checks --watch --interval 60  # 60秒間隔でチェック
+gh pr checks --repo knishioka/simple-bookkeeping --watch --interval 60  # 60秒間隔でチェック
 
 # 手動チェックの場合
-gh pr checks  # 現在の状態を確認
+gh pr checks --repo knishioka/simple-bookkeeping  # 現在の状態を確認
 
 # タイムアウトを考慮（E2Eテストは時間がかかる）
 # 最初のチェックは2-3分後に実行
-sleep 180 && gh pr checks
+sleep 180 && gh pr checks --repo knishioka/simple-bookkeeping
 ```
 
 **注意事項：**
@@ -262,7 +262,7 @@ sleep 180 && gh pr checks
 - `--watch`オプションを使用すると自動的に適切な間隔でチェック
 
 - CIが失敗した場合:
-  - 失敗ログを分析（`gh run view`コマンド使用）
+  - 失敗ログを分析（`gh run view --repo knishioka/simple-bookkeeping`コマンド使用）
   - E2Eテスト失敗時:
     - `REUSE_SERVER=true npx playwright test --project=chromium-desktop`
     - トレースファイル確認: `npx playwright show-trace`
@@ -271,7 +271,7 @@ sleep 180 && gh pr checks
   - 同じブランチに修正をプッシュ
   - すべてのチェックが通過するまでCIを監視
 - **自動的にreadyに変換しない**: CI通過後、ユーザーに確認を求める
-- 以下の条件を満たした後のみ、`gh pr ready` でレビュー準備完了にする:
+- 以下の条件を満たした後のみ、`gh pr ready --repo knishioka/simple-bookkeeping` でレビュー準備完了にする:
   - すべてのCIチェックが通過
   - ユーザーが明示的に続行を確認
 - **必ずPR URLを最後に表示**: 最終出力としてPRリンクを表示
@@ -286,7 +286,7 @@ Issue解決中に発見された問題や後回しにした課題がある場合
 - **Issue作成が必要な場合**:
   1. 新しいIssueの作成:
      ```bash
-     gh issue create \
+     gh issue create --repo knishioka/simple-bookkeeping \
        --title "[Follow-up] <簡潔なタイトル>" \
        --body "<詳細な説明>" \
        --label "follow-up,<適切なラベル>"
