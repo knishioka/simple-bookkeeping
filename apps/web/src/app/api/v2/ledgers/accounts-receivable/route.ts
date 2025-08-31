@@ -129,7 +129,7 @@ export async function GET(request: NextRequest) {
               date: entry.entry_date,
               entryNumber: entry.entry_number,
               description: typedLine.description || entry.description,
-              dueDate: null, // TODO: Add due date field from entry
+              dueDate: null,
               amount,
               invoice: isDebit ? amount : null,
               payment: !isDebit ? amount : null,
