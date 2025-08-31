@@ -211,7 +211,6 @@ test.describe('Simple Entry Mode - かんたん入力モード', () => {
   });
 
   test.skip('should validate required fields', async ({ page }) => {
-    // TODO: Fix this test - validation behavior needs to be verified
     // The form validation might be preventing submission differently than expected
 
     // Select a transaction type

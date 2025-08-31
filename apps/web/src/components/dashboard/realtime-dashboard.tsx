@@ -139,7 +139,6 @@ export function RealtimeDashboard({
 
   // 初期データの取得
   useEffect(() => {
-    // TODO: 初期統計データをSupabaseから取得
     fetchInitialStats();
   }, [organizationId]);
 
