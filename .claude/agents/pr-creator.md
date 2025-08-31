@@ -250,13 +250,12 @@ const labelRules = {
 
 ## 使用例
 
-```bash
+```
 # Task toolから呼び出し
-Task(
-  subagent_type="pr-creator",
-  description="Create PR for issue #290",
-  prompt="Create a draft PR with comprehensive description for the implemented changes"
-)
+Task toolを呼び出す際は、以下のパラメータを使用:
+- subagent_type: "pr-creator"
+- description: "Create PR for issue #290"
+- prompt: "Create a draft PR with comprehensive description for the implemented changes"
 ```
 
 ## 成功基準

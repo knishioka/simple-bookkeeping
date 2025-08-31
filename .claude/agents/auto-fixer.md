@@ -245,13 +245,12 @@ const result = await fetchData();
 
 ## 使用例
 
-```bash
+```
 # Task toolから呼び出し
-Task(
-  subagent_type="auto-fixer",
-  description="Fix lint and type errors",
-  prompt="Automatically fix all possible errors and provide solutions for manual fixes"
-)
+Task toolを呼び出す際は、以下のパラメータを使用:
+- subagent_type: "auto-fixer"
+- description: "Fix lint and type errors"
+- prompt: "Automatically fix all possible errors and provide solutions for manual fixes"
 ```
 
 ## 成功基準
