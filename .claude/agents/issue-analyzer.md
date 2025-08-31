@@ -71,13 +71,12 @@ GitHub Issueを詳細に分析し、実装に必要な情報を構造化して�
 
 ## 使用例
 
-```bash
+```
 # Task toolから呼び出し
-Task(
-  subagent_type="issue-analyzer",
-  description="Analyze issue #123",
-  prompt="Please analyze GitHub issue #123 and extract implementation requirements"
-)
+Task toolを呼び出す際は、以下のパラメータを使用:
+- subagent_type: "issue-analyzer"
+- description: "Analyze issue #123"
+- prompt: "Please analyze GitHub issue #123 and extract implementation requirements"
 ```
 
 ## 成功基準

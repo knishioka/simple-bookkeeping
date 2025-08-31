@@ -219,13 +219,12 @@ test.describe('Account Management', () => {
 
 ## 使用例
 
-```bash
+```
 # Task toolから呼び出し
-Task(
-  subagent_type="test-runner",
-  description="Create and run tests",
-  prompt="Create unit tests for the new account management features and run all tests"
-)
+Task toolを呼び出す際は、以下のパラメータを使用:
+- subagent_type: "test-runner"
+- description: "Create and run tests"
+- prompt: "Create unit tests for the new account management features and run all tests"
 ```
 
 ## 成功基準

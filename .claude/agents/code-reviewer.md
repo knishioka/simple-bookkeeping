@@ -219,13 +219,12 @@ Critical問題はないため、Warning項目の修正後にマージ可能で�
 
 ## 使用例
 
-```bash
+```
 # Task toolから呼び出し
-Task(
-  subagent_type="code-reviewer",
-  description="Review implemented code",
-  prompt="Review the code changes for security, performance, and maintainability"
-)
+Task toolを呼び出す際は、以下のパラメータを使用:
+- subagent_type: "code-reviewer"
+- description: "Review implemented code"
+- prompt: "Review the code changes for security, performance, and maintainability"
 ```
 
 ## 成功基準

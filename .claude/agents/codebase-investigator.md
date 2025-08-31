@@ -102,13 +102,12 @@ Issueに関連するコードベースを詳細に調査し、既存の実装パ
 
 ## 使用例
 
-```bash
+```
 # Task toolから呼び出し
-Task(
-  subagent_type="codebase-investigator",
-  description="Investigate codebase for issue #123",
-  prompt="Investigate the codebase for implementing account management feature"
-)
+Task toolを呼び出す際は、以下のパラメータを使用:
+- subagent_type: "codebase-investigator"
+- description: "Investigate codebase for issue #123"
+- prompt: "Investigate the codebase for implementing account management feature"
 ```
 
 ## 成功基準

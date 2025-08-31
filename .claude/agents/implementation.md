@@ -123,13 +123,12 @@ Issue要件に基づいて実際のコード実装を行います。既存のコ
 
 ## 使用例
 
-```bash
+```
 # Task toolから呼び出し
-Task(
-  subagent_type="implementation",
-  description="Implement feature for issue #123",
-  prompt="Implement account management feature based on the requirements"
-)
+Task toolを呼び出す際は、以下のパラメータを使用:
+- subagent_type: "implementation"
+- description: "Implement feature for issue #123"
+- prompt: "Implement account management feature based on the requirements"
 ```
 
 ## 成功基準

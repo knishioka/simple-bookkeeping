@@ -294,13 +294,12 @@ _このIssueは PR #<pr-number> の実装中に発見された問題です。_
 
 ## 使用例
 
-```bash
+```
 # Task toolから呼び出し
-Task(
-  subagent_type="follow-up-creator",
-  description="Create follow-up issues",
-  prompt="Review implementation notes and create necessary follow-up issues for discovered problems"
-)
+Task toolを呼び出す際は、以下のパラメータを使用:
+- subagent_type: "follow-up-creator"
+- description: "Create follow-up issues"
+- prompt: "Review implementation notes and create necessary follow-up issues for discovered problems"
 ```
 
 ## 成功基準
