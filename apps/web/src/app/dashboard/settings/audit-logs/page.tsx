@@ -94,7 +94,7 @@ export default function AuditLogsPage() {
         params.append('endDate', new Date(endDate).toISOString());
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/audit-logs?${params}`, {
+      const response = await fetch(`/api/audit-logs?${params}`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
           'X-Organization-ID': currentOrganization?.id || '',
@@ -118,7 +118,7 @@ export default function AuditLogsPage() {
 
   const fetchEntityTypes = useCallback(async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/audit-logs/entity-types`, {
+      const response = await fetch(`/api/audit-logs/entity-types`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
           'X-Organization-ID': currentOrganization?.id || '',
@@ -156,15 +156,12 @@ export default function AuditLogsPage() {
         params.append('endDate', new Date(endDate).toISOString());
       }
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/audit-logs/export?${params}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-            'X-Organization-ID': currentOrganization?.id || '',
-          },
-        }
-      );
+      const response = await fetch(`/api/audit-logs/export?${params}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'X-Organization-ID': currentOrganization?.id || '',
+        },
+      });
 
       if (!response.ok) {
         throw new Error('Failed to export audit logs');

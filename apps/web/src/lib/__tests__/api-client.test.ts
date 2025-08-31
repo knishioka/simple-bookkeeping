@@ -198,7 +198,7 @@ describe('ApiClient - エラーハンドリングとローディング状態', (
       await apiClient.get('/accounts');
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/v1/accounts',
+        '/api/accounts',
         expect.objectContaining({
           headers: expect.any(Headers),
         })
@@ -396,10 +396,7 @@ describe('ApiClient - エラーハンドリングとローディング状態', (
         success: true,
         message: 'インポートが完了しました',
       });
-      expect(xhrMock.open).toHaveBeenCalledWith(
-        'POST',
-        'http://localhost:3001/api/v1/accounts/import'
-      );
+      expect(xhrMock.open).toHaveBeenCalledWith('POST', '/api/accounts/import');
       expect(xhrMock.send).toHaveBeenCalledWith(expect.any(FormData));
     });
 
