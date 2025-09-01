@@ -89,6 +89,6 @@ export function validateConfiguration(): void {
 
   // Validate timeout values
   if (TIMEOUTS.API > TIMEOUTS.DATABASE) {
-    console.warn('API timeout is greater than database timeout, this may cause issues');
+    // API timeout is greater than database timeout, this may cause issues
   }
 }
