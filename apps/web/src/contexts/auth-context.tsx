@@ -82,8 +82,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               if (parsedUser.currentOrganization?.id) {
                 apiClient.setOrganizationId(parsedUser.currentOrganization.id);
               }
-            } catch (e) {
-              console.warn('Failed to parse cached user data:', e);
+            } catch {
+              // Failed to parse cached user data
               localStorage.removeItem('user');
             }
           }
@@ -105,8 +105,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               }
             }
           } catch {
-            // Token might be expired or invalid
-            console.warn('Failed to validate token, clearing auth state');
+            // Token might be expired or invalid, clearing auth state
             apiClient.clearTokens();
             apiClient.clearOrganizationId();
             localStorage.removeItem('user');
@@ -114,8 +113,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             setCurrentOrganization(null);
           }
         }
-      } catch (error) {
-        console.error('Auth check failed:', error);
+      } catch {
+        // Auth check failed
       } finally {
         setLoading(false);
       }
@@ -181,7 +180,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         router.push('/dashboard');
       }
     } catch (error) {
-      console.error('Login failed:', error);
+      // Login failed
       if (error instanceof Error) {
         toast.error(`ログインエラー: ${error.message}`);
       } else {
@@ -202,8 +201,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setCurrentOrganization(null);
       toast.success('ログアウトしました');
       router.push('/login');
-    } catch (error) {
-      console.error('Logout failed:', error);
+    } catch {
+      // Logout failed
       // Even if logout fails, clear local state
       apiClient.clearTokens();
       apiClient.clearOrganizationId();
@@ -266,8 +265,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         // Refresh the current page to reload data
         router.refresh();
       }
-    } catch (error) {
-      console.error('Failed to switch organization:', error);
+    } catch {
+      // Failed to switch organization
       toast.error('組織の切り替えに失敗しました');
     }
   };
@@ -288,8 +287,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           apiClient.setOrganizationId(freshUser.currentOrganization.id);
         }
       }
-    } catch (error) {
-      console.error('Failed to refresh user data:', error);
+    } catch {
+      // Failed to refresh user data
     }
   };
 
