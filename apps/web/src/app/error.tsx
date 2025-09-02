@@ -4,9 +4,6 @@ import { useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 
-// Force dynamic rendering to avoid static generation error
-export const dynamic = 'force-dynamic';
-
 export default function Error({
   error,
   reset,
