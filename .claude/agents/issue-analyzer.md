@@ -140,7 +140,10 @@ echo "=== ACTUAL ISSUE TITLE: $TITLE ==="
 
 ## 🔴 構造化出力プロトコル（MANDATORY）
 
-@include ../shared/subagent-protocol.yml#Protocol_Version
+**プロトコルバージョン**: 1.0
+
+このセクションは`.claude/shared/subagent-protocol.yml`で定義された
+共通プロトコルに従います。
 
 ### 出力形式
 

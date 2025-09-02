@@ -102,9 +102,10 @@ Issueに関連するコードベースを詳細に調査し、既存の実装パ
 
 ## 🔴 構造化出力プロトコル（MANDATORY）
 
-@include ../shared/subagent-protocol.yml#Protocol_Version
+**プロトコルバージョン**: 1.0
 
-必ず構造化出力プロトコルに従って結果を返すこと。
+このセクションは`.claude/shared/subagent-protocol.yml`で定義された
+共通プロトコルに従います。必ず構造化出力プロトコルに従って結果を返すこと。
 
 ### 出力例
 
