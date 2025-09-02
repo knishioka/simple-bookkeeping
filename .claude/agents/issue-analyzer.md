@@ -1,11 +1,7 @@
 ---
 name: issue-analyzer
 description: Use PROACTIVELY when analyzing GitHub Issues. Analyzes GitHub issues to extract structured requirements, acceptance criteria, and implementation details for the resolve-gh-issue workflow
-tools:
-  - gh
-  - Read
-  - TodoWrite
-  - Bash
+tools: gh, Read, TodoWrite, Bash
 ---
 
 # Issue Analyzer Agent

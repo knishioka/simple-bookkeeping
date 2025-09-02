@@ -1,12 +1,7 @@
 ---
 name: auto-fixer
 description: Lintエラーや単純な問題を自動修正し、修正できない問題に対する解決策を提案します
-tools:
-  - Bash
-  - Edit
-  - MultiEdit
-  - Read
-  - TodoWrite
+tools: Bash, Edit, MultiEdit, Read, TodoWrite
 ---
 
 # Auto Fixer Agent

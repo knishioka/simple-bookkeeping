@@ -1,13 +1,7 @@
 ---
 name: implementation
 description: Issue要件に基づいてコードを実装し、既存のパターンに従った高品質なコードを生成します
-tools:
-  - Edit
-  - MultiEdit
-  - Write
-  - Read
-  - TodoWrite
-  - Bash
+tools: Edit, MultiEdit, Write, Read, TodoWrite, Bash
 ---
 
 # Implementation Agent

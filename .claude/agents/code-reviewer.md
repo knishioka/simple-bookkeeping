@@ -1,11 +1,7 @@
 ---
 name: code-reviewer
 description: 実装されたコードを客観的にレビューし、セキュリティ、パフォーマンス、保守性の観点から評価します
-tools:
-  - Read
-  - Grep
-  - TodoWrite
-  - Bash
+tools: Read, Grep, TodoWrite, Bash
 ---
 
 # Code Reviewer Agent

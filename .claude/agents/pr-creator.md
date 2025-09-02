@@ -1,11 +1,7 @@
 ---
 name: pr-creator
 description: 実装内容から適切なPRを作成し、レビュアーに必要な情報を提供します
-tools:
-  - gh
-  - Bash
-  - Read
-  - TodoWrite
+tools: gh, Bash, Read, TodoWrite
 ---
 
 # PR Creator Agent

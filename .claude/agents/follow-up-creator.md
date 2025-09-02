@@ -1,10 +1,7 @@
 ---
 name: follow-up-creator
 description: 実装中に発見した問題や技術的負債を記録し、フォローアップIssueを作成します
-tools:
-  - gh
-  - Bash
-  - TodoWrite
+tools: gh, Bash, TodoWrite
 ---
 
 # Follow-up Creator Agent
