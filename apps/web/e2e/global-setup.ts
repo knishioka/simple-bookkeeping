@@ -136,10 +136,21 @@ async function performHealthCheck() {
   const webUrl = testEnv.webUrl;
   const apiUrl = testEnv.apiUrl;
 
-  const urls = [
-    { url: webUrl, name: 'Web' },
-    { url: `${apiUrl}/api/v1/health`, name: 'API' },
-  ];
+  // Build health check URLs based on environment
+  const urls = [{ url: webUrl, name: 'Web' }];
+
+  // Skip API health check in Docker environment or when using Server Actions
+  // The Express.js API has been deprecated and is not running in Docker
+  const skipApiHealthCheck =
+    testEnv.isDocker ||
+    process.env.SKIP_API_HEALTH_CHECK === 'true' ||
+    process.env.REUSE_SERVER === 'true';
+
+  if (!skipApiHealthCheck) {
+    urls.push({ url: `${apiUrl}/api/v1/health`, name: 'API' });
+  } else {
+    console.log('ℹ️ Skipping API health check (Docker environment or Server Actions mode)');
+  }
 
   // Add retry logic for CI environment
   const maxRetries = process.env.CI ? 5 : 1;
