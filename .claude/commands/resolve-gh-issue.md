@@ -94,14 +94,141 @@ Claude Codeは、タスクの内容とサブエージェントの`description`�
 - [ ] フォローアップ確認（follow-up-creator）
 ```
 
-### 1. Issue分析と理解
+### 1. Issue分析と理解（構造化出力対応）
 
 - **サブエージェント呼び出し**: `issue-analyzer` エージェントが自動的に実行されます
   - GitHub Issueの詳細を取得・分析
   - 要件と受け入れ条件を構造化
   - 実装に必要な情報を抽出
 
-  **注意**: `issue-analyzer`エージェントは`.claude/agents/issue-analyzer.md`に定義されています。Claude Codeが自動的に適切なタイミングで呼び出します。
+#### 🔴 多層検証システム（SuperClaude式）
+
+```bash
+# Layer 1: 形式検証
+validate_protocol_format() {
+  local response=$1
+
+  # プロトコルマーカーの確認
+  if ! echo "$response" | grep -q "===PROTOCOL_START==="; then
+    echo "ERROR: Invalid protocol format from subagent"
+    return 1
+  fi
+
+  # ステータス抽出と検証
+  local status=$(echo "$response" | sed -n '/^STATUS:/p' | awk '{print $2}')
+  if [ "$status" != "SUCCESS" ]; then
+    echo "WARNING: Subagent returned status: $status"
+    [ "$status" = "FAIL" ] && return 1
+  fi
+
+  return 0
+}
+
+# Layer 2: データ整合性検証
+validate_data_integrity() {
+  local response=$1
+
+  # DATAセクション抽出
+  local data=$(echo "$response" | sed -n '/===DATA_START===/,/===DATA_END===/p' | grep -v "===")
+
+  # JSON妥当性チェック
+  echo "$data" | jq empty 2>/dev/null
+  if [ $? -ne 0 ]; then
+    echo "ERROR: Invalid JSON in DATA section"
+    return 1
+  fi
+
+  # チェックサム検証（可能な場合）
+  local checksum=$(echo "$response" | grep "^CHECKSUM:" | awk '{print $2}')
+  if [ -n "$checksum" ]; then
+    local calculated=$(echo "$data" | sha256sum | awk '{print $1}')
+    if [ "$calculated" != "$checksum" ]; then
+      echo "ERROR: Checksum mismatch"
+      return 1
+    fi
+  fi
+
+  return 0
+}
+
+# Layer 3: 外部検証（ハルシネーション防止）
+validate_external_source() {
+  local issue_number=$1
+  local subagent_data=$2
+
+  # サブエージェントのデータから情報抽出
+  local subagent_title=$(echo "$subagent_data" | jq -r '.issue_data.title')
+
+  # 直接GitHub APIを呼び出して検証
+  local actual_data=$(gh issue view "$issue_number" --repo knishioka/simple-bookkeeping --json title,state 2>/dev/null)
+  if [ $? -ne 0 ]; then
+    echo "ERROR: Failed to verify with GitHub API"
+    return 1
+  fi
+
+  local actual_title=$(echo "$actual_data" | jq -r '.title')
+
+  # タイトル比較
+  if [ "$subagent_title" != "$actual_title" ]; then
+    echo "🔴 HALLUCINATION DETECTED!"
+    echo "  Subagent: $subagent_title"
+    echo "  Actual: $actual_title"
+    return 1
+  fi
+
+  echo "✅ External validation passed"
+  return 0
+}
+
+# 統合検証関数
+verify_subagent_response() {
+  local issue_number=$1
+  local response=$2
+
+  echo "=== Starting multi-layer validation ==="
+
+  # Layer 1
+  if ! validate_protocol_format "$response"; then
+    echo "❌ Layer 1 (Format) validation failed"
+    return 1
+  fi
+  echo "✅ Layer 1 (Format) validation passed"
+
+  # Layer 2
+  if ! validate_data_integrity "$response"; then
+    echo "❌ Layer 2 (Integrity) validation failed"
+    return 1
+  fi
+  echo "✅ Layer 2 (Integrity) validation passed"
+
+  # Layer 3
+  local data=$(echo "$response" | sed -n '/===DATA_START===/,/===DATA_END===/p' | grep -v "===")
+  if ! validate_external_source "$issue_number" "$data"; then
+    echo "❌ Layer 3 (External) validation failed"
+    return 1
+  fi
+  echo "✅ Layer 3 (External) validation passed"
+
+  echo "=== All validation layers passed ==="
+  return 0
+}
+```
+
+**実行例**:
+
+```bash
+# サブエージェント呼び出しと検証
+RESPONSE=$(Task "Analyze issue" "Analyze issue #317" "issue-analyzer")
+if verify_subagent_response 317 "$RESPONSE"; then
+  # 検証成功 - データを使用
+  DATA=$(echo "$RESPONSE" | sed -n '/===DATA_START===/,/===DATA_END===/p' | grep -v "===")
+  ISSUE_TITLE=$(echo "$DATA" | jq -r '.issue_data.title')
+else
+  # 検証失敗 - 直接実行にフォールバック
+  echo "Falling back to direct API call..."
+  ISSUE_DATA=$(gh issue view 317 --repo knishioka/simple-bookkeeping --json title,body,labels)
+fi
+```
 
 - TodoWriteのステータスを「completed」に更新
 

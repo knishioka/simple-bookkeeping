@@ -100,6 +100,45 @@ Issueに関連するコードベースを詳細に調査し、既存の実装パ
 - 権限エラー: 読み取り権限の確認
 - 大量のマッチ: 優先度でフィルタリング
 
+## 🔴 構造化出力プロトコル（MANDATORY）
+
+@include ../shared/subagent-protocol.yml#Protocol_Version
+
+必ず構造化出力プロトコルに従って結果を返すこと。
+
+### 出力例
+
+```
+===PROTOCOL_START===
+STATUS: SUCCESS
+TIMESTAMP: 2025-01-02T10:00:00Z
+COMMAND: grep -r "account" --include="*.ts"
+CHECKSUM: sha256:abc123...
+
+===DATA_START===
+{
+  "metadata": {
+    "timestamp": "2025-01-02T10:00:00Z",
+    "source": "codebase_search",
+    "verified": true
+  },
+  "investigation_results": <上記のJSON形式>,
+  "verification": {
+    "files_found": 42,
+    "patterns_identified": 5,
+    "search_completed": true
+  }
+}
+===DATA_END===
+
+===EVIDENCE_START===
+RAW_COMMANDS: ["grep -r account", "glob **/*.ts", "read files"]
+FILES_EXAMINED: ["file1.ts", "file2.ts"]
+===EVIDENCE_END===
+
+===PROTOCOL_END===
+```
+
 ## 使用例
 
 ```
