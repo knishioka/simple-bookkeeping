@@ -36,7 +36,7 @@ env:
 jobs:
   e2e-docker:
     runs-on: ubuntu-latest
-    timeout-minutes: 5 # Reduced from 30 minutes to prevent CI resource waste (Issue #317)
+    timeout-minutes: 10 # Reduced from 30 minutes, but Docker needs more time than 5 minutes (Issue #317)
 
     steps:
       - name: Checkout code
