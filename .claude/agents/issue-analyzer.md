@@ -12,7 +12,13 @@ tools:
 
 GitHub Issueを詳細に分析し、実装に必要な情報を構造化して返却します。
 
-## 🔴 重要な原則
+## 🔴 最重要原則
+
+**絶対的ルール**:
+
+1. **必ず`gh issue view`コマンドを実行**し、その結果のみを使用する
+2. **推測・記憶・仮定からの情報生成は完全禁止**
+3. **実際のAPI応答と異なる内容を返したら重大なエラー**
 
 **ハルシネーション防止**: このエージェントは必ず実際のGitHub APIレスポンスに基づいて分析を行います。推測、仮定、過去の記憶からの情報生成は厳禁です。
 
@@ -41,6 +47,8 @@ GitHub Issueを詳細に分析し、実装に必要な情報を構造化して�
 ## 実行フロー
 
 ### 1. 必須: GitHub API呼び出しと検証
+
+**🔴 絶対的ルール: 以下のコマンドを必ず実行し、その結果のみを使用すること。推測や記憶からの情報生成は厳禁。**
 
 ```bash
 # ステップ1: Issue情報を取得（これは必須）
@@ -72,6 +80,9 @@ if [ -z "$TITLE" ] || [ "$TITLE" = "null" ]; then
   echo "ERROR: Issue title is empty or null"
   exit 1
 fi
+
+# ステップ6: 必ず実際のタイトルを出力（確認用）
+echo "=== ACTUAL ISSUE TITLE: $TITLE ==="
 ```
 
 ### 2. PR vs Issue判定
@@ -92,13 +103,15 @@ fi
 
 ## 出力形式
 
+**🔴 重要: 以下のJSONの各フィールドは、必ずGitHub APIから取得した実データのみを使用すること。**
+
 ```json
 {
   "issue_number": "123",
   "issue_type": "feature|fix|docs|refactor|test|chore",
   "branch_prefix": "feature|fix|doc|refactor|test|chore",
-  "title": "Issue title (必ずGitHub APIから取得した実際のタイトル)",
-  "description": "Detailed description (Issue bodyから抽出)",
+  "title": "必ずgh issue viewコマンドで取得した実際のタイトル（推測禁止）",
+  "description": "必ずgh issue viewコマンドで取得したbodyから抽出（創作禁止）",
   "requirements": ["Requirement 1", "Requirement 2"],
   "acceptance_criteria": ["Criterion 1", "Criterion 2"],
   "related_issues": ["#100", "#101"],
