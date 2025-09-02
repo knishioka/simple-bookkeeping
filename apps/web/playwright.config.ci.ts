@@ -14,7 +14,7 @@ export default defineConfig({
   ...baseConfig,
 
   // CI-specific timeout overrides for better stability
-  timeout: 60000, // 60 seconds per test (double the local timeout)
+  timeout: 45000, // Reduced from 60s to 45s for faster failure detection (Issue #317)
 
   expect: {
     ...baseConfig.expect,
@@ -22,7 +22,7 @@ export default defineConfig({
   },
 
   // More aggressive retries in CI
-  retries: 3,
+  retries: 2, // Reduced from 3 to 2 for faster feedback (Issue #317)
 
   // Use 2 workers for better parallelization while avoiding contention
   workers: 2,
@@ -31,8 +31,8 @@ export default defineConfig({
   use: {
     ...baseConfig.use,
     // Extended timeouts for CI/Docker environment
-    actionTimeout: 20000, // Increased from 15000 for Docker stability
-    navigationTimeout: 45000, // Increased from 30000 for Docker environment
+    actionTimeout: 15000, // Reduced from 20000 for faster failure (Issue #317)
+    navigationTimeout: 30000, // Reduced from 45000 for faster feedback (Issue #317)
 
     // Always capture traces in CI for debugging
     trace: 'on',
