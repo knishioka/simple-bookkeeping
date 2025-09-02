@@ -60,8 +60,8 @@ services:
       test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://127.0.0.1:3000']
       interval: 5s
       timeout: 15s
-      retries: 40
-      start_period: 90s
+      retries: 20 # Reduced from 40 to 20 for faster failure detection (Issue #317)
+      start_period: 60s # Reduced from 90s to 60s for faster startup (Issue #317)
     restart: unless-stopped
     # Remove volume mounts that break the standalone container
     # volumes:

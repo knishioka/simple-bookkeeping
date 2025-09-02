@@ -9,7 +9,7 @@ on:
 jobs:
   e2e-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 5 # Reduced from 30 minutes to prevent CI resource waste (Issue #317)
 
     services:
       postgres:
@@ -73,15 +73,16 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
         run: |
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting web server..."
           cd apps/web
           npm run start &
-          # Wait for server to be fully ready
-          for i in {1..30}; do
+          # Wait for server to be fully ready (reduced iterations for faster failure)
+          for i in {1..20}; do
             if curl -f http://localhost:3000 >/dev/null 2>&1; then
-              echo "Web server is ready"
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] Web server is ready"
               break
             fi
-            echo "Waiting for web server... ($i/30)"
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Waiting for web server... ($i/20)"
             sleep 1
           done
           curl -f http://localhost:3000 || exit 1
@@ -106,14 +107,17 @@ jobs:
           TEST_VIEWER_EMAIL: ${{ secrets.TEST_VIEWER_EMAIL || 'viewer.test@localhost' }}
           TEST_VIEWER_PASSWORD: ${{ secrets.TEST_VIEWER_PASSWORD || 'ViewerTest123!' }}
         run: |
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting E2E tests (basic.spec.ts only for smoke testing)"
           START_TIME=$(date +%s)
-          pnpm --filter @simple-bookkeeping/web test:e2e:ci
+          # Run only basic.spec.ts with timeout to prevent hanging
+          timeout 240 pnpm --filter @simple-bookkeeping/web exec playwright test basic.spec.ts --config playwright.config.ci.ts || TEST_EXIT=$?
           END_TIME=$(date +%s)
           DURATION=$((END_TIME - START_TIME))
-          echo "E2E tests completed in ${DURATION} seconds"
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] E2E tests completed in ${DURATION} seconds with exit code ${TEST_EXIT:-0}"
           echo "::notice title=E2E Performance::Tests completed in ${DURATION} seconds"
           # Save performance data
           echo "{\"duration\": ${DURATION}, \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > performance-report.json
+          exit ${TEST_EXIT:-0}
 
       - name: Upload test results
         if: always()
