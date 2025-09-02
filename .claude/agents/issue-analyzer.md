@@ -1,11 +1,7 @@
 ---
 name: issue-analyzer
 description: Use PROACTIVELY when analyzing GitHub Issues. Analyzes GitHub issues to extract structured requirements, acceptance criteria, and implementation details for the resolve-gh-issue workflow
-tools:
-  - gh
-  - Read
-  - TodoWrite
-  - Bash
+tools: gh, Read, TodoWrite, Bash
 ---
 
 # Issue Analyzer Agent
@@ -138,6 +134,70 @@ echo "=== ACTUAL ISSUE TITLE: $TITLE ==="
 - **権限エラー**: リポジトリアクセス権限の確認を促す
 - **ハルシネーション防止**: 取得データ以外の情報を含めた場合は自己検証で検出
 
+## 🔴 構造化出力プロトコル（MANDATORY）
+
+**プロトコルバージョン**: 1.0
+
+このセクションは`.claude/shared/subagent-protocol.yml`で定義された
+共通プロトコルに従います。
+
+### 出力形式
+
+すべての分析結果は必ず以下の形式で出力すること：
+
+```
+===PROTOCOL_START===
+STATUS: SUCCESS|FAIL|WARNING
+TIMESTAMP: <ISO 8601 timestamp>
+COMMAND: <実行したghコマンド>
+CHECKSUM: <DATAセクションのSHA256>
+
+===DATA_START===
+<JSON形式のデータ - 下記の形式に従う>
+===DATA_END===
+
+===EVIDENCE_START===
+RAW_COMMAND: <実行した完全なコマンド>
+RAW_RESPONSE: <GitHubAPIの生レスポンス>
+VALIDATION_STEPS: <実行した検証ステップの配列>
+===EVIDENCE_END===
+
+===PROTOCOL_END===
+```
+
+### データセクションのJSON形式
+
+```json
+{
+  "metadata": {
+    "timestamp": "2025-01-02T10:00:00Z",
+    "source": "github_api",
+    "checksum": "sha256:...",
+    "verified": true
+  },
+  "issue_data": {
+    "number": "317",
+    "title": "実際のAPIから取得したタイトル",
+    "state": "OPEN",
+    "body": "実際のAPIから取得した本文",
+    "labels": [],
+    "assignees": []
+  },
+  "analysis": {
+    "issue_type": "fix|feature|docs|refactor|test|chore",
+    "branch_prefix": "fix|feature|doc|refactor|test|chore",
+    "complexity": "low|medium|high",
+    "requirements": ["要件1", "要件2"],
+    "acceptance_criteria": ["条件1", "条件2"]
+  },
+  "verification": {
+    "api_called": true,
+    "data_source": "direct_api_call",
+    "hallucination_check": "passed"
+  }
+}
+```
+
 ## 使用例
 
 ```
@@ -146,6 +206,12 @@ Task toolを呼び出す際は、以下のパラメータを使用:
 - subagent_type: "issue-analyzer"
 - description: "Analyze issue #123"
 - prompt: "Please analyze GitHub issue #123 and extract implementation requirements"
+
+# 期待される出力
+===PROTOCOL_START===
+STATUS: SUCCESS
+...（構造化された出力）
+===PROTOCOL_END===
 ```
 
 ## 成功基準
