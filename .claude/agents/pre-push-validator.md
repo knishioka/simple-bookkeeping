@@ -1,10 +1,7 @@
 ---
 name: pre-push-validator
 description: Push前の品質チェックを実行し、CI失敗を事前に防ぎます（最重要エージェント）
-tools:
-  - Bash
-  - TodoWrite
-  - Read
+tools: Bash, TodoWrite, Read
 ---
 
 # Pre-Push Validator Agent 【最重要】

@@ -1,12 +1,7 @@
 ---
 name: test-runner
 description: 実装に対応するテストを作成・実行し、品質を保証します
-tools:
-  - Write
-  - Edit
-  - Read
-  - Bash
-  - TodoWrite
+tools: Write, Edit, Read, Bash, TodoWrite
 ---
 
 # Test Runner Agent
