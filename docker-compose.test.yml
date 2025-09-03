@@ -50,6 +50,9 @@ services:
       NODE_ENV: production
       # Test-specific settings
       NEXT_TELEMETRY_DISABLED: '1'
+      # Supabase configuration (required for app startup)
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-https://placeholder.supabase.co}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-placeholder-key}
       # Note: Authentication is mocked in E2E tests - no real auth provider needed
     # Remove host port mapping for complete isolation (can be enabled for debugging)
     # ports:
@@ -90,6 +93,9 @@ services:
       DOCKER_ENV: 'true'
       CI: 'true'
       NODE_ENV: test
+      # Supabase configuration (required for test environment)
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-https://placeholder.supabase.co}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-placeholder-key}
       # Note: Authentication is mocked in E2E tests - no real auth provider needed
       # Test database connection for setup/teardown
       TEST_DATABASE_URL: postgresql://test:test@postgres-test:5432/bookkeeping_test?schema=public
