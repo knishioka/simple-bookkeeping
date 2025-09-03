@@ -107,6 +107,8 @@ jobs:
             -e TEST_RETRIES=2 \
             -e TEST_WORKERS=2 \
             -e PLAYWRIGHT_ARGS="--config playwright.config.ci.ts" \
+            -e NEXT_PUBLIC_SUPABASE_URL="${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}" \
+            -e NEXT_PUBLIC_SUPABASE_ANON_KEY="${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}" \
             playwright || TEST_EXIT_CODE=$?
 
           # Export test exit code
