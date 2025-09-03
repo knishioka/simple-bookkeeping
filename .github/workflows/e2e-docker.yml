@@ -36,7 +36,7 @@ env:
 jobs:
   e2e-docker:
     runs-on: ubuntu-latest
-    timeout-minutes: 10 # Reduced from 30 minutes, but Docker needs more time than 5 minutes (Issue #317)
+    timeout-minutes: 20 # Increased to support full E2E test suite in Docker (Issue #326)
 
     steps:
       - name: Checkout code
@@ -106,7 +106,7 @@ jobs:
             -e DEBUG=${{ github.event.inputs.debug || 'false' }} \
             -e TEST_RETRIES=2 \
             -e TEST_WORKERS=2 \
-            -e PLAYWRIGHT_ARGS="--config playwright.config.ci.ts basic.spec.ts" \
+            -e PLAYWRIGHT_ARGS="--config playwright.config.ci.ts" \
             playwright || TEST_EXIT_CODE=$?
 
           # Export test exit code
