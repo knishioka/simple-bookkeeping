@@ -1,6 +1,6 @@
 import { defineConfig } from '@playwright/test';
 
-import baseConfig from './playwright.config.js';
+import baseConfig from './playwright.config';
 
 /**
  * Fast E2E configuration for quick feedback in CI
