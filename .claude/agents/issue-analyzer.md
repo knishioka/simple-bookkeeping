@@ -47,9 +47,66 @@ GitHub Issueを詳細に分析し、実装に必要な情報を構造化して�
 **🔴 絶対的ルール: 以下のコマンドを必ず実行し、その結果のみを使用すること。推測や記憶からの情報生成は厳禁。**
 
 ```bash
+# ステップ0: 文字エンコーディングクリーンアップ関数定義
+clean_json_field() {
+  local input="$1"
+  # Remove control characters (U+0000-U+001F) except newline and tab, handle JSON escapes
+  printf '%s' "$input" | tr -d '\000-\010\013-\014\016-\037' | sed 's/\\n/\n/g; s/\\t/\t/g; s/\\\"/"/g'
+}
+
+extract_json_string() {
+  local json_data="$1"
+  local field="$2"
+  # Extract JSON string field with robust pattern matching
+  echo "$json_data" | grep -o "\"${field}\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" | \
+    sed "s/\"${field}\"[[:space:]]*:[[:space:]]*\"//" | \
+    sed 's/"$//' | head -1
+}
+
+extract_json_number() {
+  local json_data="$1"
+  local field="$2"
+  # Extract JSON number field
+  echo "$json_data" | grep -o "\"${field}\"[[:space:]]*:[[:space:]]*[0-9]*" | \
+    grep -o '[0-9]*$' | head -1
+}
+
+extract_json_body() {
+  local json_data="$1"
+  # Special handler for body field which may contain multiline content and complex escaping
+  # Use awk for more robust multiline extraction
+  echo "$json_data" | awk '
+    BEGIN { RS=""; FS="\"body\"[[:space:]]*:[[:space:]]*\""; found=0 }
+    {
+      if (NF > 1) {
+        # Found body field, extract content until next field or end
+        body_part = $2
+        # Remove trailing quote and any following fields
+        gsub(/\"[[:space:]]*,[[:space:]]*\"[^\"]*\".*/, "", body_part)
+        gsub(/\"[[:space:]]*}.*/, "", body_part)
+        gsub(/\"$/, "", body_part)
+        print body_part
+        found = 1
+        exit
+      }
+    }
+    END { if (!found) print "" }'
+}
+
+format_json_basic() {
+  local json_data="$1"
+  # Basic JSON formatting without external dependencies
+  echo "$json_data" | \
+    sed 's/,/,\n/g' | \
+    sed 's/{/{\n/g' | \
+    sed 's/}/\n}/g' | \
+    sed '/^[[:space:]]*$/d' | \
+    sed 's/^/  /'
+}
+
 # ステップ1: Issue情報を取得（これは必須）
 echo "=== Fetching Issue #<issue-number> from GitHub API ==="
-ISSUE_DATA=$(gh issue view <issue-number> --repo knishioka/simple-bookkeeping --json number,title,state,body,labels,milestone,assignees,comments,url)
+ISSUE_DATA=$(gh issue view <issue-number> --repo knishioka/simple-bookkeeping --json number,title,state,body,labels,milestone,assignees,comments,url 2>/dev/null)
 
 # ステップ2: 取得失敗チェック
 if [ -z "$ISSUE_DATA" ]; then
@@ -57,27 +114,49 @@ if [ -z "$ISSUE_DATA" ]; then
   exit 1
 fi
 
-# ステップ3: 実際の取得データを表示（改変禁止）
+# ステップ3: 文字エンコーディングクリーンアップ
+ISSUE_DATA_CLEAN=$(clean_json_field "$ISSUE_DATA")
+
+# ステップ4: 実際の取得データを表示（改変禁止）
 echo "=== ACTUAL GITHUB API RESPONSE ==="
-echo "$ISSUE_DATA" | jq '.'
+format_json_basic "$ISSUE_DATA_CLEAN"
 echo "================================="
 
-# ステップ4: Issue番号の整合性確認
-FETCHED_NUMBER=$(echo "$ISSUE_DATA" | jq -r '.number')
+# ステップ5: Issue番号の整合性確認
+FETCHED_NUMBER=$(extract_json_number "$ISSUE_DATA_CLEAN" "number")
+if [ -z "$FETCHED_NUMBER" ]; then
+  # フォールバック: より柔軟な抽出
+  FETCHED_NUMBER=$(echo "$ISSUE_DATA_CLEAN" | grep -o '"number"[[:space:]]*:[[:space:]]*[0-9]*' | grep -o '[0-9]*$')
+fi
+
 if [ "$FETCHED_NUMBER" != "<issue-number>" ]; then
   echo "ERROR: Issue number mismatch. Expected #<issue-number>, got #$FETCHED_NUMBER"
   exit 1
 fi
 
-# ステップ5: タイトルとbodyが存在することを確認
-TITLE=$(echo "$ISSUE_DATA" | jq -r '.title')
-BODY=$(echo "$ISSUE_DATA" | jq -r '.body')
+# ステップ6: タイトルとbodyの抽出（制御文字対応）
+TITLE=$(extract_json_string "$ISSUE_DATA_CLEAN" "title")
+if [ -z "$TITLE" ]; then
+  # フォールバック: より柔軟な抽出
+  TITLE=$(echo "$ISSUE_DATA_CLEAN" | sed -n 's/.*"title"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
+fi
+
+BODY=$(extract_json_body "$ISSUE_DATA_CLEAN")
+if [ -z "$BODY" ]; then
+  # フォールバック: より柔軟な抽出（複数行対応）
+  BODY=$(extract_json_string "$ISSUE_DATA_CLEAN" "body")
+  if [ -z "$BODY" ]; then
+    BODY=$(echo "$ISSUE_DATA_CLEAN" | awk '/"body"/ {gsub(/.*"body"[[:space:]]*:[[:space:]]*"/, ""); gsub(/"[[:space:]]*,.*/, ""); print; exit}')
+  fi
+fi
+
+# ステップ7: タイトルの存在確認
 if [ -z "$TITLE" ] || [ "$TITLE" = "null" ]; then
   echo "ERROR: Issue title is empty or null"
   exit 1
 fi
 
-# ステップ6: 必ず実際のタイトルを出力（確認用）
+# ステップ8: 必ず実際のタイトルを出力（確認用）
 echo "=== ACTUAL ISSUE TITLE: $TITLE ==="
 ```
 
