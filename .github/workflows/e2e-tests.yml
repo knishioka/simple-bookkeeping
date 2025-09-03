@@ -9,7 +9,7 @@ on:
 jobs:
   e2e-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 5 # Reduced from 30 minutes to prevent CI resource waste (Issue #317)
+    timeout-minutes: 15 # Increased to support full E2E test suite (Issue #326)
 
     services:
       postgres:
@@ -107,10 +107,10 @@ jobs:
           TEST_VIEWER_EMAIL: ${{ secrets.TEST_VIEWER_EMAIL || 'viewer.test@localhost' }}
           TEST_VIEWER_PASSWORD: ${{ secrets.TEST_VIEWER_PASSWORD || 'ViewerTest123!' }}
         run: |
-          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting E2E tests (basic.spec.ts only for smoke testing)"
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting full E2E test suite"
           START_TIME=$(date +%s)
-          # Run only basic.spec.ts with timeout to prevent hanging
-          timeout 240 pnpm --filter @simple-bookkeeping/web exec playwright test basic.spec.ts --config playwright.config.ci.ts || TEST_EXIT=$?
+          # Run full test suite with reasonable timeout
+          timeout 840 pnpm --filter @simple-bookkeeping/web exec playwright test --config playwright.config.ci.ts || TEST_EXIT=$?
           END_TIME=$(date +%s)
           DURATION=$((END_TIME - START_TIME))
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] E2E tests completed in ${DURATION} seconds with exit code ${TEST_EXIT:-0}"

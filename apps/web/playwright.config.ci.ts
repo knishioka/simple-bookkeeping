@@ -14,7 +14,7 @@ export default defineConfig({
   ...baseConfig,
 
   // CI-specific timeout overrides for better stability
-  timeout: 45000, // Reduced from 60s to 45s for faster failure detection (Issue #317)
+  timeout: 60000, // Restored to 60s for full test suite stability (Issue #326)
 
   expect: {
     ...baseConfig.expect,
@@ -22,10 +22,10 @@ export default defineConfig({
   },
 
   // More aggressive retries in CI
-  retries: 2, // Reduced from 3 to 2 for faster feedback (Issue #317)
+  retries: 3, // Restored to 3 for better reliability with full suite (Issue #326)
 
-  // Use 2 workers for better parallelization while avoiding contention
-  workers: 2,
+  // Use 1 worker in CI to avoid resource contention
+  workers: process.env.CI ? 1 : 2,
 
   // Force slower, more stable execution
   use: {
@@ -55,5 +55,6 @@ export default defineConfig({
     ['json', { outputFile: 'test-results/results.json' }],
     ['junit', { outputFile: 'test-results/junit.xml' }],
     ['html', { outputFolder: 'test-results/html', open: 'never' }],
+    ['./e2e/utils/performance-reporter.ts'], // Issue #326: Performance tracking
   ],
 });
