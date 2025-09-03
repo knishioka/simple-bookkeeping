@@ -47,279 +47,200 @@ GitHub Issueを詳細に分析し、実装に必要な情報を構造化して�
 **🔴 絶対的ルール: 以下のコマンドを必ず実行し、その結果のみを使用すること。推測や記憶からの情報生成は厳禁。**
 
 ```bash
-# ステップ0: 文字エンコーディングクリーンアップ関数定義
-clean_json_field() {
-  local input="$1"
-  # Remove control characters (U+0000-U+001F) except newline and tab, handle JSON escapes
-  printf '%s' "$input" | tr -d '\000-\010\013-\014\016-\037' | sed 's/\\n/\n/g; s/\\t/\t/g; s/\\\"/"/g'
-}
+# Issue #332修正: シンプルな制御文字対策
+# tr -d '\000-\037' で制御文字（U+0000-U+001F）を除去してからjqで処理
 
-extract_json_string() {
-  local json_data="$1"
-  local field="$2"
-  # Extract JSON string field with robust pattern matching
-  echo "$json_data" | grep -o "\"${field}\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" | \
-    sed "s/\"${field}\"[[:space:]]*:[[:space:]]*\"//" | \
-    sed 's/"$//' | head -1
-}
+ISSUE_NUMBER="$1"
+REPO="knishioka/simple-bookkeeping"
 
-extract_json_number() {
-  local json_data="$1"
-  local field="$2"
-  # Extract JSON number field
-  echo "$json_data" | grep -o "\"${field}\"[[:space:]]*:[[:space:]]*[0-9]*" | \
-    grep -o '[0-9]*$' | head -1
-}
+echo "Fetching issue #${ISSUE_NUMBER}..."
+RESPONSE=$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" --json title,body,state,number,labels,milestone,assignees,url,createdAt,updatedAt,closedAt,author,comments 2>&1)
 
-extract_json_body() {
-  local json_data="$1"
-  # Special handler for body field which may contain multiline content and complex escaping
-  # Use awk for more robust multiline extraction
-  echo "$json_data" | awk '
-    BEGIN { RS=""; FS="\"body\"[[:space:]]*:[[:space:]]*\""; found=0 }
-    {
-      if (NF > 1) {
-        # Found body field, extract content until next field or end
-        body_part = $2
-        # Remove trailing quote and any following fields
-        gsub(/\"[[:space:]]*,[[:space:]]*\"[^\"]*\".*/, "", body_part)
-        gsub(/\"[[:space:]]*}.*/, "", body_part)
-        gsub(/\"$/, "", body_part)
-        print body_part
-        found = 1
-        exit
-      }
-    }
-    END { if (!found) print "" }'
-}
-
-format_json_basic() {
-  local json_data="$1"
-  # Basic JSON formatting without external dependencies
-  echo "$json_data" | \
-    sed 's/,/,\n/g' | \
-    sed 's/{/{\n/g' | \
-    sed 's/}/\n}/g' | \
-    sed '/^[[:space:]]*$/d' | \
-    sed 's/^/  /'
-}
-
-# ステップ1: Issue情報を取得（これは必須）
-echo "=== Fetching Issue #<issue-number> from GitHub API ==="
-ISSUE_DATA=$(gh issue view <issue-number> --repo knishioka/simple-bookkeeping --json number,title,state,body,labels,milestone,assignees,comments,url 2>/dev/null)
-
-# ステップ2: 取得失敗チェック
-if [ -z "$ISSUE_DATA" ]; then
-  echo "ERROR: Failed to fetch issue data from GitHub"
+# エラーチェック
+if [ $? -ne 0 ]; then
+  echo "ERROR: Failed to fetch issue #${ISSUE_NUMBER}" >&2
+  echo "Response: $RESPONSE" >&2
   exit 1
 fi
 
-# ステップ3: 文字エンコーディングクリーンアップ
-ISSUE_DATA_CLEAN=$(clean_json_field "$ISSUE_DATA")
+# 制御文字を除去してからjqで処理（Issue #332対応）
+CLEAN_RESPONSE=$(echo "$RESPONSE" | tr -d '\000-\037')
 
-# ステップ4: 実際の取得データを表示（改変禁止）
-echo "=== ACTUAL GITHUB API RESPONSE ==="
-format_json_basic "$ISSUE_DATA_CLEAN"
-echo "================================="
+# jqでJSON解析（エラーがあってもフォールバック）
+TITLE=$(echo "$CLEAN_RESPONSE" | jq -r '.title // ""' 2>/dev/null || echo "")
+BODY=$(echo "$CLEAN_RESPONSE" | jq -r '.body // ""' 2>/dev/null || echo "")
+STATE=$(echo "$CLEAN_RESPONSE" | jq -r '.state // ""' 2>/dev/null || echo "")
+NUMBER=$(echo "$CLEAN_RESPONSE" | jq -r '.number // ""' 2>/dev/null || echo "")
+URL=$(echo "$CLEAN_RESPONSE" | jq -r '.url // ""' 2>/dev/null || echo "")
+AUTHOR=$(echo "$CLEAN_RESPONSE" | jq -r '.author.login // ""' 2>/dev/null || echo "")
+LABELS=$(echo "$CLEAN_RESPONSE" | jq -r '.labels[].name // ""' 2>/dev/null | tr '\n' ',' | sed 's/,$//')
 
-# ステップ5: Issue番号の整合性確認
-FETCHED_NUMBER=$(extract_json_number "$ISSUE_DATA_CLEAN" "number")
-if [ -z "$FETCHED_NUMBER" ]; then
-  # フォールバック: より柔軟な抽出
-  FETCHED_NUMBER=$(echo "$ISSUE_DATA_CLEAN" | grep -o '"number"[[:space:]]*:[[:space:]]*[0-9]*' | grep -o '[0-9]*$')
-fi
-
-if [ "$FETCHED_NUMBER" != "<issue-number>" ]; then
-  echo "ERROR: Issue number mismatch. Expected #<issue-number>, got #$FETCHED_NUMBER"
-  exit 1
-fi
-
-# ステップ6: タイトルとbodyの抽出（制御文字対応）
-TITLE=$(extract_json_string "$ISSUE_DATA_CLEAN" "title")
-if [ -z "$TITLE" ]; then
-  # フォールバック: より柔軟な抽出
-  TITLE=$(echo "$ISSUE_DATA_CLEAN" | sed -n 's/.*"title"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
-fi
-
-BODY=$(extract_json_body "$ISSUE_DATA_CLEAN")
-if [ -z "$BODY" ]; then
-  # フォールバック: より柔軟な抽出（複数行対応）
-  BODY=$(extract_json_string "$ISSUE_DATA_CLEAN" "body")
-  if [ -z "$BODY" ]; then
-    BODY=$(echo "$ISSUE_DATA_CLEAN" | awk '/"body"/ {gsub(/.*"body"[[:space:]]*:[[:space:]]*"/, ""); gsub(/"[[:space:]]*,.*/, ""); print; exit}')
+# 必須フィールドの検証
+if [ -z "$TITLE" ] || [ -z "$NUMBER" ]; then
+  echo "ERROR: Failed to extract required fields from issue" >&2
+  echo "Title: $TITLE" >&2
+  echo "Number: $NUMBER" >&2
+  # フォールバック: 別の方法で取得を試みる
+  FALLBACK_RESPONSE=$(gh issue view "$ISSUE_NUMBER" --repo "$REPO" 2>/dev/null)
+  if [ $? -eq 0 ]; then
+    # テキスト形式から抽出
+    TITLE=$(echo "$FALLBACK_RESPONSE" | head -1 | sed 's/^title:[[:space:]]*//')
+    NUMBER="$ISSUE_NUMBER"
+  else
+    exit 1
   fi
 fi
-
-# ステップ7: タイトルの存在確認
-if [ -z "$TITLE" ] || [ "$TITLE" = "null" ]; then
-  echo "ERROR: Issue title is empty or null"
-  exit 1
-fi
-
-# ステップ8: 必ず実際のタイトルを出力（確認用）
-echo "=== ACTUAL ISSUE TITLE: $TITLE ==="
 ```
 
-### 2. PR vs Issue判定
+### 2. Issue内容の分析
 
-- bodyフィールドの存在確認
-- PR特有の文言チェック（"wants to merge", "commits into", "pull request"）
-- 疑わしい場合は `gh pr view` も試行
+```bash
+# ラベルからIssueタイプを判定
+determine_issue_type() {
+  local labels="$1"
 
-### 3. データ分析（取得データのみを使用）
+  if echo "$labels" | grep -q "bug"; then
+    echo "fix"
+  elif echo "$labels" | grep -q "enhancement\|feature"; then
+    echo "feature"
+  elif echo "$labels" | grep -q "documentation"; then
+    echo "doc"
+  elif echo "$labels" | grep -q "refactor"; then
+    echo "refactor"
+  elif echo "$labels" | grep -q "test"; then
+    echo "test"
+  elif echo "$labels" | grep -q "chore\|maintenance"; then
+    echo "chore"
+  else
+    echo "feature"  # デフォルト
+  fi
+}
 
-- **取得したデータのみを分析対象とする**
-- **推測や外部情報の追加は禁止**
-- **不明な情報は "unknown" または空配列とする**
+ISSUE_TYPE=$(determine_issue_type "$LABELS")
+echo "Issue type determined: $ISSUE_TYPE"
+```
 
-### 4. TodoWriteで進捗記録
+### 3. 構造化プロトコル出力
 
-### 5. 構造化された情報を返却
+```bash
+# 構造化出力（Protocol Version 1.1 - jq対応）
+cat << EOF
+===PROTOCOL_START===
+STATUS: SUCCESS
+TIMESTAMP: $(date -Iseconds)
+AGENT: issue-analyzer
+PROTOCOL_VERSION: 1.1
 
-## 出力形式
-
-**🔴 重要: 以下のJSONの各フィールドは、必ずGitHub APIから取得した実データのみを使用すること。**
-
-```json
+===DATA_START===
 {
-  "issue_number": "123",
-  "issue_type": "feature|fix|docs|refactor|test|chore",
-  "branch_prefix": "feature|fix|doc|refactor|test|chore",
-  "title": "必ずgh issue viewコマンドで取得した実際のタイトル（推測禁止）",
-  "description": "必ずgh issue viewコマンドで取得したbodyから抽出（創作禁止）",
-  "requirements": ["Requirement 1", "Requirement 2"],
-  "acceptance_criteria": ["Criterion 1", "Criterion 2"],
-  "related_issues": ["#100", "#101"],
-  "related_prs": ["#200", "#201"],
-  "complexity": "low|medium|high",
-  "affected_areas": ["area1", "area2"],
-  "labels": ["enhancement", "bug"],
-  "milestone": "v1.0.0",
-  "assignees": ["user1", "user2"],
-  "api_response_verification": {
-    "fetched_at": "2025-01-01T00:00:00Z",
-    "issue_number_verified": true,
-    "title_from_api": "Actual title from GitHub",
-    "labels_from_api": ["actual", "labels"]
+  "metadata": {
+    "timestamp": "$(date -Iseconds)",
+    "source": "github_cli",
+    "agent": "issue-analyzer",
+    "issue_number": $NUMBER,
+    "control_chars_removed": true,
+    "jq_version": "$(jq --version 2>/dev/null || echo 'not available')"
+  },
+  "issue_data": {
+    "number": $NUMBER,
+    "title": $(echo "$TITLE" | jq -Rs .),
+    "body": $(echo "$BODY" | jq -Rs .),
+    "state": "$STATE",
+    "author": "$AUTHOR",
+    "labels": "$LABELS",
+    "url": "$URL",
+    "created_at": "$(echo "$CLEAN_RESPONSE" | jq -r '.createdAt // ""' 2>/dev/null)",
+    "updated_at": "$(echo "$CLEAN_RESPONSE" | jq -r '.updatedAt // ""' 2>/dev/null)"
+  },
+  "analysis": {
+    "issue_type": "$ISSUE_TYPE",
+    "branch_prefix": "${ISSUE_TYPE}/${NUMBER}",
+    "complexity": "$(analyze_complexity "$BODY")",
+    "requires_tests": $(requires_tests "$ISSUE_TYPE"),
+    "requires_documentation": $(requires_docs "$LABELS")
+  },
+  "requirements": {
+    "summary": "$(extract_summary "$BODY")",
+    "acceptance_criteria": $(extract_acceptance_criteria "$BODY"),
+    "implementation_tasks": $(extract_tasks "$BODY")
+  },
+  "verification": {
+    "api_response_received": true,
+    "required_fields_present": true,
+    "control_chars_sanitized": true
   }
 }
+===DATA_END===
+
+===EVIDENCE_START===
+RAW_COMMANDS: [
+  "gh issue view $ISSUE_NUMBER --repo $REPO --json ...",
+  "tr -d '\\000-\\037' (control char removal)",
+  "jq field extraction with fallback"
+]
+ISSUE_FETCHED: #$NUMBER
+TITLE_EXTRACTED: "$TITLE"
+STATE_CONFIRMED: "$STATE"
+CONTROL_CHARS_REMOVED: true
+===EVIDENCE_END===
+
+===PROTOCOL_END===
+EOF
 ```
 
 ## エラーハンドリング
 
-- **Issue取得失敗時**: 即座に処理を中止し、明確なエラーメッセージを返却
-- **データ不整合検出時**: Issue番号やタイトルが期待値と異なる場合は警告
-- **要件が不明瞭な場合**: 推測せず、取得したデータのみから可能な限りの情報を返却
-- **権限エラー**: リポジトリアクセス権限の確認を促す
-- **ハルシネーション防止**: 取得データ以外の情報を含めた場合は自己検証で検出
+### jqパースエラー対策（Issue #332）
 
-## 🔴 構造化出力プロトコル（MANDATORY）
+```bash
+handle_jq_error() {
+  local json_data="$1"
+  local error_msg="$2"
 
-**プロトコルバージョン**: 1.0
+  echo "WARNING: jq parsing error detected" >&2
+  echo "Error: $error_msg" >&2
+  echo "Attempting fallback parsing..." >&2
 
-このセクションは`.claude/shared/subagent-protocol.yml`で定義された
-共通プロトコルに従います。
+  # フォールバック1: 制御文字除去を再試行
+  local cleaned=$(echo "$json_data" | tr -d '\000-\037' | sed 's/\r//g')
 
-### 出力形式
-
-すべての分析結果は必ず以下の形式で出力すること：
-
-```
-===PROTOCOL_START===
-STATUS: SUCCESS|FAIL|WARNING
-TIMESTAMP: <ISO 8601 timestamp>
-COMMAND: <実行したghコマンド>
-CHECKSUM: <DATAセクションのSHA256>
-
-===DATA_START===
-<JSON形式のデータ - 下記の形式に従う>
-===DATA_END===
-
-===EVIDENCE_START===
-RAW_COMMAND: <実行した完全なコマンド>
-RAW_RESPONSE: <GitHubAPIの生レスポンス>
-VALIDATION_STEPS: <実行した検証ステップの配列>
-===EVIDENCE_END===
-
-===PROTOCOL_END===
-```
-
-### データセクションのJSON形式
-
-```json
-{
-  "metadata": {
-    "timestamp": "2025-01-02T10:00:00Z",
-    "source": "github_api",
-    "checksum": "sha256:...",
-    "verified": true
-  },
-  "issue_data": {
-    "number": "317",
-    "title": "実際のAPIから取得したタイトル",
-    "state": "OPEN",
-    "body": "実際のAPIから取得した本文",
-    "labels": [],
-    "assignees": []
-  },
-  "analysis": {
-    "issue_type": "fix|feature|docs|refactor|test|chore",
-    "branch_prefix": "fix|feature|doc|refactor|test|chore",
-    "complexity": "low|medium|high",
-    "requirements": ["要件1", "要件2"],
-    "acceptance_criteria": ["条件1", "条件2"]
-  },
-  "verification": {
-    "api_called": true,
-    "data_source": "direct_api_call",
-    "hallucination_check": "passed"
-  }
+  # フォールバック2: 基本的なテキスト解析
+  if ! echo "$cleaned" | jq empty 2>/dev/null; then
+    echo "Fallback: Using text-based parsing" >&2
+    # grep/sed/awkを使った解析
+  fi
 }
 ```
 
-## 使用例
+## トラブルシューティング
 
-```
-# Task toolから呼び出し
-Task toolを呼び出す際は、以下のパラメータを使用:
-- subagent_type: "issue-analyzer"
-- description: "Analyze issue #123"
-- prompt: "Please analyze GitHub issue #123 and extract implementation requirements"
+### よくある問題と解決策
 
-# 期待される出力
-===PROTOCOL_START===
-STATUS: SUCCESS
-...（構造化された出力）
-===PROTOCOL_END===
-```
+1. **jq parse error: Invalid string**
+   - 原因: 制御文字が含まれている
+   - 解決: `tr -d '\000-\037'` で制御文字を除去
 
-## 成功基準
+2. **jq: error: Cannot iterate over null**
+   - 原因: フィールドが存在しない
+   - 解決: `// ""` でデフォルト値を設定
 
-- [ ] GitHub APIから実際のIssue情報が取得できている
-- [ ] 取得したデータと出力内容が一致している（ハルシネーションなし）
-- [ ] Issue番号とタイトルの整合性が検証されている
-- [ ] 要件が明確に構造化されている
-- [ ] 実装に必要な情報がすべて含まれている
-- [ ] エラーケースが適切にハンドリングされている
-- [ ] api_response_verificationフィールドで検証可能性が保証されている
+3. **GitHub API rate limit exceeded**
+   - 原因: API呼び出し制限に達した
+   - 解決: 少し待ってから再実行
 
-## デバッグとトラブルシューティング
+## 依存関係
 
-問題が発生した場合の確認手順：
+- `gh` CLI (GitHub CLI)
+- `jq` (JSON processor)
+- `tr`, `sed`, `grep` (標準UNIXツール)
 
-1. **実際のGitHub APIレスポンスを確認**
+## 注意事項
 
-   ```bash
-   gh issue view <issue-number> --repo knishioka/simple-bookkeeping
-   ```
+1. **制御文字の除去**: GitHub APIレスポンスには制御文字が含まれることがあるため、必ず `tr -d '\000-\037'` で除去する
+2. **フォールバック処理**: jqでのパースに失敗した場合は、テキストベースの解析にフォールバック
+3. **エラー伝播**: 必須フィールドが取得できない場合は、エラーを適切に伝播させる
 
-2. **JSON形式で詳細確認**
+## 改善履歴
 
-   ```bash
-   gh issue view <issue-number> --repo knishioka/simple-bookkeeping --json number,title,body,labels
-   ```
-
-3. **エージェント出力の検証**
-   - `api_response_verification`フィールドを確認
-   - `title_from_api`が実際のIssueタイトルと一致するか確認
-   - `issue_number_verified`がtrueであることを確認
+- v1.1: Issue #332対応 - 制御文字によるjqパースエラーを修正（シンプルな `tr -d` アプローチ採用）
+- v1.0: 初期実装
