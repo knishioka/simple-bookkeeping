@@ -42,38 +42,33 @@ Issueに関連するコードベースを詳細に調査し、既存の実装パ
 
 ## 出力形式
 
-```json
-{
-  "related_files": [
-    {
-      "path": "apps/web/app/actions/accounts.ts",
-      "type": "implementation",
-      "description": "Account management actions"
-    }
-  ],
-  "patterns": {
-    "coding_style": "TypeScript with strict mode",
-    "naming_convention": "camelCase for functions, PascalCase for components",
-    "import_style": "absolute imports with @/ alias"
-  },
-  "dependencies": {
-    "runtime": ["next", "react", "@supabase/ssr"],
-    "dev": ["typescript", "eslint", "prettier"]
-  },
-  "affected_components": ["AccountList component", "Account service"],
-  "test_files": ["apps/web/e2e/accounts.spec.ts", "apps/api/src/__tests__/accounts.test.ts"],
-  "constraints": {
-    "typescript": "strict mode enabled",
-    "node_version": ">=18.0.0",
-    "package_manager": "pnpm"
-  },
-  "recommendations": [
-    "Follow existing Server Actions pattern",
-    "Use Supabase client for data access",
-    "Add appropriate error handling"
-  ]
-}
-```
+調査結果を以下の形式で構造化して返却：
+
+### 調査サマリー
+
+- 関連ファイル数とその概要
+- 主要な実装パターン
+- 技術スタックと制約
+
+### 詳細な調査結果
+
+1. **関連ファイル**
+   - パス、ファイルタイプ、役割の説明
+
+2. **実装パターン**
+   - コーディングスタイル
+   - 命名規則
+   - アーキテクチャパターン
+
+3. **依存関係と制約**
+   - 使用ライブラリ
+   - 技術的制約
+   - 設定要件
+
+4. **推奨事項**
+   - ベストプラクティスとの比較
+   - 改善提案
+   - 実装上の注意点
 
 ## 検索戦略
 
@@ -96,44 +91,32 @@ Issueに関連するコードベースを詳細に調査し、既存の実装パ
 - 権限エラー: 読み取り権限の確認
 - 大量のマッチ: 優先度でフィルタリング
 
-## 🔴 構造化出力プロトコル（MANDATORY）
+## WebSearch活用
 
-**プロトコルバージョン**: 1.0
+必要に応じて、以下の場合にWebSearchを使用：
 
-このセクションは`.claude/shared/subagent-protocol.yml`で定義された
-共通プロトコルに従います。必ず構造化出力プロトコルに従って結果を返すこと。
+1. **未知のライブラリ/フレームワーク**
+   - 使用方法が不明なライブラリのドキュメント検索
+   - ベストプラクティスの確認
 
-### 出力例
+2. **デザインパターン**
+   - 特定のパターンの実装例検索
+   - アーキテクチャの参考実装
+
+3. **エラー解決**
+   - エラーメッセージの解決策検索
+   - 既知の問題と回避策
+
+### WebSearch例
 
 ```
-===PROTOCOL_START===
-STATUS: SUCCESS
-TIMESTAMP: 2025-01-02T10:00:00Z
-COMMAND: grep -r "account" --include="*.ts"
-CHECKSUM: sha256:abc123...
+// 未知のライブラリ発見時
+"[library name] Next.js integration"
+"[library name] TypeScript examples"
 
-===DATA_START===
-{
-  "metadata": {
-    "timestamp": "2025-01-02T10:00:00Z",
-    "source": "codebase_search",
-    "verified": true
-  },
-  "investigation_results": <上記のJSON形式>,
-  "verification": {
-    "files_found": 42,
-    "patterns_identified": 5,
-    "search_completed": true
-  }
-}
-===DATA_END===
-
-===EVIDENCE_START===
-RAW_COMMANDS: ["grep -r account", "glob **/*.ts", "read files"]
-FILES_EXAMINED: ["file1.ts", "file2.ts"]
-===EVIDENCE_END===
-
-===PROTOCOL_END===
+// パターン調査
+"Repository pattern TypeScript implementation"
+"Clean architecture Next.js"
 ```
 
 ## 使用例
