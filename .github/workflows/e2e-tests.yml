@@ -131,7 +131,7 @@ jobs:
           START_TIME=$(date +%s)
 
           # Run fast test suite with sharding and optimized config
-          timeout 360 pnpm --filter @simple-bookkeeping/web exec playwright test \
+          cd apps/web && timeout 360 npx playwright test \
             --config playwright.config.fast.ts \
             --shard=${{ matrix.shard }} \
             --grep-invert="@slow|@integration" || TEST_EXIT=$?
