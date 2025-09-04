@@ -1,7 +1,8 @@
 ---
 name: test-runner
-description: 実装に対応するテストを作成・実行し、品質を保証します
-tools: Write, Edit, Read, Bash, TodoWrite
+description: Creates and runs tests with web search for testing best practices. Use PROACTIVELY after implementations.
+tools: Write, Edit, Read, WebSearch, Bash, TodoWrite
+model: opus
 ---
 
 # Test Runner Agent

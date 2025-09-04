@@ -1,7 +1,8 @@
 ---
 name: auto-fixer
-description: Lintエラーや単純な問題を自動修正し、修正できない問題に対する解決策を提案します
-tools: Bash, Edit, MultiEdit, Read, TodoWrite
+description: Auto-fixes lint errors and simple issues with web search for solutions. Use PROACTIVELY when errors are detected.
+tools: Bash, Edit, MultiEdit, Read, WebSearch, TodoWrite
+model: opus
 ---
 
 # Auto Fixer Agent
