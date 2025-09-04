@@ -131,7 +131,8 @@ jobs:
           START_TIME=$(date +%s)
 
           # Run fast test suite with sharding and optimized config
-          cd apps/web && timeout 360 npx playwright test \
+          cd apps/web
+          timeout 360 npx playwright test \
             --config playwright.config.fast.ts \
             --shard=${{ matrix.shard }} \
             --grep-invert="@slow|@integration" || TEST_EXIT=$?
@@ -142,7 +143,7 @@ jobs:
           echo "::notice title=E2E Performance (Shard ${{ matrix.shard }})::Tests completed in ${DURATION} seconds"
 
           # Save performance data with shard info
-          echo "{\"duration\": ${DURATION}, \"shard\": \"${{ matrix.shard }}\", \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > performance-report-${{ matrix.shard }}.json
+          echo "{\"duration\": ${DURATION}, \"shard\": \"${{ matrix.shard }}\", \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > ../../performance-report-${{ matrix.shard }}.json
           exit ${TEST_EXIT:-0}
 
       - name: Upload test results
