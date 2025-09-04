@@ -3,58 +3,69 @@ import { defineConfig } from '@playwright/test';
 import baseConfig from './playwright.config';
 
 /**
- * CI-specific Playwright configuration
- * Issue #254: E2E tests stabilization for CI environment
+ * Full CI-specific Playwright configuration for comprehensive testing
+ * Issue #336: E2E workflow optimization - complete test suite for Docker/comprehensive runs
  *
  * This configuration extends the base configuration with CI-specific adjustments
- * to improve test reliability in GitHub Actions and Docker environments.
+ * to run the complete test suite with maximum stability and coverage.
+ * Used for comprehensive testing on main branch and scheduled runs.
  */
 
 export default defineConfig({
   ...baseConfig,
 
-  // CI-specific timeout overrides for better stability
-  timeout: 60000, // Restored to 60s for full test suite stability (Issue #326)
+  // Extended timeouts for full comprehensive test suite
+  timeout: 75000, // Extended for comprehensive test stability (Issue #336)
 
   expect: {
     ...baseConfig.expect,
-    timeout: 15000, // 15 seconds for assertions in CI (increased for Docker)
+    timeout: 20000, // Extended assertion timeout for comprehensive testing
   },
 
-  // More aggressive retries in CI
-  retries: 3, // Restored to 3 for better reliability with full suite (Issue #326)
+  // Maximum retries for comprehensive testing reliability
+  retries: 3, // Keep 3 retries for maximum stability
 
-  // Use 1 worker in CI to avoid resource contention
-  workers: process.env.CI ? 1 : 2,
+  // Optimized workers for comprehensive Docker environment
+  workers: process.env.CI ? 2 : 2, // Increased to 2 for better performance in Docker
 
   // Force slower, more stable execution
   use: {
     ...baseConfig.use,
-    // Extended timeouts for CI/Docker environment
-    actionTimeout: 15000, // Reduced from 20000 for faster failure (Issue #317)
-    navigationTimeout: 30000, // Reduced from 45000 for faster feedback (Issue #317)
+    // Extended timeouts for comprehensive testing
+    actionTimeout: 25000, // Extended for complex interactions
+    navigationTimeout: 45000, // Full navigation timeout for comprehensive tests
 
-    // Always capture traces in CI for debugging
-    trace: 'on',
+    // Full capture for comprehensive testing and debugging
+    trace: 'retain-on-failure', // Optimized trace capture
+    video: 'retain-on-failure', // Capture video on failure only for performance
+    screenshot: 'only-on-failure', // Optimized screenshot capture
 
-    // Always capture video in CI
-    video: 'on',
-
-    // Always capture screenshots
-    screenshot: 'on',
-
-    // Add artificial delay between actions for stability
+    // Balanced delay for comprehensive test stability
     launchOptions: {
-      slowMo: 50, // Reduced from 100ms to balance speed and stability
+      slowMo: 75, // Balanced slowdown for comprehensive testing
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-web-security',
+        // Additional flags for Docker environment stability
+        '--disable-extensions',
+        '--no-first-run',
+        '--disable-default-apps',
+      ],
     },
   },
 
-  // Reporter configuration for CI
+  // Comprehensive reporting for CI
   reporter: [
-    ['list'],
+    ['list', { printSteps: true }], // More verbose for comprehensive testing
     ['json', { outputFile: 'test-results/results.json' }],
     ['junit', { outputFile: 'test-results/junit.xml' }],
     ['html', { outputFolder: 'test-results/html', open: 'never' }],
-    ['./e2e/utils/performance-reporter.ts'], // Issue #326: Performance tracking
+    ['./e2e/utils/performance-reporter.ts'], // Enhanced performance tracking
   ],
+
+  // Global timeout for comprehensive suite
+  globalTimeout: 45 * 60 * 1000, // 45 minutes for full comprehensive testing
 });

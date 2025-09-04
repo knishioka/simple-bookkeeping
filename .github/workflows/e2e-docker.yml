@@ -1,19 +1,15 @@
-name: E2E Tests (Docker)
+name: E2E Tests (Comprehensive)
 
+# Only run comprehensive tests on main branch for full validation
+# Fast tests run on all PRs via e2e-tests.yml
 on:
   push:
     branches:
       - main
-      - feature/198-docker-e2e-test-infrastructure
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'apps/web/**'
-      - 'packages/**'
-      - 'docker-compose.test.yml'
-      - 'Dockerfile.playwright'
-      - '.github/workflows/e2e-docker.yml'
+  # Remove PR triggers - comprehensive tests only on main
+  schedule:
+    # Run comprehensive tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
   workflow_dispatch:
     inputs:
       debug:
@@ -21,6 +17,16 @@ on:
         type: boolean
         required: false
         default: false
+      full_suite:
+        description: 'Run full test suite (including slow tests)'
+        type: boolean
+        required: false
+        default: true
+
+# Prevent multiple comprehensive test runs
+concurrency:
+  group: e2e-comprehensive-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -36,7 +42,7 @@ env:
 jobs:
   e2e-docker:
     runs-on: ubuntu-latest
-    timeout-minutes: 20 # Increased to support full E2E test suite in Docker (Issue #326)
+    timeout-minutes: 25 # Comprehensive test suite with full validation (Issue #336)
 
     steps:
       - name: Checkout code
@@ -51,8 +57,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          key: ${{ runner.os }}-comprehensive-buildx-${{ hashFiles('**/Dockerfile*', '**/docker-compose*') }}
           restore-keys: |
+            ${{ runner.os }}-comprehensive-buildx-
             ${{ runner.os }}-buildx-
 
       - name: Create test directories
@@ -60,11 +67,14 @@ jobs:
           mkdir -p playwright-report test-results artifacts coverage
           chmod 777 playwright-report test-results artifacts coverage
 
-      - name: Build Docker images
+      - name: Build Docker images with optimization
         run: |
+          # Build with cache mount and optimized layers
           docker compose -f docker-compose.test.yml build \
             --build-arg BUILDKIT_INLINE_CACHE=1 \
-            --progress=plain
+            --build-arg BUILDKIT_CONTEXT_KEEP_GIT_DIR=1 \
+            --progress=plain \
+            --parallel
 
       - name: Start services
         run: |
@@ -72,17 +82,19 @@ jobs:
           docker compose -f docker-compose.test.yml up -d postgres-test web-test
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] Waiting for services to be healthy..."
 
-          # Wait for postgres (reduced timeout)
-          timeout 30 bash -c 'until docker compose -f docker-compose.test.yml exec -T postgres-test pg_isready; do 
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Waiting for PostgreSQL...";
-            sleep 2; 
-          done' || true
+          # Wait for postgres with health check
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Waiting for PostgreSQL to be healthy..."
+          timeout 60 bash -c 'until [ "$(docker compose -f docker-compose.test.yml ps -q postgres-test | xargs docker inspect --format="{{.State.Health.Status}}" 2>/dev/null)" = "healthy" ]; do 
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] PostgreSQL not ready yet...";
+            sleep 3; 
+          done'
 
-          # Wait for Web (reduced timeout for faster failure)
-          timeout 30 bash -c 'until docker compose -f docker-compose.test.yml exec -T web-test wget --no-verbose --tries=1 --spider http://localhost:3000; do 
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Waiting for web service...";
-            sleep 2; 
-          done' || true
+          # Wait for Web service with proper health check
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Waiting for web service to be healthy..."
+          timeout 90 bash -c 'until docker compose -f docker-compose.test.yml exec -T web-test curl -f http://localhost:3000/api/health >/dev/null 2>&1; do 
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Web service not ready yet...";
+            sleep 3; 
+          done'
 
       - name: Check service status
         if: always()
@@ -93,26 +105,45 @@ jobs:
           echo "=== Docker Compose Logs (last 50 lines per service) ==="
           docker compose -f docker-compose.test.yml logs --tail=50
 
-      - name: Run E2E tests
+      - name: Run Comprehensive E2E tests
         id: test
         run: |
-          # Run tests with proper environment variables
-          # REUSE_SERVER is critical for Docker environment
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting comprehensive E2E test suite..."
+          START_TIME=$(date +%s)
+
+          # Determine test configuration based on input
+          if [[ "${{ github.event.inputs.full_suite }}" == "true" || "${{ github.event_name }}" == "schedule" ]]; then
+            PLAYWRIGHT_CONFIG="playwright.config.ci.ts"
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running FULL comprehensive test suite"
+          else
+            PLAYWRIGHT_CONFIG="playwright.config.comprehensive.ts"
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running standard comprehensive test suite"
+          fi
+
+          # Run comprehensive tests with optimized Docker settings
           docker compose -f docker-compose.test.yml run \
             --rm \
             -e CI=true \
             -e REUSE_SERVER=true \
             -e BASE_URL=http://web-test:3000 \
             -e DEBUG=${{ github.event.inputs.debug || 'false' }} \
-            -e TEST_RETRIES=2 \
-            -e TEST_WORKERS=2 \
-            -e PLAYWRIGHT_ARGS="--config playwright.config.ci.ts" \
+            -e TEST_RETRIES=3 \
+            -e TEST_WORKERS=3 \
+            -e PLAYWRIGHT_ARGS="--config ${PLAYWRIGHT_CONFIG}" \
             -e NEXT_PUBLIC_SUPABASE_URL="${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}" \
             -e NEXT_PUBLIC_SUPABASE_ANON_KEY="${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}" \
+            -e TEST_TIMEOUT=45000 \
+            -e PLAYWRIGHT_GLOBAL_TIMEOUT=1800000 \
             playwright || TEST_EXIT_CODE=$?
 
-          # Export test exit code
+          END_TIME=$(date +%s)
+          DURATION=$((END_TIME - START_TIME))
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Comprehensive E2E tests completed in ${DURATION} seconds with exit code ${TEST_EXIT_CODE:-0}"
+          echo "::notice title=Comprehensive E2E Performance::Tests completed in ${DURATION} seconds"
+
+          # Export test results
           echo "TEST_EXIT_CODE=${TEST_EXIT_CODE:-0}" >> $GITHUB_ENV
+          echo "TEST_DURATION=${DURATION}" >> $GITHUB_ENV
 
           # Always exit 0 to allow artifact upload
           exit 0
@@ -132,85 +163,70 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ github.run_id }}-${{ github.run_attempt }}
+          name: comprehensive-playwright-report-${{ github.run_id }}
           path: playwright-report/
-          retention-days: 7
+          retention-days: 14
 
       - name: Upload test artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-artifacts-${{ github.run_id }}-${{ github.run_attempt }}
+          name: comprehensive-test-artifacts-${{ github.run_id }}
           path: |
             test-results/
             artifacts/
-          retention-days: 7
+          retention-days: 14
 
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report-${{ github.run_id }}-${{ github.run_attempt }}
+          name: comprehensive-coverage-report-${{ github.run_id }}
           path: coverage/
-          retention-days: 7
+          retention-days: 14
 
       - name: Publish test report
         if: always()
         uses: mikepenz/action-junit-report@v4
         with:
           report_paths: 'test-results/*.xml'
-          check_name: 'E2E Test Results (Docker)'
+          check_name: 'E2E Test Results (Comprehensive)'
           fail_on_failure: false
           detailed_summary: true
           include_passed: true
 
-      - name: Comment PR with results
-        if: github.event_name == 'pull_request' && always()
+      - name: Create issue on failure
+        if: failure() && (github.event_name == 'push' || github.event_name == 'schedule')
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
             const path = require('path');
 
-            let testResults = '## 🎭 E2E Test Results (Docker)\n\n';
-
-            // Check test exit code
             const exitCode = process.env.TEST_EXIT_CODE || '0';
-            if (exitCode === '0') {
-              testResults += '✅ **All tests passed!**\n\n';
-            } else {
-              testResults += '❌ **Some tests failed**\n\n';
-            }
+            const duration = process.env.TEST_DURATION || 'unknown';
 
-            // Add links to artifacts
-            testResults += '### 📊 Reports\n';
-            testResults += `- [View full HTML report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n`;
-            testResults += `- Test artifacts available in the [Actions summary](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n`;
-
-            // Find and comment on PR
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-
-            const botComment = comments.find(comment => 
-              comment.user.type === 'Bot' && comment.body.includes('E2E Test Results (Docker)')
-            );
-
-            if (botComment) {
-              await github.rest.issues.updateComment({
+            if (exitCode !== '0') {
+              const title = '🚨 Comprehensive E2E Tests Failed on Main Branch';
+              const body = `## Comprehensive E2E Test Failure\n\n` +
+                `❌ **Tests failed with exit code: ${exitCode}**\n\n` +
+                `📊 **Test Duration**: ${duration} seconds\n\n` +
+                `🔍 **Details**: [View full report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n\n` +
+                `### Investigation Steps\n` +
+                `1. Check the [test artifacts](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for detailed logs\n` +
+                `2. Review the comprehensive test report for failing tests\n` +
+                `3. Verify if this is a regression from recent changes\n\n` +
+                `**Branch**: ${context.ref}\n` +
+                `**Commit**: ${context.sha}\n` +
+                `**Triggered by**: ${context.eventName}\n\n` +
+                `🤖 This issue was automatically created by the E2E test workflow.`;
+              
+              await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                comment_id: botComment.id,
-                body: testResults,
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: testResults,
+                title,
+                body,
+                labels: ['bug', 'e2e-failure', 'priority-high']
               });
             }
 
@@ -225,12 +241,14 @@ jobs:
           docker system prune -f
           docker volume prune -f
 
-      - name: Check test result
+      - name: Check test result and notify
         if: always()
         run: |
           if [ "${TEST_EXIT_CODE:-0}" -ne 0 ]; then
-            echo "❌ E2E tests failed with exit code ${TEST_EXIT_CODE}"
+            echo "❌ Comprehensive E2E tests failed with exit code ${TEST_EXIT_CODE}"
+            echo "::error title=Comprehensive E2E Failure::Tests failed with exit code ${TEST_EXIT_CODE} after ${TEST_DURATION:-unknown} seconds"
             exit ${TEST_EXIT_CODE}
           else
-            echo "✅ All E2E tests passed successfully!"
+            echo "✅ All comprehensive E2E tests passed successfully!"
+            echo "::notice title=Comprehensive E2E Success::All tests passed in ${TEST_DURATION:-unknown} seconds"
           fi

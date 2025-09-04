@@ -1,4 +1,4 @@
-name: E2E Tests
+name: E2E Tests (Fast)
 
 on:
   push:
@@ -6,10 +6,20 @@ on:
   pull_request:
     branches: [main]
 
+# Prevent concurrent runs for the same PR
+concurrency:
+  group: e2e-tests-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   e2e-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 15 # Increased to support full E2E test suite (Issue #326)
+    timeout-minutes: 8 # Reduced to 8 minutes for fast test suite (Issue #336)
+
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1/3, 2/3, 3/3] # Split tests into 3 shards for parallel execution
 
     services:
       postgres:
@@ -62,8 +72,22 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json', '**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
       - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm --filter @simple-bookkeeping/web exec playwright install --with-deps chromium
+
+      - name: Install Playwright browser deps (cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm --filter @simple-bookkeeping/web exec playwright install-deps chromium
 
       - name: Start Web server in background
         env:
@@ -76,16 +100,12 @@ jobs:
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting web server..."
           cd apps/web
           npm run start &
-          # Wait for server to be fully ready (reduced iterations for faster failure)
-          for i in {1..20}; do
-            if curl -f http://localhost:3000 >/dev/null 2>&1; then
-              echo "[$(date '+%Y-%m-%d %H:%M:%S')] Web server is ready"
-              break
-            fi
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Waiting for web server... ($i/20)"
+          # Wait for server to be fully ready (optimized for fast startup)
+          timeout 60 bash -c 'until curl -f http://localhost:3000 >/dev/null 2>&1; do
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Waiting for web server..."
             sleep 1
-          done
-          curl -f http://localhost:3000 || exit 1
+          done'
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Web server is ready"
 
       - name: Run E2E tests with performance tracking
         env:
@@ -107,38 +127,45 @@ jobs:
           TEST_VIEWER_EMAIL: ${{ secrets.TEST_VIEWER_EMAIL || 'viewer.test@localhost' }}
           TEST_VIEWER_PASSWORD: ${{ secrets.TEST_VIEWER_PASSWORD || 'ViewerTest123!' }}
         run: |
-          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting full E2E test suite"
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting fast E2E test suite (shard ${{ matrix.shard }})"
           START_TIME=$(date +%s)
-          # Run full test suite with reasonable timeout
-          timeout 840 pnpm --filter @simple-bookkeeping/web exec playwright test --config playwright.config.ci.ts || TEST_EXIT=$?
+
+          # Run fast test suite with sharding and optimized config
+          cd apps/web
+          timeout 360 npx playwright test \
+            --config playwright.config.fast.ts \
+            --shard=${{ matrix.shard }} \
+            --grep-invert="@slow|@integration" || TEST_EXIT=$?
+            
           END_TIME=$(date +%s)
           DURATION=$((END_TIME - START_TIME))
-          echo "[$(date '+%Y-%m-%d %H:%M:%S')] E2E tests completed in ${DURATION} seconds with exit code ${TEST_EXIT:-0}"
-          echo "::notice title=E2E Performance::Tests completed in ${DURATION} seconds"
-          # Save performance data
-          echo "{\"duration\": ${DURATION}, \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > performance-report.json
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Fast E2E tests (shard ${{ matrix.shard }}) completed in ${DURATION} seconds with exit code ${TEST_EXIT:-0}"
+          echo "::notice title=E2E Performance (Shard ${{ matrix.shard }})::Tests completed in ${DURATION} seconds"
+
+          # Save performance data with shard info
+          echo "{\"duration\": ${DURATION}, \"shard\": \"${{ matrix.shard }}\", \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > ../../performance-report-${{ matrix.shard }}.json
           exit ${TEST_EXIT:-0}
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-shard-${{ strategy.job-index }}
           path: apps/web/playwright-report/
-          retention-days: 30
+          retention-days: 7
 
       - name: Upload test videos
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-videos
+          name: playwright-videos-shard-${{ strategy.job-index }}
           path: apps/web/test-results/
-          retention-days: 7
+          retention-days: 3
 
       - name: Upload performance report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: performance-report
-          path: performance-report.json
-          retention-days: 30
+          name: performance-report-shard-${{ strategy.job-index }}
+          path: performance-report-${{ matrix.shard }}.json
+          retention-days: 7
