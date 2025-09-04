@@ -1,7 +1,8 @@
 ---
 name: codebase-investigator
 description: Use PROACTIVELY to investigate codebase related to GitHub issues, identify existing implementation patterns and impact areas for the resolve-gh-issue workflow
-tools: Grep, Glob, Read, TodoWrite, Bash
+tools: Grep, Glob, Read, WebSearch, TodoWrite, Bash
+model: opus
 ---
 
 # Codebase Investigator Agent

@@ -1,12 +1,7 @@
 ---
 name: code-reviewer
 description: Performs comprehensive code review with web search for best practices. Use PROACTIVELY after writing or modifying code to ensure quality before CI/CD.
-tools:
-  - Read
-  - Grep
-  - WebSearch
-  - TodoWrite
-  - Bash
+tools: Read, Grep, WebSearch, TodoWrite, Bash
 model: opus
 ---
 

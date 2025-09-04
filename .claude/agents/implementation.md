@@ -1,14 +1,7 @@
 ---
 name: implementation
 description: Implements features with web search for best practices. Use PROACTIVELY when resolving GitHub issues or implementing new features.
-tools:
-  - Edit
-  - MultiEdit
-  - Write
-  - Read
-  - WebSearch
-  - TodoWrite
-  - Bash
+tools: Edit, MultiEdit, Write, Read, WebSearch, TodoWrite, Bash
 model: opus
 ---
 
