@@ -61,7 +61,7 @@ Claude Codeは、タスクの内容とサブエージェントの`description`�
 
 - `issue-analyzer`: GitHub Issueを詳細に分析し、実装に必要な情報を構造化
 - `codebase-investigator`: Issue関連のコードベースを調査し、既存実装パターンと影響範囲を特定
-- `implementation`: Issue要件に基づいてコードを実装
+- `code-implementer`: Issue要件に基づいてコードを実装
 - `test-runner`: 実装に対応するテストを作成・実行
 - `pre-push-validator`: Push前の品質チェックを実行
 - `code-reviewer`: 実装されたコードを客観的にレビュー
@@ -83,7 +83,7 @@ Claude Codeは、タスクの内容とサブエージェントの`description`�
 - [ ] Issue妥当性検証
 - [ ] コードベース分析（codebase-investigator）
 - [ ] ブランチ作成とセットアップ
-- [ ] 実装（implementation）
+- [ ] 実装（code-implementer）
 - [ ] テスト作成/実行（test-runner）
 - [ ] 品質保証チェック（pre-push-validator）
 - [ ] コードレビュー（code-reviewer）
@@ -345,7 +345,7 @@ fi
 
 ### 7. 実装
 
-- **サブエージェント呼び出し**: `implementation` エージェントが自動的に実行されます
+- **サブエージェント呼び出し**: `code-implementer` エージェントが自動的に実行されます
   - 既存のコードパターンと規約に従う（CLAUDE.mdを参照）
   - 変更を段階的に実装
   - 明確なメッセージでアトミックなコミットを作成
@@ -355,7 +355,7 @@ fi
   - 共通型定義の使用（`@simple-bookkeeping/types`）
   - エラークラスの使用（`@simple-bookkeeping/errors`）
 
-  **注意**: `implementation`エージェントは`.claude/agents/implementation.md`に定義されています。
+  **注意**: `code-implementer`エージェントは`.claude/agents/code-implementer.md`に定義されています。
 
 #### 実装中の問題追跡【重要機能】
 

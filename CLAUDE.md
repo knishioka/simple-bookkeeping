@@ -262,7 +262,7 @@ Claude Codeの専門サブエージェントは、特定の条件下で自動的
 - パフォーマンス最適化の提案
 - アクセシビリティ（WCAG 2.1）チェック
 
-#### implementation (実装専門)
+#### code-implementer (実装専門)
 
 **自動呼び出しトリガー:**
 
@@ -334,7 +334,7 @@ Claude Codeの専門サブエージェントは、特定の条件下で自動的
 2. **チェーン実行**: 複数のサブエージェントを連携させて品質を向上
 
    ```
-   implementation → test-runner → code-reviewer → pre-push-validator
+   code-implementer → test-runner → code-reviewer → pre-push-validator
    ```
 
 3. **WebSearch活用**: サブエージェントは自動的にWebSearchを使用して最新情報を取得

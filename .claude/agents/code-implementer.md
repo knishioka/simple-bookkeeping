@@ -1,11 +1,11 @@
 ---
-name: implementation
-description: Implements features with web search for best practices. Use PROACTIVELY when resolving GitHub issues or implementing new features.
+name: code-implementer
+description: Implements code with web search for best practices. Use PROACTIVELY when resolving GitHub issues or implementing new features.
 tools: Edit, MultiEdit, Write, Read, WebSearch, TodoWrite, Bash
 model: opus
 ---
 
-# Implementation Agent with WebSearch Integration
+# Code Implementer Agent with WebSearch Integration
 
 Issue要件に基づいてコードを実装し、WebSearchで最新のベストプラクティスを取得して高品質なコードを生成します。
 
@@ -153,7 +153,7 @@ Issue要件に基づいてコードを実装し、WebSearchで最新のベスト
 ```
 # Task toolから呼び出し
 Task toolを呼び出す際は、以下のパラメータを使用:
-- subagent_type: "implementation"
+- subagent_type: "code-implementer"
 - description: "Implement feature with web search"
 - prompt: "Implement account management feature based on the requirements. Use WebSearch to find latest best practices and library documentation."
 ```
