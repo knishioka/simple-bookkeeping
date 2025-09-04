@@ -187,7 +187,7 @@ jobs:
 
       - name: Publish test report
         if: always()
-        uses: mikepenz/action-junit-report@v4
+        uses: mikepenz/action-junit-report@v5
         with:
           report_paths: 'test-results/*.xml'
           check_name: 'E2E Test Results (Comprehensive)'
