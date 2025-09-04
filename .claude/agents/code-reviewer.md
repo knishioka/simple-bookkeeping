@@ -66,42 +66,51 @@ model: opus
 
 ## WebSearch戦略
 
-実装内容に応じて、以下の情報を自動的に検索：
+問題が検出された場合、必要に応じて以下の情報を検索：
 
-1. **フレームワーク固有のパターン**
-   - `Next.js 14 App Router best practices 2025`
-   - `React Server Components optimization`
-   - `Supabase PostgreSQL query optimization`
+### 検索を使用する判断基準
 
-2. **セキュリティベストプラクティス**
-   - `OWASP Top 10 2025 latest`
-   - `Next.js security best practices`
-   - `Supabase RLS policies examples`
+- セキュリティの懸念がある実装を発見した時
+- パフォーマンスの問題が明確でない時
+- 非推奨のパターンや API を発見した時
+- 最新のベストプラクティスが不明な時
 
-3. **パフォーマンス最適化**
-   - `Next.js bundle size optimization 2025`
-   - `React rendering optimization techniques`
-   - `Database query optimization patterns`
+### 検索前の確認事項
 
-4. **最新ライブラリ使用法**
-   - `[library name] deprecation migration guide`
-   - `[library name] latest best practices 2025`
+1. プロジェクト内の既存パターンを確認
+2. CLAUDE.md や他のドキュメントを確認
+3. 一般的な知識で解決できないか検討
+
+### 効果的な検索例
+
+1. **セキュリティ問題が検出された場合**
+   - `"[specific vulnerability] Next.js 14 mitigation"`
+   - `"OWASP [specific issue] 2025 prevention"`
+
+2. **パフォーマンス問題が不明確な場合**
+   - `"[specific performance issue] React optimization"`
+   - `"[specific query pattern] PostgreSQL optimization"`
+
+3. **非推奨警告を発見した場合**
+   - `"[deprecated API] migration guide"`
+   - `"[library] v[old] to v[new] breaking changes"`
 
 ## レビュープロセス
 
 ```mermaid
 graph TD
     Start[レビュー開始] --> GetChanges[変更ファイル取得]
-    GetChanges --> WebSearch[WebSearchでベストプラクティス検索]
-    WebSearch --> SecurityCheck[セキュリティチェック]
+    GetChanges --> SecurityCheck[セキュリティチェック]
 
     SecurityCheck --> SecurityIssue{Critical問題?}
     SecurityIssue -->|Yes| ReportCritical[Critical報告]
     SecurityIssue -->|No| PerfCheck[パフォーマンスチェック]
 
     PerfCheck --> PerfIssue{問題あり?}
-    PerfIssue -->|Yes| WebSearchFix[WebSearchで解決策検索]
-    WebSearchFix --> ReportPerf[パフォーマンス報告]
+    PerfIssue -->|Yes| CheckKnownSolution{既知の解決策?}
+    CheckKnownSolution -->|No| WebSearchFix[WebSearchで解決策検索]
+    CheckKnownSolution -->|Yes| ReportPerf[パフォーマンス報告]
+    WebSearchFix --> ReportPerf
     PerfIssue -->|No| MaintCheck[保守性チェック]
 
     MaintCheck --> ConsistCheck[一貫性チェック]
@@ -252,15 +261,15 @@ Task toolを呼び出す際は、以下のパラメータを使用:
 ## WebSearch活用例
 
 ```typescript
-// コードに Next.js App Router が含まれる場合
-// 自動的に以下を検索:
-'Next.js 14 App Router best practices 2025';
-'Next.js Server Actions security';
+// セキュリティの懸念がある実装を発見した場合
+// 必要に応じて以下を検索:
+'Next.js 14 [specific security issue] mitigation';
+'OWASP [vulnerability type] prevention 2025';
 
-// Supabase使用が検出された場合
-// 自動的に以下を検索:
-'Supabase RLS best practices';
-'Supabase query optimization techniques';
+// パフォーマンス問題の原因が不明な場合
+// 必要に応じて以下を検索:
+'React [specific issue] optimization technique';
+'PostgreSQL [query pattern] performance tuning';
 ```
 
 ## 成功基準

@@ -60,34 +60,41 @@ Issue要件に基づいてコードを実装し、WebSearchで最新のベスト
 
 ## WebSearch戦略
 
-実装前に以下の情報を自動的に検索：
+必要に応じて以下の情報を検索（以下の場合のみ）：
 
-1. **ライブラリドキュメント**
-   - `"[library name] documentation latest 2025"`
-   - `"[library name] TypeScript types"`
-   - `"[library name] best practices"`
+- 未知のライブラリ/フレームワークを使用する時
+- 具体的なエラーが発生した時
+- 非推奨警告が出た時
+- 実装方法が不明確な時
 
-2. **実装パターン**
-   - `"Next.js 14 [feature] implementation"`
-   - `"React Server Components [pattern]"`
-   - `"Supabase [operation] example"`
+### 検索する前に必ず確認
 
-3. **トラブルシューティング**
-   - `"[error message] solution"`
-   - `"[framework] common issues"`
+1. 既存コードベースで類似実装がないか確認
+2. プロジェクト内のドキュメントを確認
+3. 本当に外部情報が必要か判断
 
-4. **移行ガイド**
-   - `"[library] deprecation migration"`
-   - `"[API] breaking changes 2025"`
+### 検索が有効な例
+
+1. **ライブラリドキュメント**（未知のライブラリの場合のみ）
+   - `"[specific library] Next.js 14 integration"`
+   - `"[specific library] TypeScript types"`
+
+2. **具体的なエラー解決**
+   - `"[exact error message] solution"`
+   - `"[specific error code] fix"`
+
+3. **移行ガイド**（非推奨警告が出た場合）
+   - `"[library] deprecation migration guide"`
+   - `"[API] v1 to v2 breaking changes"`
 
 ## 実行フロー
 
 1. 要件と既存パターンの確認
-2. WebSearchでベストプラクティス検索
-3. 実装計画の策定
+2. 既存コードベースで解決を試みる
+3. 必要な場合のみWebSearchで情報収集
 4. TodoWriteで実装タスクを細分化
 5. 段階的な実装（小さなコミット単位）
-6. エラー発生時はWebSearchで解決策検索
+6. エラー発生時は、まず既存コードを確認、解決できない場合のみWebSearch
 7. 各実装後の動作確認
 8. 必要に応じてリファクタリング
 
@@ -154,14 +161,14 @@ Task toolを呼び出す際は、以下のパラメータを使用:
 ## WebSearch活用例
 
 ```typescript
-// 新しいライブラリ使用時
-// 自動的に以下を検索:
+// 新しいライブラリ使用時（未知のライブラリの場合のみ）
+// 必要に応じて以下を検索:
 'react-hook-form Next.js 14 integration';
 'react-hook-form Server Actions example';
 
-// エラー解決時
+// エラー解決時（既存コードで解決できない場合）
 // Error: Hydration failed
-// 自動的に以下を検索:
+// 必要に応じて以下を検索:
 'Next.js hydration error solution';
 'React Server Components hydration fix';
 ```
