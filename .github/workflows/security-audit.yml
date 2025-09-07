@@ -65,7 +65,7 @@ jobs:
 
       - name: Create issue if vulnerabilities found
         if: steps.audit.outputs.high_vulnerabilities == 'true' || failure()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const fs = require('fs');
