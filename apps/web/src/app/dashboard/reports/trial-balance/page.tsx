@@ -2,8 +2,8 @@
 
 import { Calendar, Download, Printer } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'react-hot-toast';
 
+import { getTrialBalanceWithAuth } from '@/app/actions/reports-wrapper';
 import { ExportDialog } from '@/components/reports/ExportDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +16,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { apiClient } from '@/lib/api-client';
+import { useServerAction } from '@/hooks/useServerAction';
+
+import type { TrialBalanceItem } from '@/app/actions/reports';
 
 interface TrialBalanceEntry {
   accountId: string;
@@ -35,7 +37,7 @@ interface TrialBalanceData {
 
 export default function TrialBalancePage() {
   const [data, setData] = useState<TrialBalanceData | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { execute, isLoading } = useServerAction(getTrialBalanceWithAuth);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [asOfDate, setAsOfDate] = useState(() => {
     const date = new Date();
@@ -43,21 +45,30 @@ export default function TrialBalancePage() {
   });
 
   const fetchTrialBalance = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await apiClient.get<TrialBalanceData>(
-        `/reports/trial-balance?asOfDate=${asOfDate}`
-      );
-      if (response.data) {
-        setData(response.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch trial balance:', error);
-      toast.error('試算表の取得に失敗しました');
-    } finally {
-      setLoading(false);
+    // For trial balance, we use the asOfDate as both start and end date
+    const result = await execute(asOfDate, asOfDate, undefined, {
+      errorMessage: '試算表の取得に失敗しました',
+      showToast: true,
+    });
+
+    if (result) {
+      // Transform Server Action result to match existing interface
+      const transformedData: TrialBalanceData = {
+        entries:
+          result.items?.map((item: TrialBalanceItem) => ({
+            accountId: item.accountCode,
+            accountCode: item.accountCode,
+            accountName: item.accountName,
+            accountType: item.accountType,
+            debitBalance: item.endingDebit || 0,
+            creditBalance: item.endingCredit || 0,
+          })) || [],
+        totalDebit: result.totals?.endingDebit || 0,
+        totalCredit: result.totals?.endingCredit || 0,
+      };
+      setData(transformedData);
     }
-  }, [asOfDate]);
+  }, [execute, asOfDate]);
 
   useEffect(() => {
     fetchTrialBalance();
@@ -122,7 +133,7 @@ export default function TrialBalancePage() {
                 />
               </div>
             </div>
-            <Button onClick={handleDateChange} disabled={loading}>
+            <Button onClick={handleDateChange} disabled={isLoading}>
               表示
             </Button>
           </div>
@@ -135,7 +146,7 @@ export default function TrialBalancePage() {
           <CardDescription>基準日: {asOfDate}</CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <div className="text-center py-8">読み込み中...</div>
           ) : data ? (
             <>

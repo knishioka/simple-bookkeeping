@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 
+import { createAccountWithAuth, updateAccountWithAuth } from '@/app/actions/accounts-wrapper';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -29,9 +30,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { apiClient } from '@/lib/api-client';
-import { Account, AccountType, AccountTypeLabels } from '@/types/account';
+import { useServerAction } from '@/hooks/useServerAction';
 import { createAccountSchema, CreateAccountInput } from '@/types/schemas';
+
+import type { Database } from '@/lib/supabase/database.types';
+
+// Temporary type mappings
+type Account = Database['public']['Tables']['accounts']['Row'] & {
+  parent?: {
+    id: string;
+    code: string;
+    name: string;
+  } | null;
+};
+
+const AccountType = {
+  ASSET: 'ASSET',
+  LIABILITY: 'LIABILITY',
+  EQUITY: 'EQUITY',
+  REVENUE: 'REVENUE',
+  EXPENSE: 'EXPENSE',
+} as const;
+
+const AccountTypeLabels: Record<string, string> = {
+  ASSET: '資産',
+  LIABILITY: '負債',
+  EQUITY: '純資産',
+  REVENUE: '収益',
+  EXPENSE: '費用',
+};
 
 type AccountFormData = CreateAccountInput;
 
@@ -50,13 +77,15 @@ export function AccountDialog({
   accounts,
   onSuccess,
 }: AccountDialogProps) {
+  const { execute: createAccount } = useServerAction(createAccountWithAuth);
+  const { execute: updateAccount } = useServerAction(updateAccountWithAuth);
   const form = useForm<AccountFormData>({
     resolver: zodResolver(createAccountSchema),
     defaultValues: {
       code: account?.code || '',
       name: account?.name || '',
-      accountType: account?.accountType || AccountType.ASSET,
-      parentId: account?.parentId || undefined,
+      accountType: (account?.account_type as keyof typeof AccountType) || AccountType.ASSET,
+      parentId: account?.parent_account_id || undefined,
     },
   });
 
@@ -70,22 +99,44 @@ export function AccountDialog({
 
       if (account) {
         // Update existing account
-        const response = await apiClient.put(`/accounts/${account.id}`, processedData);
-        if (response.data) {
-          toast.success('勘定科目を更新しました');
-          onSuccess();
-          onOpenChange(false);
-          form.reset();
-        }
+        // Convert camelCase to snake_case for database
+        const updateData = {
+          code: processedData.code,
+          name: processedData.name,
+          account_type: processedData.accountType,
+          category: 'general', // Default category
+          parent_account_id: processedData.parentId || undefined,
+          is_active: true, // Default to active
+        };
+
+        await updateAccount(account.id, updateData, {
+          successMessage: '勘定科目を更新しました',
+          onSuccess: () => {
+            onSuccess();
+            onOpenChange(false);
+            form.reset();
+          },
+        });
       } else {
         // Create new account
-        const response = await apiClient.post('/accounts', processedData);
-        if (response.data) {
-          toast.success('勘定科目を作成しました');
-          onSuccess();
-          onOpenChange(false);
-          form.reset();
-        }
+        // Convert camelCase to snake_case for database
+        const createData = {
+          code: processedData.code,
+          name: processedData.name,
+          account_type: processedData.accountType,
+          category: 'general', // Default category
+          parent_account_id: processedData.parentId || undefined,
+          is_active: true, // Default to active
+        };
+
+        await createAccount(createData, {
+          successMessage: '勘定科目を作成しました',
+          onSuccess: () => {
+            onSuccess();
+            onOpenChange(false);
+            form.reset();
+          },
+        });
       }
     } catch (error) {
       console.error('Failed to save account:', error);
@@ -95,7 +146,7 @@ export function AccountDialog({
 
   const selectedType = form.watch('accountType');
   const filteredParentAccounts = accounts.filter(
-    (a) => a.accountType === selectedType && a.id !== account?.id
+    (a) => a.account_type === selectedType && a.id !== account?.id
   );
 
   return (

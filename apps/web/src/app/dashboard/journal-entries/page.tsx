@@ -2,19 +2,11 @@
 
 import { Calendar, Plus, Search, Upload } from 'lucide-react';
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { toast } from 'react-hot-toast';
 
-// Lazy load heavy dialog components
-const JournalEntryDialog = lazy(() =>
-  import('@/components/journal-entries/journal-entry-dialog').then((mod) => ({
-    default: mod.JournalEntryDialog,
-  }))
-);
-const JournalEntryImportDialog = lazy(() =>
-  import('@/components/journal-entries/journal-entry-import-dialog').then((mod) => ({
-    default: mod.JournalEntryImportDialog,
-  }))
-);
+import {
+  getJournalEntriesWithAuth,
+  approveJournalEntryWithAuth,
+} from '@/app/actions/journal-entries-wrapper';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -33,7 +25,19 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { apiClient } from '@/lib/api-client';
+import { useServerAction } from '@/hooks/useServerAction';
+
+// Lazy load heavy dialog components
+const JournalEntryDialog = lazy(() =>
+  import('@/components/journal-entries/journal-entry-dialog').then((mod) => ({
+    default: mod.JournalEntryDialog,
+  }))
+);
+const JournalEntryImportDialog = lazy(() =>
+  import('@/components/journal-entries/journal-entry-import-dialog').then((mod) => ({
+    default: mod.JournalEntryImportDialog,
+  }))
+);
 
 interface JournalEntryLine {
   id: string;
@@ -45,8 +49,8 @@ interface JournalEntryLine {
   };
   debitAmount: number;
   creditAmount: number;
-  description?: string;
-  taxRate?: number;
+  description?: string | null;
+  taxRate?: number | null;
 }
 
 interface JournalEntry {
@@ -76,7 +80,8 @@ const statusColors = {
 
 export default function JournalEntriesPage() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { execute: fetchEntriesAction, isLoading } = useServerAction(getJournalEntriesWithAuth);
+  const { execute: approveAction } = useServerAction(approveJournalEntryWithAuth);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -97,21 +102,42 @@ export default function JournalEntriesPage() {
   }, []);
 
   const fetchJournalEntries = async () => {
-    setLoading(true);
     try {
-      const response = await apiClient.get<JournalEntry[]>('/journal-entries');
-      if (response.data) {
-        setEntries(response.data);
+      const result = await fetchEntriesAction(undefined, {
+        showToast: false, // Don't show toast on initial load
+      });
+
+      if (result && result.items) {
+        // Transform the data to match the expected format
+        const transformedEntries = result.items.map((entry) => ({
+          id: entry.id,
+          entryNumber: entry.entry_number,
+          entryDate: entry.entry_date,
+          description: entry.description,
+          status: entry.status.toUpperCase() as 'DRAFT' | 'APPROVED' | 'CANCELLED',
+          documentNumber: undefined, // document_number field doesn't exist in current schema
+          lines: entry.lines.map((line) => ({
+            id: line.id,
+            accountId: line.account_id,
+            account: line.account || {
+              id: line.account_id,
+              code: '',
+              name: '',
+            },
+            debitAmount: line.debit_amount || 0,
+            creditAmount: line.credit_amount || 0,
+            description: line.description,
+            taxRate: line.tax_rate,
+          })),
+          totalAmount: entry.totalAmount || 0,
+          createdAt: entry.created_at,
+          updatedAt: entry.updated_at,
+        }));
+
+        setEntries(transformedEntries);
       }
     } catch (error) {
       console.error('Failed to fetch journal entries:', error);
-      if (error instanceof Error) {
-        console.error('Error details:', error.message);
-      }
-      // Continue without showing error toast since we're moving to the page anyway
-      // toast.error('仕訳の取得に失敗しました');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -138,14 +164,13 @@ export default function JournalEntriesPage() {
 
   const handleApprove = async (entry: JournalEntry) => {
     try {
-      const response = await apiClient.post(`/journal-entries/${entry.id}/approve`);
-      if (response.data) {
-        toast.success('仕訳を承認しました');
-        fetchJournalEntries();
-      }
+      await approveAction(entry.id, {
+        successMessage: '仕訳を承認しました',
+        errorMessage: '仕訳の承認に失敗しました',
+        onSuccess: () => fetchJournalEntries(),
+      });
     } catch (error) {
       console.error('Failed to approve journal entry:', error);
-      toast.error('仕訳の承認に失敗しました');
     }
   };
 
@@ -229,7 +254,7 @@ export default function JournalEntriesPage() {
             </Select>
           </div>
 
-          {loading ? (
+          {isLoading ? (
             <div className="text-center py-8">読み込み中...</div>
           ) : filteredEntries.length === 0 ? (
             <div className="text-center py-8 text-gray-500">仕訳が見つかりません</div>

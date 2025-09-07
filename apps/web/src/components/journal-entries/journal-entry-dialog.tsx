@@ -104,8 +104,8 @@ interface JournalEntry {
     };
     debitAmount: number;
     creditAmount: number;
-    description?: string;
-    taxRate?: number;
+    description?: string | null;
+    taxRate?: number | null;
   }>;
 }
 
