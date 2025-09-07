@@ -4,6 +4,11 @@ import { Plus, Calendar, Check, Edit, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 import {
+  getAccountingPeriodsWithAuth,
+  activateAccountingPeriodWithAuth,
+  deleteAccountingPeriodWithAuth,
+} from '@/app/actions/accounting-periods-wrapper';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -28,35 +33,51 @@ import { useToast } from '@/hooks/use-toast';
 
 import { AccountingPeriodFormDialog } from './accounting-period-form-dialog';
 
-import type { AccountingPeriod } from '@simple-bookkeeping/types';
+import type { Database } from '@/lib/supabase/database.types';
+
+type AccountingPeriod = Database['public']['Tables']['accounting_periods']['Row'];
+
+// Transform Supabase data to match the UI expectations
+interface AccountingPeriodUI extends Omit<AccountingPeriod, 'is_closed'> {
+  isActive: boolean;
+  startDate: Date;
+  endDate: Date;
+}
+
+// Helper function to transform database period to UI period
+function transformPeriodForUI(period: AccountingPeriod): AccountingPeriodUI {
+  return {
+    ...period,
+    isActive: !period.is_closed,
+    startDate: new Date(period.start_date),
+    endDate: new Date(period.end_date),
+  };
+}
 
 export default function AccountingPeriodsPage() {
-  const [periods, setPeriods] = useState<AccountingPeriod[]>([]);
+  const [periods, setPeriods] = useState<AccountingPeriodUI[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedPeriod, setSelectedPeriod] = useState<AccountingPeriod | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState<AccountingPeriodUI | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const { toast } = useToast();
 
   const fetchPeriods = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/v1/accounting-periods', {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const result = await getAccountingPeriodsWithAuth();
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch accounting periods');
+      if (!result.success) {
+        throw new Error(result.error.message);
       }
 
-      const result = await response.json();
-      setPeriods(result.data);
+      // Transform the periods to match UI expectations
+      const transformedPeriods = result.data.items.map(transformPeriodForUI);
+      setPeriods(transformedPeriods);
     } catch (error) {
       console.error('Error fetching accounting periods:', error);
       toast({
         title: 'エラー',
-        description: '会計期間の取得に失敗しました',
+        description: error instanceof Error ? error.message : '会計期間の取得に失敗しました',
         variant: 'destructive',
       });
     } finally {
@@ -70,16 +91,10 @@ export default function AccountingPeriodsPage() {
 
   const handleActivate = async (periodId: string) => {
     try {
-      const response = await fetch(`/api/v1/accounting-periods/${periodId}/activate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const result = await activateAccountingPeriodWithAuth(periodId);
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to activate period');
+      if (!result.success) {
+        throw new Error(result.error.message);
       }
 
       toast({
@@ -100,16 +115,10 @@ export default function AccountingPeriodsPage() {
 
   const handleDelete = async (periodId: string) => {
     try {
-      const response = await fetch(`/api/v1/accounting-periods/${periodId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const result = await deleteAccountingPeriodWithAuth(periodId);
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to delete period');
+      if (!result.success) {
+        throw new Error(result.error.message);
       }
 
       toast({
@@ -128,7 +137,7 @@ export default function AccountingPeriodsPage() {
     }
   };
 
-  const handleEdit = (period: AccountingPeriod) => {
+  const handleEdit = (period: AccountingPeriodUI) => {
     setSelectedPeriod(period);
     setIsFormOpen(true);
   };

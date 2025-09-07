@@ -7,6 +7,14 @@ import { Download, Filter, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-r
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 
+import {
+  getAuditLogs,
+  getEntityTypes,
+  exportAuditLogs,
+  type AuditLog,
+  type AuditLogFilter,
+  type EntityType,
+} from '@/app/actions/audit-logs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,158 +34,147 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useAuth } from '@/contexts/auth-context';
-
-interface AuditLog {
-  id: string;
-  userId: string;
-  action: AuditAction;
-  entityType: string;
-  entityId: string;
-  oldValues: Record<string, unknown> | null;
-  newValues: Record<string, unknown> | null;
-  ipAddress: string | null;
-  userAgent: string | null;
-  createdAt: string;
-  user: {
-    id: string;
-    email: string;
-    firstName: string | null;
-    lastName: string | null;
-  };
-}
-
-interface PaginatedResponse {
-  data: AuditLog[];
-  meta: {
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
-}
+import { createClient } from '@/lib/supabase/client';
 
 export default function AuditLogsPage() {
-  const { currentOrganization } = useAuth();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  // const [searchTerm, setSearchTerm] = useState('');
   const [selectedAction, setSelectedAction] = useState<string>('all');
   const [selectedEntityType, setSelectedEntityType] = useState<string>('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [entityTypes, setEntityTypes] = useState<string[]>([]);
+  const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  // Get current user and organization info
+  useEffect(() => {
+    const checkAuthAndOrg = async () => {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        // Get user's organization and role
+        const { data: userOrg } = await supabase
+          .from('user_organizations')
+          .select('organization_id, role')
+          .eq('user_id', user.id)
+          .single();
+
+        if (userOrg) {
+          setOrganizationId(userOrg.organization_id);
+          setUserRole(userOrg.role);
+        }
+      }
+    };
+
+    checkAuthAndOrg();
+  }, []);
 
   const fetchAuditLogs = useCallback(async () => {
+    if (!organizationId) return;
+
     try {
       setLoading(true);
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: '50',
-      });
+
+      const filter: AuditLogFilter = {
+        page,
+        pageSize: 50,
+      };
 
       if (selectedAction !== 'all') {
-        params.append('action', selectedAction);
+        filter.action = selectedAction as AuditAction;
       }
 
       if (selectedEntityType !== 'all') {
-        params.append('entityType', selectedEntityType);
+        filter.entityType = selectedEntityType as EntityType;
       }
 
       if (startDate) {
-        params.append('startDate', new Date(startDate).toISOString());
+        filter.startDate = new Date(startDate).toISOString();
       }
 
       if (endDate) {
-        params.append('endDate', new Date(endDate).toISOString());
+        filter.endDate = new Date(endDate).toISOString();
       }
 
-      const response = await fetch(`/api/audit-logs?${params}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-          'X-Organization-ID': currentOrganization?.id || '',
-        },
-      });
+      const result = await getAuditLogs(organizationId, filter);
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch audit logs');
+      if (result.success) {
+        setLogs(result.data.items);
+        setTotalPages(result.data.pagination.totalPages);
+      } else {
+        toast.error(result.error.message || '監査ログの取得に失敗しました');
       }
-
-      const data: PaginatedResponse = await response.json();
-      setLogs(data.data);
-      setTotalPages(data.meta.totalPages);
     } catch (error) {
       console.error('Error fetching audit logs:', error);
       toast.error('監査ログの取得に失敗しました');
     } finally {
       setLoading(false);
     }
-  }, [page, selectedAction, selectedEntityType, startDate, endDate, currentOrganization?.id]);
+  }, [page, selectedAction, selectedEntityType, startDate, endDate, organizationId]);
 
   const fetchEntityTypes = useCallback(async () => {
+    if (!organizationId) return;
+
     try {
-      const response = await fetch(`/api/audit-logs/entity-types`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-          'X-Organization-ID': currentOrganization?.id || '',
-        },
-      });
+      const result = await getEntityTypes(organizationId);
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch entity types');
+      if (result.success) {
+        setEntityTypes(result.data);
       }
-
-      const data = await response.json();
-      setEntityTypes(data.data);
     } catch (error) {
       console.error('Error fetching entity types:', error);
     }
-  }, [currentOrganization?.id]);
+  }, [organizationId]);
 
   const handleExport = async () => {
+    if (!organizationId) return;
+
     try {
-      const params = new URLSearchParams();
+      const filter: AuditLogFilter = {};
 
       if (selectedAction !== 'all') {
-        params.append('action', selectedAction);
+        filter.action = selectedAction as AuditAction;
       }
 
       if (selectedEntityType !== 'all') {
-        params.append('entityType', selectedEntityType);
+        filter.entityType = selectedEntityType as EntityType;
       }
 
       if (startDate) {
-        params.append('startDate', new Date(startDate).toISOString());
+        filter.startDate = new Date(startDate).toISOString();
       }
 
       if (endDate) {
-        params.append('endDate', new Date(endDate).toISOString());
+        filter.endDate = new Date(endDate).toISOString();
       }
 
-      const response = await fetch(`/api/audit-logs/export?${params}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-          'X-Organization-ID': currentOrganization?.id || '',
-        },
+      const result = await exportAuditLogs(organizationId, filter, {
+        format: 'csv',
+        includeUserDetails: true,
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to export audit logs');
+      if (result.success) {
+        // Create a Blob from the CSV string
+        const blob = new Blob([result.data as string], { type: 'text/csv;charset=utf-8;' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `audit-logs-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        toast.success('監査ログをエクスポートしました');
+      } else {
+        toast.error(result.error.message || 'エクスポートに失敗しました');
       }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `audit-logs-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast.success('監査ログをエクスポートしました');
     } catch (error) {
       console.error('Error exporting audit logs:', error);
       toast.error('エクスポートに失敗しました');
@@ -185,11 +182,11 @@ export default function AuditLogsPage() {
   };
 
   useEffect(() => {
-    if (currentOrganization?.role === 'ADMIN') {
+    if (organizationId && userRole === 'admin') {
       fetchAuditLogs();
       fetchEntityTypes();
     }
-  }, [fetchAuditLogs, fetchEntityTypes, currentOrganization?.role]);
+  }, [fetchAuditLogs, fetchEntityTypes, organizationId, userRole]);
 
   const getActionLabel = (action: AuditAction): string => {
     const labels: Record<AuditAction, string> = {
@@ -202,7 +199,7 @@ export default function AuditLogsPage() {
   };
 
   // Check if user is admin
-  if (currentOrganization?.role !== 'ADMIN') {
+  if (userRole !== null && userRole !== 'admin') {
     return (
       <div className="flex items-center justify-center h-screen">
         <Card className="w-96">
@@ -234,6 +231,14 @@ export default function AuditLogsPage() {
 
   const getEntityTypeLabel = (entityType: string): string => {
     const labels: Record<string, string> = {
+      account: '勘定科目',
+      journal_entry: '仕訳',
+      journal_entry_line: '仕訳明細',
+      organization: '組織',
+      user: 'ユーザー',
+      accounting_period: '会計期間',
+      report: 'レポート',
+      // Legacy entity types (for compatibility)
       JournalEntry: '仕訳',
       Account: '勘定科目',
       User: 'ユーザー',
@@ -370,11 +375,9 @@ export default function AuditLogsPage() {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{log.user.email}</div>
-                          {(log.user.lastName || log.user.firstName) && (
-                            <div className="text-sm text-muted-foreground">
-                              {log.user.lastName} {log.user.firstName}
-                            </div>
+                          <div className="font-medium">{log.user?.email || log.userId}</div>
+                          {log.user?.name && (
+                            <div className="text-sm text-muted-foreground">{log.user.name}</div>
                           )}
                         </div>
                       </TableCell>
