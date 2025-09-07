@@ -8,7 +8,8 @@ import jsxA11yPlugin from 'eslint-plugin-jsx-a11y';
 import prettierConfig from 'eslint-config-prettier';
 
 export default [
-  // Base configuration for all files
+  // Global ignores - MUST be first and contain ONLY ignores for proper functionality
+  // These patterns are applied globally to all files before any other configuration
   {
     ignores: [
       '**/node_modules/**',
@@ -22,6 +23,9 @@ export default [
       '**/jest.setup.js',
       '**/.eslintrc.js',
       '**/.eslintrc.js.backup',
+      '**/next-env.d.ts', // Next.js auto-generated type definitions
+      '**/playwright-report/**',
+      '**/test-results/**',
     ],
   },
 
