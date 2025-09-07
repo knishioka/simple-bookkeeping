@@ -3,37 +3,41 @@
 import { Calendar, Download } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
+import { getBalanceSheetWithAuth } from '@/app/actions/reports-wrapper';
 import { ReportLayout } from '@/components/common/ReportLayout';
 import { ReportTable, ReportItem } from '@/components/common/ReportTable';
 import { ExportDialog } from '@/components/reports/ExportDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { useApiCall } from '@/hooks/useApiCall';
-import { apiClient } from '@/lib/api-client';
+import { useServerAction } from '@/hooks/useServerAction';
 import { getToday } from '@/lib/formatters';
 
-interface AccountBalance {
-  accountId: string;
+interface BalanceSheetItem {
+  category: string;
+  subCategory: string | null;
   accountCode: string;
   accountName: string;
-  balance: number;
-  children?: AccountBalance[];
+  amount: number;
 }
 
+// Note: Using the type from Server Action response instead
 interface BalanceSheetData {
   assets: {
-    current: AccountBalance[];
-    fixed: AccountBalance[];
+    current: BalanceSheetItem[];
+    fixed: BalanceSheetItem[];
+    deferred: BalanceSheetItem[];
     totalAssets: number;
   };
   liabilities: {
-    current: AccountBalance[];
-    longTerm: AccountBalance[];
+    current: BalanceSheetItem[];
+    fixed: BalanceSheetItem[];
     totalLiabilities: number;
   };
   equity: {
-    items: AccountBalance[];
+    capital: BalanceSheetItem[];
+    retainedEarnings: BalanceSheetItem[];
+    currentPeriodIncome: number;
     totalEquity: number;
   };
   totalLiabilitiesAndEquity: number;
@@ -42,11 +46,13 @@ interface BalanceSheetData {
 export default function BalanceSheetPage() {
   const [asOfDate, setAsOfDate] = useState(getToday());
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
-  const { data, loading, execute } = useApiCall<BalanceSheetData>();
+  const { execute, data: rawData, isLoading } = useServerAction(getBalanceSheetWithAuth);
+  const data = rawData as BalanceSheetData | null;
 
-  const fetchBalanceSheet = useCallback(() => {
-    execute(() => apiClient.get<BalanceSheetData>(`/reports/balance-sheet?asOfDate=${asOfDate}`), {
+  const fetchBalanceSheet = useCallback(async () => {
+    await execute(asOfDate, undefined, {
       errorMessage: '貸借対照表の取得に失敗しました',
+      showToast: true,
     });
   }, [execute, asOfDate]);
 
@@ -59,14 +65,13 @@ export default function BalanceSheetPage() {
   };
 
   // Transform data to ReportItem format
-  const transformToReportItems = (accounts: AccountBalance[], level = 1): ReportItem[] => {
-    return accounts.map((account) => ({
-      id: account.accountId,
-      name: account.accountName,
-      code: account.accountCode,
-      amount: account.balance,
+  const transformToReportItems = (items: BalanceSheetItem[], level = 1): ReportItem[] => {
+    return items.map((item) => ({
+      id: item.accountCode,
+      name: item.accountName,
+      code: item.accountCode,
+      amount: item.amount,
       level,
-      children: account.children ? transformToReportItems(account.children, level + 1) : undefined,
     }));
   };
 
@@ -76,7 +81,7 @@ export default function BalanceSheetPage() {
         ...transformToReportItems(data.assets.current),
         {
           name: '流動資産合計',
-          amount: data.assets.current.reduce((sum, acc) => sum + acc.balance, 0),
+          amount: data.assets.current.reduce((sum, item) => sum + item.amount, 0),
           level: 1,
           isTotal: true,
         },
@@ -84,7 +89,7 @@ export default function BalanceSheetPage() {
         ...transformToReportItems(data.assets.fixed),
         {
           name: '固定資産合計',
-          amount: data.assets.fixed.reduce((sum, acc) => sum + acc.balance, 0),
+          amount: data.assets.fixed.reduce((sum, item) => sum + item.amount, 0),
           level: 1,
           isTotal: true,
         },
@@ -98,21 +103,22 @@ export default function BalanceSheetPage() {
         ...transformToReportItems(data.liabilities.current),
         {
           name: '流動負債合計',
-          amount: data.liabilities.current.reduce((sum, acc) => sum + acc.balance, 0),
+          amount: data.liabilities.current.reduce((sum, item) => sum + item.amount, 0),
           level: 1,
           isTotal: true,
         },
         { name: '固定負債', amount: 0, isTotal: true },
-        ...transformToReportItems(data.liabilities.longTerm),
+        ...transformToReportItems(data.liabilities.fixed),
         {
           name: '固定負債合計',
-          amount: data.liabilities.longTerm.reduce((sum, acc) => sum + acc.balance, 0),
+          amount: data.liabilities.fixed.reduce((sum, item) => sum + item.amount, 0),
           level: 1,
           isTotal: true,
         },
         { name: '負債合計', amount: data.liabilities.totalLiabilities, isTotal: true },
         { name: '純資産', amount: 0, isTotal: true },
-        ...transformToReportItems(data.equity.items),
+        ...transformToReportItems(data.equity.capital),
+        ...transformToReportItems(data.equity.retainedEarnings),
         { name: '純資産合計', amount: data.equity.totalEquity, isTotal: true },
         { name: '負債・純資産合計', amount: data.totalLiabilitiesAndEquity, isTotal: true },
       ]
@@ -141,7 +147,7 @@ export default function BalanceSheetPage() {
                     />
                   </div>
                 </div>
-                <Button onClick={fetchBalanceSheet} disabled={loading}>
+                <Button onClick={fetchBalanceSheet} disabled={isLoading}>
                   表示
                 </Button>
               </div>
@@ -156,7 +162,7 @@ export default function BalanceSheetPage() {
           </div>
         </div>
 
-        {loading ? (
+        {isLoading ? (
           <div className="text-center py-8">読み込み中...</div>
         ) : data ? (
           <div className="grid grid-cols-2 gap-6 print:gap-0">

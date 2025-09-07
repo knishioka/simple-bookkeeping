@@ -2,14 +2,16 @@
 
 import { Calendar, Download, Printer } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'react-hot-toast';
 
+import { getIncomeStatementWithAuth } from '@/app/actions/reports-wrapper';
 import { ExportDialog } from '@/components/reports/ExportDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
-import { apiClient } from '@/lib/api-client';
+import { useServerAction } from '@/hooks/useServerAction';
+
+import type { IncomeStatementItem } from '@/app/actions/reports';
 
 interface AccountBalance {
   accountId: string;
@@ -45,7 +47,7 @@ interface ProfitLossData {
 
 export default function ProfitLossPage() {
   const [data, setData] = useState<ProfitLossData | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { execute, isLoading } = useServerAction(getIncomeStatementWithAuth);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
@@ -60,21 +62,99 @@ export default function ProfitLossPage() {
   });
 
   const fetchProfitLoss = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await apiClient.get<ProfitLossData>(
-        `/reports/profit-loss?startDate=${startDate}&endDate=${endDate}`
-      );
-      if (response.data) {
-        setData(response.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch profit loss:', error);
-      toast.error('損益計算書の取得に失敗しました');
-    } finally {
-      setLoading(false);
+    const result = await execute(startDate, endDate, undefined, {
+      errorMessage: '損益計算書の取得に失敗しました',
+      showToast: true,
+    });
+
+    if (result) {
+      // Transform Server Action result to match existing interface
+      const transformedData: ProfitLossData = {
+        revenue: {
+          sales:
+            result.revenue?.salesRevenue?.map((item: IncomeStatementItem) => ({
+              accountId: item.accountCode,
+              accountCode: item.accountCode,
+              accountName: item.accountName,
+              balance: item.amount,
+            })) || [],
+          otherRevenue:
+            result.revenue?.otherRevenue?.map((item: IncomeStatementItem) => ({
+              accountId: item.accountCode,
+              accountCode: item.accountCode,
+              accountName: item.accountName,
+              balance: item.amount,
+            })) || [],
+          totalRevenue: result.revenue?.totalRevenue || 0,
+        },
+        expenses: {
+          costOfSales:
+            result.expenses?.costOfSales?.map((item: IncomeStatementItem) => ({
+              accountId: item.accountCode,
+              accountCode: item.accountCode,
+              accountName: item.accountName,
+              balance: item.amount,
+            })) || [],
+          sellingExpenses:
+            result.expenses?.sellingExpenses?.map((item: IncomeStatementItem) => ({
+              accountId: item.accountCode,
+              accountCode: item.accountCode,
+              accountName: item.accountName,
+              balance: item.amount,
+            })) || [],
+          administrativeExpenses:
+            result.expenses?.administrativeExpenses?.map((item: IncomeStatementItem) => ({
+              accountId: item.accountCode,
+              accountCode: item.accountCode,
+              accountName: item.accountName,
+              balance: item.amount,
+            })) || [],
+          otherExpenses:
+            result.expenses?.otherExpenses?.map((item: IncomeStatementItem) => ({
+              accountId: item.accountCode,
+              accountCode: item.accountCode,
+              accountName: item.accountName,
+              balance: item.amount,
+            })) || [],
+          totalExpenses: result.expenses?.totalExpenses || 0,
+        },
+        operatingIncome: result.operatingIncome || 0,
+        nonOperatingIncome:
+          result.nonOperating?.income?.map((item: IncomeStatementItem) => ({
+            accountId: item.accountCode,
+            accountCode: item.accountCode,
+            accountName: item.accountName,
+            balance: item.amount,
+          })) || [],
+        nonOperatingExpenses:
+          result.nonOperating?.expenses?.map((item: IncomeStatementItem) => ({
+            accountId: item.accountCode,
+            accountCode: item.accountCode,
+            accountName: item.accountName,
+            balance: item.amount,
+          })) || [],
+        ordinaryIncome: result.ordinaryIncome || 0,
+        extraordinaryIncome:
+          result.extraordinary?.gains?.map((item: IncomeStatementItem) => ({
+            accountId: item.accountCode,
+            accountCode: item.accountCode,
+            accountName: item.accountName,
+            balance: item.amount,
+          })) || [],
+        extraordinaryLosses:
+          result.extraordinary?.losses?.map((item: IncomeStatementItem) => ({
+            accountId: item.accountCode,
+            accountCode: item.accountCode,
+            accountName: item.accountName,
+            balance: item.amount,
+          })) || [],
+        netIncomeBeforeTax: result.incomeBeforeTax || 0,
+        incomeTax: result.taxExpense || 0,
+        netIncome: result.netIncome || 0,
+      };
+      setData(transformedData);
     }
-  }, [startDate, endDate]);
+  }, [execute, startDate, endDate]);
 
   useEffect(() => {
     fetchProfitLoss();
@@ -158,7 +238,7 @@ export default function ProfitLossPage() {
                 />
               </div>
             </div>
-            <Button onClick={handleDateChange} disabled={loading}>
+            <Button onClick={handleDateChange} disabled={isLoading}>
               表示
             </Button>
           </div>
@@ -173,7 +253,7 @@ export default function ProfitLossPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {isLoading ? (
             <div className="text-center py-8">読み込み中...</div>
           ) : data ? (
             <Table>

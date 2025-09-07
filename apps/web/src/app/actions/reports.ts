@@ -13,7 +13,7 @@ import {
 } from './types';
 
 // Types for report data
-interface AccountBalance {
+export interface AccountBalance {
   accountId: string;
   accountCode: string;
   accountName: string;
@@ -25,7 +25,7 @@ interface AccountBalance {
   netBalance: number;
 }
 
-interface BalanceSheetItem {
+export interface BalanceSheetItem {
   category: string;
   subCategory: string | null;
   accountCode: string;
@@ -33,7 +33,7 @@ interface BalanceSheetItem {
   amount: number;
 }
 
-interface BalanceSheet {
+export interface BalanceSheet {
   reportDate: string;
   organizationId: string;
   assets: {
@@ -56,7 +56,7 @@ interface BalanceSheet {
   totalLiabilitiesAndEquity: number;
 }
 
-interface IncomeStatementItem {
+export interface IncomeStatementItem {
   category: string;
   subCategory: string | null;
   accountCode: string;
@@ -64,7 +64,7 @@ interface IncomeStatementItem {
   amount: number;
 }
 
-interface IncomeStatement {
+export interface IncomeStatement {
   reportPeriod: {
     startDate: string;
     endDate: string;
@@ -99,7 +99,7 @@ interface IncomeStatement {
   netIncome: number;
 }
 
-interface TrialBalanceItem {
+export interface TrialBalanceItem {
   accountCode: string;
   accountName: string;
   accountType: string;
@@ -112,7 +112,7 @@ interface TrialBalanceItem {
   endingCredit: number;
 }
 
-interface TrialBalance {
+export interface TrialBalance {
   reportPeriod: {
     startDate: string;
     endDate: string;
@@ -129,7 +129,7 @@ interface TrialBalance {
   };
 }
 
-interface GeneralLedgerEntry {
+export interface GeneralLedgerEntry {
   entryDate: string;
   entryNumber: string;
   description: string;
@@ -138,7 +138,7 @@ interface GeneralLedgerEntry {
   balance: number;
 }
 
-interface GeneralLedgerAccount {
+export interface GeneralLedgerAccount {
   accountId: string;
   accountCode: string;
   accountName: string;
