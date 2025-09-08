@@ -1,9 +1,10 @@
 'use client';
 
 import { Plus, Search } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
+import { getPartnersWithAuth, deletePartnerWithAuth } from '@/app/actions/partners-wrapper';
 import { PartnerDialog } from '@/components/partners/partner-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,14 +24,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { apiClient } from '@/lib/api-client';
 
-import type { Partner } from '@/types/partner';
+import type { Database } from '@/lib/supabase/database.types';
+
+type Partner = Database['public']['Tables']['partners']['Row'];
 
 const partnerTypeLabels = {
-  CUSTOMER: '顧客',
-  VENDOR: '仕入先',
-  BOTH: '両方',
+  customer: '顧客',
+  supplier: '仕入先',
+  both: '両方',
 };
 
 export default function PartnersPage() {
@@ -41,26 +43,33 @@ export default function PartnersPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
 
-  const fetchPartners = async () => {
+  const fetchPartners = useCallback(async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams();
-      if (searchTerm) params.append('search', searchTerm);
-      if (selectedType && selectedType !== 'all') params.append('type', selectedType);
+      const params: Parameters<typeof getPartnersWithAuth>[0] = {};
+      if (searchTerm) params.search = searchTerm;
+      if (selectedType && selectedType !== 'all') {
+        params.partner_type = selectedType as 'customer' | 'supplier' | 'both';
+      }
 
-      const response = await apiClient.get<{ data: Partner[] }>(`/partners?${params}`);
-      setPartners(response.data?.data || []);
+      const result = await getPartnersWithAuth(params);
+      if (result.success) {
+        setPartners(result.data.items);
+      } else {
+        console.error('Failed to fetch partners:', result.error);
+        toast.error(result.error.message || '取引先の取得に失敗しました');
+      }
     } catch (error) {
       console.error('Failed to fetch partners:', error);
       toast.error('取引先の取得に失敗しました');
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchTerm, selectedType]);
 
   useEffect(() => {
     fetchPartners();
-  }, [searchTerm, selectedType]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fetchPartners]);
 
   const handleCreateNew = () => {
     setEditingPartner(null);
@@ -78,9 +87,14 @@ export default function PartnersPage() {
     }
 
     try {
-      await apiClient.delete(`/partners/${partnerId}`);
-      toast.success('取引先を削除しました');
-      fetchPartners();
+      const result = await deletePartnerWithAuth(partnerId);
+      if (result.success) {
+        toast.success('取引先を削除しました');
+        await fetchPartners();
+      } else {
+        console.error('Failed to delete partner:', result.error);
+        toast.error(result.error.message || '取引先の削除に失敗しました');
+      }
     } catch (error) {
       console.error('Failed to delete partner:', error);
       toast.error('取引先の削除に失敗しました');
@@ -125,9 +139,9 @@ export default function PartnersPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">すべて</SelectItem>
-                <SelectItem value="CUSTOMER">顧客</SelectItem>
-                <SelectItem value="VENDOR">仕入先</SelectItem>
-                <SelectItem value="BOTH">両方</SelectItem>
+                <SelectItem value="customer">顧客</SelectItem>
+                <SelectItem value="supplier">仕入先</SelectItem>
+                <SelectItem value="both">両方</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -154,14 +168,14 @@ export default function PartnersPage() {
                     <TableCell>
                       <div>
                         <div className="font-medium">{partner.name}</div>
-                        {partner.nameKana && (
-                          <div className="text-sm text-gray-500">{partner.nameKana}</div>
+                        {partner.name_kana && (
+                          <div className="text-sm text-gray-500">{partner.name_kana}</div>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {partnerTypeLabels[partner.partnerType as keyof typeof partnerTypeLabels]}
+                        {partnerTypeLabels[partner.partner_type as keyof typeof partnerTypeLabels]}
                       </span>
                     </TableCell>
                     <TableCell>{partner.phone || '-'}</TableCell>

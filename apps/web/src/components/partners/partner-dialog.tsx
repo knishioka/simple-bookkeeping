@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
+import { createPartnerWithAuth, updatePartnerWithAuth } from '@/app/actions/partners-wrapper';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -31,19 +32,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { apiClient } from '@/lib/api-client';
 
-import type { Partner } from '@/types/partner';
+import type { Database } from '@/lib/supabase/database.types';
+
+type Partner = Database['public']['Tables']['partners']['Row'];
 
 const partnerSchema = z.object({
   code: z.string().min(1, '取引先コードは必須です'),
   name: z.string().min(1, '取引先名は必須です'),
-  nameKana: z.string().optional(),
-  partnerType: z.enum(['CUSTOMER', 'VENDOR', 'BOTH']),
-  address: z.string().optional(),
-  phone: z.string().optional(),
-  email: z.string().email('正しいメールアドレスを入力してください').optional().or(z.literal('')),
-  taxId: z.string().optional(),
+  name_kana: z.string().optional().nullable(),
+  partner_type: z.enum(['customer', 'supplier', 'both']),
+  address: z.string().optional().nullable(),
+  phone: z.string().optional().nullable(),
+  email: z
+    .string()
+    .email('正しいメールアドレスを入力してください')
+    .optional()
+    .nullable()
+    .or(z.literal('')),
+  postal_code: z.string().optional().nullable(),
+  bank_name: z.string().optional().nullable(),
+  bank_branch: z.string().optional().nullable(),
+  bank_account_type: z.string().optional().nullable(),
+  bank_account_number: z.string().optional().nullable(),
+  bank_account_name: z.string().optional().nullable(),
+  payment_terms: z.number().optional().nullable(),
+  credit_limit: z.number().optional().nullable(),
+  notes: z.string().optional().nullable(),
 });
 
 type PartnerFormData = z.infer<typeof partnerSchema>;
@@ -61,12 +76,20 @@ export function PartnerDialog({ open, onOpenChange, partner, onSuccess }: Partne
     defaultValues: {
       code: '',
       name: '',
-      nameKana: '',
-      partnerType: 'CUSTOMER',
+      name_kana: '',
+      partner_type: 'customer',
       address: '',
       phone: '',
       email: '',
-      taxId: '',
+      postal_code: '',
+      bank_name: '',
+      bank_branch: '',
+      bank_account_type: '',
+      bank_account_number: '',
+      bank_account_name: '',
+      payment_terms: null,
+      credit_limit: null,
+      notes: '',
     },
   });
 
@@ -75,43 +98,85 @@ export function PartnerDialog({ open, onOpenChange, partner, onSuccess }: Partne
       form.reset({
         code: partner.code,
         name: partner.name,
-        nameKana: partner.nameKana || '',
-        partnerType: partner.partnerType,
+        name_kana: partner.name_kana || '',
+        partner_type: partner.partner_type,
         address: partner.address || '',
         phone: partner.phone || '',
         email: partner.email || '',
-        taxId: partner.taxId || '',
+        postal_code: partner.postal_code || '',
+        bank_name: partner.bank_name || '',
+        bank_branch: partner.bank_branch || '',
+        bank_account_type: partner.bank_account_type || '',
+        bank_account_number: partner.bank_account_number || '',
+        bank_account_name: partner.bank_account_name || '',
+        payment_terms: partner.payment_terms,
+        credit_limit: partner.credit_limit,
+        notes: partner.notes || '',
       });
     } else {
       form.reset({
         code: '',
         name: '',
-        nameKana: '',
-        partnerType: 'CUSTOMER',
+        name_kana: '',
+        partner_type: 'customer',
         address: '',
         phone: '',
         email: '',
-        taxId: '',
+        postal_code: '',
+        bank_name: '',
+        bank_branch: '',
+        bank_account_type: '',
+        bank_account_number: '',
+        bank_account_name: '',
+        payment_terms: null,
+        credit_limit: null,
+        notes: '',
       });
     }
   }, [partner, form]);
 
   const onSubmit = async (data: PartnerFormData) => {
     try {
+      // Convert empty strings to null for nullable fields
+      const processedData = {
+        ...data,
+        name_kana: data.name_kana || null,
+        address: data.address || null,
+        phone: data.phone || null,
+        email: data.email || null,
+        postal_code: data.postal_code || null,
+        bank_name: data.bank_name || null,
+        bank_branch: data.bank_branch || null,
+        bank_account_type: data.bank_account_type || null,
+        bank_account_number: data.bank_account_number || null,
+        bank_account_name: data.bank_account_name || null,
+        payment_terms: data.payment_terms,
+        notes: data.notes || null,
+        is_active: true,
+      };
+
       if (partner) {
-        await apiClient.put(`/partners/${partner.id}`, data);
-        toast.success('取引先を更新しました');
+        const result = await updatePartnerWithAuth(partner.id, processedData);
+        if (result.success) {
+          toast.success('取引先を更新しました');
+          onSuccess();
+          onOpenChange(false);
+        } else {
+          toast.error(result.error.message || '取引先の更新に失敗しました');
+        }
       } else {
-        await apiClient.post('/partners', data);
-        toast.success('取引先を登録しました');
+        const result = await createPartnerWithAuth(processedData);
+        if (result.success) {
+          toast.success('取引先を登録しました');
+          onSuccess();
+          onOpenChange(false);
+        } else {
+          toast.error(result.error.message || '取引先の登録に失敗しました');
+        }
       }
-      onSuccess();
     } catch (error: unknown) {
       console.error('Failed to save partner:', error);
-      const errorMessage =
-        (error as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
-          ?.message || '取引先の保存に失敗しました';
-      toast.error(errorMessage);
+      toast.error('取引先の保存に失敗しました');
     }
   };
 
@@ -144,7 +209,7 @@ export function PartnerDialog({ open, onOpenChange, partner, onSuccess }: Partne
               />
               <FormField
                 control={form.control}
-                name="partnerType"
+                name="partner_type"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>取引先タイプ *</FormLabel>
@@ -155,9 +220,9 @@ export function PartnerDialog({ open, onOpenChange, partner, onSuccess }: Partne
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="CUSTOMER">顧客</SelectItem>
-                        <SelectItem value="VENDOR">仕入先</SelectItem>
-                        <SelectItem value="BOTH">両方</SelectItem>
+                        <SelectItem value="customer">顧客</SelectItem>
+                        <SelectItem value="supplier">仕入先</SelectItem>
+                        <SelectItem value="both">両方</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -182,12 +247,16 @@ export function PartnerDialog({ open, onOpenChange, partner, onSuccess }: Partne
 
             <FormField
               control={form.control}
-              name="nameKana"
+              name="name_kana"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>フリガナ</FormLabel>
                   <FormControl>
-                    <Input placeholder="カブシキガイシャサンプル" {...field} />
+                    <Input
+                      placeholder="カブシキガイシャサンプル"
+                      {...field}
+                      value={field.value || ''}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -201,7 +270,11 @@ export function PartnerDialog({ open, onOpenChange, partner, onSuccess }: Partne
                 <FormItem>
                   <FormLabel>住所</FormLabel>
                   <FormControl>
-                    <Input placeholder="東京都千代田区丸の内1-1-1" {...field} />
+                    <Input
+                      placeholder="東京都千代田区丸の内1-1-1"
+                      {...field}
+                      value={field.value || ''}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -216,7 +289,7 @@ export function PartnerDialog({ open, onOpenChange, partner, onSuccess }: Partne
                   <FormItem>
                     <FormLabel>電話番号</FormLabel>
                     <FormControl>
-                      <Input placeholder="03-1234-5678" {...field} />
+                      <Input placeholder="03-1234-5678" {...field} value={field.value || ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -229,7 +302,12 @@ export function PartnerDialog({ open, onOpenChange, partner, onSuccess }: Partne
                   <FormItem>
                     <FormLabel>メールアドレス</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="info@example.com" {...field} />
+                      <Input
+                        type="email"
+                        placeholder="info@example.com"
+                        {...field}
+                        value={field.value || ''}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -239,12 +317,12 @@ export function PartnerDialog({ open, onOpenChange, partner, onSuccess }: Partne
 
             <FormField
               control={form.control}
-              name="taxId"
+              name="postal_code"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>法人番号/個人番号</FormLabel>
+                  <FormLabel>郵便番号</FormLabel>
                   <FormControl>
-                    <Input placeholder="1234567890123" {...field} />
+                    <Input placeholder="123-4567" {...field} value={field.value || ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

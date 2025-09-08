@@ -16,6 +16,7 @@ import {
   handleSupabaseError,
   ERROR_CODES,
 } from './types';
+import { createPartnerSchema, updatePartnerSchema } from './validation/partners';
 
 import type { Database } from '@/lib/supabase/database.types';
 
@@ -237,35 +238,34 @@ export async function createPartner(
       );
     }
 
-    // バリデーション
-    if (!data.code || !data.name || !data.partner_type) {
-      return createValidationErrorResult('必須項目が入力されていません。', {
-        code: !data.code ? '取引先コードは必須です' : undefined,
-        name: !data.name ? '取引先名は必須です' : undefined,
-        partner_type: !data.partner_type ? '取引先区分は必須です' : undefined,
-      });
+    // Zodによるバリデーション
+    const validationResult = createPartnerSchema.safeParse(data);
+    if (!validationResult.success) {
+      const errors = validationResult.error.issues.reduce(
+        (acc: Record<string, string>, error) => {
+          const field = error.path[0] as string;
+          acc[field] = error.message;
+          return acc;
+        },
+        {} as Record<string, string>
+      );
+      return createValidationErrorResult('入力内容にエラーがあります。', errors);
     }
 
-    // メールアドレスの形式チェック
-    if (data.email) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(data.email)) {
-        return createValidationErrorResult('メールアドレスの形式が正しくありません。');
-      }
-    }
+    const validatedData = validationResult.data;
 
     // 取引先コードの重複チェック
     const { data: existingPartner } = await supabase
       .from('partners')
       .select('id')
       .eq('organization_id', data.organization_id)
-      .eq('code', data.code)
+      .eq('code', validatedData.code)
       .single();
 
     if (existingPartner) {
       return createErrorResult(
         ERROR_CODES.ALREADY_EXISTS,
-        `取引先コード「${data.code}」は既に使用されています。`
+        `取引先コード「${validatedData.code}」は既に使用されています。`
       );
     }
 
@@ -273,8 +273,9 @@ export async function createPartner(
     const { data: newPartner, error } = await supabase
       .from('partners')
       .insert({
-        ...data,
-        is_active: data.is_active ?? true,
+        ...validatedData,
+        organization_id: data.organization_id,
+        is_active: validatedData.is_active ?? true,
       })
       .select()
       .single();
@@ -346,28 +347,36 @@ export async function updatePartner(
       return createNotFoundResult('取引先');
     }
 
-    // メールアドレスの形式チェック
-    if (data.email) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(data.email)) {
-        return createValidationErrorResult('メールアドレスの形式が正しくありません。');
-      }
+    // Zodによるバリデーション
+    const validationResult = updatePartnerSchema.safeParse(data);
+    if (!validationResult.success) {
+      const errors = validationResult.error.issues.reduce(
+        (acc: Record<string, string>, error) => {
+          const field = error.path[0] as string;
+          acc[field] = error.message;
+          return acc;
+        },
+        {} as Record<string, string>
+      );
+      return createValidationErrorResult('入力内容にエラーがあります。', errors);
     }
 
+    const validatedData = validationResult.data;
+
     // 取引先コードを変更する場合、重複チェック
-    if (data.code && data.code !== existingPartner.code) {
+    if (validatedData.code && validatedData.code !== existingPartner.code) {
       const { data: duplicatePartner } = await supabase
         .from('partners')
         .select('id')
         .eq('organization_id', organizationId)
-        .eq('code', data.code)
+        .eq('code', validatedData.code)
         .neq('id', id)
         .single();
 
       if (duplicatePartner) {
         return createErrorResult(
           ERROR_CODES.ALREADY_EXISTS,
-          `取引先コード「${data.code}」は既に使用されています。`
+          `取引先コード「${validatedData.code}」は既に使用されています。`
         );
       }
     }
@@ -376,7 +385,7 @@ export async function updatePartner(
     const { data: updatedPartner, error } = await supabase
       .from('partners')
       .update({
-        ...data,
+        ...validatedData,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
