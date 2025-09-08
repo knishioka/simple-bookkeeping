@@ -5,6 +5,10 @@
  * エラーハンドリングを標準化するための型定義
  */
 
+import { z } from 'zod';
+
+import { formatZodError, getZodErrorDetails } from './validation/common';
+
 /**
  * Server Action の標準レスポンス型
  * 成功時はdataを、失敗時はerrorを返す
@@ -188,4 +192,104 @@ export function handleSupabaseError(error: unknown): ActionResult<never> {
 
   // その他のエラー
   return createInternalErrorResult(error);
+}
+
+/**
+ * Zodスキーマによる入力検証を行うヘルパー関数
+ *
+ * @param schema - Zodバリデーションスキーマ
+ * @param data - 検証対象のデータ
+ * @returns 検証成功時はデータ、失敗時はエラーレスポンス
+ */
+export function validateInput<T>(
+  schema: z.ZodSchema<T>,
+  data: unknown
+): { success: true; data: T } | { success: false; error: ActionResult<never> } {
+  try {
+    const validated = schema.parse(data);
+    return { success: true, data: validated };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return {
+        success: false,
+        error: createValidationErrorResult(formatZodError(error), getZodErrorDetails(error)),
+      };
+    }
+    return {
+      success: false,
+      error: createInternalErrorResult(error),
+    };
+  }
+}
+
+/**
+ * 検索文字列をサニタイズしてSQLインジェクションを防ぐ
+ *
+ * @param search - 検索文字列
+ * @returns サニタイズされた検索文字列
+ */
+export function sanitizeSearchQuery(search: string | undefined): string | undefined {
+  if (!search) return undefined;
+
+  // SQLワイルドカードとクォートをエスケープ
+  return search
+    .replace(/[%_]/g, '\\$&') // SQL wildcards
+    .replace(/['";]/g, '') // Quotes and semicolons
+    .replace(/--/g, '') // SQL comments
+    .replace(/\/\*/g, '') // Multi-line comments start
+    .replace(/\*\//g, '') // Multi-line comments end
+    .trim();
+}
+
+/**
+ * ページネーションパラメータの検証とデフォルト値設定
+ *
+ * @param params - ページネーションパラメータ
+ * @returns 検証済みのページネーションパラメータ
+ */
+export function validatePaginationParams(params: { page?: number; pageSize?: number }): {
+  page: number;
+  pageSize: number;
+} {
+  const page = Math.max(1, params.page || 1);
+  const pageSize = Math.min(100, Math.max(1, params.pageSize || 20));
+
+  return { page, pageSize };
+}
+
+/**
+ * レート制限エラーレスポンスを作成するヘルパー関数
+ *
+ * @param retryAfter - 再試行可能になるまでの秒数
+ * @returns レート制限エラーレスポンス
+ */
+export function createRateLimitErrorResult(retryAfter?: number): ActionResult<never> {
+  return createErrorResult(
+    ERROR_CODES.LIMIT_EXCEEDED,
+    `リクエスト数が制限を超えました。${retryAfter ? `${retryAfter}秒後に再試行してください。` : 'しばらく待ってから再試行してください。'}`,
+    { retryAfter }
+  );
+}
+
+/**
+ * SQL識別子（テーブル名、カラム名など）の検証
+ * SQLインジェクション対策
+ *
+ * @param identifier - 検証する識別子
+ * @returns 安全な識別子かどうか
+ */
+export function isValidSqlIdentifier(identifier: string): boolean {
+  // 英数字とアンダースコアのみ、先頭は英字またはアンダースコア
+  const pattern = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+  return pattern.test(identifier) && identifier.length <= 63;
+}
+
+/**
+ * 複数の識別子を検証
+ *
+ * @param identifiers - 検証する識別子の配列
+ * @returns すべて安全な識別子かどうか
+ */
+export function areValidSqlIdentifiers(identifiers: string[]): boolean {
+  return identifiers.every(isValidSqlIdentifier);
 }
