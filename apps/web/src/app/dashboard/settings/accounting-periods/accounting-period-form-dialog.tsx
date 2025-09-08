@@ -1,16 +1,14 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  createAccountingPeriodSchema,
-  updateAccountingPeriodSchema,
-  type CreateAccountingPeriodDto,
-  type UpdateAccountingPeriodDto,
-  type AccountingPeriod,
-} from '@simple-bookkeeping/types';
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { z } from 'zod';
 
+import {
+  createAccountingPeriodWithAuth,
+  updateAccountingPeriodWithAuth,
+} from '@/app/actions/accounting-periods-wrapper';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -33,10 +31,72 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 
+import type { Database } from '@/lib/supabase/database.types';
+
+type AccountingPeriod = Database['public']['Tables']['accounting_periods']['Row'];
+
+// Transform Supabase data to match the UI expectations
+interface AccountingPeriodUI extends Omit<AccountingPeriod, 'is_closed'> {
+  isActive: boolean;
+  startDate: Date;
+  endDate: Date;
+}
+
+// Schema definitions (migrated from @simple-bookkeeping/types)
+const createAccountingPeriodSchema = z
+  .object({
+    name: z
+      .string()
+      .min(1, '会計期間名は必須です')
+      .max(100, '会計期間名は100文字以内で入力してください'),
+    startDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, '開始日は YYYY-MM-DD 形式で入力してください'),
+    endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, '終了日は YYYY-MM-DD 形式で入力してください'),
+    isActive: z.boolean().optional().default(false),
+  })
+  .refine((data) => new Date(data.startDate) < new Date(data.endDate), {
+    message: '開始日は終了日より前である必要があります',
+    path: ['endDate'],
+  });
+
+const updateAccountingPeriodSchema = z
+  .object({
+    name: z
+      .string()
+      .min(1, '会計期間名は必須です')
+      .max(100, '会計期間名は100文字以内で入力してください')
+      .optional(),
+    startDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, '開始日は YYYY-MM-DD 形式で入力してください')
+      .optional(),
+    endDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, '終了日は YYYY-MM-DD 形式で入力してください')
+      .optional(),
+    isActive: z.boolean().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.startDate && data.endDate) {
+        return new Date(data.startDate) < new Date(data.endDate);
+      }
+      return true;
+    },
+    {
+      message: '開始日は終了日より前である必要があります',
+      path: ['endDate'],
+    }
+  );
+
+type CreateAccountingPeriodDto = z.infer<typeof createAccountingPeriodSchema>;
+type UpdateAccountingPeriodDto = z.infer<typeof updateAccountingPeriodSchema>;
+
 interface AccountingPeriodFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  period?: AccountingPeriod | null;
+  period?: AccountingPeriodUI | null;
   onSuccess: () => void;
 }
 
@@ -64,8 +124,14 @@ export function AccountingPeriodFormDialog({
     if (period) {
       form.reset({
         name: period.name,
-        startDate: new Date(period.startDate).toISOString().split('T')[0],
-        endDate: new Date(period.endDate).toISOString().split('T')[0],
+        startDate:
+          period.startDate instanceof Date
+            ? period.startDate.toISOString().split('T')[0]
+            : new Date(period.startDate).toISOString().split('T')[0],
+        endDate:
+          period.endDate instanceof Date
+            ? period.endDate.toISOString().split('T')[0]
+            : new Date(period.endDate).toISOString().split('T')[0],
         isActive: period.isActive,
       });
     } else {
@@ -81,22 +147,33 @@ export function AccountingPeriodFormDialog({
   const onSubmit = async (data: CreateAccountingPeriodDto | UpdateAccountingPeriodDto) => {
     setLoading(true);
     try {
-      const url = isEdit ? `/api/v1/accounting-periods/${period.id}` : '/api/v1/accounting-periods';
-      const method = isEdit ? 'PUT' : 'POST';
+      let result;
+      if (isEdit && period) {
+        // For update, only send changed fields
+        const updateData: Record<string, unknown> = {};
+        if (data.name !== undefined) updateData.name = data.name;
+        if (data.startDate !== undefined) updateData.start_date = data.startDate;
+        if (data.endDate !== undefined) updateData.end_date = data.endDate;
+        // Handle isActive -> is_closed transformation
+        if (data.isActive !== undefined) updateData.is_closed = !data.isActive;
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
+        result = await updateAccountingPeriodWithAuth(period.id, updateData);
+      } else {
+        // For create, all fields are required
+        const createData = {
+          name: data.name || '',
+          start_date: data.startDate || '',
+          end_date: data.endDate || '',
+          // Note: is_closed is opposite of isActive
+          // If isActive is true, is_closed should be false
+          is_closed: !data.isActive,
+        };
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(
-          error.error || `Failed to ${isEdit ? 'update' : 'create'} accounting period`
-        );
+        result = await createAccountingPeriodWithAuth(createData);
+      }
+
+      if (!result.success) {
+        throw new Error(result.error.message);
       }
 
       toast({
