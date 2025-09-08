@@ -547,6 +547,79 @@ export async function reopenAccountingPeriod(
 }
 
 /**
+ * 会計期間を有効化（アクティブにする）
+ * 注: 現在のスキーマではis_activeフィールドがないため、
+ * 有効化は「現在の日付が期間内にあり、かつ閉じられていない」状態として扱う
+ */
+export async function activateAccountingPeriod(
+  periodId: string
+): Promise<ActionResult<AccountingPeriod>> {
+  try {
+    const supabase = await createClient();
+
+    // 認証チェック
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return createUnauthorizedResult();
+    }
+
+    // 既存の会計期間を取得
+    const { data: existingPeriod, error: fetchError } = await supabase
+      .from('accounting_periods')
+      .select('*, user_organizations!inner(role)')
+      .eq('id', periodId)
+      .eq('user_organizations.user_id', user.id)
+      .single();
+
+    if (fetchError || !existingPeriod) {
+      return createNotFoundResult('会計期間');
+    }
+
+    // 権限チェック（admin または accountant のみ）
+    const userRole = (
+      existingPeriod as Record<string, unknown> & { user_organizations: Array<{ role: string }> }
+    ).user_organizations[0]?.role;
+    if (userRole === 'viewer') {
+      return createForbiddenResult();
+    }
+
+    // すでに開いている場合は、そのまま返す
+    if (!existingPeriod.is_closed) {
+      return createSuccessResult(existingPeriod);
+    }
+
+    // 会計期間を開く（有効化）
+    const { data: activatedPeriod, error: updateError } = await supabase
+      .from('accounting_periods')
+      .update({
+        is_closed: false,
+        closed_at: null,
+        closed_by: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', periodId)
+      .select()
+      .single();
+
+    if (updateError) {
+      return handleSupabaseError(updateError);
+    }
+
+    // 関連画面の再検証
+    revalidatePath('/dashboard/accounting-periods');
+    revalidatePath('/dashboard/settings/accounting-periods');
+    revalidatePath('/dashboard/journal-entries');
+
+    return createSuccessResult(activatedPeriod);
+  } catch (error) {
+    return createErrorResult(ERROR_CODES.INTERNAL_ERROR, 'システムエラーが発生しました。', error);
+  }
+}
+
+/**
  * 会計期間を削除（仕訳がない場合のみ）
  */
 export async function deleteAccountingPeriod(

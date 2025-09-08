@@ -507,6 +507,67 @@ export async function exportAuditLogs(
 }
 
 /**
+ * 組織で使用されているエンティティタイプの一覧を取得
+ */
+export async function getEntityTypes(organizationId: string): Promise<ActionResult<string[]>> {
+  try {
+    const supabase = await createClient();
+
+    // 認証チェック
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return createUnauthorizedResult();
+    }
+
+    // 組織へのアクセス権限チェック
+    const { data: userOrg, error: orgError } = await supabase
+      .from('user_organizations')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('organization_id', organizationId)
+      .single();
+
+    if (orgError || !userOrg) {
+      return createForbiddenResult();
+    }
+
+    if (userOrg.role !== 'admin' && userOrg.role !== 'accountant') {
+      return createErrorResult(
+        ERROR_CODES.INSUFFICIENT_PERMISSIONS,
+        'エンティティタイプの取得には管理者または経理担当者権限が必要です。'
+      );
+    }
+
+    // エンティティタイプの一覧を取得（重複を除外）
+    const { data: entityTypes, error } = await supabase
+      .from('audit_logs')
+      .select('entity_type')
+      .eq('organization_id', organizationId)
+      .order('entity_type');
+
+    if (error) {
+      return handleSupabaseError(error);
+    }
+
+    // 重複を除外してユニークなエンティティタイプのリストを作成
+    const uniqueEntityTypes = Array.from(
+      new Set(entityTypes?.map((row) => row.entity_type) || [])
+    ).filter(Boolean);
+
+    return createSuccessResult(uniqueEntityTypes);
+  } catch (error) {
+    console.error('Error fetching entity types:', error);
+    return createErrorResult(
+      ERROR_CODES.INTERNAL_ERROR,
+      'エンティティタイプの取得中にエラーが発生しました。'
+    );
+  }
+}
+
+/**
  * ヘルパー関数：エンティティ変更の監査ログを記録
  * 他のServer Actionsから呼び出される
  */
