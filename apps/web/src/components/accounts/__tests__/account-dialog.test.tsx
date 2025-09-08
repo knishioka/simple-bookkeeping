@@ -1,11 +1,22 @@
-/* eslint-disable import/order */
+// Mock Server Actions wrapper modules first (before any imports that use them)
+const mockCreateAccount = jest.fn();
+const mockUpdateAccount = jest.fn();
+
+jest.mock('@/app/actions/accounts-wrapper', () => ({
+  get createAccountWithAuth() {
+    return mockCreateAccount;
+  },
+  get updateAccountWithAuth() {
+    return mockUpdateAccount;
+  },
+}));
+
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { toast } from 'react-hot-toast';
 
+// Import component after mocking its dependencies
 import { AccountDialog } from '../account-dialog';
-
-import { apiClient } from '@/lib/api-client';
 
 // Mock dependencies
 jest.mock('react-hot-toast', () => ({
@@ -15,15 +26,49 @@ jest.mock('react-hot-toast', () => ({
   },
 }));
 
-jest.mock('@/lib/api-client', () => ({
-  apiClient: {
-    post: jest.fn(),
-    put: jest.fn(),
+const mockToast = toast as jest.Mocked<typeof toast>;
+
+// Mock useServerAction hook
+jest.mock('@/hooks/useServerAction', () => ({
+  useServerAction: (action: any) => {
+    return {
+      execute: async (...args: any[]) => {
+        // Extract the actual data and options from arguments
+        const options = args[args.length - 1];
+        const hasOptions =
+          options &&
+          typeof options === 'object' &&
+          ('successMessage' in options || 'onSuccess' in options);
+
+        const actualArgs = hasOptions ? args.slice(0, -1) : args;
+
+        try {
+          const result = await action(...actualArgs);
+
+          if (result.success) {
+            if (hasOptions && options.successMessage) {
+              toast.success(options.successMessage);
+            }
+            if (hasOptions && options.onSuccess) {
+              options.onSuccess();
+            }
+            return result.data;
+          } else {
+            throw new Error(result.error.message);
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'エラーが発生しました';
+          toast.error(hasOptions && options.errorMessage ? options.errorMessage : message);
+          throw error;
+        }
+      },
+      data: null,
+      error: null,
+      isLoading: false,
+      isPending: false,
+    };
   },
 }));
-
-const mockApiClient = apiClient as jest.Mocked<typeof apiClient>;
-const mockToast = toast as jest.Mocked<typeof toast>;
 
 describe('AccountDialog - ユーザーインタラクション', () => {
   const mockOnOpenChange = jest.fn();
@@ -33,20 +78,37 @@ describe('AccountDialog - ユーザーインタラクション', () => {
       id: '550e8400-e29b-41d4-a716-446655440001',
       code: '1000',
       name: '流動資産',
-      accountType: 'ASSET' as const,
-      parentId: null,
+      account_type: 'ASSET' as const,
+      parent_account_id: null,
+      category: 'general',
+      is_active: true,
+      organization_id: 'org-1',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     },
     {
       id: '550e8400-e29b-41d4-a716-446655440002',
       code: '4000',
       name: '売上',
-      accountType: 'REVENUE' as const,
-      parentId: null,
+      account_type: 'REVENUE' as const,
+      parent_account_id: null,
+      category: 'general',
+      is_active: true,
+      organization_id: 'org-1',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     },
   ];
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Suppress console.error for error scenario tests
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    // Restore console.error
+    jest.restoreAllMocks();
   });
 
   describe('新規勘定科目作成のユーザーシナリオ', () => {
@@ -75,15 +137,16 @@ describe('AccountDialog - ユーザーインタラクション', () => {
       });
 
       // API呼び出しがされていないことを確認
-      expect(mockApiClient.post).not.toHaveBeenCalled();
+      expect(mockCreateAccount).not.toHaveBeenCalled();
     });
 
     it('【シナリオ2】正しい情報を入力して勘定科目を作成する', async () => {
       const user = userEvent.setup();
 
-      // API成功レスポンスをモック
-      mockApiClient.post.mockResolvedValue({
-        data: { id: '3', code: '1110', name: '現金', accountType: 'ASSET' },
+      // Server Action成功レスポンスをモック
+      mockCreateAccount.mockResolvedValue({
+        success: true,
+        data: { id: '3', code: '1110', name: '現金', account_type: 'ASSET' },
       });
 
       render(
@@ -107,21 +170,22 @@ describe('AccountDialog - ユーザーインタラクション', () => {
         await user.click(submitButton);
       });
 
-      // API呼び出しの確認
+      // Server Action呼び出しの確認
       await waitFor(
         () => {
-          expect(mockApiClient.post).toHaveBeenCalled();
+          expect(mockCreateAccount).toHaveBeenCalled();
         },
         { timeout: 3000 }
       );
 
       // 呼び出し内容の詳細確認
-      expect(mockApiClient.post).toHaveBeenCalledWith(
-        '/accounts',
+      expect(mockCreateAccount).toHaveBeenCalledWith(
         expect.objectContaining({
           code: '1110',
           name: '現金',
-          accountType: 'ASSET',
+          account_type: 'ASSET',
+          category: 'general',
+          is_active: true,
         })
       );
 
@@ -136,8 +200,9 @@ describe('AccountDialog - ユーザーインタラクション', () => {
     it('【シナリオ3】親科目を選択して勘定科目を作成する', async () => {
       const user = userEvent.setup();
 
-      mockApiClient.post.mockResolvedValue({
-        data: { id: '4', code: '1111', name: '現金預金', accountType: 'ASSET' },
+      mockCreateAccount.mockResolvedValue({
+        success: true,
+        data: { id: '4', code: '1111', name: '現金預金', account_type: 'ASSET' },
       });
 
       render(
@@ -162,17 +227,17 @@ describe('AccountDialog - ユーザーインタラクション', () => {
 
       // 作成
       await act(async () => {
-        await act(async () => {
-          await user.click(screen.getByRole('button', { name: '作成' }));
-        });
+        await user.click(screen.getByRole('button', { name: '作成' }));
       });
 
       await waitFor(() => {
-        expect(mockApiClient.post).toHaveBeenCalledWith('/accounts', {
+        expect(mockCreateAccount).toHaveBeenCalledWith({
           code: '1111',
           name: '現金預金',
-          accountType: 'ASSET',
-          parentId: '550e8400-e29b-41d4-a716-446655440001',
+          account_type: 'ASSET',
+          category: 'general',
+          parent_account_id: '550e8400-e29b-41d4-a716-446655440001',
+          is_active: true,
         });
       });
     });
@@ -183,14 +248,20 @@ describe('AccountDialog - ユーザーインタラクション', () => {
       id: '5',
       code: '1110',
       name: '現金',
-      accountType: 'ASSET' as const,
-      parentId: null,
+      account_type: 'ASSET' as const,
+      parent_account_id: null,
+      category: 'general',
+      is_active: true,
+      organization_id: 'org-1',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
     it('【シナリオ4】既存勘定科目の名称を変更する', async () => {
       const user = userEvent.setup();
 
-      mockApiClient.put.mockResolvedValue({
+      mockUpdateAccount.mockResolvedValue({
+        success: true,
         data: { ...existingAccount, name: '現金・小切手' },
       });
 
@@ -220,11 +291,12 @@ describe('AccountDialog - ユーザーインタラクション', () => {
       });
 
       await waitFor(() => {
-        expect(mockApiClient.put).toHaveBeenCalledWith('/accounts/5', {
+        expect(mockUpdateAccount).toHaveBeenCalledWith('5', {
           code: '1110',
           name: '現金・小切手',
-          accountType: 'ASSET',
-          parentId: undefined,
+          account_type: 'ASSET',
+          category: 'general',
+          is_active: true,
         });
         expect(mockToast.success).toHaveBeenCalledWith('勘定科目を更新しました');
       });
@@ -235,8 +307,14 @@ describe('AccountDialog - ユーザーインタラクション', () => {
     it('【シナリオ5】API通信エラー時に適切なエラーメッセージが表示される', async () => {
       const user = userEvent.setup();
 
-      // API エラーをモック
-      mockApiClient.post.mockRejectedValue(new Error('Network error'));
+      // Server Action エラーをモック
+      mockCreateAccount.mockResolvedValue({
+        success: false,
+        error: {
+          code: 'NETWORK_ERROR',
+          message: 'Network error',
+        },
+      });
 
       render(
         <AccountDialog
@@ -254,9 +332,7 @@ describe('AccountDialog - ユーザーインタラクション', () => {
 
       // 作成実行
       await act(async () => {
-        await act(async () => {
-          await user.click(screen.getByRole('button', { name: '作成' }));
-        });
+        await user.click(screen.getByRole('button', { name: '作成' }));
       });
 
       // エラーメッセージが表示されることを確認
@@ -297,7 +373,7 @@ describe('AccountDialog - ユーザーインタラクション', () => {
         expect(screen.getByText('勘定科目名は100文字以内で入力してください')).toBeInTheDocument();
       });
 
-      expect(mockApiClient.post).not.toHaveBeenCalled();
+      expect(mockCreateAccount).not.toHaveBeenCalled();
     });
   });
 
@@ -321,7 +397,7 @@ describe('AccountDialog - ユーザーインタラクション', () => {
       await user.click(screen.getByRole('button', { name: 'キャンセル' }));
 
       expect(mockOnOpenChange).toHaveBeenCalledWith(false);
-      expect(mockApiClient.post).not.toHaveBeenCalled();
+      expect(mockCreateAccount).not.toHaveBeenCalled();
     });
 
     it('【シナリオ8】タイプ変更時に親科目選択肢が適切にフィルタリングされる', async () => {
