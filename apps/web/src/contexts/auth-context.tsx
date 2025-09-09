@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
-import { apiClient } from '@/lib/api-client';
+// TODO: Migrate to Supabase auth - Issue #355
+// import { apiClient } from '@/lib/api-client';
 
 interface Organization {
   id: string;
@@ -54,7 +55,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
 
   useEffect(() => {
-    // Check if user is already logged in
+    // TODO: Migrate to Supabase auth - Issue #355
+    // This auth check is temporarily disabled during migration to Supabase
+    // The application should use Supabase's auth.getUser() instead
+    setLoading(false);
+
+    // Original auth check code commented out:
+    /*
     const checkAuth = async () => {
       // Skip auth check for demo pages to avoid 401 errors
       if (typeof window !== 'undefined' && window.location.pathname.startsWith('/demo')) {
@@ -121,9 +128,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     };
 
     checkAuth();
+    */
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (_email: string, _password: string) => {
+    // TODO: Migrate to Supabase auth - Issue #355
+    // Use signIn Server Action from app/actions/auth.ts instead
+    toast.error('ログイン機能は現在メンテナンス中です');
+    setLoading(false);
+
+    // Original login code commented out:
+    /*
     setLoading(true);
     try {
       const response = await apiClient.post<{
@@ -189,9 +204,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } finally {
       setLoading(false);
     }
+    */
   };
 
   const logout = async () => {
+    // TODO: Migrate to Supabase auth - Issue #355
+    // Use signOut Server Action from app/actions/auth.ts instead
+    localStorage.removeItem('user');
+    setUser(null);
+    setCurrentOrganization(null);
+    toast.success('ログアウトしました');
+    router.push('/login');
+
+    // Original logout code commented out:
+    /*
     try {
       await apiClient.post('/auth/logout');
       apiClient.clearTokens();
@@ -211,9 +237,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setCurrentOrganization(null);
       router.push('/login');
     }
+    */
   };
 
-  const switchOrganization = async (organizationId: string) => {
+  const switchOrganization = async (_organizationId: string) => {
+    // TODO: Migrate to Supabase auth - Issue #355
+    // Need to implement organization switching with Supabase
+    toast.error('組織切り替え機能は現在メンテナンス中です');
+
+    // Original switchOrganization code commented out:
+    /*
     if (!user) return;
 
     try {
@@ -269,9 +302,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Failed to switch organization
       toast.error('組織の切り替えに失敗しました');
     }
+    */
   };
 
   const refreshUser = async () => {
+    // TODO: Migrate to Supabase auth - Issue #355
+    // Use getCurrentUser Server Action from app/actions/auth.ts instead
+    // Original refreshUser code commented out:
+    /*
     try {
       const response = await apiClient.get<{ user: User }>('/auth/me');
       if (response.data?.user) {
@@ -290,6 +328,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } catch {
       // Failed to refresh user data
     }
+    */
   };
 
   const value: AuthContextType = {

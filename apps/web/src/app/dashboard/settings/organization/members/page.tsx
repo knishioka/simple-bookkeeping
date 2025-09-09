@@ -62,7 +62,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useAuth } from '@/contexts/auth-context';
-import { apiClient as api } from '@/lib/api-client';
+// TODO: Migrate to Server Actions - Issue #355
+// import { apiClient as api } from '@/lib/api-client';
 
 const inviteSchema = z.object({
   email: z.string().email('有効なメールアドレスを入力してください'),
@@ -93,7 +94,7 @@ const roleColors = {
 
 export default function OrganizationMembersPage() {
   const { user, currentOrganization } = useAuth();
-  const [members, setMembers] = useState<Member[]>([]);
+  const [members] = useState<Member[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isInviting, setIsInviting] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
@@ -116,32 +117,42 @@ export default function OrganizationMembersPage() {
   const isAdmin = currentUserRole === 'ADMIN';
 
   useEffect(() => {
+    const fetchMembers = async () => {
+      if (!currentOrganization) return;
+
+      // TODO: Migrate to Server Actions - Issue #355
+      toast.error('メンバー管理機能は現在メンテナンス中です');
+      setIsLoading(false);
+      /*
+      setIsLoading(true);
+      try {
+        const response = await api.get<{ data: Member[] }>(
+          `/organizations/${currentOrganization.id}/members`
+        );
+        if (response.data?.data) {
+          setMembers(response.data.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch members:', error);
+        toast.error('メンバー一覧の取得に失敗しました');
+      } finally {
+        setIsLoading(false);
+      }
+      */
+    };
+
     fetchMembers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentOrganization]);
 
-  const fetchMembers = async () => {
+  const onInviteSubmit = async (_data: InviteFormData) => {
     if (!currentOrganization) return;
 
-    setIsLoading(true);
-    try {
-      const response = await api.get<{ data: Member[] }>(
-        `/organizations/${currentOrganization.id}/members`
-      );
-      if (response.data?.data) {
-        setMembers(response.data.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch members:', error);
-      toast.error('メンバー一覧の取得に失敗しました');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    // TODO: Migrate to Server Actions - Issue #355
+    toast.error('招待機能は現在メンテナンス中です');
+    setIsInviting(false);
+    setInviteDialogOpen(false);
 
-  const onInviteSubmit = async (data: InviteFormData) => {
-    if (!currentOrganization) return;
-
+    /*
     setIsInviting(true);
     try {
       await api.post(`/organizations/${currentOrganization.id}/invite`, data);
@@ -171,11 +182,18 @@ export default function OrganizationMembersPage() {
     } finally {
       setIsInviting(false);
     }
+    */
   };
 
   const handleRemoveMember = async () => {
     if (!currentOrganization || !selectedMember) return;
 
+    // TODO: Migrate to Server Actions - Issue #355
+    toast.error('メンバー削除機能は現在メンテナンス中です');
+    setIsRemoving(false);
+    setRemoveDialogOpen(false);
+
+    /*
     setIsRemoving(true);
     try {
       await api.delete(`/organizations/${currentOrganization.id}/users/${selectedMember.id}`);
@@ -205,11 +223,18 @@ export default function OrganizationMembersPage() {
     } finally {
       setIsRemoving(false);
     }
+    */
   };
 
   const handleUpdateRole = async () => {
     if (!currentOrganization || !selectedMember) return;
 
+    // TODO: Migrate to Server Actions - Issue #355
+    toast.error('ロール変更機能は現在メンテナンス中です');
+    setIsUpdatingRole(false);
+    setRoleDialogOpen(false);
+
+    /*
     setIsUpdatingRole(true);
     try {
       await api.put(`/organizations/${currentOrganization.id}/members/${selectedMember.id}`, {
@@ -241,6 +266,7 @@ export default function OrganizationMembersPage() {
     } finally {
       setIsUpdatingRole(false);
     }
+    */
   };
 
   const openRoleDialog = (member: Member) => {

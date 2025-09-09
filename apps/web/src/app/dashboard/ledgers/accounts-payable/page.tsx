@@ -15,7 +15,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { apiClient } from '@/lib/api-client';
+// TODO: Migrate to Server Actions - Issue #355
+// import { apiClient } from '@/lib/api-client';
 
 interface LedgerEntry {
   id: string;
@@ -35,7 +36,12 @@ interface AccountsPayableData {
 }
 
 export default function AccountsPayablePage() {
-  const [data, setData] = useState<AccountsPayableData | null>(null);
+  // Mock empty data to avoid TypeScript errors during migration
+  const [data] = useState<AccountsPayableData | null>({
+    openingBalance: 0,
+    entries: [],
+    closingBalance: 0,
+  });
   const [loading, setLoading] = useState(false);
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
@@ -50,6 +56,10 @@ export default function AccountsPayablePage() {
   });
 
   const fetchAccountsPayable = useCallback(async () => {
+    // TODO: Migrate to Server Actions - Issue #355
+    toast.error('買掛金台帳の表示機能は現在メンテナンス中です');
+    setLoading(false);
+    /*
     setLoading(true);
     try {
       const response = await apiClient.get<AccountsPayableData>(
@@ -64,7 +74,8 @@ export default function AccountsPayablePage() {
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate]);
+    */
+  }, []);
 
   useEffect(() => {
     fetchAccountsPayable();

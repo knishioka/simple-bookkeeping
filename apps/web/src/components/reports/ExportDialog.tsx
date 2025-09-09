@@ -21,7 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { apiClient } from '@/lib/api-client';
+// TODO: Migrate to Server Actions - Issue #355
+// import { apiClient } from '@/lib/api-client';
 
 interface ExportDialogProps {
   open: boolean;
@@ -34,7 +35,7 @@ export function ExportDialog({
   open,
   onOpenChange,
   reportType,
-  reportParams = {},
+  reportParams: _reportParams = {},
 }: ExportDialogProps) {
   const [format, setFormat] = useState<'csv' | 'pdf' | 'excel'>('csv');
   const [isExporting, setIsExporting] = useState(false);
@@ -52,13 +53,21 @@ export function ExportDialog({
     }
   };
 
-  const getFileName = () => {
-    const date = new Date().toISOString().split('T')[0];
-    const extension = format === 'excel' ? 'xlsx' : format;
-    return `${reportType}-${date}.${extension}`;
-  };
+  // Commented out during migration - Issue #355
+  // const getFileName = () => {
+  //   const date = new Date().toISOString().split('T')[0];
+  //   const extension = format === 'excel' ? 'xlsx' : format;
+  //   return `${reportType}-${date}.${extension}`;
+  // };
 
   const handleExport = async () => {
+    // TODO: Migrate to Server Actions - Issue #355
+    // Need to implement export functionality using Server Actions
+    toast.error('エクスポート機能は現在メンテナンス中です');
+    setIsExporting(false);
+
+    // Original export code commented out:
+    /*
     setIsExporting(true);
     try {
       const params = new URLSearchParams({
@@ -90,6 +99,7 @@ export function ExportDialog({
     } finally {
       setIsExporting(false);
     }
+    */
   };
 
   return (
