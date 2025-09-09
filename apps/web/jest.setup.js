@@ -1,8 +1,25 @@
 import '@testing-library/jest-dom';
+import { TextEncoder, TextDecoder } from 'util';
+
+// Add TextEncoder/TextDecoder polyfills for Node.js environment
+// Required for Next.js Server Actions which use these APIs
+if (typeof global.TextEncoder === 'undefined') {
+  global.TextEncoder = TextEncoder;
+}
+if (typeof global.TextDecoder === 'undefined') {
+  global.TextDecoder = TextDecoder;
+}
 
 // Configure React 19 testing environment for act() support
 // This is required for react-hook-form with React 19
 global.IS_REACT_ACT_ENVIRONMENT = true;
+
+// Mock Next.js cache module which is not available in test environment
+jest.mock('next/cache', () => ({
+  unstable_cache: jest.fn((fn) => fn),
+  revalidatePath: jest.fn(),
+  revalidateTag: jest.fn(),
+}));
 
 // Suppress JSDOM navigation warnings and React act warnings
 const originalError = console.error;
