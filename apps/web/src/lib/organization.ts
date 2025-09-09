@@ -85,3 +85,51 @@ export async function getUserOrganization() {
     return null;
   }
 }
+
+/**
+ * 現在アクティブな会計期間IDを取得
+ * Server Actions内で使用するためのヘルパー関数
+ */
+export async function getCurrentAccountingPeriodId(): Promise<string | null> {
+  try {
+    const organizationId = await getCurrentOrganizationId();
+
+    if (!organizationId) {
+      return null;
+    }
+
+    const supabase = await createClient();
+    const currentDate = new Date().toISOString().split('T')[0];
+
+    // 現在の日付を含む未締めの会計期間を取得
+    const { data: accountingPeriod } = await supabase
+      .from('accounting_periods')
+      .select('id')
+      .eq('organization_id', organizationId)
+      .eq('is_closed', false)
+      .lte('start_date', currentDate)
+      .gte('end_date', currentDate)
+      .order('start_date', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (accountingPeriod) {
+      return accountingPeriod.id;
+    }
+
+    // 現在の日付を含む期間がない場合は、最新の未締め期間を取得
+    const { data: latestPeriod } = await supabase
+      .from('accounting_periods')
+      .select('id')
+      .eq('organization_id', organizationId)
+      .eq('is_closed', false)
+      .order('start_date', { ascending: false })
+      .limit(1)
+      .single();
+
+    return latestPeriod?.id || null;
+  } catch (error) {
+    console.error('Error getting current accounting period:', error);
+    return null;
+  }
+}

@@ -2,6 +2,7 @@
 
 import { Upload, X } from 'lucide-react';
 
+import { importAccountsFromCSVWithAuth } from '@/app/actions/accounts-wrapper';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,7 +15,7 @@ import {
 import { FileDropzone } from '@/components/ui/file-dropzone';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import { useFileImport } from '@/hooks/use-file-import';
+import { useServerFileImport } from '@/hooks/use-server-file-import';
 
 interface AccountImportDialogProps {
   open: boolean;
@@ -31,13 +32,14 @@ export function AccountImportDialog({ open, onOpenChange, onSuccess }: AccountIm
     handleDrop,
     handleImport,
     handleCancel,
-  } = useFileImport({
-    endpoint: '/accounts/import',
-    onSuccess: () => {
-      onSuccess();
-      onOpenChange(false);
+  } = useServerFileImport({
+    importAction: importAccountsFromCSVWithAuth,
+    onSuccess: (imported) => {
+      if (imported > 0) {
+        onSuccess();
+        onOpenChange(false);
+      }
     },
-    successMessage: '勘定科目のインポートが完了しました',
     errorMessage: '勘定科目のインポートに失敗しました',
   });
 

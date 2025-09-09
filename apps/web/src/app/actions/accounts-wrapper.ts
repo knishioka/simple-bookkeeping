@@ -78,3 +78,21 @@ export async function deleteAccountWithAuth(id: string): Promise<ActionResult<{ 
 
   return accountsActions.deleteAccount(id, organizationId);
 }
+
+/**
+ * CSVファイルから勘定科目をインポート（組織ID自動取得版）
+ */
+export async function importAccountsFromCSVWithAuth(
+  formData: FormData
+): Promise<ActionResult<{ imported: number; errors: Array<{ row: number; error: string }> }>> {
+  const organizationId = await getCurrentOrganizationId();
+
+  if (!organizationId) {
+    return createErrorResult(ERROR_CODES.UNAUTHORIZED, '組織が選択されていません。');
+  }
+
+  // FormDataに組織IDを追加
+  formData.append('organizationId', organizationId);
+
+  return accountsActions.importAccountsFromCSV(formData);
+}

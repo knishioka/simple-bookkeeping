@@ -2,6 +2,7 @@
 
 import { Upload, X } from 'lucide-react';
 
+import { importJournalEntriesFromCSVWithAuth } from '@/app/actions/journal-entries-wrapper';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,18 +15,20 @@ import {
 import { FileDropzone } from '@/components/ui/file-dropzone';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import { useFileImport } from '@/hooks/use-file-import';
+import { useServerFileImport } from '@/hooks/use-server-file-import';
 
 interface JournalEntryImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  accountingPeriodId?: string;
 }
 
 export function JournalEntryImportDialog({
   open,
   onOpenChange,
   onSuccess,
+  accountingPeriodId,
 }: JournalEntryImportDialogProps) {
   const {
     file,
@@ -35,13 +38,15 @@ export function JournalEntryImportDialog({
     handleDrop,
     handleImport,
     handleCancel,
-  } = useFileImport({
-    endpoint: '/journal-entries/import',
-    onSuccess: () => {
-      onSuccess();
-      onOpenChange(false);
+  } = useServerFileImport({
+    importAction: importJournalEntriesFromCSVWithAuth,
+    extraFields: accountingPeriodId ? { accountingPeriodId } : {},
+    onSuccess: (imported) => {
+      if (imported > 0) {
+        onSuccess();
+        onOpenChange(false);
+      }
     },
-    successMessage: '仕訳のインポートが完了しました',
     errorMessage: '仕訳のインポートに失敗しました',
   });
 
