@@ -208,39 +208,27 @@ export default defineConfig({
     },
   ],
 
-  // 開発サーバー設定（最適化済み）
+  // 開発サーバー設定（Server Actions対応）
+  // Express.js APIサーバーは廃止されたため、Next.jsサーバーのみ起動
   webServer:
     process.env.REUSE_SERVER === 'true'
       ? undefined
-      : [
-          {
-            command: 'pnpm --filter @simple-bookkeeping/api dev:test',
-            port: PORTS.API,
-            timeout: TEST_TIMEOUTS.server,
-            reuseExistingServer: !isCI,
-            stdout: isDebug ? 'pipe' : 'ignore',
-            stderr: 'pipe',
-            env: {
-              NODE_ENV: 'test',
-              PORT: String(PORTS.API),
-              DATABASE_URL: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL,
-              JWT_SECRET: 'test-jwt-secret',
-              LOG_LEVEL: isDebug ? 'debug' : 'error',
-              DISABLE_RATE_LIMIT: 'true',
-            },
+      : {
+          command: 'pnpm --filter @simple-bookkeeping/web dev',
+          port: PORTS.WEB,
+          timeout: TEST_TIMEOUTS.server,
+          reuseExistingServer: !isCI,
+          stdout: isDebug ? 'pipe' : 'ignore',
+          stderr: 'pipe',
+          env: {
+            NODE_ENV: 'test',
+            PORT: String(PORTS.WEB),
+            // Supabase環境変数（テスト用ダミー値）
+            NEXT_PUBLIC_SUPABASE_URL:
+              process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://dummy.supabase.co',
+            NEXT_PUBLIC_SUPABASE_ANON_KEY:
+              process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+              'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bW15Iiwicm9sZSI6ImFub24iLCJpYXQiOjE2NDU1NzY4MDAsImV4cCI6MTk2MTE1MjgwMH0.dummy_key_for_testing',
           },
-          {
-            command: 'pnpm --filter @simple-bookkeeping/web dev',
-            port: PORTS.WEB,
-            timeout: TEST_TIMEOUTS.server,
-            reuseExistingServer: !isCI,
-            stdout: isDebug ? 'pipe' : 'ignore',
-            stderr: 'pipe',
-            env: {
-              NODE_ENV: 'test',
-              PORT: String(PORTS.WEB),
-              NEXT_PUBLIC_API_URL: `http://localhost:${PORTS.API}/api/v1`,
-            },
-          },
-        ],
+        },
 });

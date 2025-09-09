@@ -98,6 +98,7 @@ export default function AccountsPage() {
 
   useEffect(() => {
     fetchAccounts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filteredAccounts = accounts.filter((account) => {

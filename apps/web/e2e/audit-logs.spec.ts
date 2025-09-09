@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 
+import { UnifiedMock } from './helpers/server-actions-unified-mock';
+import { SupabaseAuth } from './helpers/supabase-auth';
 import { UnifiedAuth } from './helpers/unified-auth';
 import { waitForApiResponse, waitForTestId, waitForSelectOpen } from './helpers/wait-strategies';
 
@@ -9,74 +11,17 @@ test.describe('Audit Logs', () => {
   test.setTimeout(30000);
 
   test.beforeEach(async ({ page, context }) => {
-    // Use unified authentication setup for admin user
-    await UnifiedAuth.setup(context, page, { role: 'admin' });
-
-    // Mock /auth/me API endpoint for authentication check
-    await context.route('**/api/v1/auth/me', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          data: {
-            user: {
-              id: '1',
-              email: 'admin@example.com',
-              name: 'Admin User',
-              organizations: [
-                {
-                  id: 'org-1',
-                  name: 'Test Organization',
-                  code: 'TEST',
-                  role: 'ADMIN',
-                  isDefault: true,
-                },
-              ],
-              currentOrganization: {
-                id: 'org-1',
-                name: 'Test Organization',
-                code: 'TEST',
-                role: 'ADMIN',
-                isDefault: true,
-              },
-            },
-          },
-        }),
-      });
+    // Server Actions用のモックをセットアップ
+    await UnifiedMock.setupAll(context, {
+      enabled: true,
+      customResponses: {
+        'audit-logs': [],
+      },
     });
+    await UnifiedMock.setupAuditLogsMocks(context);
 
-    // Mock audit logs API
-    await context.route('**/api/v1/audit-logs**', async (route) => {
-      if (route.request().url().includes('/entity-types')) {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            data: ['JournalEntry', 'Account', 'User', 'Organization', 'AccountingPeriod'],
-          }),
-        });
-      } else if (route.request().url().includes('/export')) {
-        await route.fulfill({
-          status: 200,
-          contentType: 'text/csv',
-          body: 'id,date,user,action,entity\n1,2024-01-01,admin@example.com,CREATE,Account',
-        });
-      } else {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            data: [],
-            meta: {
-              page: 1,
-              limit: 10,
-              total: 0,
-              totalPages: 1,
-            },
-          }),
-        });
-      }
-    });
+    // Supabase認証をセットアップ（管理者ユーザー）
+    await SupabaseAuth.setup(context, page, { role: 'admin' });
 
     // Now navigate to dashboard settings
     await page.goto('/dashboard/settings');
