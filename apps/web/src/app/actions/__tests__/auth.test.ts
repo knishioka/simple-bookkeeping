@@ -47,15 +47,11 @@ describe('Auth Server Actions', () => {
         updateUser: jest.fn(),
         verifyOtp: jest.fn(),
       },
-      from: jest.fn(() => ({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        insert: jest.fn().mockReturnThis(),
-        single: jest.fn(),
-      })),
+      from: jest.fn(),
     };
 
-    mockCreateClient.mockResolvedValue(mockSupabaseClient);
+    // Mock createClient to return a Promise that resolves to the mock client
+    mockCreateClient.mockImplementation(() => Promise.resolve(mockSupabaseClient));
   });
 
   describe('signUp', () => {
@@ -74,23 +70,35 @@ describe('Auth Server Actions', () => {
         error: null,
       });
 
-      const fromMock = mockSupabaseClient.from();
+      // Create chainable query mocks for each from() call
+      const orgInsertQuery = {
+        insert: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: { id: 'org-123', name: validInput.organizationName },
+          error: null,
+        }),
+      };
 
-      // Mock organization creation
-      fromMock.single.mockResolvedValueOnce({
-        data: { id: 'org-123', name: validInput.organizationName },
-        error: null,
-      });
+      const userOrgInsertQuery = {
+        insert: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          error: null,
+        }),
+      };
 
-      // Mock user-organization association
-      fromMock.single.mockResolvedValueOnce({
-        error: null,
-      });
+      const userInsertQuery = {
+        insert: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          error: null,
+        }),
+      };
 
-      // Mock user table insert
-      fromMock.single.mockResolvedValueOnce({
-        error: null,
-      });
+      // Mock from() to return different queries for each table
+      mockSupabaseClient.from
+        .mockReturnValueOnce(orgInsertQuery) // organizations table
+        .mockReturnValueOnce(userOrgInsertQuery) // user_organizations table
+        .mockReturnValueOnce(userInsertQuery); // users table
 
       const result = await signUp(validInput);
 
@@ -130,10 +138,14 @@ describe('Auth Server Actions', () => {
       });
 
       // Mock user table insert
-      const fromMock = mockSupabaseClient.from();
-      fromMock.single.mockResolvedValueOnce({
-        error: null,
-      });
+      const userInsertQuery = {
+        insert: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          error: null,
+        }),
+      };
+
+      mockSupabaseClient.from.mockReturnValueOnce(userInsertQuery);
 
       const result = await signUp(inputWithoutOrg);
 
@@ -159,9 +171,9 @@ describe('Auth Server Actions', () => {
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.VALIDATION_ERROR);
       expect(result.error?.message).toContain('必須項目が入力されていません');
-      expect(result.error?.fieldErrors).toHaveProperty('email');
-      expect(result.error?.fieldErrors).toHaveProperty('password');
-      expect(result.error?.fieldErrors).toHaveProperty('name');
+      expect(result.error?.details).toHaveProperty('email');
+      expect(result.error?.details).toHaveProperty('password');
+      expect(result.error?.details).toHaveProperty('name');
     });
 
     it('should validate email format', async () => {
@@ -213,13 +225,17 @@ describe('Auth Server Actions', () => {
         error: null,
       });
 
-      const fromMock = mockSupabaseClient.from();
-
       // Organization creation fails
-      fromMock.single.mockResolvedValueOnce({
-        data: null,
-        error: new Error('Organization creation failed'),
-      });
+      const orgInsertQuery = {
+        insert: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: new Error('Organization creation failed'),
+        }),
+      };
+
+      mockSupabaseClient.from.mockReturnValueOnce(orgInsertQuery);
 
       const result = await signUp(validInput);
 
@@ -245,19 +261,29 @@ describe('Auth Server Actions', () => {
         error: null,
       });
 
-      const fromMock = mockSupabaseClient.from();
+      // Mock user organization query
+      const userOrgQuery = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: { organization_id: 'org-123', role: 'admin' },
+          error: null,
+        }),
+      };
 
-      // Mock user organization
-      fromMock.single.mockResolvedValueOnce({
-        data: { organization_id: 'org-123', role: 'admin' },
-        error: null,
-      });
+      // Mock user data query
+      const userQuery = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: { name: '山田太郎' },
+          error: null,
+        }),
+      };
 
-      // Mock user data
-      fromMock.single.mockResolvedValueOnce({
-        data: { name: '山田太郎' },
-        error: null,
-      });
+      mockSupabaseClient.from
+        .mockReturnValueOnce(userOrgQuery) // user_organizations table
+        .mockReturnValueOnce(userQuery); // users table
 
       const result = await signIn(validCredentials);
 
@@ -285,8 +311,8 @@ describe('Auth Server Actions', () => {
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.VALIDATION_ERROR);
       expect(result.error?.message).toContain('必須項目が入力されていません');
-      expect(result.error?.fieldErrors).toHaveProperty('email');
-      expect(result.error?.fieldErrors).toHaveProperty('password');
+      expect(result.error?.details).toHaveProperty('email');
+      expect(result.error?.details).toHaveProperty('password');
     });
 
     it('should handle invalid credentials', async () => {
@@ -310,19 +336,27 @@ describe('Auth Server Actions', () => {
         error: null,
       });
 
-      const fromMock = mockSupabaseClient.from();
-
       // No organization found
-      fromMock.single.mockResolvedValueOnce({
-        data: null,
-        error: new Error('Not found'),
-      });
+      const userOrgQuery = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: new Error('Not found'),
+        }),
+      };
 
       // Mock user data
-      fromMock.single.mockResolvedValueOnce({
-        data: { name: '山田太郎' },
-        error: null,
-      });
+      const userQuery = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: { name: '山田太郎' },
+          error: null,
+        }),
+      };
+
+      mockSupabaseClient.from.mockReturnValueOnce(userOrgQuery).mockReturnValueOnce(userQuery);
 
       const result = await signIn(validCredentials);
 
@@ -348,17 +382,27 @@ describe('Auth Server Actions', () => {
         error: null,
       });
 
-      const fromMock = mockSupabaseClient.from();
+      // No organization found
+      const userOrgQuery = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: new Error('Not found'),
+        }),
+      };
 
-      fromMock.single.mockResolvedValueOnce({
-        data: null,
-        error: new Error('Not found'),
-      });
+      // No user data found
+      const userQuery = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: new Error('Not found'),
+        }),
+      };
 
-      fromMock.single.mockResolvedValueOnce({
-        data: null,
-        error: new Error('Not found'),
-      });
+      mockSupabaseClient.from.mockReturnValueOnce(userOrgQuery).mockReturnValueOnce(userQuery);
 
       const result = await signIn(validCredentials);
 
@@ -506,8 +550,8 @@ describe('Auth Server Actions', () => {
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.VALIDATION_ERROR);
       expect(result.error?.message).toContain('必須項目が入力されていません');
-      expect(result.error?.fieldErrors).toHaveProperty('currentPassword');
-      expect(result.error?.fieldErrors).toHaveProperty('newPassword');
+      expect(result.error?.details).toHaveProperty('currentPassword');
+      expect(result.error?.details).toHaveProperty('newPassword');
     });
 
     it('should validate new password strength', async () => {
@@ -581,17 +625,27 @@ describe('Auth Server Actions', () => {
         error: null,
       });
 
-      const fromMock = mockSupabaseClient.from();
+      // Mock user organization query
+      const userOrgQuery = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: { organization_id: 'org-123', role: 'accountant' },
+          error: null,
+        }),
+      };
 
-      fromMock.single.mockResolvedValueOnce({
-        data: { organization_id: 'org-123', role: 'accountant' },
-        error: null,
-      });
+      // Mock user data query
+      const userQuery = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: { name: '山田太郎' },
+          error: null,
+        }),
+      };
 
-      fromMock.single.mockResolvedValueOnce({
-        data: { name: '山田太郎' },
-        error: null,
-      });
+      mockSupabaseClient.from.mockReturnValueOnce(userOrgQuery).mockReturnValueOnce(userQuery);
 
       const result = await getCurrentUser();
 
@@ -629,19 +683,27 @@ describe('Auth Server Actions', () => {
         error: null,
       });
 
-      const fromMock = mockSupabaseClient.from();
+      // No organization found
+      const userOrgQuery = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: new Error('Not found'),
+        }),
+      };
 
-      // No organization
-      fromMock.single.mockResolvedValueOnce({
-        data: null,
-        error: new Error('Not found'),
-      });
+      // No user data found
+      const userQuery = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: new Error('Not found'),
+        }),
+      };
 
-      // No user data
-      fromMock.single.mockResolvedValueOnce({
-        data: null,
-        error: new Error('Not found'),
-      });
+      mockSupabaseClient.from.mockReturnValueOnce(userOrgQuery).mockReturnValueOnce(userQuery);
 
       const result = await getCurrentUser();
 
@@ -697,7 +759,7 @@ describe('Auth Server Actions', () => {
 
   describe('Error Handling', () => {
     it('should handle network errors gracefully', async () => {
-      mockCreateClient.mockRejectedValue(new Error('Network error'));
+      mockCreateClient.mockImplementation(() => Promise.reject(new Error('Network error')));
 
       const result = await signIn({
         email: 'test@example.com',

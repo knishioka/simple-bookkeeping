@@ -25,6 +25,28 @@ const mockCreateClient = createClient as jest.MockedFunction<typeof createClient
 describe('Journal Entries Server Actions', () => {
   let mockSupabaseClient: any;
 
+  // Helper function to create chainable query mocks
+  const createQueryMock = (result: any) => {
+    const query: any = {
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      neq: jest.fn().mockReturnThis(),
+      or: jest.fn().mockReturnThis(),
+      in: jest.fn().mockReturnThis(),
+      gte: jest.fn().mockReturnThis(),
+      lte: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      range: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue(result),
+      insert: jest.fn().mockReturnThis(),
+      update: jest.fn().mockReturnThis(),
+      delete: jest.fn().mockReturnThis(),
+    };
+    // For non-single queries
+    query.range = jest.fn().mockResolvedValue(result);
+    return query;
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
 
@@ -33,24 +55,11 @@ describe('Journal Entries Server Actions', () => {
       auth: {
         getUser: jest.fn(),
       },
-      from: jest.fn(() => ({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        neq: jest.fn().mockReturnThis(),
-        or: jest.fn().mockReturnThis(),
-        in: jest.fn().mockReturnThis(),
-        gte: jest.fn().mockReturnThis(),
-        lte: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        range: jest.fn().mockReturnThis(),
-        single: jest.fn(),
-        insert: jest.fn().mockReturnThis(),
-        update: jest.fn().mockReturnThis(),
-        delete: jest.fn().mockReturnThis(),
-      })),
+      from: jest.fn(),
     };
 
-    mockCreateClient.mockResolvedValue(mockSupabaseClient);
+    // Mock createClient to return a Promise that resolves to the mock client
+    mockCreateClient.mockImplementation(() => Promise.resolve(mockSupabaseClient));
   });
 
   describe('getJournalEntries', () => {
@@ -64,8 +73,7 @@ describe('Journal Entries Server Actions', () => {
       });
 
       // Mock user organization check
-      const fromMock = mockSupabaseClient.from();
-      fromMock.single.mockResolvedValueOnce({
+      const userOrgQuery = createQueryMock({
         data: { role: 'admin' },
         error: null,
       });
@@ -88,16 +96,13 @@ describe('Journal Entries Server Actions', () => {
         },
       ];
 
-      mockSupabaseClient.from.mockReturnValueOnce({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        range: jest.fn().mockResolvedValue({
-          data: mockEntries,
-          error: null,
-          count: 2,
-        }),
+      const entriesQuery = createQueryMock({
+        data: mockEntries,
+        error: null,
+        count: 2,
       });
+
+      mockSupabaseClient.from.mockReturnValueOnce(userOrgQuery).mockReturnValueOnce(entriesQuery);
 
       const result = await getJournalEntries(mockOrganizationId);
 
@@ -119,8 +124,7 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const fromMock = mockSupabaseClient.from();
-      fromMock.single.mockResolvedValueOnce({
+      const userOrgQuery = createQueryMock({
         data: { role: 'viewer' },
         error: null,
       });
@@ -139,7 +143,7 @@ describe('Journal Entries Server Actions', () => {
         }),
       };
 
-      mockSupabaseClient.from.mockReturnValueOnce(queryMock);
+      mockSupabaseClient.from.mockReturnValueOnce(userOrgQuery).mockReturnValueOnce(queryMock);
 
       await getJournalEntries(mockOrganizationId, {
         accountingPeriodId: 'period-123',
@@ -176,11 +180,12 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const fromMock = mockSupabaseClient.from();
-      fromMock.single.mockResolvedValueOnce({
+      const userOrgQuery = createQueryMock({
         data: null,
         error: new Error('Not found'),
       });
+
+      mockSupabaseClient.from.mockReturnValueOnce(userOrgQuery);
 
       const result = await getJournalEntries(mockOrganizationId);
 
@@ -223,16 +228,14 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const fromMock = mockSupabaseClient.from();
-
       // Mock organization access check
-      fromMock.single.mockResolvedValueOnce({
+      const userOrgQuery = createQueryMock({
         data: { role: 'accountant' },
         error: null,
       });
 
       // Mock accounting period check
-      fromMock.single.mockResolvedValueOnce({
+      const periodQuery = createQueryMock({
         data: {
           id: 'period-123',
           start_date: '2024-01-01',
@@ -243,25 +246,25 @@ describe('Journal Entries Server Actions', () => {
       });
 
       // Mock accounts existence check
-      mockSupabaseClient.from.mockReturnValueOnce({
+      const accountsQuery = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         in: jest.fn().mockResolvedValue({
           data: [{ id: 'acc-1' }, { id: 'acc-2' }],
           error: null,
         }),
-      });
+      };
 
       // Mock journal entry creation
       const createdEntry = { id: 'new-entry', ...mockEntry, created_by: mockUser.id };
-      mockSupabaseClient.from.mockReturnValueOnce({
+      const createEntryQuery = {
         insert: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
         single: jest.fn().mockResolvedValue({
           data: createdEntry,
           error: null,
         }),
-      });
+      };
 
       // Mock lines creation
       const createdLines = mockLines.map((line, idx) => ({
@@ -269,13 +272,20 @@ describe('Journal Entries Server Actions', () => {
         journal_entry_id: 'new-entry',
         ...line,
       }));
-      mockSupabaseClient.from.mockReturnValueOnce({
+      const createLinesQuery = {
         insert: jest.fn().mockReturnThis(),
         select: jest.fn().mockResolvedValue({
           data: createdLines,
           error: null,
         }),
-      });
+      };
+
+      mockSupabaseClient.from
+        .mockReturnValueOnce(userOrgQuery)
+        .mockReturnValueOnce(periodQuery)
+        .mockReturnValueOnce(accountsQuery)
+        .mockReturnValueOnce(createEntryQuery)
+        .mockReturnValueOnce(createLinesQuery);
 
       const result = await createJournalEntry({
         entry: mockEntry,
@@ -296,11 +306,12 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const fromMock = mockSupabaseClient.from();
-      fromMock.single.mockResolvedValueOnce({
+      const userOrgQuery = createQueryMock({
         data: { role: 'admin' },
         error: null,
       });
+
+      mockSupabaseClient.from.mockReturnValueOnce(userOrgQuery);
 
       const incompleteEntry = {
         ...mockEntry,
@@ -317,9 +328,9 @@ describe('Journal Entries Server Actions', () => {
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.VALIDATION_ERROR);
       expect(result.error?.message).toContain('必須項目が入力されていません');
-      expect(result.error?.fieldErrors).toHaveProperty('entry_number');
-      expect(result.error?.fieldErrors).toHaveProperty('entry_date');
-      expect(result.error?.fieldErrors).toHaveProperty('description');
+      expect(result.error?.details?.entry_number).toBeDefined();
+      expect(result.error?.details?.entry_date).toBeDefined();
+      expect(result.error?.details?.description).toBeDefined();
     });
 
     it('should validate debit/credit balance', async () => {
@@ -328,11 +339,12 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const fromMock = mockSupabaseClient.from();
-      fromMock.single.mockResolvedValueOnce({
+      const userOrgQuery = createQueryMock({
         data: { role: 'accountant' },
         error: null,
       });
+
+      mockSupabaseClient.from.mockReturnValueOnce(userOrgQuery);
 
       const unbalancedLines = [
         {
@@ -370,11 +382,12 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const fromMock = mockSupabaseClient.from();
-      fromMock.single.mockResolvedValueOnce({
+      const userOrgQuery = createQueryMock({
         data: { role: 'viewer' },
         error: null,
       });
+
+      mockSupabaseClient.from.mockReturnValueOnce(userOrgQuery);
 
       const result = await createJournalEntry({
         entry: mockEntry,
