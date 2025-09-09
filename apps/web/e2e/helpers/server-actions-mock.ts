@@ -52,26 +52,29 @@ export class ServerActionsMock {
    * インターセプトし、モック実装に置き換えます。
    */
   static async injectMocks(page: Page): Promise<void> {
-    const mocks = Array.from(this.mockedActions.entries()).map(([key, mock]) => ({
-      key,
-      actionName: mock.actionName,
-      // モック実装を文字列化（ブラウザコンテキストで実行するため）
-      implementation: mock.mockImplementation.toString(),
-    }));
+    // モック実装を直接評価して注入（セキュアな方法）
+    for (const [key, mock] of this.mockedActions.entries()) {
+      await page.evaluate(
+        ({ key, mockImpl }) => {
+          // グローバルなモックストアを作成（初回のみ）
+          if (
+            !(window as unknown as { __serverActionMocks?: Map<string, unknown> })
+              .__serverActionMocks
+          ) {
+            (
+              window as unknown as { __serverActionMocks: Map<string, unknown> }
+            ).__serverActionMocks = new Map();
+          }
+          // モック関数を直接格納
+          (
+            window as unknown as { __serverActionMocks: Map<string, unknown> }
+          ).__serverActionMocks.set(key, mockImpl);
+        },
+        { key, mockImpl: mock.mockImplementation }
+      );
+    }
 
-    await page.addInitScript((mocksData) => {
-      // グローバルなモックストアを作成
-      (window as unknown as { __serverActionMocks?: Map<string, unknown> }).__serverActionMocks =
-        new Map();
-
-      mocksData.forEach(({ key, actionName: _actionName, implementation }) => {
-        // 文字列から関数を再構築
-        const mockFn = new Function(`return ${implementation}`)();
-        (
-          window as unknown as { __serverActionMocks?: Map<string, unknown> }
-        ).__serverActionMocks.set(key, mockFn);
-      });
-
+    await page.addInitScript(() => {
       // Server Actionsの呼び出しをインターセプトする
       // これは、Next.jsがServer Actionsを呼び出す際のフックポイント
       const originalFetch = window.fetch;
@@ -109,7 +112,7 @@ export class ServerActionsMock {
         // モックされていない場合は通常のfetchを実行
         return originalFetch.apply(window, args as [RequestInfo | URL, RequestInit?]);
       };
-    }, mocks);
+    });
   }
 
   /**
