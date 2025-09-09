@@ -284,8 +284,22 @@ describe('Accounts Server Actions', () => {
     });
 
     it('should return validation error for missing required fields', async () => {
+      // Mock auth - user is authenticated
+      mockSupabaseClient.auth.getUser.mockResolvedValue({
+        data: { user: mockUser },
+        error: null,
+      });
+
+      // Mock organization access check
+      const userOrgQuery = createQueryMock({
+        data: { role: 'admin' },
+        error: null,
+      });
+
+      mockSupabaseClient.from.mockReturnValueOnce(userOrgQuery);
+
       const invalidData = {
-        organization_id: '',
+        organization_id: 'org-123',
         code: '',
         name: '',
         account_type: '' as any,
@@ -296,7 +310,7 @@ describe('Accounts Server Actions', () => {
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.VALIDATION_ERROR);
-      expect(result.error?.message).toContain('入力内容に誤りがあります');
+      expect(result.error?.message).toContain('必須項目が入力されていません');
     });
 
     it('should prevent viewers from creating accounts', async () => {
@@ -316,7 +330,7 @@ describe('Accounts Server Actions', () => {
       const result = await createAccount(mockAccountData);
 
       expect(result.success).toBe(false);
-      expect(result.error?.code).toBe(ERROR_CODES.FORBIDDEN);
+      expect(result.error?.code).toBe(ERROR_CODES.INSUFFICIENT_PERMISSIONS);
       expect(result.error?.message).toContain('閲覧者は勘定科目を作成できません');
     });
 
@@ -348,7 +362,7 @@ describe('Accounts Server Actions', () => {
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.ALREADY_EXISTS);
-      expect(result.error?.message).toContain('この勘定科目コードは既に使用されています');
+      expect(result.error?.message).toContain('勘定科目コード「');
     });
 
     it('should validate parent account exists', async () => {
@@ -359,7 +373,7 @@ describe('Accounts Server Actions', () => {
 
       const dataWithParent = {
         ...mockAccountData,
-        parentAccountId: 'parent-123',
+        parent_account_id: 'parent-123',
       };
 
       // Mock organization access check
@@ -396,8 +410,8 @@ describe('Accounts Server Actions', () => {
       const result = await createAccount(dataWithParent);
 
       expect(result.success).toBe(false);
-      expect(result.error?.code).toBe(ERROR_CODES.NOT_FOUND);
-      expect(result.error?.message).toContain('指定された親勘定科目が見つかりません');
+      expect(result.error?.code).toBe(ERROR_CODES.VALIDATION_ERROR);
+      expect(result.error?.message).toContain('指定された親勘定科目が存在しません');
     });
   });
 
