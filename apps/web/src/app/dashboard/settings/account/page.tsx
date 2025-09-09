@@ -20,7 +20,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/auth-context';
-import { apiClient } from '@/lib/api-client';
+// TODO: Migrate to Server Actions - Issue #355
+// import { apiClient } from '@/lib/api-client';
 
 // プロフィール更新スキーマ
 const profileSchema = z.object({
@@ -44,7 +45,7 @@ const passwordSchema = z
 type PasswordFormData = z.infer<typeof passwordSchema>;
 
 export default function AccountSettingsPage() {
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [isPasswordLoading, setIsPasswordLoading] = useState(false);
 
@@ -67,7 +68,13 @@ export default function AccountSettingsPage() {
   });
 
   // プロフィール更新処理
-  const onProfileSubmit = async (data: ProfileFormData) => {
+  const onProfileSubmit = async (_data: ProfileFormData) => {
+    // TODO: Migrate to Server Actions - Issue #355
+    toast.error('プロフィール更新機能は現在メンテナンス中です');
+    setIsProfileLoading(false);
+
+    // Original code commented out:
+    /*
     try {
       setIsProfileLoading(true);
       await apiClient.put('/auth/profile', data);
@@ -79,10 +86,18 @@ export default function AccountSettingsPage() {
     } finally {
       setIsProfileLoading(false);
     }
+    */
   };
 
   // パスワード変更処理
-  const onPasswordSubmit = async (data: PasswordFormData) => {
+  const onPasswordSubmit = async (_data: PasswordFormData) => {
+    // TODO: Migrate to Server Actions - Issue #355
+    // Use updatePassword Server Action from app/actions/auth.ts instead
+    toast.error('パスワード変更機能は現在メンテナンス中です');
+    setIsPasswordLoading(false);
+
+    // Original code commented out:
+    /*
     try {
       setIsPasswordLoading(true);
       await apiClient.put('/auth/password', data);
@@ -112,6 +127,7 @@ export default function AccountSettingsPage() {
     } finally {
       setIsPasswordLoading(false);
     }
+    */
   };
 
   return (

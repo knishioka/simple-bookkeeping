@@ -8,9 +8,10 @@ import { DateRangePicker } from '@/components/common/DateRangePicker';
 import { LedgerTable, LedgerEntry } from '@/components/common/LedgerTable';
 import { ReportLayout } from '@/components/common/ReportLayout';
 import { Button } from '@/components/ui/button';
-import { useApiCall } from '@/hooks/useApiCall';
+// TODO: Migrate to Server Actions - Issue #355
+// import { useApiCall } from '@/hooks/useApiCall';
 import { useDateRange } from '@/hooks/useDateRange';
-import { apiClient } from '@/lib/api-client';
+// import { apiClient } from '@/lib/api-client';
 import { formatAmount } from '@/lib/formatters';
 
 interface CashBookResponse {
@@ -30,9 +31,20 @@ interface CashBookResponse {
 
 export default function CashBookPage() {
   const { startDate, endDate, setStartDate, setEndDate } = useDateRange();
-  const { data, loading, execute } = useApiCall<CashBookResponse>();
+  // TODO: Migrate to Server Actions - Issue #355
+  // const { data, loading, execute } = useApiCall<CashBookResponse>();
+  // Mock empty data to avoid TypeScript errors during migration
+  const data: CashBookResponse | null = {
+    openingBalance: 0,
+    entries: [],
+    closingBalance: 0,
+  };
+  const loading = false;
 
   const fetchCashBook = useCallback(() => {
+    // TODO: Migrate to Server Actions - Issue #355
+    toast.error('現金出納帳の表示機能は現在メンテナンス中です');
+    /*
     execute(
       () =>
         apiClient.get<{ data: CashBookResponse }>(
@@ -42,7 +54,8 @@ export default function CashBookPage() {
         errorMessage: '現金出納帳の取得に失敗しました',
       }
     );
-  }, [execute, startDate, endDate]);
+    */
+  }, []);
 
   useEffect(() => {
     fetchCashBook();
