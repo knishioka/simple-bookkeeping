@@ -202,3 +202,34 @@ export async function deleteJournalEntryWithAuth(
 
   return journalEntriesActions.deleteJournalEntry(id, organizationId);
 }
+
+/**
+ * CSVファイルから仕訳をインポート（組織ID自動取得版）
+ */
+export async function importJournalEntriesFromCSVWithAuth(
+  formData: FormData
+): Promise<ActionResult<{ imported: number; errors: Array<{ row: number; error: string }> }>> {
+  const { getCurrentAccountingPeriodId } = await import('@/lib/organization');
+  const organizationId = await getCurrentOrganizationId();
+
+  if (!organizationId) {
+    return createErrorResult(ERROR_CODES.UNAUTHORIZED, '組織が選択されていません。');
+  }
+
+  // FormDataに組織IDを追加
+  formData.append('organizationId', organizationId);
+
+  // 会計期間IDがFormDataになければ、現在の会計期間IDを自動取得
+  if (!formData.has('accountingPeriodId')) {
+    const accountingPeriodId = await getCurrentAccountingPeriodId();
+    if (!accountingPeriodId) {
+      return createErrorResult(
+        ERROR_CODES.INVALID_OPERATION,
+        'アクティブな会計期間が見つかりません。'
+      );
+    }
+    formData.append('accountingPeriodId', accountingPeriodId);
+  }
+
+  return journalEntriesActions.importJournalEntriesFromCSV(formData);
+}

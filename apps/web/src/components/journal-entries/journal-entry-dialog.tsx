@@ -7,6 +7,12 @@ import { useFieldArray, useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { z } from 'zod';
 
+import { getAccountsWithAuth } from '@/app/actions/accounts-wrapper';
+import {
+  createJournalEntryWithAuth,
+  updateJournalEntryWithAuth,
+} from '@/app/actions/journal-entries-wrapper';
+import { getPartnersWithAuth } from '@/app/actions/partners-wrapper';
 import { AccountSearchCombobox } from '@/components/ui/account-search-combobox';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,7 +34,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { PartnerSelect } from '@/components/ui/partner-select';
 import { Textarea } from '@/components/ui/textarea';
-import { apiClient } from '@/lib/api-client';
+import { getCurrentAccountingPeriodId } from '@/lib/organization';
 
 const journalEntryLineSchema = z.object({
   accountId: z.string().min(1, '勘定科目を選択してください'),
@@ -189,9 +195,21 @@ export function JournalEntryDialog({
 
   const fetchAccounts = async () => {
     try {
-      const response = await apiClient.get<Account[]>('/accounts?active=true');
-      if (response.data) {
-        setAccounts(response.data);
+      const result = await getAccountsWithAuth({ pageSize: 1000 });
+      if (result.success && result.data) {
+        const transformedAccounts = result.data.items.map((acc) => ({
+          id: acc.id,
+          code: acc.code,
+          name: acc.name,
+          nameKana: acc.name_kana || undefined,
+          accountType: acc.account_type.toUpperCase() as
+            | 'ASSET'
+            | 'LIABILITY'
+            | 'EQUITY'
+            | 'REVENUE'
+            | 'EXPENSE',
+        }));
+        setAccounts(transformedAccounts);
       }
     } catch (error) {
       console.error('Failed to fetch accounts:', error);
@@ -201,16 +219,17 @@ export function JournalEntryDialog({
 
   const fetchPartners = async () => {
     try {
-      const response = await apiClient.get<
-        Array<{
-          id: string;
-          code: string;
-          name: string;
-          partnerType: 'CUSTOMER' | 'VENDOR' | 'BOTH';
-        }>
-      >('/partners?active=true');
-      if (response.data) {
-        setPartners(response.data);
+      const result = await getPartnersWithAuth({ pageSize: 1000 });
+      if (result.success && result.data) {
+        const transformedPartners = result.data.items.map((partner) => ({
+          id: partner.id,
+          code: partner.code,
+          name: partner.name,
+          partnerType: (partner.partner_type === 'both'
+            ? 'BOTH'
+            : partner.partner_type.toUpperCase()) as 'CUSTOMER' | 'VENDOR' | 'BOTH',
+        }));
+        setPartners(transformedPartners);
       }
     } catch (error) {
       console.error('Failed to fetch partners:', error);
@@ -221,21 +240,63 @@ export function JournalEntryDialog({
   const onSubmit = async (data: JournalEntryFormData) => {
     setLoading(true);
     try {
+      // Get current accounting period if not set
+      const accountingPeriodId = await getCurrentAccountingPeriodId();
+      if (!accountingPeriodId) {
+        toast.error('アクティブな会計期間が見つかりません');
+        setLoading(false);
+        return;
+      }
+
+      // Transform data to match Server Action format
+      const transformedLines = data.lines.map((line, index) => ({
+        account_id: line.accountId,
+        debit_amount: line.debitAmount,
+        credit_amount: line.creditAmount,
+        description: line.description || '',
+        line_number: index + 1,
+        partner_id: data.partnerId || undefined,
+      }));
+
       if (entry) {
         // Update existing entry
-        const response = await apiClient.put(`/journal-entries/${entry.id}`, data);
-        if (response.data) {
+        const result = await updateJournalEntryWithAuth(entry.id, {
+          entry: {
+            entry_date: data.entryDate,
+            description: data.description,
+          },
+          lines: transformedLines,
+        });
+
+        if (result.success) {
           toast.success('仕訳を更新しました');
           onSuccess();
           onOpenChange(false);
+        } else if (result.error) {
+          toast.error(result.error.message || '仕訳の更新に失敗しました');
         }
       } else {
-        // Create new entry
-        const response = await apiClient.post('/journal-entries', data);
-        if (response.data) {
+        // Create new entry with auto-generated entry number
+        const entryNumber = `JE-${Date.now().toString().slice(-6)}`; // Temporary number
+
+        const result = await createJournalEntryWithAuth({
+          entry: {
+            organization_id: '', // Will be overwritten by wrapper
+            accounting_period_id: accountingPeriodId,
+            entry_number: entryNumber,
+            entry_date: data.entryDate,
+            description: data.description,
+            status: 'draft',
+          },
+          lines: transformedLines,
+        });
+
+        if (result.success) {
           toast.success('仕訳を作成しました');
           onSuccess();
           onOpenChange(false);
+        } else if (result.error) {
+          toast.error(result.error.message || '仕訳の作成に失敗しました');
         }
       }
     } catch (error) {

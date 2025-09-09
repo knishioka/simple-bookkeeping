@@ -1,3 +1,25 @@
+/**
+ * @deprecated This hook uses the old API client. Use `useServerFileImport` instead for Server Actions.
+ * Migration guide:
+ * - Replace `useFileImport` with `useServerFileImport`
+ * - Replace `endpoint` parameter with `importAction` (Server Action function)
+ * - Replace `organizationId` with automatic server-side retrieval
+ *
+ * Example:
+ * ```tsx
+ * // Old
+ * const { ... } = useFileImport({
+ *   endpoint: '/accounts/import',
+ *   onSuccess: () => { ... }
+ * });
+ *
+ * // New
+ * const { ... } = useServerFileImport({
+ *   importAction: importAccountsFromCSVWithAuth,
+ *   onSuccess: () => { ... }
+ * });
+ * ```
+ */
 'use client';
 
 import { useCallback, useRef, useState } from 'react';

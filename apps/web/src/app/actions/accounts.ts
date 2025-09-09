@@ -322,6 +322,220 @@ export async function updateAccount(
 }
 
 /**
+ * CSVファイルから勘定科目をインポート
+ */
+export async function importAccountsFromCSV(
+  formData: FormData
+): Promise<ActionResult<{ imported: number; errors: Array<{ row: number; error: string }> }>> {
+  try {
+    const { parse } = await import('csv-parse');
+    const supabase = await createClient();
+
+    // 認証チェック
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return createUnauthorizedResult();
+    }
+
+    // フォームデータから必要な情報を取得
+    const file = formData.get('file') as File;
+    const organizationId = formData.get('organizationId') as string;
+
+    if (!file || !organizationId) {
+      return createValidationErrorResult('ファイルと組織IDは必須です。');
+    }
+
+    // 組織へのアクセス権限チェック（admin または accountant のみインポート可能）
+    const { data: userOrg, error: orgError } = await supabase
+      .from('user_organizations')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('organization_id', organizationId)
+      .single();
+
+    if (orgError || !userOrg) {
+      return createErrorResult(
+        ERROR_CODES.FORBIDDEN,
+        'この組織の勘定科目をインポートする権限がありません。'
+      );
+    }
+
+    if (userOrg.role === 'viewer') {
+      return createErrorResult(
+        ERROR_CODES.INSUFFICIENT_PERMISSIONS,
+        '閲覧者は勘定科目をインポートできません。'
+      );
+    }
+
+    // ファイルサイズチェック（5MB制限）
+    if (file.size > 5 * 1024 * 1024) {
+      return createValidationErrorResult('ファイルサイズは5MB以下にしてください。');
+    }
+
+    // CSVファイルを読み込み
+    const text = await file.text();
+
+    // CSVパース
+    interface CSVRecord {
+      [key: string]: string | undefined;
+    }
+    const records: CSVRecord[] = await new Promise((resolve, reject) => {
+      const output: CSVRecord[] = [];
+      const parser = parse({
+        columns: true,
+        skip_empty_lines: true,
+        trim: true,
+        bom: true,
+      });
+
+      parser.on('readable', function () {
+        let record;
+        while ((record = parser.read()) !== null) {
+          output.push(record);
+        }
+      });
+
+      parser.on('error', function (err) {
+        reject(err);
+      });
+
+      parser.on('end', function () {
+        resolve(output);
+      });
+
+      parser.write(text);
+      parser.end();
+    });
+
+    if (records.length === 0) {
+      return createValidationErrorResult('CSVファイルにデータが含まれていません。');
+    }
+
+    // バリデーションとインポート処理
+    const errors: Array<{ row: number; error: string }> = [];
+    const successfulImports: Account[] = [];
+    const accountTypeMap: Record<string, string> = {
+      ASSET: 'asset',
+      LIABILITY: 'liability',
+      EQUITY: 'equity',
+      REVENUE: 'revenue',
+      EXPENSE: 'expense',
+      資産: 'asset',
+      負債: 'liability',
+      資本: 'equity',
+      純資産: 'equity',
+      収益: 'revenue',
+      費用: 'expense',
+    };
+
+    const categoryMap: Record<string, string> = {
+      asset: 'current_assets',
+      liability: 'current_liabilities',
+      equity: 'capital',
+      revenue: 'sales',
+      expense: 'operating_expenses',
+    };
+
+    for (let i = 0; i < records.length; i++) {
+      const record = records[i];
+      const rowNumber = i + 2; // ヘッダー行を考慮
+
+      try {
+        // 必須フィールドのチェック
+        const code = record.code || record.コード || record['勘定科目コード'];
+        const name = record.name || record.名称 || record['勘定科目名'];
+        const accountTypeRaw =
+          record.accountType || record.type || record['勘定科目区分'] || record.区分;
+
+        if (!code || !name || !accountTypeRaw) {
+          errors.push({
+            row: rowNumber,
+            error: '必須項目（code, name, accountType）が不足しています。',
+          });
+          continue;
+        }
+
+        // 勘定科目タイプの変換
+        const accountType =
+          accountTypeMap[accountTypeRaw.toUpperCase()] || accountTypeMap[accountTypeRaw];
+        if (!accountType) {
+          errors.push({
+            row: rowNumber,
+            error: `不正な勘定科目区分: ${accountTypeRaw}`,
+          });
+          continue;
+        }
+
+        // カテゴリーの決定
+        const category = categoryMap[accountType];
+
+        // 勘定科目コードの重複チェック
+        const { data: existingAccount } = await supabase
+          .from('accounts')
+          .select('id')
+          .eq('organization_id', organizationId)
+          .eq('code', code)
+          .single();
+
+        if (existingAccount) {
+          errors.push({
+            row: rowNumber,
+            error: `勘定科目コード「${code}」は既に使用されています。`,
+          });
+          continue;
+        }
+
+        // 勘定科目を作成
+        const { data: newAccount, error: createError } = await supabase
+          .from('accounts')
+          .insert({
+            organization_id: organizationId,
+            code,
+            name,
+            account_type: accountType,
+            category,
+            description: record.description || record.備考 || null,
+            is_active: true,
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          errors.push({
+            row: rowNumber,
+            error: `作成エラー: ${createError.message}`,
+          });
+          continue;
+        }
+
+        successfulImports.push(newAccount);
+      } catch (error) {
+        errors.push({
+          row: rowNumber,
+          error: error instanceof Error ? error.message : '不明なエラーが発生しました。',
+        });
+      }
+    }
+
+    // キャッシュを再検証
+    if (successfulImports.length > 0) {
+      revalidatePath('/dashboard/accounts');
+      revalidatePath(`/api/v1/accounts`);
+    }
+
+    return createSuccessResult({
+      imported: successfulImports.length,
+      errors,
+    });
+  } catch (error) {
+    return handleSupabaseError(error);
+  }
+}
+
+/**
  * 勘定科目を削除
  */
 export async function deleteAccount(
