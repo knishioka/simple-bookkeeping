@@ -21,7 +21,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/auth-context';
-import { apiClient as api } from '@/lib/api-client';
+// TODO: Migrate to Server Actions - Issue #355
+// import { apiClient as api } from '@/lib/api-client';
 
 const organizationSchema = z.object({
   name: z.string().min(1, '組織名は必須です'),
@@ -51,7 +52,7 @@ interface Organization {
 export default function OrganizationSettingsPage() {
   const router = useRouter();
   const { user, currentOrganization } = useAuth();
-  const [organization, setOrganization] = useState<Organization | null>(null);
+  const [organization] = useState<Organization | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
 
@@ -73,6 +74,10 @@ export default function OrganizationSettingsPage() {
         return;
       }
 
+      // TODO: Migrate to Server Actions - Issue #355
+      toast.error('組織情報の表示機能は現在メンテナンス中です');
+      setIsFetching(false);
+      /*
       try {
         const response = await api.get<{ data: Organization }>('/organizations/current');
         const org = response.data?.data;
@@ -93,12 +98,18 @@ export default function OrganizationSettingsPage() {
       } finally {
         setIsFetching(false);
       }
+      */
     };
 
     fetchOrganization();
   }, [currentOrganization, form]);
 
-  const onSubmit = async (data: OrganizationFormData) => {
+  const onSubmit = async (_data: OrganizationFormData) => {
+    // TODO: Migrate to Server Actions - Issue #355
+    toast.error('組織情報の更新機能は現在メンテナンス中です');
+    setIsLoading(false);
+
+    /*
     if (!organization) return;
 
     setIsLoading(true);
@@ -117,6 +128,7 @@ export default function OrganizationSettingsPage() {
     } finally {
       setIsLoading(false);
     }
+    */
   };
 
   // Check if current user is admin

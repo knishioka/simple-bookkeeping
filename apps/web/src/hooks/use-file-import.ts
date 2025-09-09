@@ -25,7 +25,8 @@
 import { useCallback, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 
-import { apiClient } from '@/lib/api-client';
+// TODO: Migrate to Server Actions - Issue #355
+// import { apiClient } from '@/lib/api-client';
 
 interface UseFileImportOptions {
   endpoint: string;
@@ -48,12 +49,12 @@ interface UseFileImportReturn {
 }
 
 export function useFileImport({
-  endpoint,
-  maxSize = 5 * 1024 * 1024, // 5MB default
-  allowedTypes = ['.csv', 'text/csv', 'application/vnd.ms-excel'],
-  onSuccess,
-  successMessage = 'インポートが完了しました',
-  errorMessage = 'インポートに失敗しました',
+  endpoint: _endpoint,
+  maxSize: _maxSize = 5 * 1024 * 1024, // 5MB default
+  allowedTypes: _allowedTypes = ['.csv', 'text/csv', 'application/vnd.ms-excel'],
+  onSuccess: _onSuccess,
+  successMessage: _successMessage = 'インポートが完了しました',
+  errorMessage: _errorMessage = 'インポートに失敗しました',
 }: UseFileImportOptions): UseFileImportReturn {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -62,7 +63,9 @@ export function useFileImport({
 
   const validateAndSetFile = useCallback(
     (selectedFile: File) => {
-      // Validate file before setting
+      // TODO: Migrate to Server Actions - Issue #355
+      // Validation temporarily disabled during migration
+      /*
       const validation = apiClient.validateFile(selectedFile, {
         maxSize,
         allowedTypes,
@@ -72,12 +75,13 @@ export function useFileImport({
         toast.error(validation.error);
         return false;
       }
+      */
 
       setFile(selectedFile);
       setUploadProgress(0);
       return true;
     },
-    [maxSize, allowedTypes]
+    [] // Dependencies removed during migration
   );
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,6 +116,11 @@ export function useFileImport({
     abortControllerRef.current = new AbortController();
 
     try {
+      // TODO: Migrate to Server Actions - Issue #355
+      // Upload functionality temporarily disabled during migration
+      toast.error('ファイルアップロード機能は現在メンテナンス中です');
+
+      /*
       const response = await apiClient.upload<{
         success: boolean;
         message?: string;
@@ -132,9 +141,10 @@ export function useFileImport({
         // Error is already handled by apiClient with toast
         console.error('Import error:', response.error);
       }
+      */
     } catch (error) {
       console.error('Failed to import:', error);
-      toast.error(errorMessage);
+      toast.error(_errorMessage);
     } finally {
       setLoading(false);
       abortControllerRef.current = null;
