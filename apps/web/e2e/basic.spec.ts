@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-import { UnifiedMock } from './helpers/unified-mock';
+import { UnifiedMock } from './helpers/server-actions-unified-mock';
 import { waitForPageReady } from './helpers/wait-strategies';
 
 /**
