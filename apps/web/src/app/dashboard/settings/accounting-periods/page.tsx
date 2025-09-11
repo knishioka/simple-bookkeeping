@@ -1,7 +1,7 @@
 'use client';
 
 import { Plus, Calendar, Check, Edit, Trash2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import {
   getAccountingPeriodsWithAuth,
@@ -61,7 +61,7 @@ export default function AccountingPeriodsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const { toast } = useToast();
 
-  const fetchPeriods = async () => {
+  const fetchPeriods = useCallback(async () => {
     try {
       setLoading(true);
       const result = await getAccountingPeriodsWithAuth();
@@ -83,11 +83,11 @@ export default function AccountingPeriodsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchPeriods();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fetchPeriods]);
 
   const handleActivate = async (periodId: string) => {
     try {
