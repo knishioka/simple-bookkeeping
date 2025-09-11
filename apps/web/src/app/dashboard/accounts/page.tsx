@@ -1,7 +1,7 @@
 'use client';
 
 import { Plus, Search, Upload } from 'lucide-react';
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 
 import { getAccountsWithAuth } from '@/app/actions/accounts-wrapper';
 import { Button } from '@/components/ui/button';
@@ -73,7 +73,7 @@ export default function AccountsPage() {
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
-  const fetchAccounts = async () => {
+  const fetchAccounts = useCallback(async () => {
     const result = await fetchAccountsAction(undefined, {
       errorMessage: '勘定科目の取得に失敗しました',
       showToast: true,
@@ -94,12 +94,11 @@ export default function AccountsPage() {
 
       setAccounts(transformedAccounts);
     }
-  };
+  }, [fetchAccountsAction]);
 
   useEffect(() => {
     fetchAccounts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchAccounts]);
 
   const filteredAccounts = accounts.filter((account) => {
     const matchesSearch =

@@ -1,7 +1,7 @@
 'use client';
 
 import { Calendar, Plus, Search, Upload } from 'lucide-react';
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 
 import {
   getJournalEntriesWithAuth,
@@ -89,20 +89,7 @@ export default function JournalEntriesPage() {
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>('');
 
-  useEffect(() => {
-    fetchJournalEntries();
-
-    // Preload heavy components in the background after initial render
-    const timer = setTimeout(() => {
-      import('@/components/journal-entries/journal-entry-dialog');
-      import('@/components/journal-entries/journal-entry-import-dialog');
-    }, 1000);
-
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const fetchJournalEntries = async () => {
+  const fetchJournalEntries = useCallback(async () => {
     try {
       const result = await fetchEntriesAction(undefined, {
         showToast: false, // Don't show toast on initial load
@@ -140,7 +127,19 @@ export default function JournalEntriesPage() {
     } catch (error) {
       console.error('Failed to fetch journal entries:', error);
     }
-  };
+  }, [fetchEntriesAction]);
+
+  useEffect(() => {
+    fetchJournalEntries();
+
+    // Preload heavy components in the background after initial render
+    const timer = setTimeout(() => {
+      import('@/components/journal-entries/journal-entry-dialog');
+      import('@/components/journal-entries/journal-entry-import-dialog');
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [fetchJournalEntries]);
 
   const filteredEntries = entries.filter((entry) => {
     const matchesSearch =
