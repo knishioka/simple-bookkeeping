@@ -78,6 +78,11 @@ export const RATE_LIMIT_CONFIGS = {
  * Get client identifier from request headers
  */
 async function getClientIdentifier(userId?: string): Promise<string> {
+  // In test environment, skip headers() call
+  if (process.env.NODE_ENV === 'test') {
+    return userId || 'test-client';
+  }
+
   try {
     const headersList = await headers();
 
