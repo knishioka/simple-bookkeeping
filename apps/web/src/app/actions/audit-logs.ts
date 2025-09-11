@@ -594,6 +594,19 @@ export async function auditEntityChange(params: {
     });
   } catch (error) {
     // 監査ログの失敗は本処理に影響させない
-    console.error('Failed to create audit log:', error);
+    // エラーの詳細をログに記録
+    console.error('Failed to create audit log:', {
+      error,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      params: {
+        action: params.action,
+        entityType: params.entityType,
+        entityId: params.entityId,
+        userId: params.user.id,
+        organizationId: params.organizationId,
+      },
+      timestamp: new Date().toISOString(),
+    });
   }
 }
