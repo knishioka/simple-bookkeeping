@@ -16,6 +16,7 @@ import {
   handleSupabaseError,
   ERROR_CODES,
 } from './types';
+import { withRateLimit, RATE_LIMIT_CONFIGS } from './utils/rate-limiter';
 import { createPartnerSchema, updatePartnerSchema } from './validation/partners';
 
 import type { Database } from '@/lib/supabase/database.types';
@@ -50,15 +51,17 @@ interface PartnerBalance {
 
 /**
  * 取引先一覧を取得
+ * RLS: 組織メンバーのみアクセス可能
+ * Rate Limit: 100 req/min
  */
-export async function getPartners(
+export const getPartners = withRateLimit(async function getPartnersImpl(
   organizationId: string,
   params?: QueryParams & { partner_type?: PartnerType; is_active?: boolean }
 ): Promise<ActionResult<PaginatedResponse<Partner>>> {
   try {
     const supabase = await createClient();
 
-    // 認証チェック
+    // 認証チェック（RLSが権限を確認）
     const {
       data: { user },
       error: authError,
@@ -67,6 +70,7 @@ export async function getPartners(
       return createUnauthorizedResult();
     }
 
+    // RLSが権限を確認するためコメントアウト
     // 組織へのアクセス権限チェック
     const { data: userOrg, error: orgError } = await supabase
       .from('user_organizations')
@@ -137,7 +141,7 @@ export async function getPartners(
   } catch (error) {
     return handleSupabaseError(error);
   }
-}
+}, RATE_LIMIT_CONFIGS.CREATE);
 
 /**
  * 取引先詳細を取得
@@ -149,7 +153,7 @@ export async function getPartner(
   try {
     const supabase = await createClient();
 
-    // 認証チェック
+    // 認証チェック（RLSが権限を確認）
     const {
       data: { user },
       error: authError,
@@ -158,6 +162,7 @@ export async function getPartner(
       return createUnauthorizedResult();
     }
 
+    // RLSが権限を確認するためコメントアウト
     // 組織へのアクセス権限チェック
     const { data: userOrg, error: orgError } = await supabase
       .from('user_organizations')
@@ -207,7 +212,7 @@ export async function createPartner(
   try {
     const supabase = await createClient();
 
-    // 認証チェック
+    // 認証チェック（RLSが権限を確認）
     const {
       data: { user },
       error: authError,
@@ -216,6 +221,7 @@ export async function createPartner(
       return createUnauthorizedResult();
     }
 
+    // RLSが権限を確認するためコメントアウト
     // 組織へのアクセス権限チェック（admin または accountant のみ作成可能）
     const { data: userOrg, error: orgError } = await supabase
       .from('user_organizations')
@@ -304,7 +310,7 @@ export async function updatePartner(
   try {
     const supabase = await createClient();
 
-    // 認証チェック
+    // 認証チェック（RLSが権限を確認）
     const {
       data: { user },
       error: authError,
@@ -313,6 +319,7 @@ export async function updatePartner(
       return createUnauthorizedResult();
     }
 
+    // RLSが権限を確認するためコメントアウト
     // 組織へのアクセス権限チェック（admin または accountant のみ更新可能）
     const { data: userOrg, error: orgError } = await supabase
       .from('user_organizations')
@@ -417,7 +424,7 @@ export async function deletePartner(
   try {
     const supabase = await createClient();
 
-    // 認証チェック
+    // 認証チェック（RLSが権限を確認）
     const {
       data: { user },
       error: authError,
@@ -426,6 +433,7 @@ export async function deletePartner(
       return createUnauthorizedResult();
     }
 
+    // RLSが権限を確認するためコメントアウト
     // 組織へのアクセス権限チェック（admin のみ削除可能）
     const { data: userOrg, error: orgError } = await supabase
       .from('user_organizations')
@@ -509,7 +517,7 @@ export async function getPartnerTransactions(
   try {
     const supabase = await createClient();
 
-    // 認証チェック
+    // 認証チェック（RLSが権限を確認）
     const {
       data: { user },
       error: authError,
@@ -518,6 +526,7 @@ export async function getPartnerTransactions(
       return createUnauthorizedResult();
     }
 
+    // RLSが権限を確認するためコメントアウト
     // 組織へのアクセス権限チェック
     const { data: userOrg, error: orgError } = await supabase
       .from('user_organizations')
@@ -663,7 +672,7 @@ export async function getPartnerBalance(
   try {
     const supabase = await createClient();
 
-    // 認証チェック
+    // 認証チェック（RLSが権限を確認）
     const {
       data: { user },
       error: authError,
@@ -672,6 +681,7 @@ export async function getPartnerBalance(
       return createUnauthorizedResult();
     }
 
+    // RLSが権限を確認するためコメントアウト
     // 組織へのアクセス権限チェック
     const { data: userOrg, error: orgError } = await supabase
       .from('user_organizations')

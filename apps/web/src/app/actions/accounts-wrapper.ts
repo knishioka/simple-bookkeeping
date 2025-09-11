@@ -47,7 +47,7 @@ export async function createAccountWithAuth(
   return accountsActions.createAccount({
     ...data,
     organization_id: organizationId,
-  });
+  } as Omit<AccountInsert, 'id' | 'created_at' | 'updated_at'>);
 }
 
 /**

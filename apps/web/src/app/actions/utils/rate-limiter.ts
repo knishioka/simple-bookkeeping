@@ -6,7 +6,9 @@
 
 import { headers } from 'next/headers';
 
-import { createRateLimitErrorResult, ActionResult } from '../types';
+import { createRateLimitErrorResult } from '../types';
+
+import type { ActionResult } from '../types';
 
 interface RateLimitEntry {
   count: number;
@@ -155,11 +157,12 @@ export async function rateLimitMiddleware(
 /**
  * Higher-order function to wrap Server Actions with rate limiting
  */
-export function withRateLimit<T extends (...args: unknown[]) => Promise<ActionResult<unknown>>>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function withRateLimit<T extends (...args: any[]) => any>(
   action: T,
   config: RateLimitConfig
 ): T {
-  return (async (...args: Parameters<T>) => {
+  const wrappedAction = async (...args: Parameters<T>): Promise<ReturnType<T>> => {
     // Try to extract userId from the first argument if it's an object with userId
     let userId: string | undefined;
     if (args.length > 0 && typeof args[0] === 'object' && args[0] !== null) {
@@ -171,11 +174,16 @@ export function withRateLimit<T extends (...args: unknown[]) => Promise<ActionRe
 
     const rateLimitResult = await rateLimitMiddleware(config, userId);
     if (rateLimitResult) {
-      return rateLimitResult;
+      // Cast is safe because rate limit error has the same shape as ActionResult<T>
+      // The error case of ActionResult doesn't depend on the generic T
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return rateLimitResult as any;
     }
 
     return action(...args);
-  }) as T;
+  };
+
+  return wrappedAction as T;
 }
 
 /**

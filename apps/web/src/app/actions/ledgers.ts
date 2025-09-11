@@ -4,6 +4,8 @@ import { z } from 'zod';
 
 import { createClient } from '@/lib/supabase/server';
 
+import { withRateLimit, RATE_LIMIT_CONFIGS } from './utils/rate-limiter';
+
 const dateRangeSchema = z.object({
   startDate: z
     .string()
@@ -36,7 +38,11 @@ interface ActionResult<T = void> {
   error?: string;
 }
 
-export async function getCashBook(
+/**
+ * Get cash book ledger data
+ * Rate limited: 100 requests per minute
+ */
+export const getCashBook = withRateLimit(async function getCashBookImpl(
   startDate: string,
   endDate: string
 ): Promise<ActionResult<LedgerData>> {
@@ -99,9 +105,13 @@ export async function getCashBook(
     console.error('Failed to fetch cash book:', error);
     return { success: false, error: '現金出納帳の取得に失敗しました' };
   }
-}
+}, RATE_LIMIT_CONFIGS.READ);
 
-export async function getBankBook(
+/**
+ * Get bank book ledger data
+ * Rate limited: 100 requests per minute
+ */
+export const getBankBook = withRateLimit(async function getBankBookImpl(
   startDate: string,
   endDate: string
 ): Promise<ActionResult<LedgerData>> {
@@ -164,9 +174,13 @@ export async function getBankBook(
     console.error('Failed to fetch bank book:', error);
     return { success: false, error: '預金出納帳の取得に失敗しました' };
   }
-}
+}, RATE_LIMIT_CONFIGS.READ);
 
-export async function getAccountsReceivable(
+/**
+ * Get accounts receivable ledger data
+ * Rate limited: 100 requests per minute
+ */
+export const getAccountsReceivable = withRateLimit(async function getAccountsReceivableImpl(
   startDate: string,
   endDate: string
 ): Promise<ActionResult<LedgerData>> {
@@ -229,9 +243,13 @@ export async function getAccountsReceivable(
     console.error('Failed to fetch accounts receivable:', error);
     return { success: false, error: '売掛金台帳の取得に失敗しました' };
   }
-}
+}, RATE_LIMIT_CONFIGS.READ);
 
-export async function getAccountsPayable(
+/**
+ * Get accounts payable ledger data
+ * Rate limited: 100 requests per minute
+ */
+export const getAccountsPayable = withRateLimit(async function getAccountsPayableImpl(
   startDate: string,
   endDate: string
 ): Promise<ActionResult<LedgerData>> {
@@ -294,9 +312,13 @@ export async function getAccountsPayable(
     console.error('Failed to fetch accounts payable:', error);
     return { success: false, error: '買掛金台帳の取得に失敗しました' };
   }
-}
+}, RATE_LIMIT_CONFIGS.READ);
 
-export async function exportLedgerToCSV(
+/**
+ * Export ledger data to CSV
+ * Rate limited: 3 requests per minute (sensitive operation)
+ */
+export const exportLedgerToCSV = withRateLimit(async function exportLedgerToCSVImpl(
   ledgerType: 'cash' | 'bank' | 'accounts-receivable' | 'accounts-payable',
   startDate: string,
   endDate: string
@@ -347,4 +369,4 @@ export async function exportLedgerToCSV(
     console.error('Failed to export ledger:', error);
     return { success: false, error: 'エクスポートに失敗しました' };
   }
-}
+}, RATE_LIMIT_CONFIGS.SENSITIVE);
