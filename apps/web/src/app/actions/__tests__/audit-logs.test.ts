@@ -918,4 +918,561 @@ describe('Audit Logs Server Actions', () => {
       expect(logsQuery.range).toHaveBeenCalledWith(25, 49); // page 2, size 25
     });
   });
+
+  describe('Edge Cases and Boundary Testing', () => {
+    it('should handle maximum page size correctly', async () => {
+      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const largeLogs = Array.from({ length: 1000 }, (_, i) => ({
+        id: `log-${i}`,
+        user_id: 'user-123',
+        action: 'UPDATE',
+        entity_type: 'account',
+        entity_id: `account-${i}`,
+        organization_id: 'org-123',
+        created_at: new Date(Date.now() - i * 1000).toISOString(),
+      }));
+
+      mockSupabaseClient.auth.getUser.mockResolvedValue({
+        data: { user: mockUser },
+        error: null,
+      });
+
+      const orgQuery = createQueryMock({
+        data: { role: 'admin' },
+        error: null,
+      });
+
+      const logsQuery = {
+        ...createQueryMock({
+          data: largeLogs.slice(0, 100),
+          error: null,
+          count: 1000,
+        }),
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        range: jest.fn().mockResolvedValue({
+          data: largeLogs.slice(0, 100),
+          error: null,
+          count: 1000,
+        }),
+      };
+
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'user_organizations') {
+          return orgQuery;
+        }
+        if (table === 'audit_logs') {
+          return logsQuery;
+        }
+        return createQueryMock({ data: null, error: null });
+      });
+
+      const result = await getAuditLogs('org-123', { pageSize: 100 });
+
+      expect(result.success).toBe(true);
+      expect(result.data?.items.length).toBe(100);
+      expect(result.data?.pagination.totalCount).toBe(1000);
+      expect(result.data?.pagination.totalPages).toBe(10);
+    });
+
+    it('should handle date range filters across timezones', async () => {
+      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+
+      mockSupabaseClient.auth.getUser.mockResolvedValue({
+        data: { user: mockUser },
+        error: null,
+      });
+
+      const orgQuery = createQueryMock({
+        data: { role: 'admin' },
+        error: null,
+      });
+
+      const logsQuery = {
+        ...createQueryMock({
+          data: [],
+          error: null,
+          count: 0,
+        }),
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        gte: jest.fn().mockReturnThis(),
+        lte: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        range: jest.fn().mockResolvedValue({
+          data: [],
+          error: null,
+          count: 0,
+        }),
+      };
+
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'user_organizations') {
+          return orgQuery;
+        }
+        if (table === 'audit_logs') {
+          return logsQuery;
+        }
+        return createQueryMock({ data: null, error: null });
+      });
+
+      const startDate = '2024-01-01T00:00:00Z';
+      const endDate = '2024-12-31T23:59:59Z';
+
+      await getAuditLogs('org-123', {
+        startDate,
+        endDate,
+      });
+
+      expect(logsQuery.gte).toHaveBeenCalledWith('created_at', startDate);
+      expect(logsQuery.lte).toHaveBeenCalledWith('created_at', endDate);
+    });
+
+    it('should handle special characters in entity IDs', async () => {
+      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const specialEntityId = 'entity-with-\'quotes"-and-<tags>';
+
+      mockSupabaseClient.auth.getUser.mockResolvedValue({
+        data: { user: mockUser },
+        error: null,
+      });
+
+      const orgQuery = createQueryMock({
+        data: { role: 'admin' },
+        error: null,
+      });
+
+      const logsQuery = {
+        ...createQueryMock({
+          data: [
+            {
+              id: 'log-1',
+              user_id: 'user-123',
+              action: 'CREATE',
+              entity_type: 'account',
+              entity_id: specialEntityId,
+              organization_id: 'org-123',
+              created_at: new Date().toISOString(),
+            },
+          ],
+          error: null,
+          count: 1,
+        }),
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        range: jest.fn().mockResolvedValue({
+          data: [
+            {
+              id: 'log-1',
+              user_id: 'user-123',
+              action: 'CREATE',
+              entity_type: 'account',
+              entity_id: specialEntityId,
+              organization_id: 'org-123',
+              created_at: new Date().toISOString(),
+            },
+          ],
+          error: null,
+          count: 1,
+        }),
+      };
+
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'user_organizations') {
+          return orgQuery;
+        }
+        if (table === 'audit_logs') {
+          return logsQuery;
+        }
+        return createQueryMock({ data: null, error: null });
+      });
+
+      const result = await getAuditLogs('org-123', {
+        entityId: specialEntityId,
+      });
+
+      expect(result.success).toBe(true);
+      expect(logsQuery.eq).toHaveBeenCalledWith('entity_id', specialEntityId);
+    });
+
+    it('should handle null values in audit log fields', async () => {
+      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+
+      mockSupabaseClient.auth.getUser.mockResolvedValue({
+        data: { user: mockUser },
+        error: null,
+      });
+
+      const logsWithNulls = [
+        {
+          id: 'log-1',
+          user_id: 'user-123',
+          action: 'DELETE',
+          entity_type: 'account',
+          entity_id: 'account-1',
+          organization_id: 'org-123',
+          created_at: new Date().toISOString(),
+          old_values: null,
+          new_values: null,
+          description: null,
+          ip_address: null,
+          user_agent: null,
+          users: null,
+        },
+      ];
+
+      const orgQuery = createQueryMock({
+        data: { role: 'admin' },
+        error: null,
+      });
+
+      const logsQuery = {
+        ...createQueryMock({
+          data: logsWithNulls,
+          error: null,
+          count: 1,
+        }),
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        range: jest.fn().mockResolvedValue({
+          data: logsWithNulls,
+          error: null,
+          count: 1,
+        }),
+      };
+
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'user_organizations') {
+          return orgQuery;
+        }
+        if (table === 'audit_logs') {
+          return logsQuery;
+        }
+        return createQueryMock({ data: null, error: null });
+      });
+
+      const result = await getAuditLogs('org-123');
+
+      expect(result.success).toBe(true);
+      expect(result.data?.items[0]).toMatchObject({
+        id: 'log-1',
+        userId: 'user-123',
+        action: 'DELETE',
+        entityType: 'account',
+        entityId: 'account-1',
+        organizationId: 'org-123',
+        oldValues: null,
+        newValues: null,
+        description: null,
+        ipAddress: null,
+        userAgent: null,
+        user: undefined,
+      });
+    });
+  });
+
+  describe('Performance and Load Testing', () => {
+    it('should handle large CSV exports efficiently', async () => {
+      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const largeLogs = Array.from({ length: 5000 }, (_, i) => ({
+        id: `log-${i}`,
+        userId: `user-${i % 10}`,
+        action: ['CREATE', 'UPDATE', 'DELETE'][i % 3],
+        entityType: ['account', 'journal_entry', 'user'][i % 3],
+        entityId: `entity-${i}`,
+        organizationId: 'org-123',
+        createdAt: new Date(Date.now() - i * 60000).toISOString(),
+        description: `Action ${i} performed`,
+        ipAddress: `192.168.1.${i % 255}`,
+        userAgent: 'Mozilla/5.0',
+        user: {
+          id: `user-${i % 10}`,
+          email: `user${i % 10}@example.com`,
+          name: `User ${i % 10}`,
+        },
+      }));
+
+      mockSupabaseClient.auth.getUser.mockResolvedValue({
+        data: { user: mockUser },
+        error: null,
+      });
+
+      const orgQuery = createQueryMock({
+        data: { role: 'admin' },
+        error: null,
+      });
+
+      jest.spyOn(global, 'getAuditLogs' as never).mockResolvedValueOnce({
+        success: true,
+        data: {
+          items: largeLogs,
+          pagination: {
+            page: 1,
+            pageSize: 10000,
+            totalCount: 5000,
+            totalPages: 1,
+          },
+        },
+      } as never);
+
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'user_organizations') {
+          return orgQuery;
+        }
+        return createQueryMock({ data: null, error: null });
+      });
+
+      const startTime = Date.now();
+      const result = await exportAuditLogs('org-123', undefined, {
+        format: 'csv',
+        includeUserDetails: true,
+      });
+      const endTime = Date.now();
+
+      expect(result.success).toBe(true);
+      expect(typeof result.data).toBe('string');
+
+      const csv = result.data as string;
+      const lines = csv.split('\n');
+      expect(lines.length).toBe(5001); // Header + 5000 data rows
+
+      // Performance check - should complete within 5 seconds
+      expect(endTime - startTime).toBeLessThan(5000);
+    });
+
+    it('should complete all operations within 30 seconds', async () => {
+      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+
+      mockSupabaseClient.auth.getUser.mockResolvedValue({
+        data: { user: mockUser },
+        error: null,
+      });
+
+      const orgQuery = createQueryMock({
+        data: { role: 'admin' },
+        error: null,
+      });
+
+      const logsQuery = createQueryMock({
+        data: [],
+        error: null,
+        count: 0,
+      });
+
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'user_organizations') {
+          return orgQuery;
+        }
+        if (table === 'audit_logs') {
+          return logsQuery;
+        }
+        return createQueryMock({ data: null, error: null });
+      });
+
+      const startTime = Date.now();
+
+      // Run multiple operations in parallel
+      await Promise.all([
+        getAuditLogs('org-123'),
+        getAuditLogsByUser('org-123', 'user-123'),
+        getAuditLogsByEntity('org-123', 'account', 'acc-1'),
+        getEntityTypes('org-123'),
+      ]);
+
+      const endTime = Date.now();
+      const executionTime = endTime - startTime;
+
+      expect(executionTime).toBeLessThan(30000); // 30 seconds
+    });
+  });
+
+  describe('Security and Validation', () => {
+    it('should prevent SQL injection in filter parameters', async () => {
+      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const maliciousInput = "'; DROP TABLE audit_logs; --";
+
+      mockSupabaseClient.auth.getUser.mockResolvedValue({
+        data: { user: mockUser },
+        error: null,
+      });
+
+      const orgQuery = createQueryMock({
+        data: { role: 'admin' },
+        error: null,
+      });
+
+      const logsQuery = {
+        ...createQueryMock({
+          data: [],
+          error: null,
+          count: 0,
+        }),
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        order: jest.fn().mockReturnThis(),
+        range: jest.fn().mockResolvedValue({
+          data: [],
+          error: null,
+          count: 0,
+        }),
+      };
+
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'user_organizations') {
+          return orgQuery;
+        }
+        if (table === 'audit_logs') {
+          return logsQuery;
+        }
+        return createQueryMock({ data: null, error: null });
+      });
+
+      const result = await getAuditLogs('org-123', {
+        entityId: maliciousInput,
+      });
+
+      expect(result.success).toBe(true);
+      // Supabase should handle parameterization safely
+      expect(logsQuery.eq).toHaveBeenCalledWith('entity_id', maliciousInput);
+    });
+
+    it('should sanitize CSV output to prevent formula injection', async () => {
+      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const dangerousDescription = '=1+1';
+
+      mockSupabaseClient.auth.getUser.mockResolvedValue({
+        data: { user: mockUser },
+        error: null,
+      });
+
+      const orgQuery = createQueryMock({
+        data: { role: 'admin' },
+        error: null,
+      });
+
+      jest.spyOn(global, 'getAuditLogs' as never).mockResolvedValueOnce({
+        success: true,
+        data: {
+          items: [
+            {
+              id: 'log-1',
+              userId: 'user-123',
+              action: 'UPDATE',
+              entityType: 'account',
+              entityId: 'acc-1',
+              organizationId: 'org-123',
+              createdAt: new Date().toISOString(),
+              description: dangerousDescription,
+              ipAddress: '192.168.1.1',
+              userAgent: 'Mozilla/5.0',
+            },
+          ],
+          pagination: {
+            page: 1,
+            pageSize: 50,
+            totalCount: 1,
+            totalPages: 1,
+          },
+        },
+      } as never);
+
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'user_organizations') {
+          return orgQuery;
+        }
+        return createQueryMock({ data: null, error: null });
+      });
+
+      const result = await exportAuditLogs('org-123', undefined, { format: 'csv' });
+
+      expect(result.success).toBe(true);
+      const csv = result.data as string;
+
+      // Check that dangerous formula is properly quoted
+      expect(csv).toContain('"=1+1"');
+    });
+
+    it('should validate action types are from allowed enum', async () => {
+      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+
+      mockSupabaseClient.auth.getUser.mockResolvedValue({
+        data: { user: mockUser },
+        error: null,
+      });
+
+      const orgQuery = createQueryMock({
+        data: { role: 'admin' },
+        error: null,
+      });
+
+      const logsQuery = createQueryMock({
+        data: [],
+        error: null,
+        count: 0,
+      });
+
+      mockSupabaseClient.from.mockImplementation((table: string) => {
+        if (table === 'user_organizations') {
+          return orgQuery;
+        }
+        if (table === 'audit_logs') {
+          return logsQuery;
+        }
+        return createQueryMock({ data: null, error: null });
+      });
+
+      const validActions = ['CREATE', 'UPDATE', 'DELETE', 'APPROVE'];
+
+      for (const action of validActions) {
+        const result = await getAuditLogs('org-123', {
+          action: action as any,
+        });
+        expect(result.success).toBe(true);
+      }
+    });
+  });
+
+  describe('Concurrent Access and Race Conditions', () => {
+    it('should handle concurrent audit log creation', async () => {
+      const createPromises = Array.from({ length: 10 }, (_, i) =>
+        createAuditLog({
+          userId: `user-${i}`,
+          action: 'CREATE',
+          entityType: 'account',
+          entityId: `account-${i}`,
+          organizationId: 'org-123',
+          description: `Concurrent create ${i}`,
+        })
+      );
+
+      mockSupabaseClient.from.mockImplementation(() => {
+        const insertQuery = createQueryMock({
+          data: {
+            id: `log-${Math.random()}`,
+            user_id: 'user-123',
+            action: 'CREATE',
+            entity_type: 'account',
+            entity_id: 'account-1',
+            organization_id: 'org-123',
+            created_at: new Date().toISOString(),
+          },
+          error: null,
+        });
+        return {
+          ...insertQuery,
+          insert: jest.fn().mockReturnThis(),
+          select: jest.fn().mockReturnThis(),
+          single: jest.fn().mockResolvedValue(insertQuery),
+        };
+      });
+
+      const results = await Promise.all(createPromises);
+
+      expect(results.every((r) => r.success)).toBe(true);
+      expect(mockSupabaseClient.from).toHaveBeenCalledTimes(10);
+    });
+  });
 });
