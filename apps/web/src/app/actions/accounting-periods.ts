@@ -16,7 +16,15 @@ import {
   createForbiddenResult,
   handleSupabaseError,
   ERROR_CODES,
+  validateInput,
 } from './types';
+import { rateLimitMiddleware, RATE_LIMIT_CONFIGS } from './utils/rate-limiter';
+import { extractUserRole } from './utils/type-guards';
+import {
+  createAccountingPeriodSchema,
+  updateAccountingPeriodSchema,
+  accountingPeriodIdSchema,
+} from './validation/accounting-periods';
 
 import type { Database } from '@/lib/supabase/database.types';
 
@@ -38,7 +46,8 @@ async function checkPeriodOverlap(
     .from('accounting_periods')
     .select('id')
     .eq('organization_id', organizationId)
-    .or(`and(start_date.lte.${endDate},end_date.gte.${startDate})`);
+    .lte('start_date', endDate)
+    .gte('end_date', startDate);
 
   if (excludeId) {
     query = query.neq('id', excludeId);
@@ -203,6 +212,13 @@ export async function createAccountingPeriod(
   data: Omit<AccountingPeriodInsert, 'organization_id' | 'id' | 'created_at' | 'updated_at'>
 ): Promise<ActionResult<AccountingPeriod>> {
   try {
+    // 入力検証
+    const validation = validateInput(createAccountingPeriodSchema, data);
+    if (!validation.success) {
+      return validation.error;
+    }
+    const validatedData = validation.data;
+
     const supabase = await createClient();
 
     // 認証チェック
@@ -226,32 +242,23 @@ export async function createAccountingPeriod(
       return createForbiddenResult();
     }
 
-    // 入力検証
-    if (!data.name || !data.start_date || !data.end_date) {
-      return createValidationErrorResult('名称、開始日、終了日は必須項目です。');
-    }
+    // 日付の妥当性チェック (validationで既にチェック済みだが、追加の検証)
+    const startDate = new Date(validatedData.start_date);
+    const endDate = new Date(validatedData.end_date);
 
-    // 日付の妥当性チェック
-    const startDate = new Date(data.start_date);
-    const endDate = new Date(data.end_date);
-
-    if (startDate >= endDate) {
-      return createValidationErrorResult('開始日は終了日より前である必要があります。');
-    }
-
-    // 期間が1年を超える場合は警告（エラーにはしない）
+    // 期間が2年を超える場合は警告（validationで2年までに制限）
     const oneYearLater = new Date(startDate);
     oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
     if (endDate > oneYearLater) {
-      console.warn('会計期間が1年を超えています:', data.name);
+      console.warn('会計期間が1年を超えています:', validatedData.name);
     }
 
     // 期間の重複チェック
     const hasOverlap = await checkPeriodOverlap(
       supabase,
       organizationId,
-      data.start_date,
-      data.end_date
+      validatedData.start_date,
+      validatedData.end_date
     );
 
     if (hasOverlap) {
@@ -262,7 +269,7 @@ export async function createAccountingPeriod(
     const { data: newPeriod, error: createError } = await supabase
       .from('accounting_periods')
       .insert({
-        ...data,
+        ...validatedData,
         organization_id: organizationId,
         is_closed: false,
       })
@@ -291,6 +298,19 @@ export async function updateAccountingPeriod(
   data: Omit<AccountingPeriodUpdate, 'id' | 'organization_id' | 'created_at' | 'updated_at'>
 ): Promise<ActionResult<AccountingPeriod>> {
   try {
+    // ID検証
+    const idValidation = validateInput(accountingPeriodIdSchema, { periodId });
+    if (!idValidation.success) {
+      return idValidation.error;
+    }
+
+    // 入力検証
+    const validation = validateInput(updateAccountingPeriodSchema, data);
+    if (!validation.success) {
+      return validation.error;
+    }
+    const validatedData = validation.data;
+
     const supabase = await createClient();
 
     // 認証チェック
@@ -315,22 +335,20 @@ export async function updateAccountingPeriod(
     }
 
     // 権限チェック（admin または accountant のみ）
-    const userRole = (
-      existingPeriod as Record<string, unknown> & { user_organizations: Array<{ role: string }> }
-    ).user_organizations[0]?.role;
-    if (userRole === 'viewer') {
+    const userRole = extractUserRole(existingPeriod);
+    if (!userRole || userRole === 'viewer') {
       return createForbiddenResult();
     }
 
     // 閉じられた期間は基本的に更新不可
-    if (existingPeriod.is_closed && !data.is_closed) {
+    if (existingPeriod.is_closed && !validatedData.is_closed) {
       return createValidationErrorResult('閉じられた会計期間は更新できません。');
     }
 
     // 日付が変更される場合の検証
-    if (data.start_date || data.end_date) {
-      const startDate = data.start_date || existingPeriod.start_date;
-      const endDate = data.end_date || existingPeriod.end_date;
+    if (validatedData.start_date || validatedData.end_date) {
+      const startDate = validatedData.start_date || existingPeriod.start_date;
+      const endDate = validatedData.end_date || existingPeriod.end_date;
 
       // 日付の妥当性チェック
       if (new Date(startDate) >= new Date(endDate)) {
@@ -354,13 +372,19 @@ export async function updateAccountingPeriod(
       const { data: journalEntries, error: journalError } = await supabase
         .from('journal_entries')
         .select('id, entry_date')
-        .eq('accounting_period_id', periodId)
-        .or(`entry_date.lt.${startDate},entry_date.gt.${endDate}`);
+        .eq('accounting_period_id', periodId);
 
-      if (!journalError && journalEntries && journalEntries.length > 0) {
-        return createValidationErrorResult(
-          '変更後の期間外となる仕訳が存在するため、期間を変更できません。'
-        );
+      if (!journalError && journalEntries) {
+        const outOfRangeEntries = journalEntries.filter((entry) => {
+          const entryDate = new Date(entry.entry_date);
+          return entryDate < new Date(startDate) || entryDate > new Date(endDate);
+        });
+
+        if (outOfRangeEntries.length > 0) {
+          return createValidationErrorResult(
+            '変更後の期間外となる仕訳が存在するため、期間を変更できません。'
+          );
+        }
       }
     }
 
@@ -368,7 +392,7 @@ export async function updateAccountingPeriod(
     const { data: updatedPeriod, error: updateError } = await supabase
       .from('accounting_periods')
       .update({
-        ...data,
+        ...validatedData,
         updated_at: new Date().toISOString(),
       })
       .eq('id', periodId)
@@ -396,6 +420,12 @@ export async function closeAccountingPeriod(
   periodId: string
 ): Promise<ActionResult<AccountingPeriod>> {
   try {
+    // ID検証
+    const idValidation = validateInput(accountingPeriodIdSchema, { periodId });
+    if (!idValidation.success) {
+      return idValidation.error;
+    }
+
     const supabase = await createClient();
 
     // 認証チェック
@@ -420,10 +450,8 @@ export async function closeAccountingPeriod(
     }
 
     // 権限チェック（admin または accountant のみ）
-    const userRole = (
-      existingPeriod as Record<string, unknown> & { user_organizations: Array<{ role: string }> }
-    ).user_organizations[0]?.role;
-    if (userRole === 'viewer') {
+    const userRole = extractUserRole(existingPeriod);
+    if (!userRole || userRole === 'viewer') {
       return createForbiddenResult();
     }
 
@@ -480,6 +508,12 @@ export async function reopenAccountingPeriod(
   periodId: string
 ): Promise<ActionResult<AccountingPeriod>> {
   try {
+    // ID検証
+    const idValidation = validateInput(accountingPeriodIdSchema, { periodId });
+    if (!idValidation.success) {
+      return idValidation.error;
+    }
+
     const supabase = await createClient();
 
     // 認証チェック
@@ -504,9 +538,7 @@ export async function reopenAccountingPeriod(
     }
 
     // 権限チェック（admin のみ）
-    const userRole = (
-      existingPeriod as Record<string, unknown> & { user_organizations: Array<{ role: string }> }
-    ).user_organizations[0]?.role;
+    const userRole = extractUserRole(existingPeriod);
     if (userRole !== 'admin') {
       return createErrorResult(
         ERROR_CODES.INSUFFICIENT_PERMISSIONS,
@@ -555,6 +587,12 @@ export async function activateAccountingPeriod(
   periodId: string
 ): Promise<ActionResult<AccountingPeriod>> {
   try {
+    // ID検証
+    const idValidation = validateInput(accountingPeriodIdSchema, { periodId });
+    if (!idValidation.success) {
+      return idValidation.error;
+    }
+
     const supabase = await createClient();
 
     // 認証チェック
@@ -579,10 +617,8 @@ export async function activateAccountingPeriod(
     }
 
     // 権限チェック（admin または accountant のみ）
-    const userRole = (
-      existingPeriod as Record<string, unknown> & { user_organizations: Array<{ role: string }> }
-    ).user_organizations[0]?.role;
-    if (userRole === 'viewer') {
+    const userRole = extractUserRole(existingPeriod);
+    if (!userRole || userRole === 'viewer') {
       return createForbiddenResult();
     }
 
@@ -626,6 +662,12 @@ export async function deleteAccountingPeriod(
   periodId: string
 ): Promise<ActionResult<{ id: string }>> {
   try {
+    // ID検証
+    const idValidation = validateInput(accountingPeriodIdSchema, { periodId });
+    if (!idValidation.success) {
+      return idValidation.error;
+    }
+
     const supabase = await createClient();
 
     // 認証チェック
@@ -635,6 +677,12 @@ export async function deleteAccountingPeriod(
     } = await supabase.auth.getUser();
     if (authError || !user) {
       return createUnauthorizedResult();
+    }
+
+    // レート制限チェック（削除操作は厳しく制限）
+    const rateLimitResult = await rateLimitMiddleware(RATE_LIMIT_CONFIGS.DELETE, user.id);
+    if (rateLimitResult) {
+      return rateLimitResult;
     }
 
     // 既存の会計期間を取得
@@ -650,9 +698,7 @@ export async function deleteAccountingPeriod(
     }
 
     // 権限チェック（admin のみ）
-    const userRole = (
-      existingPeriod as Record<string, unknown> & { user_organizations: Array<{ role: string }> }
-    ).user_organizations[0]?.role;
+    const userRole = extractUserRole(existingPeriod);
     if (userRole !== 'admin') {
       return createErrorResult(
         ERROR_CODES.INSUFFICIENT_PERMISSIONS,
