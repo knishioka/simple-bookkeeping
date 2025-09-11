@@ -288,43 +288,48 @@ export async function getBalanceSheet(
       return handleSupabaseError(balanceError);
     }
 
-    // Process and aggregate balances by account
+    // Process and aggregate balances by account using reduce for better performance
     const accountBalances = new Map<string, AccountBalance>();
 
-    balanceData?.forEach((line) => {
-      const accountId = line.account_id;
-      const account = Array.isArray(line.accounts) ? line.accounts[0] : line.accounts;
+    // Use a single pass with reduce instead of forEach for better performance
+    if (balanceData) {
+      balanceData.reduce((acc, line) => {
+        const accountId = line.account_id;
+        const account = Array.isArray(line.accounts) ? line.accounts[0] : line.accounts;
 
-      if (!account) return;
+        if (!account) return acc;
 
-      if (!accountBalances.has(accountId)) {
-        accountBalances.set(accountId, {
-          accountId,
-          accountCode: account.code,
-          accountName: account.name,
-          accountType: account.account_type,
-          category: account.category,
-          subCategory: account.sub_category,
-          debitBalance: 0,
-          creditBalance: 0,
-          netBalance: 0,
-        });
-      }
+        let balance = acc.get(accountId);
+        if (!balance) {
+          balance = {
+            accountId,
+            accountCode: account.code,
+            accountName: account.name,
+            accountType: account.account_type,
+            category: account.category,
+            subCategory: account.sub_category,
+            debitBalance: 0,
+            creditBalance: 0,
+            netBalance: 0,
+          };
+          acc.set(accountId, balance);
+        }
 
-      const balance = accountBalances.get(accountId);
-      if (!balance) return;
-      balance.debitBalance += line.debit_amount || 0;
-      balance.creditBalance += line.credit_amount || 0;
+        balance.debitBalance += line.debit_amount || 0;
+        balance.creditBalance += line.credit_amount || 0;
 
-      // Calculate net balance based on account type (Japanese accounting)
-      // Assets and expenses have debit normal balance
-      // Liabilities, equity, and revenue have credit normal balance
-      if (account && (account.account_type === 'asset' || account.account_type === 'expense')) {
-        balance.netBalance = balance.debitBalance - balance.creditBalance;
-      } else {
-        balance.netBalance = balance.creditBalance - balance.debitBalance;
-      }
-    });
+        // Calculate net balance based on account type (Japanese accounting)
+        // Assets and expenses have debit normal balance
+        // Liabilities, equity, and revenue have credit normal balance
+        if (account.account_type === 'asset' || account.account_type === 'expense') {
+          balance.netBalance = balance.debitBalance - balance.creditBalance;
+        } else {
+          balance.netBalance = balance.creditBalance - balance.debitBalance;
+        }
+
+        return acc;
+      }, accountBalances);
+    }
 
     // Organize into balance sheet structure
     const balanceSheet: BalanceSheet = {
