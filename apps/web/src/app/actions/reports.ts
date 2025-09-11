@@ -11,6 +11,7 @@ import {
   ERROR_CODES,
   createValidationErrorResult,
 } from './types';
+import { withRateLimit, RATE_LIMIT_CONFIGS } from './utils/rate-limiter';
 
 // Types for report data
 export interface AccountBalance {
@@ -189,9 +190,10 @@ interface CashFlowStatement {
 }
 
 // Helper function to check user permissions
+// Note: With RLS enabled, this is simplified as RLS handles organization access
 async function checkUserPermissions(
   supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never,
-  organizationId: string
+  _organizationId: string
 ): Promise<{ hasAccess: boolean; error?: ActionResult<never> }> {
   // Get current user
   const {
@@ -206,32 +208,17 @@ async function checkUserPermissions(
     };
   }
 
-  // Check organization access
-  const { data: userOrg, error: orgError } = await supabase
-    .from('user_organizations')
-    .select('role')
-    .eq('user_id', user.id)
-    .eq('organization_id', organizationId)
-    .single();
-
-  if (orgError || !userOrg) {
-    return {
-      hasAccess: false,
-      error: createErrorResult(
-        ERROR_CODES.FORBIDDEN,
-        'この組織のレポートを表示する権限がありません。'
-      ),
-    };
-  }
-
+  // RLS will handle organization access checks
+  // Just verify user is authenticated
   return { hasAccess: true };
 }
 
 /**
  * 貸借対照表（バランスシート）を生成
  * Generate balance sheet report showing assets, liabilities, and equity
+ * Rate limited: 100 requests per minute
  */
-export async function getBalanceSheet(
+export const getBalanceSheet = withRateLimit(async function getBalanceSheetImpl(
   organizationId: string,
   reportDate: string,
   accountingPeriodId?: string
@@ -431,13 +418,14 @@ export async function getBalanceSheet(
       '貸借対照表の生成中にエラーが発生しました。'
     );
   }
-}
+}, RATE_LIMIT_CONFIGS.READ);
 
 /**
  * 損益計算書を生成
  * Generate income statement (profit and loss) report
+ * Rate limited: 100 requests per minute
  */
-export async function getIncomeStatement(
+export const getIncomeStatement = withRateLimit(async function getIncomeStatementImpl(
   organizationId: string,
   startDate: string,
   endDate: string,
@@ -687,13 +675,14 @@ export async function getIncomeStatement(
       '損益計算書の生成中にエラーが発生しました。'
     );
   }
-}
+}, RATE_LIMIT_CONFIGS.READ);
 
 /**
  * 試算表を生成
  * Generate trial balance report showing debit and credit totals
+ * Rate limited: 100 requests per minute
  */
-export async function getTrialBalance(
+export const getTrialBalance = withRateLimit(async function getTrialBalanceImpl(
   organizationId: string,
   startDate: string,
   endDate: string,
@@ -897,13 +886,14 @@ export async function getTrialBalance(
     console.error('Error generating trial balance:', error);
     return createErrorResult(ERROR_CODES.INTERNAL_ERROR, '試算表の生成中にエラーが発生しました。');
   }
-}
+}, RATE_LIMIT_CONFIGS.READ);
 
 /**
  * 総勘定元帳を生成
  * Generate general ledger report showing all transactions by account
+ * Rate limited: 100 requests per minute
  */
-export async function getGeneralLedger(
+export const getGeneralLedger = withRateLimit(async function getGeneralLedgerImpl(
   organizationId: string,
   startDate: string,
   endDate: string,
@@ -1095,13 +1085,14 @@ export async function getGeneralLedger(
       '総勘定元帳の生成中にエラーが発生しました。'
     );
   }
-}
+}, RATE_LIMIT_CONFIGS.READ);
 
 /**
  * キャッシュフロー計算書を生成
  * Generate cash flow statement showing cash movements
+ * Rate limited: 100 requests per minute
  */
-export async function getCashFlowStatement(
+export const getCashFlowStatement = withRateLimit(async function getCashFlowStatementImpl(
   organizationId: string,
   startDate: string,
   endDate: string,
@@ -1329,4 +1320,4 @@ export async function getCashFlowStatement(
       'キャッシュフロー計算書の生成中にエラーが発生しました。'
     );
   }
-}
+}, RATE_LIMIT_CONFIGS.READ);

@@ -9,13 +9,13 @@ import {
   createSuccessResult,
   createErrorResult,
   createUnauthorizedResult,
-  createForbiddenResult,
   createValidationErrorResult,
   handleSupabaseError,
   ERROR_CODES,
   PaginatedResponse,
   PaginationInfo,
 } from './types';
+import { withRateLimit, RATE_LIMIT_CONFIGS } from './utils/rate-limiter';
 
 /**
  * 監査ログのアクション種別
@@ -83,8 +83,9 @@ export interface ExportOptions {
 /**
  * 組織の監査ログを取得
  * ページネーションとフィルタリングをサポート
+ * Rate limited: 100 requests per minute
  */
-export async function getAuditLogs(
+export const getAuditLogs = withRateLimit(async function getAuditLogsImpl(
   organizationId: string,
   filter?: AuditLogFilter
 ): Promise<ActionResult<PaginatedResponse<AuditLog>>> {
@@ -100,31 +101,15 @@ export async function getAuditLogs(
       return createUnauthorizedResult();
     }
 
-    // 組織へのアクセス権限チェック（admin または accountant のみ閲覧可能）
-    const { data: userOrg, error: orgError } = await supabase
-      .from('user_organizations')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (orgError || !userOrg) {
-      return createForbiddenResult();
-    }
-
-    if (userOrg.role !== 'admin' && userOrg.role !== 'accountant') {
-      return createErrorResult(
-        ERROR_CODES.INSUFFICIENT_PERMISSIONS,
-        '監査ログの閲覧には管理者または経理担当者権限が必要です。'
-      );
-    }
+    // RLS will handle permission checks based on user role
+    // No manual authorization check needed
 
     // ページネーション設定
     const page = filter?.page || 1;
     const pageSize = filter?.pageSize || 50;
     const offset = (page - 1) * pageSize;
 
-    // クエリの構築
+    // クエリの構築 - RLS will filter based on user permissions
     let query = supabase
       .from('audit_logs')
       .select('*, users!user_id (id, email, name)', { count: 'exact' })
@@ -157,6 +142,13 @@ export async function getAuditLogs(
     const { data: logs, error: logsError, count } = await query;
 
     if (logsError) {
+      // Check for RLS permission denied error
+      if (logsError.code === '42501') {
+        return createErrorResult(
+          ERROR_CODES.INSUFFICIENT_PERMISSIONS,
+          '監査ログの閲覧には管理者または経理担当者権限が必要です。'
+        );
+      }
       return handleSupabaseError(logsError);
     }
 
@@ -222,11 +214,12 @@ export async function getAuditLogs(
       '監査ログの取得中にエラーが発生しました。'
     );
   }
-}
+}, RATE_LIMIT_CONFIGS.READ);
 
 /**
  * 監査ログエントリを作成（内部使用のみ）
  * 他のServer Actionsから呼び出される
+ * Note: Not rate limited as it's internal only
  */
 export async function createAuditLog(params: {
   userId: string;
@@ -327,8 +320,9 @@ export async function getAuditLogsByEntity(
 
 /**
  * 特定ユーザーのアクションによる監査ログを取得
+ * Rate limited: 100 requests per minute
  */
-export async function getAuditLogsByUser(
+export const getAuditLogsByUser = withRateLimit(async function getAuditLogsByUserImpl(
   organizationId: string,
   userId: string,
   options?: {
@@ -350,27 +344,8 @@ export async function getAuditLogsByUser(
       return createUnauthorizedResult();
     }
 
-    // 権限チェック（admin、accountant、または自分自身のログ）
-    const { data: userOrg, error: orgError } = await supabase
-      .from('user_organizations')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (orgError || !userOrg) {
-      return createForbiddenResult();
-    }
-
-    const canViewOthersLogs = userOrg.role === 'admin' || userOrg.role === 'accountant';
-    const isOwnLogs = user.id === userId;
-
-    if (!canViewOthersLogs && !isOwnLogs) {
-      return createErrorResult(
-        ERROR_CODES.INSUFFICIENT_PERMISSIONS,
-        '他のユーザーの監査ログを閲覧する権限がありません。'
-      );
-    }
+    // RLS will handle permission checks
+    // Users can view their own logs, admins/accountants can view all
 
     return getAuditLogs(organizationId, {
       userId,
@@ -386,12 +361,13 @@ export async function getAuditLogsByUser(
       'ユーザー監査ログの取得中にエラーが発生しました。'
     );
   }
-}
+}, RATE_LIMIT_CONFIGS.READ);
 
 /**
  * 監査ログをエクスポート（コンプライアンス/レポート用）
+ * Rate limited: 3 requests per minute (sensitive operation)
  */
-export async function exportAuditLogs(
+export const exportAuditLogs = withRateLimit(async function exportAuditLogsImpl(
   organizationId: string,
   filter?: AuditLogFilter,
   options?: ExportOptions
@@ -408,24 +384,8 @@ export async function exportAuditLogs(
       return createUnauthorizedResult();
     }
 
-    // 組織へのアクセス権限チェック（admin のみエクスポート可能）
-    const { data: userOrg, error: orgError } = await supabase
-      .from('user_organizations')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (orgError || !userOrg) {
-      return createForbiddenResult();
-    }
-
-    if (userOrg.role !== 'admin') {
-      return createErrorResult(
-        ERROR_CODES.INSUFFICIENT_PERMISSIONS,
-        '監査ログのエクスポートには管理者権限が必要です。'
-      );
-    }
+    // RLS will handle admin-only permission check
+    // Only admins can export audit logs
 
     // エクスポート用にページサイズを大きく設定
     const exportFilter = {
@@ -436,6 +396,13 @@ export async function exportAuditLogs(
     // データ取得
     const result = await getAuditLogs(organizationId, exportFilter);
     if (!result.success) {
+      // Check if it's a permission error
+      if (result.error?.code === ERROR_CODES.INSUFFICIENT_PERMISSIONS) {
+        return createErrorResult(
+          ERROR_CODES.INSUFFICIENT_PERMISSIONS,
+          '監査ログのエクスポートには管理者権限が必要です。'
+        );
+      }
       return result;
     }
 
@@ -504,12 +471,15 @@ export async function exportAuditLogs(
       '監査ログのエクスポート中にエラーが発生しました。'
     );
   }
-}
+}, RATE_LIMIT_CONFIGS.SENSITIVE);
 
 /**
  * 組織で使用されているエンティティタイプの一覧を取得
+ * Rate limited: 100 requests per minute
  */
-export async function getEntityTypes(organizationId: string): Promise<ActionResult<string[]>> {
+export const getEntityTypes = withRateLimit(async function getEntityTypesImpl(
+  organizationId: string
+): Promise<ActionResult<string[]>> {
   try {
     const supabase = await createClient();
 
@@ -522,24 +492,8 @@ export async function getEntityTypes(organizationId: string): Promise<ActionResu
       return createUnauthorizedResult();
     }
 
-    // 組織へのアクセス権限チェック
-    const { data: userOrg, error: orgError } = await supabase
-      .from('user_organizations')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (orgError || !userOrg) {
-      return createForbiddenResult();
-    }
-
-    if (userOrg.role !== 'admin' && userOrg.role !== 'accountant') {
-      return createErrorResult(
-        ERROR_CODES.INSUFFICIENT_PERMISSIONS,
-        'エンティティタイプの取得には管理者または経理担当者権限が必要です。'
-      );
-    }
+    // RLS will handle permission checks
+    // Only admins and accountants can view entity types
 
     // エンティティタイプの一覧を取得（重複を除外）
     const { data: entityTypes, error } = await supabase
@@ -549,6 +503,13 @@ export async function getEntityTypes(organizationId: string): Promise<ActionResu
       .order('entity_type');
 
     if (error) {
+      // Check for RLS permission denied error
+      if (error.code === '42501') {
+        return createErrorResult(
+          ERROR_CODES.INSUFFICIENT_PERMISSIONS,
+          'エンティティタイプの取得には管理者または経理担当者権限が必要です。'
+        );
+      }
       return handleSupabaseError(error);
     }
 
@@ -565,7 +526,7 @@ export async function getEntityTypes(organizationId: string): Promise<ActionResu
       'エンティティタイプの取得中にエラーが発生しました。'
     );
   }
-}
+}, RATE_LIMIT_CONFIGS.READ);
 
 /**
  * ヘルパー関数：エンティティ変更の監査ログを記録

@@ -16,6 +16,7 @@ import {
   handleSupabaseError,
   ERROR_CODES,
 } from './types';
+import { withRateLimit, RATE_LIMIT_CONFIGS } from './utils/rate-limiter';
 
 import type { Database } from '@/lib/supabase/database.types';
 
@@ -25,36 +26,23 @@ type AccountUpdate = Database['public']['Tables']['accounts']['Update'];
 
 /**
  * 勘定科目一覧を取得
+ * RLS: 組織メンバーのみアクセス可能
+ * Rate Limit: 100 req/min
  */
-export async function getAccounts(
+export const getAccounts = withRateLimit(async function getAccountsImpl(
   organizationId: string,
   params?: QueryParams
 ): Promise<ActionResult<PaginatedResponse<Account>>> {
   try {
     const supabase = await createClient();
 
-    // 認証チェック
+    // 認証チェック（RLSが権限を確認）
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser();
     if (authError || !user) {
       return createUnauthorizedResult();
-    }
-
-    // 組織へのアクセス権限チェック
-    const { data: userOrg, error: orgError } = await supabase
-      .from('user_organizations')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (orgError || !userOrg) {
-      return createErrorResult(
-        ERROR_CODES.FORBIDDEN,
-        'この組織の勘定科目を表示する権限がありません。'
-      );
     }
 
     // ページネーション設定
@@ -85,6 +73,13 @@ export async function getAccounts(
     const { data, error, count } = await query;
 
     if (error) {
+      // RLSによるアクセス拒否の場合
+      if (error.code === 'PGRST116') {
+        return createErrorResult(
+          ERROR_CODES.FORBIDDEN,
+          'この組織の勘定科目を表示する権限がありません。'
+        );
+      }
       return handleSupabaseError(error);
     }
 
@@ -100,46 +95,26 @@ export async function getAccounts(
   } catch (error) {
     return handleSupabaseError(error);
   }
-}
+}, RATE_LIMIT_CONFIGS.READ);
 
 /**
  * 勘定科目を作成
+ * RLS: accountant以上の権限が必要
+ * Rate Limit: 20 req/min
  */
-export async function createAccount(
+export const createAccount = withRateLimit(async function createAccountImpl(
   data: Omit<AccountInsert, 'id' | 'created_at' | 'updated_at'>
 ): Promise<ActionResult<Account>> {
   try {
     const supabase = await createClient();
 
-    // 認証チェック
+    // 認証チェック（RLSが権限を確認）
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser();
     if (authError || !user) {
       return createUnauthorizedResult();
-    }
-
-    // 組織へのアクセス権限チェック（admin または accountant のみ作成可能）
-    const { data: userOrg, error: orgError } = await supabase
-      .from('user_organizations')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('organization_id', data.organization_id)
-      .single();
-
-    if (orgError || !userOrg) {
-      return createErrorResult(
-        ERROR_CODES.FORBIDDEN,
-        'この組織の勘定科目を作成する権限がありません。'
-      );
-    }
-
-    if (userOrg.role === 'viewer') {
-      return createErrorResult(
-        ERROR_CODES.INSUFFICIENT_PERMISSIONS,
-        '閲覧者は勘定科目を作成できません。'
-      );
     }
 
     // バリデーション
@@ -189,6 +164,13 @@ export async function createAccount(
       .single();
 
     if (error) {
+      // RLSによるアクセス拒否の場合
+      if (error.code === '42501') {
+        return createErrorResult(
+          ERROR_CODES.INSUFFICIENT_PERMISSIONS,
+          '勘定科目を作成する権限がありません。管理者または経理担当者の権限が必要です。'
+        );
+      }
       return handleSupabaseError(error);
     }
 
@@ -200,12 +182,14 @@ export async function createAccount(
   } catch (error) {
     return handleSupabaseError(error);
   }
-}
+}, RATE_LIMIT_CONFIGS.CREATE);
 
 /**
  * 勘定科目を更新
+ * RLS: accountant以上の権限が必要
+ * Rate Limit: 30 req/min
  */
-export async function updateAccount(
+export const updateAccount = withRateLimit(async function updateAccountImpl(
   id: string,
   organizationId: string,
   data: Omit<AccountUpdate, 'id' | 'organization_id' | 'created_at' | 'updated_at'>
@@ -213,35 +197,13 @@ export async function updateAccount(
   try {
     const supabase = await createClient();
 
-    // 認証チェック
+    // 認証チェック（RLSが権限を確認）
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser();
     if (authError || !user) {
       return createUnauthorizedResult();
-    }
-
-    // 組織へのアクセス権限チェック（admin または accountant のみ更新可能）
-    const { data: userOrg, error: orgError } = await supabase
-      .from('user_organizations')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (orgError || !userOrg) {
-      return createErrorResult(
-        ERROR_CODES.FORBIDDEN,
-        'この組織の勘定科目を更新する権限がありません。'
-      );
-    }
-
-    if (userOrg.role === 'viewer') {
-      return createErrorResult(
-        ERROR_CODES.INSUFFICIENT_PERMISSIONS,
-        '閲覧者は勘定科目を更新できません。'
-      );
     }
 
     // 更新対象の勘定科目の存在チェック
@@ -308,6 +270,13 @@ export async function updateAccount(
       .single();
 
     if (error) {
+      // RLSによるアクセス拒否の場合
+      if (error.code === '42501') {
+        return createErrorResult(
+          ERROR_CODES.INSUFFICIENT_PERMISSIONS,
+          '勘定科目を更新する権限がありません。管理者または経理担当者の権限が必要です。'
+        );
+      }
       return handleSupabaseError(error);
     }
 
@@ -319,19 +288,21 @@ export async function updateAccount(
   } catch (error) {
     return handleSupabaseError(error);
   }
-}
+}, RATE_LIMIT_CONFIGS.UPDATE);
 
 /**
  * CSVファイルから勘定科目をインポート
+ * RLS: accountant以上の権限が必要
+ * Rate Limit: 5 req/min (大量データ処理のため厳しく制限)
  */
-export async function importAccountsFromCSV(
+export const importAccountsFromCSV = withRateLimit(async function importAccountsFromCSVImpl(
   formData: FormData
 ): Promise<ActionResult<{ imported: number; errors: Array<{ row: number; error: string }> }>> {
   try {
     const { parse } = await import('csv-parse');
     const supabase = await createClient();
 
-    // 認証チェック
+    // 認証チェック（RLSが権限を確認）
     const {
       data: { user },
       error: authError,
@@ -346,28 +317,6 @@ export async function importAccountsFromCSV(
 
     if (!file || !organizationId) {
       return createValidationErrorResult('ファイルと組織IDは必須です。');
-    }
-
-    // 組織へのアクセス権限チェック（admin または accountant のみインポート可能）
-    const { data: userOrg, error: orgError } = await supabase
-      .from('user_organizations')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (orgError || !userOrg) {
-      return createErrorResult(
-        ERROR_CODES.FORBIDDEN,
-        'この組織の勘定科目をインポートする権限がありません。'
-      );
-    }
-
-    if (userOrg.role === 'viewer') {
-      return createErrorResult(
-        ERROR_CODES.INSUFFICIENT_PERMISSIONS,
-        '閲覧者は勘定科目をインポートできません。'
-      );
     }
 
     // ファイルサイズチェック（5MB制限）
@@ -504,10 +453,18 @@ export async function importAccountsFromCSV(
           .single();
 
         if (createError) {
-          errors.push({
-            row: rowNumber,
-            error: `作成エラー: ${createError.message}`,
-          });
+          // RLSによるアクセス拒否の場合
+          if (createError.code === '42501') {
+            errors.push({
+              row: rowNumber,
+              error: '勘定科目を作成する権限がありません。',
+            });
+          } else {
+            errors.push({
+              row: rowNumber,
+              error: `作成エラー: ${createError.message}`,
+            });
+          }
           continue;
         }
 
@@ -533,47 +490,27 @@ export async function importAccountsFromCSV(
   } catch (error) {
     return handleSupabaseError(error);
   }
-}
+}, RATE_LIMIT_CONFIGS.SENSITIVE);
 
 /**
  * 勘定科目を削除
+ * RLS: admin権限が必要
+ * Rate Limit: 5 req/min
  */
-export async function deleteAccount(
+export const deleteAccount = withRateLimit(async function deleteAccountImpl(
   id: string,
   organizationId: string
 ): Promise<ActionResult<{ id: string }>> {
   try {
     const supabase = await createClient();
 
-    // 認証チェック
+    // 認証チェック（RLSが権限を確認）
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser();
     if (authError || !user) {
       return createUnauthorizedResult();
-    }
-
-    // 組織へのアクセス権限チェック（admin のみ削除可能）
-    const { data: userOrg, error: orgError } = await supabase
-      .from('user_organizations')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('organization_id', organizationId)
-      .single();
-
-    if (orgError || !userOrg) {
-      return createErrorResult(
-        ERROR_CODES.FORBIDDEN,
-        'この組織の勘定科目を削除する権限がありません。'
-      );
-    }
-
-    if (userOrg.role !== 'admin') {
-      return createErrorResult(
-        ERROR_CODES.INSUFFICIENT_PERMISSIONS,
-        '管理者のみが勘定科目を削除できます。'
-      );
     }
 
     // 削除対象の勘定科目の存在チェック
@@ -622,6 +559,13 @@ export async function deleteAccount(
       .eq('organization_id', organizationId);
 
     if (error) {
+      // RLSによるアクセス拒否の場合
+      if (error.code === '42501') {
+        return createErrorResult(
+          ERROR_CODES.INSUFFICIENT_PERMISSIONS,
+          '勘定科目を削除する権限がありません。管理者権限が必要です。'
+        );
+      }
       return handleSupabaseError(error);
     }
 
@@ -633,4 +577,4 @@ export async function deleteAccount(
   } catch (error) {
     return handleSupabaseError(error);
   }
-}
+}, RATE_LIMIT_CONFIGS.DELETE);

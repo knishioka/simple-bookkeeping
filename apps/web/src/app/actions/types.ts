@@ -13,7 +13,7 @@ import { formatZodError, getZodErrorDetails } from './validation/common';
  * Server Action の標準レスポンス型
  * 成功時はdataを、失敗時はerrorを返す
  */
-export type ActionResult<T> =
+export type ActionResult<T = void> =
   | { success: true; data: T; error?: never }
   | { success: false; data?: never; error: ActionError };
 
