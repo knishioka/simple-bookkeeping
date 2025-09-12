@@ -32,18 +32,14 @@ export async function middleware(request: NextRequest) {
   }
 
   // Skip authentication in test/development environment when Supabase is not configured
+  // CRITICAL SECURITY: Only allow test mode in non-production environments
   const isTestMode =
-    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://dummy.supabase.co' ||
-    process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://placeholder.supabase.co' ||
-    process.env.NODE_ENV === 'test';
+    process.env.NODE_ENV !== 'production' &&
+    (!process.env.NEXT_PUBLIC_SUPABASE_URL ||
+      process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://dummy.supabase.co' ||
+      process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://placeholder.supabase.co');
 
-  // Allow test mode in production if using placeholder Supabase URLs (for CI E2E tests)
-  const allowTestModeInProduction =
-    process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://placeholder.supabase.co' ||
-    process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://dummy.supabase.co';
-
-  if (isTestMode && (process.env.NODE_ENV !== 'production' || allowTestModeInProduction)) {
+  if (isTestMode) {
     // In test environment, allow all routes without authentication
     const response = NextResponse.next();
 

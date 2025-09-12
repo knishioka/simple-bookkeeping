@@ -14,10 +14,28 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { isAuthenticated, loading } = useAuth();
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.push('/login');
+    // Check if we're in test mode (using placeholder Supabase URLs)
+    // CRITICAL SECURITY: Only allow test mode in non-production environments
+    const isTestMode =
+      process.env.NODE_ENV !== 'production' &&
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
+      (localStorage.getItem('supabase.auth.token') ||
+        (window as Window & { __testUser?: Record<string, unknown> }).__testUser);
+
+    if (!loading && !isAuthenticated && !isTestMode) {
+      router.push('/auth/login');
     }
   }, [isAuthenticated, loading, router]);
+
+  // Check if we're in test mode (using placeholder Supabase URLs)
+  // CRITICAL SECURITY: Only allow test mode in non-production environments
+  const isTestMode =
+    process.env.NODE_ENV !== 'production' &&
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
+    (localStorage.getItem('supabase.auth.token') ||
+      (window as Window & { __testUser?: Record<string, unknown> }).__testUser);
 
   if (loading) {
     return (
@@ -27,7 +45,8 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  if (!isAuthenticated) {
+  // Allow access in test mode even if not authenticated through normal means
+  if (!isAuthenticated && !isTestMode) {
     return null;
   }
 

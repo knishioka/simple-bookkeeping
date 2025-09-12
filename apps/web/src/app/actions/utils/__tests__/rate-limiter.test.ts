@@ -222,7 +222,7 @@ describe('Rate Limiter', () => {
       expect(result2).toBeDefined();
       expect(result2?.success).toBe(false);
       expect(result2?.error?.code).toBe(ERROR_CODES.LIMIT_EXCEEDED);
-      expect(result2?.error?.retryAfter).toBeGreaterThan(0);
+      expect((result2?.error?.details as any)?.retryAfter).toBeGreaterThan(0);
     });
   });
 

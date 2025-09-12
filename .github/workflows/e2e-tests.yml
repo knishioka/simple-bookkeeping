@@ -99,13 +99,34 @@ jobs:
         run: |
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting web server..."
           cd apps/web
-          npm run start &
+          # Check if build output exists
+          if [ ! -d ".next" ]; then
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: .next directory not found!"
+            ls -la
+            exit 1
+          fi
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Found .next directory, starting server..."
+          pnpm start &
+          SERVER_PID=$!
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server started with PID: $SERVER_PID"
+
           # Wait for server to be fully ready (optimized for fast startup)
-          timeout 60 bash -c 'until curl -f http://localhost:3000 >/dev/null 2>&1; do
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Waiting for web server..."
+          echo "Waiting for web server to be ready..."
+          COUNTER=0
+          MAX_WAIT=60
+          while [ $COUNTER -lt $MAX_WAIT ]; do
+            COUNTER=$((COUNTER+1))
+            if curl -f http://localhost:3000 >/dev/null 2>&1; then
+              echo "Web server is ready after $COUNTER seconds"
+              break
+            fi
+            if [ $COUNTER -eq $MAX_WAIT ]; then
+              echo "ERROR: Server failed to start within $MAX_WAIT seconds"
+              ps aux | grep node
+              exit 1
+            fi
             sleep 1
-          done'
-          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Web server is ready"
+          done
 
       - name: Run E2E tests with performance tracking
         env:
@@ -132,10 +153,7 @@ jobs:
 
           # Run fast test suite with sharding and optimized config
           cd apps/web
-          timeout 360 npx playwright test \
-            --config playwright.config.fast.ts \
-            --shard=${{ matrix.shard }} \
-            --grep-invert="@slow|@integration" || TEST_EXIT=$?
+          timeout 360 npx playwright test --config playwright.config.fast.ts --shard=${{ matrix.shard }} --grep-invert="@slow|@integration" || TEST_EXIT=$?
             
           END_TIME=$(date +%s)
           DURATION=$((END_TIME - START_TIME))
