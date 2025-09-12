@@ -58,6 +58,39 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // TODO: Migrate to Supabase auth - Issue #355
     // This auth check is temporarily disabled during migration to Supabase
     // The application should use Supabase's auth.getUser() instead
+
+    // For E2E tests, check if test user data is available
+    if (
+      typeof window !== 'undefined' &&
+      (window as Window & { __testUser?: Record<string, unknown> }).__testUser
+    ) {
+      const testUser = (window as Window & { __testUser?: Record<string, unknown> }).__testUser as {
+        id?: string;
+        email?: string;
+        user_metadata?: { name?: string; organization_id?: string; role?: string };
+      };
+      const mockUser: User = {
+        id: testUser.id || 'test-user-id',
+        email: testUser.email || 'test@example.com',
+        name: testUser.user_metadata?.name || 'Test User',
+        organizations: [
+          {
+            id: testUser.user_metadata?.organization_id || 'test-org-1',
+            name: 'Test Organization',
+            code: 'TEST001',
+            role: (testUser.user_metadata?.role?.toUpperCase() || 'ADMIN') as
+              | 'ADMIN'
+              | 'ACCOUNTANT'
+              | 'VIEWER',
+            isDefault: true,
+          },
+        ],
+      };
+      mockUser.currentOrganization = mockUser.organizations[0];
+      setUser(mockUser);
+      setCurrentOrganization(mockUser.organizations[0]);
+    }
+
     setLoading(false);
 
     // Original auth check code commented out:
