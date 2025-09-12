@@ -134,23 +134,12 @@ async function performHealthCheck() {
   // Use unified test environment
   const testEnv = getTestEnvironment();
   const webUrl = testEnv.webUrl;
-  const apiUrl = testEnv.apiUrl;
 
   // Build health check URLs based on environment
+  // Only check the Next.js web server since Express.js API has been removed
   const urls = [{ url: webUrl, name: 'Web' }];
 
-  // Skip API health check in Docker environment or when using Server Actions
-  // The Express.js API has been deprecated and is not running in Docker
-  const skipApiHealthCheck =
-    testEnv.isDocker ||
-    process.env.SKIP_API_HEALTH_CHECK === 'true' ||
-    process.env.REUSE_SERVER === 'true';
-
-  if (!skipApiHealthCheck) {
-    urls.push({ url: `${apiUrl}/api/v1/health`, name: 'API' });
-  } else {
-    console.log('ℹ️ Skipping API health check (Docker environment or Server Actions mode)');
-  }
+  console.log('ℹ️ Checking Next.js web server health (Express.js API has been removed)');
 
   // Add retry logic for CI environment
   const maxRetries = process.env.CI ? 5 : 1;
@@ -163,9 +152,8 @@ async function performHealthCheck() {
     while (attempts < maxRetries && !isHealthy) {
       attempts++;
       try {
-        // Use appropriate HTTP method based on service type
-        const method = name === 'API' ? 'GET' : 'HEAD';
-        const response = await fetch(url, { method });
+        // Use HEAD method for web service health check
+        const response = await fetch(url, { method: 'HEAD' });
 
         if (response.ok) {
           console.log(`✅ ${name} service at ${url} is healthy`);

@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-import { UnifiedAuth } from './helpers/unified-auth';
+import { UnifiedMock } from './helpers/server-actions-unified-mock';
+import { SupabaseAuth } from './helpers/supabase-auth';
 
 /**
  * 拡張E2Eテストカバレッジ
@@ -47,57 +48,25 @@ test.describe('拡張テストカバレッジ', () => {
   });
 
   test.describe('認証が必要なページ', () => {
-    test.beforeEach(async ({ context }) => {
-      // APIモックをセットアップ
-      await UnifiedAuth.setupMockRoutes(context);
-
-      // メインユーザー情報のモック
-      await context.route('**/api/v1/auth/me', async (route) => {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            data: {
-              user: {
-                id: '1',
-                email: 'admin@example.com',
-                name: 'Admin User',
-                organizations: [
-                  {
-                    id: 'org-1',
-                    name: 'Test Organization',
-                    code: 'TEST001',
-                    role: 'ADMIN',
-                    isDefault: true,
-                  },
-                ],
-                currentOrganization: {
-                  id: 'org-1',
-                  name: 'Test Organization',
-                  code: 'TEST001',
-                  role: 'ADMIN',
-                  isDefault: true,
-                },
-              },
-            },
-          }),
-        });
-      });
-
-      // 組織情報のモック
-      await context.route('**/api/v1/organizations/org-1', async (route) => {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            data: {
-              id: 'org-1',
+    test.beforeEach(async ({ context, page }) => {
+      // Server Actions用のモックをセットアップ
+      await UnifiedMock.setupAll(context, {
+        enabled: true,
+        customResponses: {
+          organizations: [
+            {
+              id: 'test-org-1',
               name: 'Test Organization',
-              createdAt: '2024-01-01T00:00:00Z',
+              code: 'TEST001',
+              created_at: '2024-01-01T00:00:00Z',
+              updated_at: '2024-01-01T00:00:00Z',
             },
-          }),
-        });
+          ],
+        },
       });
+
+      // Supabase認証をセットアップ
+      await SupabaseAuth.setup(context, page, { role: 'admin' });
     });
 
     test('ダッシュボード勘定科目ページが表示される', async ({ page, context }) => {
@@ -118,7 +87,7 @@ test.describe('拡張テストカバレッジ', () => {
 
       // まず適当なページを開いてから認証設定
       await page.goto('/', { waitUntil: 'domcontentloaded' });
-      await UnifiedAuth.setAuthData(page);
+      await SupabaseAuth.setup(context, page, { role: 'admin' });
 
       await page.goto('/dashboard/accounts', { waitUntil: 'domcontentloaded' });
 
@@ -144,27 +113,16 @@ test.describe('拡張テストカバレッジ', () => {
 
     test('ダッシュボード仕訳入力ページが表示される', async ({ page, context }) => {
       // APIモックを設定
-      await UnifiedAuth.setupMockRoutes(context);
-
-      // 仕訳エントリーのAPIモックを追加
-      await context.route('**/api/v1/journal-entries', async (route) => {
-        if (route.request().method() === 'GET') {
-          await route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({
-              data: [],
-              meta: { total: 0, page: 1, limit: 10 },
-            }),
-          });
-        } else {
-          await route.continue();
-        }
+      await UnifiedMock.setupAll(context, {
+        enabled: true,
+        customResponses: {
+          'journal-entries': [],
+        },
       });
 
       // まず適当なページを開いてから認証設定
       await page.goto('/', { waitUntil: 'domcontentloaded' });
-      await UnifiedAuth.setAuthData(page);
+      await SupabaseAuth.setup(context, page, { role: 'admin' });
 
       await page.goto('/dashboard/journal-entries', { waitUntil: 'domcontentloaded' });
 
@@ -194,7 +152,7 @@ test.describe('拡張テストカバレッジ', () => {
     test('現金出納帳ページが表示される', async ({ page }) => {
       // まず適当なページを開いてから認証設定
       await page.goto('/', { waitUntil: 'domcontentloaded' });
-      await UnifiedAuth.setAuthData(page);
+      await SupabaseAuth.setup(context, page, { role: 'admin' });
 
       await page.goto('/dashboard/ledgers/cash-book', { waitUntil: 'domcontentloaded' });
 
@@ -219,7 +177,7 @@ test.describe('拡張テストカバレッジ', () => {
     test('預金出納帳ページが表示される', async ({ page }) => {
       // まず適当なページを開いてから認証設定
       await page.goto('/', { waitUntil: 'domcontentloaded' });
-      await UnifiedAuth.setAuthData(page);
+      await SupabaseAuth.setup(context, page, { role: 'admin' });
 
       await page.goto('/dashboard/ledgers/bank-book', { waitUntil: 'domcontentloaded' });
 
@@ -244,7 +202,7 @@ test.describe('拡張テストカバレッジ', () => {
     test('貸借対照表ページが表示される', async ({ page }) => {
       // まず適当なページを開いてから認証設定
       await page.goto('/', { waitUntil: 'domcontentloaded' });
-      await UnifiedAuth.setAuthData(page);
+      await SupabaseAuth.setup(context, page, { role: 'admin' });
 
       await page.goto('/dashboard/reports/balance-sheet', { waitUntil: 'domcontentloaded' });
 
@@ -275,7 +233,7 @@ test.describe('拡張テストカバレッジ', () => {
     test('損益計算書ページが表示される', async ({ page, context }) => {
       // まず適当なページを開いてから認証設定
       await page.goto('/', { waitUntil: 'domcontentloaded' });
-      await UnifiedAuth.setAuthData(page);
+      await SupabaseAuth.setup(context, page, { role: 'admin' });
 
       // Mock API response for profit-loss report
       await context.route('**/api/v1/reports/profit-loss', async (route) => {
@@ -325,7 +283,7 @@ test.describe('拡張テストカバレッジ', () => {
     test('試算表ページが表示される', async ({ page }) => {
       // まず適当なページを開いてから認証設定
       await page.goto('/', { waitUntil: 'domcontentloaded' });
-      await UnifiedAuth.setAuthData(page);
+      await SupabaseAuth.setup(context, page, { role: 'admin' });
 
       await page.goto('/dashboard/reports/trial-balance', { waitUntil: 'domcontentloaded' });
 
@@ -351,7 +309,7 @@ test.describe('拡張テストカバレッジ', () => {
     test('組織設定ページが表示される', async ({ page }) => {
       // まず適当なページを開いてから認証設定
       await page.goto('/', { waitUntil: 'domcontentloaded' });
-      await UnifiedAuth.setAuthData(page);
+      await SupabaseAuth.setup(context, page, { role: 'admin' });
 
       await page.goto('/dashboard/settings/organization', { waitUntil: 'domcontentloaded' });
 
@@ -376,7 +334,7 @@ test.describe('拡張テストカバレッジ', () => {
     test('アカウント設定ページが表示される', async ({ page }) => {
       // まず適当なページを開いてから認証設定
       await page.goto('/', { waitUntil: 'domcontentloaded' });
-      await UnifiedAuth.setAuthData(page);
+      await SupabaseAuth.setup(context, page, { role: 'admin' });
 
       await page.goto('/dashboard/settings/account', { waitUntil: 'domcontentloaded' });
 
