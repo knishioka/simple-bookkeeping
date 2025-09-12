@@ -38,11 +38,14 @@ jest.mock('../utils/rate-limiter', () => ({
   },
 }));
 
-// Mock type guards
-jest.mock('../utils/type-guards', () => ({
-  ...jest.requireActual('../utils/type-guards'),
-  extractUserRole: jest.fn(),
-}));
+// Mock type guards - but keep extractUserRole working
+jest.mock('../utils/type-guards', () => {
+  const actual = jest.requireActual('../utils/type-guards');
+  return {
+    ...actual,
+    extractUserRole: jest.fn(actual.extractUserRole),
+  };
+});
 
 const mockRevalidatePath = revalidatePath as jest.MockedFunction<typeof revalidatePath>;
 const mockCreateClient = createClient as jest.MockedFunction<typeof createClient>;
@@ -77,11 +80,21 @@ describe('Accounting Periods Server Actions', () => {
       update: jest.fn().mockReturnThis(),
       delete: jest.fn().mockReturnValue(Promise.resolve(finalResult)),
       limit: jest.fn().mockReturnThis(),
+      then: (resolve: any) => Promise.resolve(finalResult).then(resolve),
+      catch: (reject: any) => Promise.resolve(finalResult).catch(reject),
+      finally: (onFinally: any) => Promise.resolve(finalResult).finally(onFinally),
     };
 
     // Make chainable methods return the query object
     Object.keys(query).forEach((key) => {
-      if (key !== 'range' && key !== 'single' && key !== 'delete') {
+      if (
+        key !== 'range' &&
+        key !== 'single' &&
+        key !== 'delete' &&
+        key !== 'then' &&
+        key !== 'catch' &&
+        key !== 'finally'
+      ) {
         const originalFn = query[key as keyof typeof query];
         query[key as keyof typeof query] = jest.fn((...args) => {
           originalFn(...args);
@@ -112,15 +125,15 @@ describe('Accounting Periods Server Actions', () => {
 
   describe('getAccountingPeriods', () => {
     it('should return accounting periods with pagination', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'test@example.com' };
       const mockUserOrg = { role: 'admin' };
       const mockPeriods = [
         {
-          id: 'period-1',
+          id: '550e8400-e29b-41d4-a716-446655440001',
           name: '2024年度',
           start_date: '2024-01-01',
           end_date: '2024-12-31',
-          organization_id: 'org-123',
+          organization_id: '550e8400-e29b-41d4-a716-446655440002',
           is_closed: false,
         },
       ];
@@ -147,7 +160,7 @@ describe('Accounting Periods Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await getAccountingPeriods('org-123', {
+      const result = await getAccountingPeriods('550e8400-e29b-41d4-a716-446655440002', {
         page: 1,
         pageSize: 20,
       });
@@ -168,14 +181,14 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const result = await getAccountingPeriods('org-123');
+      const result = await getAccountingPeriods('550e8400-e29b-41d4-a716-446655440002');
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.UNAUTHORIZED);
     });
 
     it('should return forbidden when user has no access to organization', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'test@example.com' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -185,14 +198,14 @@ describe('Accounting Periods Server Actions', () => {
       const userOrgQuery = createQueryMock({ data: null, error: { message: 'Not found' } });
       mockSupabaseClient.from.mockReturnValue(userOrgQuery);
 
-      const result = await getAccountingPeriods('org-123');
+      const result = await getAccountingPeriods('550e8400-e29b-41d4-a716-446655440002');
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.FORBIDDEN);
     });
 
     it('should accept valid orderBy parameters', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'test@example.com' };
       const mockUserOrg = { role: 'admin' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -210,7 +223,7 @@ describe('Accounting Periods Server Actions', () => {
         return periodsQuery;
       });
 
-      const result = await getAccountingPeriods('org-123', {
+      const result = await getAccountingPeriods('550e8400-e29b-41d4-a716-446655440002', {
         orderBy: 'name',
       });
 
@@ -219,7 +232,7 @@ describe('Accounting Periods Server Actions', () => {
     });
 
     it('should handle search parameter correctly', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'test@example.com' };
       const mockUserOrg = { role: 'viewer' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -244,7 +257,7 @@ describe('Accounting Periods Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      await getAccountingPeriods('org-123', {
+      await getAccountingPeriods('550e8400-e29b-41d4-a716-446655440002', {
         search: '2024',
       });
 
@@ -254,14 +267,14 @@ describe('Accounting Periods Server Actions', () => {
 
   describe('createAccountingPeriod', () => {
     it('should create accounting period with valid data', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'test@example.com' };
       const mockUserOrg = { role: 'admin' };
       const mockNewPeriod = {
-        id: 'period-new',
+        id: '660e8400-e29b-41d4-a716-446655440000',
         name: '2024年度',
         start_date: '2024-01-01',
         end_date: '2024-12-31',
-        organization_id: 'org-123',
+        organization_id: '550e8400-e29b-41d4-a716-446655440002',
         is_closed: false,
       };
 
@@ -294,7 +307,7 @@ describe('Accounting Periods Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await createAccountingPeriod('org-123', {
+      const result = await createAccountingPeriod('550e8400-e29b-41d4-a716-446655440002', {
         name: '2024年度',
         start_date: '2024-01-01',
         end_date: '2024-12-31',
@@ -309,14 +322,14 @@ describe('Accounting Periods Server Actions', () => {
     });
 
     it('should reject invalid input data', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'test@example.com' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
         data: { user: mockUser },
         error: null,
       });
 
-      const result = await createAccountingPeriod('org-123', {
+      const result = await createAccountingPeriod('550e8400-e29b-41d4-a716-446655440002', {
         name: '', // Invalid - empty name
         start_date: '2024-01-01',
         end_date: '2024-12-31',
@@ -327,14 +340,14 @@ describe('Accounting Periods Server Actions', () => {
     });
 
     it('should reject XSS attempts in name', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'test@example.com' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
         data: { user: mockUser },
         error: null,
       });
 
-      const result = await createAccountingPeriod('org-123', {
+      const result = await createAccountingPeriod('550e8400-e29b-41d4-a716-446655440002', {
         name: '<script>alert("XSS")</script>',
         start_date: '2024-01-01',
         end_date: '2024-12-31',
@@ -346,7 +359,7 @@ describe('Accounting Periods Server Actions', () => {
     });
 
     it('should reject overlapping periods', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'test@example.com' };
       const mockUserOrg = { role: 'admin' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -356,7 +369,7 @@ describe('Accounting Periods Server Actions', () => {
 
       const userOrgQuery = createQueryMock({ data: mockUserOrg, error: null });
       const overlapQuery = createQueryMock({
-        data: [{ id: 'existing-period' }], // Has overlap
+        data: [{ id: '550e8400-e29b-41d4-a716-446655440099' }], // Has overlap
         error: null,
       });
 
@@ -370,7 +383,7 @@ describe('Accounting Periods Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await createAccountingPeriod('org-123', {
+      const result = await createAccountingPeriod('550e8400-e29b-41d4-a716-446655440002', {
         name: '2024年度',
         start_date: '2024-01-01',
         end_date: '2024-12-31',
@@ -382,7 +395,7 @@ describe('Accounting Periods Server Actions', () => {
     });
 
     it('should reject viewers from creating periods', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'test@example.com' };
       const mockUserOrg = { role: 'viewer' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -393,7 +406,7 @@ describe('Accounting Periods Server Actions', () => {
       const userOrgQuery = createQueryMock({ data: mockUserOrg, error: null });
       mockSupabaseClient.from.mockReturnValue(userOrgQuery);
 
-      const result = await createAccountingPeriod('org-123', {
+      const result = await createAccountingPeriod('550e8400-e29b-41d4-a716-446655440002', {
         name: '2024年度',
         start_date: '2024-01-01',
         end_date: '2024-12-31',
@@ -404,14 +417,14 @@ describe('Accounting Periods Server Actions', () => {
     });
 
     it('should handle database insertion correctly', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'test@example.com' };
       const mockUserOrg = { role: 'admin' };
       const mockNewPeriod = {
-        id: 'period-new',
+        id: '660e8400-e29b-41d4-a716-446655440000',
         name: '2024年度',
         start_date: '2024-01-01',
         end_date: '2024-12-31',
-        organization_id: 'org-123',
+        organization_id: '550e8400-e29b-41d4-a716-446655440002',
         is_closed: false,
       };
 
@@ -444,7 +457,7 @@ describe('Accounting Periods Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await createAccountingPeriod('org-123', {
+      const result = await createAccountingPeriod('550e8400-e29b-41d4-a716-446655440002', {
         name: '2024年度',
         start_date: '2024-01-01',
         end_date: '2024-12-31',
@@ -458,13 +471,13 @@ describe('Accounting Periods Server Actions', () => {
 
   describe('updateAccountingPeriod', () => {
     it('should update accounting period with valid data', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'test@example.com' };
       const mockExistingPeriod = {
-        id: 'period-1',
+        id: '550e8400-e29b-41d4-a716-446655440001',
         name: '2024年度',
         start_date: '2024-01-01',
         end_date: '2024-12-31',
-        organization_id: 'org-123',
+        organization_id: '550e8400-e29b-41d4-a716-446655440002',
         is_closed: false,
         user_organizations: [{ role: 'admin' }],
       };
@@ -484,26 +497,20 @@ describe('Accounting Periods Server Actions', () => {
           callCount++;
           if (callCount === 1) {
             // First call is to fetch existing with user_organizations join
-            return {
-              ...createQueryMock({ data: mockExistingPeriod, error: null }),
-              select: jest.fn().mockReturnThis(),
-              eq: jest.fn().mockReturnThis(),
-              single: jest.fn().mockResolvedValue({ data: mockExistingPeriod, error: null }),
-            };
+            const query = createQueryMock({ data: mockExistingPeriod, error: null });
+            // Override single to ensure it returns the proper data
+            query.single = jest.fn().mockResolvedValue({ data: mockExistingPeriod, error: null });
+            return query;
           }
           // Second call is to update
-          return {
-            ...createQueryMock({ data: mockUpdatedPeriod, error: null }),
-            update: jest.fn().mockReturnThis(),
-            eq: jest.fn().mockReturnThis(),
-            select: jest.fn().mockReturnThis(),
-            single: jest.fn().mockResolvedValue({ data: mockUpdatedPeriod, error: null }),
-          };
+          const query = createQueryMock({ data: mockUpdatedPeriod, error: null });
+          query.single = jest.fn().mockResolvedValue({ data: mockUpdatedPeriod, error: null });
+          return query;
         }
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await updateAccountingPeriod('period-1', {
+      const result = await updateAccountingPeriod('550e8400-e29b-41d4-a716-446655440001', {
         name: '2024年度（更新）',
       });
 
@@ -514,13 +521,13 @@ describe('Accounting Periods Server Actions', () => {
     });
 
     it('should reject updating closed period', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'test@example.com' };
       const mockExistingPeriod = {
-        id: 'period-1',
+        id: '550e8400-e29b-41d4-a716-446655440001',
         name: '2024年度',
         start_date: '2024-01-01',
         end_date: '2024-12-31',
-        organization_id: 'org-123',
+        organization_id: '550e8400-e29b-41d4-a716-446655440002',
         is_closed: true, // Closed period
         user_organizations: [{ role: 'admin' }],
       };
@@ -542,7 +549,7 @@ describe('Accounting Periods Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await updateAccountingPeriod('period-1', {
+      const result = await updateAccountingPeriod('550e8400-e29b-41d4-a716-446655440001', {
         name: '2024年度（更新）',
         is_closed: false, // Trying to reopen
       });
@@ -553,11 +560,11 @@ describe('Accounting Periods Server Actions', () => {
     });
 
     it('should use type guard for role extraction', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'test@example.com' };
       const mockExistingPeriod = {
-        id: 'period-1',
+        id: '550e8400-e29b-41d4-a716-446655440001',
         name: '2024年度',
-        organization_id: 'org-123',
+        organization_id: '550e8400-e29b-41d4-a716-446655440002',
         user_organizations: [{ role: 'viewer' }],
       };
 
@@ -571,7 +578,7 @@ describe('Accounting Periods Server Actions', () => {
       const fetchQuery = createQueryMock({ data: mockExistingPeriod, error: null });
       mockSupabaseClient.from.mockReturnValue(fetchQuery);
 
-      const result = await updateAccountingPeriod('period-1', {
+      const result = await updateAccountingPeriod('550e8400-e29b-41d4-a716-446655440001', {
         name: '2024年度（更新）',
       });
 
@@ -583,7 +590,7 @@ describe('Accounting Periods Server Actions', () => {
 
   describe('deleteAccountingPeriod', () => {
     it('should apply rate limiting to delete operations', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'test@example.com' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -600,19 +607,22 @@ describe('Accounting Periods Server Actions', () => {
         },
       });
 
-      const result = await deleteAccountingPeriod('period-1');
+      const result = await deleteAccountingPeriod('550e8400-e29b-41d4-a716-446655440001');
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.LIMIT_EXCEEDED);
-      expect(mockRateLimitMiddleware).toHaveBeenCalledWith(RATE_LIMIT_CONFIGS.DELETE, 'user-123');
+      expect(mockRateLimitMiddleware).toHaveBeenCalledWith(
+        RATE_LIMIT_CONFIGS.DELETE,
+        '550e8400-e29b-41d4-a716-446655440003'
+      );
     });
 
     it('should delete accounting period when no journal entries exist', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'test@example.com' };
       const mockExistingPeriod = {
-        id: 'period-1',
+        id: '550e8400-e29b-41d4-a716-446655440001',
         name: '2024年度',
-        organization_id: 'org-123',
+        organization_id: '550e8400-e29b-41d4-a716-446655440002',
         is_closed: false,
         user_organizations: [{ role: 'admin' }],
       };
@@ -636,15 +646,26 @@ describe('Accounting Periods Server Actions', () => {
             };
           } else if (callCount === 2) {
             // Check for other periods
-            return createQueryMock({ data: [{ id: 'other' }], error: null });
+            return createQueryMock({
+              data: [{ id: '550e8400-e29b-41d4-a716-446655440092' }],
+              error: null,
+            });
           } else {
             // Delete period
             return {
-              ...createQueryMock({ data: { id: 'period-1' }, error: null }),
+              ...createQueryMock({
+                data: { id: '550e8400-e29b-41d4-a716-446655440001' },
+                error: null,
+              }),
               delete: jest.fn().mockReturnThis(),
               eq: jest.fn().mockReturnThis(),
               select: jest.fn().mockReturnThis(),
-              single: jest.fn().mockResolvedValue({ data: { id: 'period-1' }, error: null }),
+              single: jest
+                .fn()
+                .mockResolvedValue({
+                  data: { id: '550e8400-e29b-41d4-a716-446655440001' },
+                  error: null,
+                }),
             };
           }
         }
@@ -654,20 +675,20 @@ describe('Accounting Periods Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await deleteAccountingPeriod('period-1');
+      const result = await deleteAccountingPeriod('550e8400-e29b-41d4-a716-446655440001');
 
       expect(result.success).toBe(true);
-      expect(result.data?.id).toBe('period-1');
+      expect(result.data?.id).toBe('550e8400-e29b-41d4-a716-446655440001');
       // Audit log is not implemented in the current version
       expect(mockAuditEntityChange).not.toHaveBeenCalled();
     });
 
     it('should reject deletion when journal entries exist', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'test@example.com' };
       const mockExistingPeriod = {
-        id: 'period-1',
+        id: '550e8400-e29b-41d4-a716-446655440001',
         name: '2024年度',
-        organization_id: 'org-123',
+        organization_id: '550e8400-e29b-41d4-a716-446655440002',
         user_organizations: [{ role: 'admin' }],
       };
 
@@ -678,7 +699,7 @@ describe('Accounting Periods Server Actions', () => {
 
       const fetchQuery = createQueryMock({ data: mockExistingPeriod, error: null });
       const journalQuery = createQueryMock({
-        data: [{ id: 'journal-1' }], // Has journal entries
+        data: [{ id: '550e8400-e29b-41d4-a716-446655440090' }], // Has journal entries
         error: null,
       });
 
@@ -692,7 +713,7 @@ describe('Accounting Periods Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await deleteAccountingPeriod('period-1');
+      const result = await deleteAccountingPeriod('550e8400-e29b-41d4-a716-446655440001');
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.VALIDATION_ERROR);
@@ -700,11 +721,11 @@ describe('Accounting Periods Server Actions', () => {
     });
 
     it('should reject deletion of last active period', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'test@example.com' };
       const mockExistingPeriod = {
-        id: 'period-1',
+        id: '550e8400-e29b-41d4-a716-446655440001',
         name: '2024年度',
-        organization_id: 'org-123',
+        organization_id: '550e8400-e29b-41d4-a716-446655440002',
         is_closed: false, // Active period
         user_organizations: [{ role: 'admin' }],
       };
@@ -734,7 +755,7 @@ describe('Accounting Periods Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await deleteAccountingPeriod('period-1');
+      const result = await deleteAccountingPeriod('550e8400-e29b-41d4-a716-446655440001');
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.VALIDATION_ERROR);
@@ -742,11 +763,11 @@ describe('Accounting Periods Server Actions', () => {
     });
 
     it('should only allow admin to delete periods', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'test@example.com' };
       const mockExistingPeriod = {
-        id: 'period-1',
+        id: '550e8400-e29b-41d4-a716-446655440001',
         name: '2024年度',
-        organization_id: 'org-123',
+        organization_id: '550e8400-e29b-41d4-a716-446655440002',
         user_organizations: [{ role: 'accountant' }], // Not admin
       };
 
@@ -758,7 +779,7 @@ describe('Accounting Periods Server Actions', () => {
       const fetchQuery = createQueryMock({ data: mockExistingPeriod, error: null });
       mockSupabaseClient.from.mockReturnValue(fetchQuery);
 
-      const result = await deleteAccountingPeriod('period-1');
+      const result = await deleteAccountingPeriod('550e8400-e29b-41d4-a716-446655440001');
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.INSUFFICIENT_PERMISSIONS);
@@ -767,11 +788,11 @@ describe('Accounting Periods Server Actions', () => {
 
   describe('closeAccountingPeriod', () => {
     it('should close accounting period successfully', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'test@example.com' };
       const mockExistingPeriod = {
-        id: 'period-1',
+        id: '550e8400-e29b-41d4-a716-446655440001',
         name: '2024年度',
-        organization_id: 'org-123',
+        organization_id: '550e8400-e29b-41d4-a716-446655440002',
         is_closed: false,
         user_organizations: [{ role: 'admin' }],
       };
@@ -804,18 +825,18 @@ describe('Accounting Periods Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await closeAccountingPeriod('period-1');
+      const result = await closeAccountingPeriod('550e8400-e29b-41d4-a716-446655440001');
 
       expect(result.success).toBe(true);
       expect(result.data?.is_closed).toBe(true);
     });
 
     it('should reject closing with pending journal entries', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'test@example.com' };
       const mockExistingPeriod = {
-        id: 'period-1',
+        id: '550e8400-e29b-41d4-a716-446655440001',
         name: '2024年度',
-        organization_id: 'org-123',
+        organization_id: '550e8400-e29b-41d4-a716-446655440002',
         is_closed: false,
         user_organizations: [{ role: 'admin' }],
       };
@@ -827,7 +848,7 @@ describe('Accounting Periods Server Actions', () => {
 
       const fetchQuery = createQueryMock({ data: mockExistingPeriod, error: null });
       const journalQuery = createQueryMock({
-        data: [{ id: 'pending-1' }], // Has pending entries
+        data: [{ id: '550e8400-e29b-41d4-a716-446655440091' }], // Has pending entries
         error: null,
       });
 
@@ -841,7 +862,7 @@ describe('Accounting Periods Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await closeAccountingPeriod('period-1');
+      const result = await closeAccountingPeriod('550e8400-e29b-41d4-a716-446655440001');
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.VALIDATION_ERROR);
@@ -851,15 +872,15 @@ describe('Accounting Periods Server Actions', () => {
 
   describe('getActiveAccountingPeriod', () => {
     it('should return active accounting period for current date', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'test@example.com' };
       const mockUserOrg = { role: 'viewer' };
       const today = new Date().toISOString().split('T')[0];
       const mockActivePeriod = {
-        id: 'period-1',
+        id: '550e8400-e29b-41d4-a716-446655440001',
         name: '2024年度',
         start_date: '2024-01-01',
         end_date: '2024-12-31',
-        organization_id: 'org-123',
+        organization_id: '550e8400-e29b-41d4-a716-446655440002',
         is_closed: false,
       };
 
@@ -881,7 +902,7 @@ describe('Accounting Periods Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await getActiveAccountingPeriod('org-123');
+      const result = await getActiveAccountingPeriod('550e8400-e29b-41d4-a716-446655440002');
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(mockActivePeriod);
@@ -891,7 +912,7 @@ describe('Accounting Periods Server Actions', () => {
     });
 
     it('should return null when no active period exists', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'test@example.com' };
       const mockUserOrg = { role: 'viewer' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -915,7 +936,7 @@ describe('Accounting Periods Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await getActiveAccountingPeriod('org-123');
+      const result = await getActiveAccountingPeriod('550e8400-e29b-41d4-a716-446655440002');
 
       expect(result.success).toBe(true);
       expect(result.data).toBe(null);
@@ -924,16 +945,16 @@ describe('Accounting Periods Server Actions', () => {
 
   describe('reopenAccountingPeriod', () => {
     it('should reopen a closed accounting period for admin', async () => {
-      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'admin@example.com' };
       const mockPeriod = {
-        id: 'period-123',
-        organization_id: 'org-123',
+        id: '770e8400-e29b-41d4-a716-446655440000',
+        organization_id: '550e8400-e29b-41d4-a716-446655440002',
         name: '2024年度',
         start_date: '2024-01-01',
         end_date: '2024-12-31',
         is_closed: true,
         closed_at: '2024-12-31T23:59:59Z',
-        closed_by: 'user-456',
+        closed_by: '880e8400-e29b-41d4-a716-446655440000',
         user_organizations: { role: 'admin' },
       };
 
@@ -969,7 +990,7 @@ describe('Accounting Periods Server Actions', () => {
 
       mockExtractUserRole.mockReturnValue('admin');
 
-      const result = await reopenAccountingPeriod('period-123');
+      const result = await reopenAccountingPeriod('770e8400-e29b-41d4-a716-446655440000');
 
       expect(result.success).toBe(true);
       expect(result.data).toMatchObject({
@@ -982,10 +1003,13 @@ describe('Accounting Periods Server Actions', () => {
     });
 
     it('should return error when user is not admin', async () => {
-      const mockUser = { id: 'user-123', email: 'accountant@example.com' };
+      const mockUser = {
+        id: '550e8400-e29b-41d4-a716-446655440003',
+        email: 'accountant@example.com',
+      };
       const mockPeriod = {
-        id: 'period-123',
-        organization_id: 'org-123',
+        id: '770e8400-e29b-41d4-a716-446655440000',
+        organization_id: '550e8400-e29b-41d4-a716-446655440002',
         name: '2024年度',
         is_closed: true,
         user_organizations: { role: 'accountant' },
@@ -1004,7 +1028,7 @@ describe('Accounting Periods Server Actions', () => {
       mockSupabaseClient.from.mockImplementation(() => fetchQuery);
       mockExtractUserRole.mockReturnValue('accountant');
 
-      const result = await reopenAccountingPeriod('period-123');
+      const result = await reopenAccountingPeriod('770e8400-e29b-41d4-a716-446655440000');
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.INSUFFICIENT_PERMISSIONS);
@@ -1012,10 +1036,10 @@ describe('Accounting Periods Server Actions', () => {
     });
 
     it('should return error when period is already open', async () => {
-      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'admin@example.com' };
       const mockPeriod = {
-        id: 'period-123',
-        organization_id: 'org-123',
+        id: '770e8400-e29b-41d4-a716-446655440000',
+        organization_id: '550e8400-e29b-41d4-a716-446655440002',
         name: '2024年度',
         is_closed: false,
         user_organizations: { role: 'admin' },
@@ -1034,7 +1058,7 @@ describe('Accounting Periods Server Actions', () => {
       mockSupabaseClient.from.mockImplementation(() => fetchQuery);
       mockExtractUserRole.mockReturnValue('admin');
 
-      const result = await reopenAccountingPeriod('period-123');
+      const result = await reopenAccountingPeriod('770e8400-e29b-41d4-a716-446655440000');
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.VALIDATION_ERROR);
@@ -1042,7 +1066,7 @@ describe('Accounting Periods Server Actions', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'admin@example.com' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -1056,7 +1080,7 @@ describe('Accounting Periods Server Actions', () => {
 
       mockSupabaseClient.from.mockImplementation(() => errorQuery);
 
-      const result = await reopenAccountingPeriod('period-123');
+      const result = await reopenAccountingPeriod('770e8400-e29b-41d4-a716-446655440000');
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.NOT_FOUND);
@@ -1065,16 +1089,19 @@ describe('Accounting Periods Server Actions', () => {
 
   describe('activateAccountingPeriod', () => {
     it('should activate (open) a closed accounting period', async () => {
-      const mockUser = { id: 'user-123', email: 'accountant@example.com' };
+      const mockUser = {
+        id: '550e8400-e29b-41d4-a716-446655440003',
+        email: 'accountant@example.com',
+      };
       const mockPeriod = {
-        id: 'period-123',
-        organization_id: 'org-123',
+        id: '770e8400-e29b-41d4-a716-446655440000',
+        organization_id: '550e8400-e29b-41d4-a716-446655440002',
         name: '2024年度',
         start_date: '2024-01-01',
         end_date: '2024-12-31',
         is_closed: true,
         closed_at: '2024-12-31T23:59:59Z',
-        closed_by: 'user-456',
+        closed_by: '880e8400-e29b-41d4-a716-446655440000',
         user_organizations: { role: 'accountant' },
       };
 
@@ -1110,7 +1137,7 @@ describe('Accounting Periods Server Actions', () => {
 
       mockExtractUserRole.mockReturnValue('accountant');
 
-      const result = await activateAccountingPeriod('period-123');
+      const result = await activateAccountingPeriod('770e8400-e29b-41d4-a716-446655440000');
 
       expect(result.success).toBe(true);
       expect(result.data).toMatchObject({
@@ -1124,10 +1151,13 @@ describe('Accounting Periods Server Actions', () => {
     });
 
     it('should return existing period if already open', async () => {
-      const mockUser = { id: 'user-123', email: 'accountant@example.com' };
+      const mockUser = {
+        id: '550e8400-e29b-41d4-a716-446655440003',
+        email: 'accountant@example.com',
+      };
       const mockPeriod = {
-        id: 'period-123',
-        organization_id: 'org-123',
+        id: '770e8400-e29b-41d4-a716-446655440000',
+        organization_id: '550e8400-e29b-41d4-a716-446655440002',
         name: '2024年度',
         is_closed: false,
         user_organizations: { role: 'accountant' },
@@ -1146,7 +1176,7 @@ describe('Accounting Periods Server Actions', () => {
       mockSupabaseClient.from.mockImplementation(() => fetchQuery);
       mockExtractUserRole.mockReturnValue('accountant');
 
-      const result = await activateAccountingPeriod('period-123');
+      const result = await activateAccountingPeriod('770e8400-e29b-41d4-a716-446655440000');
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(mockPeriod);
@@ -1155,10 +1185,10 @@ describe('Accounting Periods Server Actions', () => {
     });
 
     it('should reject viewer role from activating periods', async () => {
-      const mockUser = { id: 'user-123', email: 'viewer@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'viewer@example.com' };
       const mockPeriod = {
-        id: 'period-123',
-        organization_id: 'org-123',
+        id: '770e8400-e29b-41d4-a716-446655440000',
+        organization_id: '550e8400-e29b-41d4-a716-446655440002',
         name: '2024年度',
         is_closed: true,
         user_organizations: { role: 'viewer' },
@@ -1184,7 +1214,7 @@ describe('Accounting Periods Server Actions', () => {
     });
 
     it('should validate period ID format', async () => {
-      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'admin@example.com' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -1199,10 +1229,10 @@ describe('Accounting Periods Server Actions', () => {
     });
 
     it('should handle concurrent activation attempts', async () => {
-      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'admin@example.com' };
       const mockPeriod = {
-        id: 'period-123',
-        organization_id: 'org-123',
+        id: '770e8400-e29b-41d4-a716-446655440000',
+        organization_id: '550e8400-e29b-41d4-a716-446655440002',
         name: '2024年度',
         is_closed: true,
         user_organizations: { role: 'admin' },
@@ -1231,7 +1261,7 @@ describe('Accounting Periods Server Actions', () => {
 
       mockExtractUserRole.mockReturnValue('admin');
 
-      const result = await activateAccountingPeriod('period-123');
+      const result = await activateAccountingPeriod('770e8400-e29b-41d4-a716-446655440000');
 
       expect(result.success).toBe(false);
     });
@@ -1239,7 +1269,7 @@ describe('Accounting Periods Server Actions', () => {
 
   describe('Edge Cases and Boundary Testing', () => {
     it('should handle maximum date range (2 years)', async () => {
-      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'admin@example.com' };
       const twoYearsFromNow = new Date();
       twoYearsFromNow.setFullYear(twoYearsFromNow.getFullYear() + 2);
 
@@ -1260,8 +1290,8 @@ describe('Accounting Periods Server Actions', () => {
 
       const createQuery = createQueryMock({
         data: {
-          id: 'new-period',
-          organization_id: 'org-123',
+          id: '990e8400-e29b-41d4-a716-446655440000',
+          organization_id: '550e8400-e29b-41d4-a716-446655440002',
           name: '長期計画',
           start_date: new Date().toISOString().split('T')[0],
           end_date: twoYearsFromNow.toISOString().split('T')[0],
@@ -1285,7 +1315,7 @@ describe('Accounting Periods Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await createAccountingPeriod('org-123', {
+      const result = await createAccountingPeriod('550e8400-e29b-41d4-a716-446655440002', {
         name: '長期計画',
         start_date: new Date().toISOString().split('T')[0],
         end_date: twoYearsFromNow.toISOString().split('T')[0],
@@ -1295,7 +1325,7 @@ describe('Accounting Periods Server Actions', () => {
     });
 
     it('should handle special characters in period names', async () => {
-      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'admin@example.com' };
       const specialName = '2024年度 (第1四半期) - 特別会計期間';
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -1315,8 +1345,8 @@ describe('Accounting Periods Server Actions', () => {
 
       const createQuery = createQueryMock({
         data: {
-          id: 'new-period',
-          organization_id: 'org-123',
+          id: '990e8400-e29b-41d4-a716-446655440000',
+          organization_id: '550e8400-e29b-41d4-a716-446655440002',
           name: specialName,
           start_date: '2024-01-01',
           end_date: '2024-03-31',
@@ -1340,7 +1370,7 @@ describe('Accounting Periods Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await createAccountingPeriod('org-123', {
+      const result = await createAccountingPeriod('550e8400-e29b-41d4-a716-446655440002', {
         name: specialName,
         start_date: '2024-01-01',
         end_date: '2024-03-31',
@@ -1351,10 +1381,10 @@ describe('Accounting Periods Server Actions', () => {
     });
 
     it('should handle pagination with large datasets', async () => {
-      const mockUser = { id: 'user-123', email: 'viewer@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'viewer@example.com' };
       const mockPeriods = Array.from({ length: 100 }, (_, i) => ({
-        id: `period-${i}`,
-        organization_id: 'org-123',
+        id: `aa0e8400-e29b-41d4-a716-4466554400${String(i).padStart(2, '0')}`,
+        organization_id: '550e8400-e29b-41d4-a716-446655440002',
         name: `Period ${i}`,
         start_date: `2024-${String((i % 12) + 1).padStart(2, '0')}-01`,
         end_date: `2024-${String((i % 12) + 1).padStart(2, '0')}-28`,
@@ -1397,7 +1427,7 @@ describe('Accounting Periods Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await getAccountingPeriods('org-123', {
+      const result = await getAccountingPeriods('550e8400-e29b-41d4-a716-446655440002', {
         page: 3,
         pageSize: 20,
       });
@@ -1413,7 +1443,7 @@ describe('Accounting Periods Server Actions', () => {
   describe('Performance and Timeout Tests', () => {
     it('should complete within timeout limit (30 seconds)', async () => {
       const startTime = Date.now();
-      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'admin@example.com' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -1428,7 +1458,7 @@ describe('Accounting Periods Server Actions', () => {
 
       mockSupabaseClient.from.mockImplementation(() => query);
 
-      await getAccountingPeriods('org-123');
+      await getAccountingPeriods('550e8400-e29b-41d4-a716-446655440002');
 
       const endTime = Date.now();
       const executionTime = endTime - startTime;
@@ -1437,7 +1467,7 @@ describe('Accounting Periods Server Actions', () => {
     });
 
     it('should handle rate limiting correctly', async () => {
-      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const mockUser = { id: '550e8400-e29b-41d4-a716-446655440003', email: 'admin@example.com' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
         data: { user: mockUser },
