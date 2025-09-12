@@ -111,18 +111,19 @@ jobs:
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server started with PID: $SERVER_PID"
 
           # Wait for server to be fully ready (optimized for fast startup)
-          timeout 60 bash -c 'until curl -f http://localhost:3000 >/dev/null 2>&1; do
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Waiting for web server..."
+          echo "Waiting for web server to be ready..."
+          for i in {1..60}; do
+            if curl -f http://localhost:3000 >/dev/null 2>&1; then
+              echo "Web server is ready after $i seconds"
+              break
+            fi
+            if [ $i -eq 60 ]; then
+              echo "ERROR: Server failed to start within 60 seconds"
+              ps aux | grep node
+              exit 1
+            fi
             sleep 1
-          done'
-
-          if [ $? -eq 0 ]; then
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Web server is ready"
-          else
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: Server failed to start within timeout"
-            ps aux | grep node
-            exit 1
-          fi
+          done
 
       - name: Run E2E tests with performance tracking
         env:
