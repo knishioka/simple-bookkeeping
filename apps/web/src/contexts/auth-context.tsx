@@ -61,6 +61,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     // For E2E tests, check if test user data is available
     const checkTestUser = () => {
+      // CRITICAL SECURITY: Only allow test authentication in non-production environments
+      if (process.env.NODE_ENV === 'production') {
+        return false;
+      }
+
       if (typeof window === 'undefined') {
         return false;
       }
