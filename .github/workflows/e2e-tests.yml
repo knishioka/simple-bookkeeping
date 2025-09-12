@@ -99,13 +99,30 @@ jobs:
         run: |
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting web server..."
           cd apps/web
-          npm run start &
+          # Check if build output exists
+          if [ ! -d ".next" ]; then
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: .next directory not found!"
+            ls -la
+            exit 1
+          fi
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Found .next directory, starting server..."
+          pnpm start &
+          SERVER_PID=$!
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server started with PID: $SERVER_PID"
+
           # Wait for server to be fully ready (optimized for fast startup)
           timeout 60 bash -c 'until curl -f http://localhost:3000 >/dev/null 2>&1; do
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] Waiting for web server..."
             sleep 1
           done'
-          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Web server is ready"
+
+          if [ $? -eq 0 ]; then
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Web server is ready"
+          else
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: Server failed to start within timeout"
+            ps aux | grep node
+            exit 1
+          fi
 
       - name: Run E2E tests with performance tracking
         env:
