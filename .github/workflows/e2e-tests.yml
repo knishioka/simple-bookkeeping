@@ -112,13 +112,16 @@ jobs:
 
           # Wait for server to be fully ready (optimized for fast startup)
           echo "Waiting for web server to be ready..."
-          for i in {1..60}; do
+          COUNTER=0
+          MAX_WAIT=60
+          while [ $COUNTER -lt $MAX_WAIT ]; do
+            COUNTER=$((COUNTER+1))
             if curl -f http://localhost:3000 >/dev/null 2>&1; then
-              echo "Web server is ready after $i seconds"
+              echo "Web server is ready after $COUNTER seconds"
               break
             fi
-            if [ $i -eq 60 ]; then
-              echo "ERROR: Server failed to start within 60 seconds"
+            if [ $COUNTER -eq $MAX_WAIT ]; then
+              echo "ERROR: Server failed to start within $MAX_WAIT seconds"
               ps aux | grep node
               exit 1
             fi
@@ -150,10 +153,7 @@ jobs:
 
           # Run fast test suite with sharding and optimized config
           cd apps/web
-          timeout 360 npx playwright test \
-            --config playwright.config.fast.ts \
-            --shard=${{ matrix.shard }} \
-            --grep-invert="@slow|@integration" || TEST_EXIT=$?
+          timeout 360 npx playwright test --config playwright.config.fast.ts --shard=${{ matrix.shard }} --grep-invert="@slow|@integration" || TEST_EXIT=$?
             
           END_TIME=$(date +%s)
           DURATION=$((END_TIME - START_TIME))
