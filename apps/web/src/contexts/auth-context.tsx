@@ -60,38 +60,96 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // The application should use Supabase's auth.getUser() instead
 
     // For E2E tests, check if test user data is available
-    if (
-      typeof window !== 'undefined' &&
-      (window as Window & { __testUser?: Record<string, unknown> }).__testUser
-    ) {
-      const testUser = (window as Window & { __testUser?: Record<string, unknown> }).__testUser as {
-        id?: string;
-        email?: string;
-        user_metadata?: { name?: string; organization_id?: string; role?: string };
-      };
-      const mockUser: User = {
-        id: testUser.id || 'test-user-id',
-        email: testUser.email || 'test@example.com',
-        name: testUser.user_metadata?.name || 'Test User',
-        organizations: [
-          {
-            id: testUser.user_metadata?.organization_id || 'test-org-1',
-            name: 'Test Organization',
-            code: 'TEST001',
-            role: (testUser.user_metadata?.role?.toUpperCase() || 'ADMIN') as
-              | 'ADMIN'
-              | 'ACCOUNTANT'
-              | 'VIEWER',
-            isDefault: true,
-          },
-        ],
-      };
-      mockUser.currentOrganization = mockUser.organizations[0];
-      setUser(mockUser);
-      setCurrentOrganization(mockUser.organizations[0]);
-    }
+    const checkTestUser = () => {
+      if (typeof window === 'undefined') {
+        return false;
+      }
 
-    setLoading(false);
+      // Check window.__testUser first
+      const windowTestUser = (window as Window & { __testUser?: Record<string, unknown> })
+        .__testUser;
+
+      // Also check localStorage for Supabase test auth (persists across navigations)
+      let testUser:
+        | {
+            id?: string;
+            email?: string;
+            user_metadata?: { name?: string; organization_id?: string; role?: string };
+          }
+        | undefined = windowTestUser as
+        | {
+            id?: string;
+            email?: string;
+            user_metadata?: { name?: string; organization_id?: string; role?: string };
+          }
+        | undefined;
+
+      if (!testUser) {
+        try {
+          const supabaseAuth = localStorage.getItem('supabase.auth.token');
+          if (supabaseAuth) {
+            const authData = JSON.parse(supabaseAuth);
+            if (authData?.user) {
+              testUser = authData.user;
+            }
+          }
+        } catch {
+          // Ignore parsing errors
+        }
+      }
+
+      if (testUser) {
+        const mockUser: User = {
+          id: testUser.id || 'test-user-id',
+          email: testUser.email || 'test@example.com',
+          name: testUser.user_metadata?.name || 'Test User',
+          organizations: [
+            {
+              id: testUser.user_metadata?.organization_id || 'test-org-1',
+              name: 'Test Organization',
+              code: 'TEST001',
+              role: (testUser.user_metadata?.role?.toUpperCase() || 'ADMIN') as
+                | 'ADMIN'
+                | 'ACCOUNTANT'
+                | 'VIEWER',
+              isDefault: true,
+            },
+          ],
+        };
+        mockUser.currentOrganization = mockUser.organizations[0];
+        setUser(mockUser);
+        setCurrentOrganization(mockUser.organizations[0]);
+        return true;
+      }
+      return false;
+    };
+
+    // Check immediately
+    const hasTestUser = checkTestUser();
+
+    // If no test user found immediately, poll for test user data
+    // This handles the case where SupabaseAuth.setup() runs after component mount
+    // especially in production builds where timing is different
+    if (!hasTestUser) {
+      let attempts = 0;
+      const maxAttempts = 20; // Poll for up to 2 seconds (20 * 100ms)
+
+      const intervalId = setInterval(() => {
+        attempts++;
+        const found = checkTestUser();
+
+        if (found || attempts >= maxAttempts) {
+          clearInterval(intervalId);
+          setLoading(false);
+        }
+      }, 100); // Check every 100ms
+
+      return () => {
+        clearInterval(intervalId);
+      };
+    } else {
+      setLoading(false);
+    }
 
     // Original auth check code commented out:
     /*
