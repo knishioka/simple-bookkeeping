@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # ============================================================================
-# check-deployments.sh - Multi-platform Deployment Monitor
+# check-deployments.sh - Vercel Deployment Monitor
 # ============================================================================
-# Purpose: Monitor deployment status across both Render (API) and Vercel (Web)
+# Purpose: Monitor deployment status for Vercel
 # Usage: pnpm deploy:check
-# Requirements: RENDER_API_KEY and VERCEL_TOKEN environment variables
+# Requirements: VERCEL_TOKEN environment variable
 # ============================================================================
 
 set -e
@@ -16,20 +16,8 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}Checking deployment status for both platforms${NC}"
+echo -e "${GREEN}Checking Vercel deployment status${NC}"
 echo "================================================"
-echo ""
-
-# Render status
-echo -e "${YELLOW}RENDER (API Server)${NC}"
-echo "-------------------"
-if [ -f "./scripts/render-api-status.sh" ]; then
-    ./scripts/render-api-status.sh | tail -n +3  # Skip header
-else
-    echo -e "${RED}Error: render-api-status.sh not found${NC}"
-fi
-
-echo ""
 echo ""
 
 # Vercel status

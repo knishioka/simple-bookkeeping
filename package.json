@@ -46,8 +46,6 @@
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
-    "render:status": "./scripts/render-api-status.sh",
-    "render:logs": "./scripts/render-logs.sh",
     "vercel:status": "./scripts/vercel-api-status.sh",
     "vercel:logs": "./scripts/vercel-logs.sh",
     "deploy:check": "./scripts/check-deployments.sh",

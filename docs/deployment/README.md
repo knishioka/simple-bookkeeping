@@ -7,8 +7,8 @@
 初めてデプロイする場合は、以下の手順に従ってください：
 
 1. **環境変数の設定** - `.env.example` を参考に必要な環境変数を設定
-2. **プラットフォームの選択** - Render（API）とVercel（Web）を使用
-3. **デプロイの実行** - 各プラットフォームのCLIまたはダッシュボードを使用
+2. **プラットフォームの選択** - Vercel（Web）を使用
+3. **デプロイの実行** - VercelのCLIまたはダッシュボードを使用
 
 詳細は [detailed-guide.md](./detailed-guide.md) を参照してください。
 
@@ -18,34 +18,30 @@
 - **[configuration.md](./configuration.md)** - 環境変数と設定ファイルの説明
 - **[troubleshooting.md](./troubleshooting.md)** - よくある問題と解決方法
 - **[scripts-reference.md](./scripts-reference.md)** - デプロイメントスクリプトのリファレンス
-- **[render-tips.md](./render-tips.md)** - Render固有のTipsとベストプラクティス
 
 ## アーキテクチャ概要
 
 ```
-┌─────────────┐     ┌─────────────┐
-│   Vercel    │     │   Render    │
-│  (Next.js)  │────▶│ (Express.js)│
-│   Port:3000 │     │  Port:3001  │
-└─────────────┘     └──────┬──────┘
-                           │
-                    ┌──────▼──────┐
-                    │ PostgreSQL  │
-                    │  (Render)   │
-                    └─────────────┘
+┌─────────────┐
+│   Vercel    │
+│  (Next.js)  │
+│   Port:3000 │
+└──────┬──────┘
+       │
+┌──────▼──────┐
+│  Supabase   │
+│ (PostgreSQL)│
+└─────────────┘
 ```
 
 ## 必要な環境変数
 
 ### Vercel (Web)
 
-- `NEXT_PUBLIC_API_URL` - APIサーバーのURL
-
-### Render (API)
-
-- `DATABASE_URL` - PostgreSQL接続文字列
-- `JWT_SECRET` - JWT署名用の秘密鍵
-- `CORS_ORIGIN` - Vercelアプリケーションのオリジン
+- `DATABASE_URL` - PostgreSQL接続文字列（Supabase）
+- `NEXT_PUBLIC_SUPABASE_URL` - Supabase URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase Anonymous Key
+- `SUPABASE_SERVICE_ROLE_KEY` - Supabase Service Role Key
 
 ## デプロイメントチェックリスト
 

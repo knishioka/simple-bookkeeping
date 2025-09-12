@@ -60,13 +60,11 @@
 
 ## デプロイメント監視
 
-| コマンド             | 説明                                 | 使用例                     |
-| -------------------- | ------------------------------------ | -------------------------- |
-| `pnpm deploy:check`  | 両プラットフォームのデプロイ状況確認 | `pnpm deploy:check`        |
-| `pnpm render:status` | Renderのデプロイ状況確認             | `pnpm render:status`       |
-| `pnpm render:logs`   | Renderのログ表示                     | `pnpm render:logs runtime` |
-| `pnpm vercel:status` | Vercelのデプロイ状況確認             | `pnpm vercel:status`       |
-| `pnpm vercel:logs`   | Vercelのログ表示                     | `pnpm vercel:logs build`   |
+| コマンド             | 説明                     | 使用例                   |
+| -------------------- | ------------------------ | ------------------------ |
+| `pnpm deploy:check`  | Vercelのデプロイ状況確認 | `pnpm deploy:check`      |
+| `pnpm vercel:status` | Vercelのデプロイ状況確認 | `pnpm vercel:status`     |
+| `pnpm vercel:logs`   | Vercelのログ表示         | `pnpm vercel:logs build` |
 
 ## よく使うコマンドの組み合わせ
 
