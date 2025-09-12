@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-import { UnifiedAuth } from './helpers/unified-auth';
+import { UnifiedMock } from './helpers/server-actions-unified-mock';
+import { SupabaseAuth } from './helpers/supabase-auth';
 
 test.describe('Responsive Navigation', () => {
   // CI環境での実行を考慮してタイムアウトを増やす
@@ -8,41 +9,24 @@ test.describe('Responsive Navigation', () => {
   test.setTimeout(30000);
 
   test.beforeEach(async ({ page, context }) => {
-    // まず適当なページを開く
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
-
-    // 認証設定
-    await UnifiedAuth.setupMockRoutes(context);
-    await UnifiedAuth.setAuthData(page);
-
-    // 追加のAPIモック設定
-    await context.route('**/api/v1/auth/me', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          data: {
-            user: {
-              id: '1',
-              email: 'admin@example.com',
-              name: 'Admin User',
-              organizations: [
-                {
-                  id: '1',
-                  name: 'Test Organization',
-                  role: 'admin',
-                },
-              ],
-            },
-            currentOrganization: {
-              id: '1',
-              name: 'Test Organization',
-              role: 'admin',
-            },
+    // Server Actions用のモックをセットアップ
+    await UnifiedMock.setupAll(context, {
+      enabled: true,
+      customResponses: {
+        organizations: [
+          {
+            id: 'test-org-1',
+            name: 'Test Organization',
+            code: 'TEST001',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
           },
-        }),
-      });
+        ],
+      },
     });
+
+    // Supabase認証をセットアップ
+    await SupabaseAuth.setup(context, page, { role: 'admin' });
 
     // ダッシュボードへ移動
     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
