@@ -660,12 +660,10 @@ describe('Accounting Periods Server Actions', () => {
               delete: jest.fn().mockReturnThis(),
               eq: jest.fn().mockReturnThis(),
               select: jest.fn().mockReturnThis(),
-              single: jest
-                .fn()
-                .mockResolvedValue({
-                  data: { id: '550e8400-e29b-41d4-a716-446655440001' },
-                  error: null,
-                }),
+              single: jest.fn().mockResolvedValue({
+                data: { id: '550e8400-e29b-41d4-a716-446655440001' },
+                error: null,
+              }),
             };
           }
         }
