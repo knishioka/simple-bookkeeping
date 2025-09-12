@@ -15,7 +15,9 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   useEffect(() => {
     // Check if we're in test mode (using placeholder Supabase URLs)
+    // CRITICAL SECURITY: Only allow test mode in non-production environments
     const isTestMode =
+      process.env.NODE_ENV !== 'production' &&
       typeof window !== 'undefined' &&
       (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
       (localStorage.getItem('supabase.auth.token') ||
@@ -27,7 +29,9 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   }, [isAuthenticated, loading, router]);
 
   // Check if we're in test mode (using placeholder Supabase URLs)
+  // CRITICAL SECURITY: Only allow test mode in non-production environments
   const isTestMode =
+    process.env.NODE_ENV !== 'production' &&
     typeof window !== 'undefined' &&
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') &&
     (localStorage.getItem('supabase.auth.token') ||
