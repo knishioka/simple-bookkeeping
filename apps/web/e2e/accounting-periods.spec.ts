@@ -68,20 +68,28 @@ test.describe('Accounting Periods Management', () => {
     page,
     context: _context,
   }) => {
-    // Server Actions用のモックデータを設定
-    UnifiedMock.customizeResponse('accounting-periods', [
-      {
-        id: 'period-1',
-        name: '2024年度',
-        start_date: '2024-01-01',
-        end_date: '2024-12-31',
-        is_active: false,
-        is_closed: false,
-        organization_id: 'test-org-1',
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z',
+    // Server Actions用のモックをセットアップ
+    await UnifiedMock.setupAll(_context, {
+      enabled: true,
+      customResponses: {
+        'accounting-periods': [
+          {
+            id: 'period-1',
+            name: '2024年度',
+            start_date: '2024-01-01',
+            end_date: '2024-12-31',
+            is_active: false,
+            is_closed: false,
+            organization_id: 'test-org-1',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        ],
       },
-    ]);
+    });
+
+    // Supabase認証をセットアップ
+    await SupabaseAuth.setup(_context, page, { role: 'admin' });
 
     // Navigate to settings
     await page.goto('/dashboard/settings', { waitUntil: 'domcontentloaded' });
@@ -103,20 +111,28 @@ test.describe('Accounting Periods Management', () => {
   });
 
   test('should display accounting periods page', async ({ page, context: _context }) => {
-    // Server Actions用のモックデータを設定
-    UnifiedMock.customizeResponse('accounting-periods', [
-      {
-        id: 'period-1',
-        name: '2024年度',
-        start_date: '2024-01-01',
-        end_date: '2024-12-31',
-        is_active: false, // Changed to false because is_closed field maps to !isActive
-        is_closed: false,
-        organization_id: 'test-org-1',
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z',
+    // Server Actions用のモックをセットアップ
+    await UnifiedMock.setupAll(_context, {
+      enabled: true,
+      customResponses: {
+        'accounting-periods': [
+          {
+            id: 'period-1',
+            name: '2024年度',
+            start_date: '2024-01-01',
+            end_date: '2024-12-31',
+            is_active: false, // Changed to false because is_closed field maps to !isActive
+            is_closed: false,
+            organization_id: 'test-org-1',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        ],
       },
-    ]);
+    });
+
+    // Supabase認証をセットアップ
+    await SupabaseAuth.setup(_context, page, { role: 'admin' });
 
     await page.goto('/dashboard/settings/accounting-periods', { waitUntil: 'domcontentloaded' });
 
@@ -174,7 +190,16 @@ test.describe('Accounting Periods Management', () => {
       },
     ];
 
-    UnifiedMock.customizeResponse('accounting-periods', initialPeriods);
+    // Server Actions用のモックをセットアップ
+    await UnifiedMock.setupAll(_context, {
+      enabled: true,
+      customResponses: {
+        'accounting-periods': initialPeriods,
+      },
+    });
+
+    // Supabase認証をセットアップ
+    await SupabaseAuth.setup(_context, page, { role: 'admin' });
 
     await page.goto('/dashboard/settings/accounting-periods', { waitUntil: 'domcontentloaded' });
 
@@ -238,7 +263,16 @@ test.describe('Accounting Periods Management', () => {
       },
     ];
 
-    UnifiedMock.customizeResponse('accounting-periods', periods);
+    // Server Actions用のモックをセットアップ
+    await UnifiedMock.setupAll(_context, {
+      enabled: true,
+      customResponses: {
+        'accounting-periods': periods,
+      },
+    });
+
+    // Supabase認証をセットアップ
+    await SupabaseAuth.setup(_context, page, { role: 'admin' });
 
     await page.goto('/dashboard/settings/accounting-periods', { waitUntil: 'domcontentloaded' });
 
@@ -288,7 +322,16 @@ test.describe('Accounting Periods Management', () => {
       },
     ];
 
-    UnifiedMock.customizeResponse('accounting-periods', periods);
+    // Server Actions用のモックをセットアップ
+    await UnifiedMock.setupAll(_context, {
+      enabled: true,
+      customResponses: {
+        'accounting-periods': periods,
+      },
+    });
+
+    // Supabase認証をセットアップ
+    await SupabaseAuth.setup(_context, page, { role: 'admin' });
 
     await page.goto('/dashboard/settings/accounting-periods', { waitUntil: 'domcontentloaded' });
 
@@ -317,31 +360,40 @@ test.describe('Accounting Periods Management', () => {
 
   test('should not allow deleting active period', async ({ page, context: _context }) => {
     test.setTimeout(30000); // Increase test timeout for CI
-    // Server Actions用のモックデータを設定
-    UnifiedMock.customizeResponse('accounting-periods', [
-      {
-        id: 'period-active',
-        name: 'アクティブ期間',
-        start_date: '2024-01-01',
-        end_date: '2024-12-31',
-        is_active: false,
-        is_closed: false, // Active period: is_closed = false means isActive = true in UI
-        organization_id: 'test-org-1',
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z',
+
+    // Server Actions用のモックをセットアップ
+    await UnifiedMock.setupAll(_context, {
+      enabled: true,
+      customResponses: {
+        'accounting-periods': [
+          {
+            id: 'period-active',
+            name: 'アクティブ期間',
+            start_date: '2024-01-01',
+            end_date: '2024-12-31',
+            is_active: false,
+            is_closed: false, // Active period: is_closed = false means isActive = true in UI
+            organization_id: 'test-org-1',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+          {
+            id: 'period-inactive',
+            name: '非アクティブ期間',
+            start_date: '2025-01-01',
+            end_date: '2025-12-31',
+            is_active: false,
+            is_closed: true, // Inactive period: is_closed = true means isActive = false in UI
+            organization_id: 'test-org-1',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        ],
       },
-      {
-        id: 'period-inactive',
-        name: '非アクティブ期間',
-        start_date: '2025-01-01',
-        end_date: '2025-12-31',
-        is_active: false,
-        is_closed: true, // Inactive period: is_closed = true means isActive = false in UI
-        organization_id: 'test-org-1',
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z',
-      },
-    ]);
+    });
+
+    // Supabase認証をセットアップ
+    await SupabaseAuth.setup(_context, page, { role: 'admin' });
 
     await page.goto('/dashboard/settings/accounting-periods', { waitUntil: 'domcontentloaded' });
 
@@ -367,8 +419,16 @@ test.describe('Accounting Periods Management', () => {
   });
 
   test('should validate date range when creating period', async ({ page, context: _context }) => {
-    // Server Actions用のモックデータを設定（空のリスト）
-    UnifiedMock.customizeResponse('accounting-periods', []);
+    // Server Actions用のモックをセットアップ（空のリスト）
+    await UnifiedMock.setupAll(_context, {
+      enabled: true,
+      customResponses: {
+        'accounting-periods': [],
+      },
+    });
+
+    // Supabase認証をセットアップ
+    await SupabaseAuth.setup(_context, page, { role: 'admin' });
 
     await page.goto('/dashboard/settings/accounting-periods', { waitUntil: 'domcontentloaded' });
 
@@ -406,20 +466,29 @@ test.describe('Accounting Periods Management', () => {
 
   test('should prevent overlapping periods', async ({ page, context: _context }) => {
     test.setTimeout(30000); // Increase test timeout for CI
-    // Server Actions用のモックデータを設定
-    UnifiedMock.customizeResponse('accounting-periods', [
-      {
-        id: 'period-1',
-        name: '2025年度',
-        start_date: '2025-01-01',
-        end_date: '2025-12-31',
-        is_active: false,
-        is_closed: false,
-        organization_id: 'test-org-1',
-        created_at: '2024-01-01T00:00:00Z',
-        updated_at: '2024-01-01T00:00:00Z',
+
+    // Server Actions用のモックをセットアップ
+    await UnifiedMock.setupAll(_context, {
+      enabled: true,
+      customResponses: {
+        'accounting-periods': [
+          {
+            id: 'period-1',
+            name: '2025年度',
+            start_date: '2025-01-01',
+            end_date: '2025-12-31',
+            is_active: false,
+            is_closed: false,
+            organization_id: 'test-org-1',
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T00:00:00Z',
+          },
+        ],
       },
-    ]);
+    });
+
+    // Supabase認証をセットアップ
+    await SupabaseAuth.setup(_context, page, { role: 'admin' });
 
     await page.goto('/dashboard/settings/accounting-periods', { waitUntil: 'domcontentloaded' });
 
@@ -461,8 +530,16 @@ test.describe('Accounting Periods Management', () => {
   });
 
   test('should show empty state when no periods exist', async ({ page, context: _context }) => {
-    // Server Actions用のモックデータを設定（空のリスト）
-    UnifiedMock.customizeResponse('accounting-periods', []);
+    // Server Actions用のモックをセットアップ（空のリスト）
+    await UnifiedMock.setupAll(_context, {
+      enabled: true,
+      customResponses: {
+        'accounting-periods': [],
+      },
+    });
+
+    // Supabase認証をセットアップ
+    await SupabaseAuth.setup(_context, page, { role: 'admin' });
 
     await page.goto('/dashboard/settings/accounting-periods', { waitUntil: 'domcontentloaded' });
 
