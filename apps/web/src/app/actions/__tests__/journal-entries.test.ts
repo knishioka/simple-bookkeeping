@@ -27,23 +27,31 @@ describe('Journal Entries Server Actions', () => {
 
   // Helper function to create chainable query mocks
   const createQueryMock = (result: any) => {
-    const query: any = {
-      select: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      neq: jest.fn().mockReturnThis(),
-      or: jest.fn().mockReturnThis(),
-      in: jest.fn().mockReturnThis(),
-      gte: jest.fn().mockReturnThis(),
-      lte: jest.fn().mockReturnThis(),
-      order: jest.fn().mockReturnThis(),
-      range: jest.fn().mockReturnThis(),
-      single: jest.fn().mockResolvedValue(result),
-      insert: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      delete: jest.fn().mockReturnThis(),
-    };
-    // For non-single queries
+    const query: any = {};
+
+    // Setup chainable methods
+    const chainableMethods = [
+      'select',
+      'eq',
+      'neq',
+      'or',
+      'in',
+      'gte',
+      'lte',
+      'order',
+      'insert',
+      'update',
+      'delete',
+    ];
+
+    chainableMethods.forEach((method) => {
+      query[method] = jest.fn(() => query);
+    });
+
+    // Terminal methods that return promises
+    query.single = jest.fn().mockResolvedValue(result);
     query.range = jest.fn().mockResolvedValue(result);
+
     return query;
   };
 
