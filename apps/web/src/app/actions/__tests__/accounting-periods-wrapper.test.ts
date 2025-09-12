@@ -40,7 +40,7 @@ describe('Accounting Periods Wrapper Actions', () => {
 
   describe('getAccountingPeriodsWithAuth', () => {
     it('should call getAccountingPeriods with organization ID', async () => {
-      const mockOrganizationId = 'org-123';
+      const mockOrganizationId = '83e58256-5905-47e5-bc00-74cd776abd13';
       const mockParams = { page: 1, pageSize: 20 };
       const mockResult = {
         success: true,
@@ -80,7 +80,7 @@ describe('Accounting Periods Wrapper Actions', () => {
     });
 
     it('should handle errors from underlying action', async () => {
-      const mockOrganizationId = 'org-123';
+      const mockOrganizationId = '83e58256-5905-47e5-bc00-74cd776abd13';
       const mockError = {
         success: false,
         error: {
@@ -100,9 +100,9 @@ describe('Accounting Periods Wrapper Actions', () => {
 
   describe('getActiveAccountingPeriodWithAuth', () => {
     it('should call getActiveAccountingPeriod with organization ID', async () => {
-      const mockOrganizationId = 'org-123';
+      const mockOrganizationId = '83e58256-5905-47e5-bc00-74cd776abd13';
       const mockPeriod = {
-        id: 'period-123',
+        id: '7eaa5471-e5af-43be-a411-6d6ae2bd2327',
         organization_id: mockOrganizationId,
         name: '2024年度',
         start_date: '2024-01-01',
@@ -129,7 +129,7 @@ describe('Accounting Periods Wrapper Actions', () => {
     });
 
     it('should return null when no active period exists', async () => {
-      const mockOrganizationId = 'org-123';
+      const mockOrganizationId = '83e58256-5905-47e5-bc00-74cd776abd13';
       const mockResult = {
         success: true,
         data: null,
@@ -159,7 +159,7 @@ describe('Accounting Periods Wrapper Actions', () => {
 
   describe('createAccountingPeriodWithAuth', () => {
     it('should create accounting period with organization ID', async () => {
-      const mockOrganizationId = 'org-123';
+      const mockOrganizationId = '83e58256-5905-47e5-bc00-74cd776abd13';
       const mockData = {
         name: '2025年度',
         start_date: '2025-01-01',
@@ -189,7 +189,7 @@ describe('Accounting Periods Wrapper Actions', () => {
     });
 
     it('should handle validation errors', async () => {
-      const mockOrganizationId = 'org-123';
+      const mockOrganizationId = '83e58256-5905-47e5-bc00-74cd776abd13';
       const mockData = {
         name: '',
         start_date: '2025-12-31',
@@ -229,7 +229,7 @@ describe('Accounting Periods Wrapper Actions', () => {
 
   describe('updateAccountingPeriodWithAuth', () => {
     it('should update accounting period', async () => {
-      const periodId = 'period-123';
+      const periodId = '7eaa5471-e5af-43be-a411-6d6ae2bd2327';
       const mockData = {
         name: '2024年度（修正）',
       };
@@ -237,7 +237,7 @@ describe('Accounting Periods Wrapper Actions', () => {
         success: true,
         data: {
           id: periodId,
-          organization_id: 'org-123',
+          organization_id: '83e58256-5905-47e5-bc00-74cd776abd13',
           name: '2024年度（修正）',
           start_date: '2024-01-01',
           end_date: '2024-12-31',
@@ -257,7 +257,7 @@ describe('Accounting Periods Wrapper Actions', () => {
     });
 
     it('should handle closed period update attempts', async () => {
-      const periodId = 'period-123';
+      const periodId = '7eaa5471-e5af-43be-a411-6d6ae2bd2327';
       const mockData = {
         start_date: '2024-02-01',
       };
@@ -280,16 +280,16 @@ describe('Accounting Periods Wrapper Actions', () => {
 
   describe('closeAccountingPeriodWithAuth', () => {
     it('should close accounting period', async () => {
-      const periodId = 'period-123';
+      const periodId = '7eaa5471-e5af-43be-a411-6d6ae2bd2327';
       const mockResult = {
         success: true,
         data: {
           id: periodId,
-          organization_id: 'org-123',
+          organization_id: '83e58256-5905-47e5-bc00-74cd776abd13',
           name: '2024年度',
           is_closed: true,
           closed_at: new Date().toISOString(),
-          closed_by: 'user-123',
+          closed_by: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5',
         },
       };
 
@@ -303,7 +303,7 @@ describe('Accounting Periods Wrapper Actions', () => {
     });
 
     it('should handle pending entries error', async () => {
-      const periodId = 'period-123';
+      const periodId = '7eaa5471-e5af-43be-a411-6d6ae2bd2327';
       const mockError = {
         success: false,
         error: {
@@ -323,12 +323,12 @@ describe('Accounting Periods Wrapper Actions', () => {
 
   describe('reopenAccountingPeriodWithAuth', () => {
     it('should reopen closed accounting period', async () => {
-      const periodId = 'period-123';
+      const periodId = '7eaa5471-e5af-43be-a411-6d6ae2bd2327';
       const mockResult = {
         success: true,
         data: {
           id: periodId,
-          organization_id: 'org-123',
+          organization_id: '83e58256-5905-47e5-bc00-74cd776abd13',
           name: '2024年度',
           is_closed: false,
           closed_at: null,
@@ -346,7 +346,7 @@ describe('Accounting Periods Wrapper Actions', () => {
     });
 
     it('should handle insufficient permissions', async () => {
-      const periodId = 'period-123';
+      const periodId = '7eaa5471-e5af-43be-a411-6d6ae2bd2327';
       const mockError = {
         success: false,
         error: {
@@ -366,7 +366,7 @@ describe('Accounting Periods Wrapper Actions', () => {
 
   describe('deleteAccountingPeriodWithAuth', () => {
     it('should delete accounting period', async () => {
-      const periodId = 'period-123';
+      const periodId = '7eaa5471-e5af-43be-a411-6d6ae2bd2327';
       const mockResult = {
         success: true,
         data: { id: periodId },
@@ -381,7 +381,7 @@ describe('Accounting Periods Wrapper Actions', () => {
     });
 
     it('should handle deletion with existing journal entries', async () => {
-      const periodId = 'period-123';
+      const periodId = '7eaa5471-e5af-43be-a411-6d6ae2bd2327';
       const mockError = {
         success: false,
         error: {
@@ -399,7 +399,7 @@ describe('Accounting Periods Wrapper Actions', () => {
     });
 
     it('should handle rate limiting', async () => {
-      const periodId = 'period-123';
+      const periodId = '7eaa5471-e5af-43be-a411-6d6ae2bd2327';
       const mockError = {
         success: false,
         error: {
@@ -419,12 +419,12 @@ describe('Accounting Periods Wrapper Actions', () => {
 
   describe('activateAccountingPeriodWithAuth', () => {
     it('should activate accounting period', async () => {
-      const periodId = 'period-123';
+      const periodId = '7eaa5471-e5af-43be-a411-6d6ae2bd2327';
       const mockResult = {
         success: true,
         data: {
           id: periodId,
-          organization_id: 'org-123',
+          organization_id: '83e58256-5905-47e5-bc00-74cd776abd13',
           name: '2024年度',
           is_closed: false,
           closed_at: null,
@@ -443,12 +443,12 @@ describe('Accounting Periods Wrapper Actions', () => {
     });
 
     it('should handle already active period', async () => {
-      const periodId = 'period-123';
+      const periodId = '7eaa5471-e5af-43be-a411-6d6ae2bd2327';
       const mockResult = {
         success: true,
         data: {
           id: periodId,
-          organization_id: 'org-123',
+          organization_id: '83e58256-5905-47e5-bc00-74cd776abd13',
           name: '2024年度',
           is_closed: false,
         },
@@ -476,7 +476,7 @@ describe('Accounting Periods Wrapper Actions', () => {
     });
 
     it('should handle network errors', async () => {
-      const mockOrganizationId = 'org-123';
+      const mockOrganizationId = '83e58256-5905-47e5-bc00-74cd776abd13';
       mockGetCurrentOrganizationId.mockResolvedValue(mockOrganizationId);
       (accountingPeriodsActions.getAccountingPeriods as jest.Mock).mockRejectedValue(
         new Error('Network error')
@@ -486,7 +486,7 @@ describe('Accounting Periods Wrapper Actions', () => {
     });
 
     it('should pass through complex query parameters', async () => {
-      const mockOrganizationId = 'org-123';
+      const mockOrganizationId = '83e58256-5905-47e5-bc00-74cd776abd13';
       const complexParams = {
         page: 5,
         pageSize: 50,
@@ -510,7 +510,7 @@ describe('Accounting Periods Wrapper Actions', () => {
     });
 
     it('should handle empty data updates', async () => {
-      const periodId = 'period-123';
+      const periodId = '7eaa5471-e5af-43be-a411-6d6ae2bd2327';
       const emptyData = {};
 
       (accountingPeriodsActions.updateAccountingPeriod as jest.Mock).mockResolvedValue({
@@ -530,7 +530,7 @@ describe('Accounting Periods Wrapper Actions', () => {
 
   describe('Performance Tests', () => {
     it('should complete all wrapper operations within reasonable time', async () => {
-      const mockOrganizationId = 'org-123';
+      const mockOrganizationId = '83e58256-5905-47e5-bc00-74cd776abd13';
       mockGetCurrentOrganizationId.mockResolvedValue(mockOrganizationId);
 
       // Mock all actions to return quickly
@@ -551,11 +551,11 @@ describe('Accounting Periods Wrapper Actions', () => {
           start_date: '2024-01-01',
           end_date: '2024-12-31',
         }),
-        updateAccountingPeriodWithAuth('period-123', { name: 'Updated' }),
-        closeAccountingPeriodWithAuth('period-123'),
-        reopenAccountingPeriodWithAuth('period-123'),
-        activateAccountingPeriodWithAuth('period-123'),
-        deleteAccountingPeriodWithAuth('period-123'),
+        updateAccountingPeriodWithAuth('7eaa5471-e5af-43be-a411-6d6ae2bd2327', { name: 'Updated' }),
+        closeAccountingPeriodWithAuth('7eaa5471-e5af-43be-a411-6d6ae2bd2327'),
+        reopenAccountingPeriodWithAuth('7eaa5471-e5af-43be-a411-6d6ae2bd2327'),
+        activateAccountingPeriodWithAuth('7eaa5471-e5af-43be-a411-6d6ae2bd2327'),
+        deleteAccountingPeriodWithAuth('7eaa5471-e5af-43be-a411-6d6ae2bd2327'),
       ]);
 
       const endTime = Date.now();
@@ -565,7 +565,7 @@ describe('Accounting Periods Wrapper Actions', () => {
     });
 
     it('should handle rapid successive calls', async () => {
-      const mockOrganizationId = 'org-123';
+      const mockOrganizationId = '83e58256-5905-47e5-bc00-74cd776abd13';
       mockGetCurrentOrganizationId.mockResolvedValue(mockOrganizationId);
       (accountingPeriodsActions.getAccountingPeriods as jest.Mock).mockResolvedValue({
         success: true,
@@ -583,8 +583,8 @@ describe('Accounting Periods Wrapper Actions', () => {
 
   describe('Integration Scenarios', () => {
     it('should handle complete period lifecycle', async () => {
-      const mockOrganizationId = 'org-123';
-      const periodId = 'period-123';
+      const mockOrganizationId = '83e58256-5905-47e5-bc00-74cd776abd13';
+      const periodId = '7eaa5471-e5af-43be-a411-6d6ae2bd2327';
 
       mockGetCurrentOrganizationId.mockResolvedValue(mockOrganizationId);
 

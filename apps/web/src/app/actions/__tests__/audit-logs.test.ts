@@ -109,22 +109,22 @@ describe('Audit Logs Server Actions', () => {
 
   describe('getAuditLogs', () => {
     it('should return audit logs with pagination', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'test@example.com' };
       const mockUserOrg = { role: 'admin' };
       const mockLogs = [
         {
           id: 'log-1',
-          user_id: 'user-123',
+          user_id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5',
           action: 'CREATE',
           entity_type: 'account',
           entity_id: 'acc-1',
-          organization_id: 'org-123',
+          organization_id: '83e58256-5905-47e5-bc00-74cd776abd13',
           created_at: '2024-01-01T10:00:00Z',
           description: 'Created account',
           ip_address: '192.168.1.1',
           user_agent: 'Mozilla/5.0',
           users: {
-            id: 'user-123',
+            id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5',
             email: 'test@example.com',
             name: 'Test User',
           },
@@ -156,7 +156,7 @@ describe('Audit Logs Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await getAuditLogs('org-123', {
+      const result = await getAuditLogs('83e58256-5905-47e5-bc00-74cd776abd13', {
         page: 1,
         pageSize: 50,
       });
@@ -165,12 +165,12 @@ describe('Audit Logs Server Actions', () => {
       expect(result.data?.items).toHaveLength(1);
       expect(result.data?.items[0]).toMatchObject({
         id: 'log-1',
-        userId: 'user-123',
+        userId: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5',
         action: 'CREATE',
         entityType: 'account',
         entityId: 'acc-1',
         user: {
-          id: 'user-123',
+          id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5',
           email: 'test@example.com',
           name: 'Test User',
         },
@@ -184,7 +184,7 @@ describe('Audit Logs Server Actions', () => {
     });
 
     it('should apply filters correctly', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'test@example.com' };
       const mockUserOrg = { role: 'accountant' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -208,10 +208,10 @@ describe('Audit Logs Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      await getAuditLogs('org-123', {
+      await getAuditLogs('83e58256-5905-47e5-bc00-74cd776abd13', {
         startDate: '2024-01-01',
         endDate: '2024-12-31',
-        userId: 'user-456',
+        userId: 'c83ac4fb-328c-4f07-94cb-cb122e416db1',
         entityType: 'journal_entry',
         entityId: 'je-1',
         action: 'UPDATE',
@@ -219,7 +219,7 @@ describe('Audit Logs Server Actions', () => {
 
       expect(logsQuery.gte).toHaveBeenCalledWith('created_at', '2024-01-01');
       expect(logsQuery.lte).toHaveBeenCalledWith('created_at', '2024-12-31');
-      expect(logsQuery.eq).toHaveBeenCalledWith('user_id', 'user-456');
+      expect(logsQuery.eq).toHaveBeenCalledWith('user_id', 'c83ac4fb-328c-4f07-94cb-cb122e416db1');
       expect(logsQuery.eq).toHaveBeenCalledWith('entity_type', 'journal_entry');
       expect(logsQuery.eq).toHaveBeenCalledWith('entity_id', 'je-1');
       expect(logsQuery.eq).toHaveBeenCalledWith('action', 'UPDATE');
@@ -231,14 +231,14 @@ describe('Audit Logs Server Actions', () => {
         error: null,
       });
 
-      const result = await getAuditLogs('org-123');
+      const result = await getAuditLogs('83e58256-5905-47e5-bc00-74cd776abd13');
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.UNAUTHORIZED);
     });
 
     it('should return forbidden when user has no access to organization', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'test@example.com' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -248,14 +248,14 @@ describe('Audit Logs Server Actions', () => {
       const userOrgQuery = createQueryMock({ data: null, error: { message: 'Not found' } });
       mockSupabaseClient.from.mockReturnValue(userOrgQuery);
 
-      const result = await getAuditLogs('org-123');
+      const result = await getAuditLogs('83e58256-5905-47e5-bc00-74cd776abd13');
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.FORBIDDEN);
     });
 
     it('should reject viewers from accessing audit logs', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'test@example.com' };
       const mockUserOrg = { role: 'viewer' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -266,7 +266,7 @@ describe('Audit Logs Server Actions', () => {
       const userOrgQuery = createQueryMock({ data: mockUserOrg, error: null });
       mockSupabaseClient.from.mockReturnValue(userOrgQuery);
 
-      const result = await getAuditLogs('org-123');
+      const result = await getAuditLogs('83e58256-5905-47e5-bc00-74cd776abd13');
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.INSUFFICIENT_PERMISSIONS);
@@ -274,7 +274,7 @@ describe('Audit Logs Server Actions', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'test@example.com' };
       const mockUserOrg = { role: 'admin' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -295,7 +295,7 @@ describe('Audit Logs Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await getAuditLogs('org-123');
+      const result = await getAuditLogs('83e58256-5905-47e5-bc00-74cd776abd13');
 
       expect(result.success).toBe(false);
       expect(consoleErrorSpy).toHaveBeenCalled();
@@ -304,7 +304,7 @@ describe('Audit Logs Server Actions', () => {
     it('should handle unexpected errors', async () => {
       mockCreateClient.mockRejectedValueOnce(new Error('Connection failed'));
 
-      const result = await getAuditLogs('org-123');
+      const result = await getAuditLogs('83e58256-5905-47e5-bc00-74cd776abd13');
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.INTERNAL_ERROR);
@@ -316,11 +316,11 @@ describe('Audit Logs Server Actions', () => {
     it('should create audit log with request headers', async () => {
       const mockAuditLog = {
         id: 'log-new',
-        user_id: 'user-123',
+        user_id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5',
         action: 'CREATE',
         entity_type: 'account',
         entity_id: 'acc-1',
-        organization_id: 'org-123',
+        organization_id: '83e58256-5905-47e5-bc00-74cd776abd13',
         ip_address: '192.168.1.1',
         user_agent: 'Mozilla/5.0',
         created_at: '2024-01-01T10:00:00Z',
@@ -330,18 +330,18 @@ describe('Audit Logs Server Actions', () => {
       mockSupabaseClient.from.mockReturnValue(insertQuery);
 
       const result = await createAuditLog({
-        userId: 'user-123',
+        userId: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5',
         action: 'CREATE',
         entityType: 'account',
         entityId: 'acc-1',
-        organizationId: 'org-123',
+        organizationId: '83e58256-5905-47e5-bc00-74cd776abd13',
         description: 'Created new account',
       });
 
       expect(result.success).toBe(true);
       expect(result.data).toMatchObject({
         id: 'log-new',
-        userId: 'user-123',
+        userId: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5',
         action: 'CREATE',
         entityType: 'account',
         entityId: 'acc-1',
@@ -351,11 +351,11 @@ describe('Audit Logs Server Actions', () => {
 
       expect(insertQuery.insert).toHaveBeenCalledWith(
         expect.objectContaining({
-          user_id: 'user-123',
+          user_id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5',
           action: 'CREATE',
           entity_type: 'account',
           entity_id: 'acc-1',
-          organization_id: 'org-123',
+          organization_id: '83e58256-5905-47e5-bc00-74cd776abd13',
           ip_address: '192.168.1.1',
           user_agent: 'Mozilla/5.0',
         })
@@ -367,11 +367,11 @@ describe('Audit Logs Server Actions', () => {
 
       const mockAuditLog = {
         id: 'log-new',
-        user_id: 'user-123',
+        user_id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5',
         action: 'CREATE',
         entity_type: 'account',
         entity_id: 'acc-1',
-        organization_id: 'org-123',
+        organization_id: '83e58256-5905-47e5-bc00-74cd776abd13',
         ip_address: null,
         user_agent: null,
         created_at: '2024-01-01T10:00:00Z',
@@ -381,11 +381,11 @@ describe('Audit Logs Server Actions', () => {
       mockSupabaseClient.from.mockReturnValue(insertQuery);
 
       const result = await createAuditLog({
-        userId: 'user-123',
+        userId: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5',
         action: 'CREATE',
         entityType: 'account',
         entityId: 'acc-1',
-        organizationId: 'org-123',
+        organizationId: '83e58256-5905-47e5-bc00-74cd776abd13',
       });
 
       expect(result.success).toBe(true);
@@ -414,11 +414,11 @@ describe('Audit Logs Server Actions', () => {
       mockSupabaseClient.from.mockReturnValue(insertQuery);
 
       await createAuditLog({
-        userId: 'user-123',
+        userId: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5',
         action: 'CREATE',
         entityType: 'account',
         entityId: 'acc-1',
-        organizationId: 'org-123',
+        organizationId: '83e58256-5905-47e5-bc00-74cd776abd13',
       });
 
       expect(insertQuery.insert).toHaveBeenCalledWith(
@@ -433,11 +433,11 @@ describe('Audit Logs Server Actions', () => {
       mockSupabaseClient.from.mockReturnValue(insertQuery);
 
       const result = await createAuditLog({
-        userId: 'user-123',
+        userId: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5',
         action: 'CREATE',
         entityType: 'account',
         entityId: 'acc-1',
-        organizationId: 'org-123',
+        organizationId: '83e58256-5905-47e5-bc00-74cd776abd13',
       });
 
       expect(result.success).toBe(false);
@@ -449,11 +449,11 @@ describe('Audit Logs Server Actions', () => {
     it('should create audit log silently', async () => {
       const mockAuditLog = {
         id: 'log-new',
-        user_id: 'user-123',
+        user_id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5',
         action: 'UPDATE',
         entity_type: 'account',
         entity_id: 'acc-1',
-        organization_id: 'org-123',
+        organization_id: '83e58256-5905-47e5-bc00-74cd776abd13',
         created_at: '2024-01-01T10:00:00Z',
       };
 
@@ -461,11 +461,11 @@ describe('Audit Logs Server Actions', () => {
       mockSupabaseClient.from.mockReturnValue(insertQuery);
 
       await auditEntityChange({
-        user: { id: 'user-123' },
+        user: { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5' },
         action: 'UPDATE',
         entityType: 'account',
         entityId: 'acc-1',
-        organizationId: 'org-123',
+        organizationId: '83e58256-5905-47e5-bc00-74cd776abd13',
         oldValues: { name: 'Old Name' },
         newValues: { name: 'New Name' },
         description: 'Updated account name',
@@ -482,11 +482,11 @@ describe('Audit Logs Server Actions', () => {
       // Should not throw
       await expect(
         auditEntityChange({
-          user: { id: 'user-123' },
+          user: { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5' },
           action: 'DELETE',
           entityType: 'account',
           entityId: 'acc-1',
-          organizationId: 'org-123',
+          organizationId: '83e58256-5905-47e5-bc00-74cd776abd13',
         })
       ).resolves.not.toThrow();
 
@@ -499,11 +499,11 @@ describe('Audit Logs Server Actions', () => {
       mockSupabaseClient.from.mockReturnValue(insertQuery);
 
       await auditEntityChange({
-        user: { id: 'user-123' },
+        user: { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5' },
         action: 'CREATE',
         entityType: 'journal_entry',
         entityId: 'je-1',
-        organizationId: 'org-123',
+        organizationId: '83e58256-5905-47e5-bc00-74cd776abd13',
       });
 
       // The actual implementation logs the error internally
@@ -514,7 +514,7 @@ describe('Audit Logs Server Actions', () => {
 
   describe('getAuditLogsByUser', () => {
     it('should allow admin or accountant to view their own logs', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'test@example.com' };
       const mockUserOrg = { role: 'accountant' }; // Accountant can see logs
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -535,13 +535,16 @@ describe('Audit Logs Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await getAuditLogsByUser('org-123', 'user-123'); // Same user
+      const result = await getAuditLogsByUser(
+        '83e58256-5905-47e5-bc00-74cd776abd13',
+        'fcdec6df-4d44-4bc6-b7c7-c5b58efface5'
+      ); // Same user
 
       expect(result.success).toBe(true);
     });
 
     it('should prevent viewers from viewing other users logs', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'test@example.com' };
       const mockUserOrg = { role: 'viewer' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -552,7 +555,10 @@ describe('Audit Logs Server Actions', () => {
       const userOrgQuery = createQueryMock({ data: mockUserOrg, error: null });
       mockSupabaseClient.from.mockReturnValue(userOrgQuery);
 
-      const result = await getAuditLogsByUser('org-123', 'user-456'); // Different user
+      const result = await getAuditLogsByUser(
+        '83e58256-5905-47e5-bc00-74cd776abd13',
+        'c83ac4fb-328c-4f07-94cb-cb122e416db1'
+      ); // Different user
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.INSUFFICIENT_PERMISSIONS);
@@ -560,7 +566,7 @@ describe('Audit Logs Server Actions', () => {
     });
 
     it('should allow admin to view any user logs', async () => {
-      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'admin@example.com' };
       const mockUserOrg = { role: 'admin' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -584,7 +590,10 @@ describe('Audit Logs Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await getAuditLogsByUser('org-123', 'user-456');
+      const result = await getAuditLogsByUser(
+        '83e58256-5905-47e5-bc00-74cd776abd13',
+        'c83ac4fb-328c-4f07-94cb-cb122e416db1'
+      );
 
       expect(result.success).toBe(true);
     });
@@ -592,19 +601,19 @@ describe('Audit Logs Server Actions', () => {
 
   describe('exportAuditLogs', () => {
     it('should export logs as JSON', async () => {
-      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'admin@example.com' };
       const mockUserOrg = { role: 'admin' };
       const mockLogs = [
         {
           id: 'log-1',
-          user_id: 'user-123',
+          user_id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5',
           action: 'CREATE',
           entity_type: 'account',
           entity_id: 'acc-1',
-          organization_id: 'org-123',
+          organization_id: '83e58256-5905-47e5-bc00-74cd776abd13',
           created_at: '2024-01-01T10:00:00Z',
           description: 'Created account',
-          users: { id: 'user-123', email: 'test@example.com' },
+          users: { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'test@example.com' },
         },
       ];
 
@@ -626,7 +635,7 @@ describe('Audit Logs Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await exportAuditLogs('org-123', undefined, {
+      const result = await exportAuditLogs('83e58256-5905-47e5-bc00-74cd776abd13', undefined, {
         format: 'json',
         includeUserDetails: true,
       });
@@ -637,21 +646,25 @@ describe('Audit Logs Server Actions', () => {
     });
 
     it('should export logs as CSV', async () => {
-      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'admin@example.com' };
       const mockUserOrg = { role: 'admin' };
       const mockLogs = [
         {
           id: 'log-1',
-          user_id: 'user-123',
+          user_id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5',
           action: 'CREATE',
           entity_type: 'account',
           entity_id: 'acc-1',
-          organization_id: 'org-123',
+          organization_id: '83e58256-5905-47e5-bc00-74cd776abd13',
           created_at: '2024-01-01T10:00:00Z',
           description: 'Created "special" account',
           ip_address: '192.168.1.1',
           user_agent: 'Mozilla/5.0 "test"',
-          users: { id: 'user-123', email: 'test@example.com', name: 'Test User' },
+          users: {
+            id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5',
+            email: 'test@example.com',
+            name: 'Test User',
+          },
         },
       ];
 
@@ -673,7 +686,7 @@ describe('Audit Logs Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await exportAuditLogs('org-123', undefined, {
+      const result = await exportAuditLogs('83e58256-5905-47e5-bc00-74cd776abd13', undefined, {
         format: 'csv',
         includeUserDetails: true,
       });
@@ -689,18 +702,18 @@ describe('Audit Logs Server Actions', () => {
     });
 
     it('should exclude user details when requested', async () => {
-      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'admin@example.com' };
       const mockUserOrg = { role: 'admin' };
       const mockLogs = [
         {
           id: 'log-1',
-          user_id: 'user-123',
+          user_id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5',
           action: 'CREATE',
           entity_type: 'account',
           entity_id: 'acc-1',
-          organization_id: 'org-123',
+          organization_id: '83e58256-5905-47e5-bc00-74cd776abd13',
           created_at: '2024-01-01T10:00:00Z',
-          users: { id: 'user-123', email: 'test@example.com' },
+          users: { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'test@example.com' },
         },
       ];
 
@@ -722,7 +735,7 @@ describe('Audit Logs Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await exportAuditLogs('org-123', undefined, {
+      const result = await exportAuditLogs('83e58256-5905-47e5-bc00-74cd776abd13', undefined, {
         format: 'json',
         includeUserDetails: false,
       });
@@ -736,7 +749,7 @@ describe('Audit Logs Server Actions', () => {
     });
 
     it('should only allow admin to export', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'test@example.com' };
       const mockUserOrg = { role: 'accountant' }; // Not admin
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -747,7 +760,7 @@ describe('Audit Logs Server Actions', () => {
       const userOrgQuery = createQueryMock({ data: mockUserOrg, error: null });
       mockSupabaseClient.from.mockReturnValue(userOrgQuery);
 
-      const result = await exportAuditLogs('org-123');
+      const result = await exportAuditLogs('83e58256-5905-47e5-bc00-74cd776abd13');
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.INSUFFICIENT_PERMISSIONS);
@@ -755,7 +768,7 @@ describe('Audit Logs Server Actions', () => {
     });
 
     it('should reject invalid export format', async () => {
-      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'admin@example.com' };
       const mockUserOrg = { role: 'admin' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -779,7 +792,7 @@ describe('Audit Logs Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await exportAuditLogs('org-123', undefined, {
+      const result = await exportAuditLogs('83e58256-5905-47e5-bc00-74cd776abd13', undefined, {
         format: 'xml' as any, // Invalid format
       });
 
@@ -791,7 +804,7 @@ describe('Audit Logs Server Actions', () => {
 
   describe('getEntityTypes', () => {
     it('should return unique entity types', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'test@example.com' };
       const mockUserOrg = { role: 'admin' };
       const mockEntityTypes = [
         { entity_type: 'account' },
@@ -823,7 +836,7 @@ describe('Audit Logs Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await getEntityTypes('org-123');
+      const result = await getEntityTypes('83e58256-5905-47e5-bc00-74cd776abd13');
 
       expect(result.success).toBe(true);
       // Since the mock returns the original data with duplicates,
@@ -833,7 +846,7 @@ describe('Audit Logs Server Actions', () => {
     });
 
     it('should handle empty entity types', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'test@example.com' };
       const mockUserOrg = { role: 'accountant' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -854,14 +867,14 @@ describe('Audit Logs Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await getEntityTypes('org-123');
+      const result = await getEntityTypes('83e58256-5905-47e5-bc00-74cd776abd13');
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual([]);
     });
 
     it('should require admin or accountant role', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'test@example.com' };
       const mockUserOrg = { role: 'viewer' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -872,7 +885,7 @@ describe('Audit Logs Server Actions', () => {
       const userOrgQuery = createQueryMock({ data: mockUserOrg, error: null });
       mockSupabaseClient.from.mockReturnValue(userOrgQuery);
 
-      const result = await getEntityTypes('org-123');
+      const result = await getEntityTypes('83e58256-5905-47e5-bc00-74cd776abd13');
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.INSUFFICIENT_PERMISSIONS);
@@ -881,7 +894,7 @@ describe('Audit Logs Server Actions', () => {
 
   describe('getAuditLogsByEntity', () => {
     it('should delegate to getAuditLogs with correct filters', async () => {
-      const mockUser = { id: 'user-123', email: 'test@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'test@example.com' };
       const mockUserOrg = { role: 'admin' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -902,7 +915,7 @@ describe('Audit Logs Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      await getAuditLogsByEntity('org-123', 'journal_entry', 'je-1', {
+      await getAuditLogsByEntity('83e58256-5905-47e5-bc00-74cd776abd13', 'journal_entry', 'je-1', {
         page: 2,
         pageSize: 25,
       });
@@ -915,14 +928,14 @@ describe('Audit Logs Server Actions', () => {
 
   describe('Edge Cases and Boundary Testing', () => {
     it('should handle maximum page size correctly', async () => {
-      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'admin@example.com' };
       const largeLogs = Array.from({ length: 1000 }, (_, i) => ({
         id: `log-${i}`,
-        user_id: 'user-123',
+        user_id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5',
         action: 'UPDATE',
         entity_type: 'account',
         entity_id: `account-${i}`,
-        organization_id: 'org-123',
+        organization_id: '83e58256-5905-47e5-bc00-74cd776abd13',
         created_at: new Date(Date.now() - i * 1000).toISOString(),
       }));
 
@@ -962,7 +975,7 @@ describe('Audit Logs Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await getAuditLogs('org-123', { pageSize: 100 });
+      const result = await getAuditLogs('83e58256-5905-47e5-bc00-74cd776abd13', { pageSize: 100 });
 
       expect(result.success).toBe(true);
       expect(result.data?.items.length).toBe(100);
@@ -971,7 +984,7 @@ describe('Audit Logs Server Actions', () => {
     });
 
     it('should handle date range filters across timezones', async () => {
-      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'admin@example.com' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -1014,7 +1027,7 @@ describe('Audit Logs Server Actions', () => {
       const startDate = '2024-01-01T00:00:00Z';
       const endDate = '2024-12-31T23:59:59Z';
 
-      await getAuditLogs('org-123', {
+      await getAuditLogs('83e58256-5905-47e5-bc00-74cd776abd13', {
         startDate,
         endDate,
       });
@@ -1024,7 +1037,7 @@ describe('Audit Logs Server Actions', () => {
     });
 
     it('should handle special characters in entity IDs', async () => {
-      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'admin@example.com' };
       const specialEntityId = 'entity-with-\'quotes"-and-<tags>';
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -1042,11 +1055,11 @@ describe('Audit Logs Server Actions', () => {
           data: [
             {
               id: 'log-1',
-              user_id: 'user-123',
+              user_id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5',
               action: 'CREATE',
               entity_type: 'account',
               entity_id: specialEntityId,
-              organization_id: 'org-123',
+              organization_id: '83e58256-5905-47e5-bc00-74cd776abd13',
               created_at: new Date().toISOString(),
             },
           ],
@@ -1060,11 +1073,11 @@ describe('Audit Logs Server Actions', () => {
           data: [
             {
               id: 'log-1',
-              user_id: 'user-123',
+              user_id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5',
               action: 'CREATE',
               entity_type: 'account',
               entity_id: specialEntityId,
-              organization_id: 'org-123',
+              organization_id: '83e58256-5905-47e5-bc00-74cd776abd13',
               created_at: new Date().toISOString(),
             },
           ],
@@ -1083,7 +1096,7 @@ describe('Audit Logs Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await getAuditLogs('org-123', {
+      const result = await getAuditLogs('83e58256-5905-47e5-bc00-74cd776abd13', {
         entityId: specialEntityId,
       });
 
@@ -1092,7 +1105,7 @@ describe('Audit Logs Server Actions', () => {
     });
 
     it('should handle null values in audit log fields', async () => {
-      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'admin@example.com' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -1102,11 +1115,11 @@ describe('Audit Logs Server Actions', () => {
       const logsWithNulls = [
         {
           id: 'log-1',
-          user_id: 'user-123',
+          user_id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5',
           action: 'DELETE',
           entity_type: 'account',
-          entity_id: 'account-1',
-          organization_id: 'org-123',
+          entity_id: '07e99801-2c11-47de-8df3-efbbb1c3ee6d',
+          organization_id: '83e58256-5905-47e5-bc00-74cd776abd13',
           created_at: new Date().toISOString(),
           old_values: null,
           new_values: null,
@@ -1148,16 +1161,16 @@ describe('Audit Logs Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await getAuditLogs('org-123');
+      const result = await getAuditLogs('83e58256-5905-47e5-bc00-74cd776abd13');
 
       expect(result.success).toBe(true);
       expect(result.data?.items[0]).toMatchObject({
         id: 'log-1',
-        userId: 'user-123',
+        userId: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5',
         action: 'DELETE',
         entityType: 'account',
-        entityId: 'account-1',
-        organizationId: 'org-123',
+        entityId: '07e99801-2c11-47de-8df3-efbbb1c3ee6d',
+        organizationId: '83e58256-5905-47e5-bc00-74cd776abd13',
         oldValues: null,
         newValues: null,
         description: null,
@@ -1170,14 +1183,14 @@ describe('Audit Logs Server Actions', () => {
 
   describe('Performance and Load Testing', () => {
     it('should handle large CSV exports efficiently', async () => {
-      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'admin@example.com' };
       const largeLogs = Array.from({ length: 5000 }, (_, i) => ({
         id: `log-${i}`,
         user_id: `user-${i % 10}`,
         action: ['CREATE', 'UPDATE', 'DELETE'][i % 3],
         entity_type: ['account', 'journal_entry', 'user'][i % 3],
         entity_id: `entity-${i}`,
-        organization_id: 'org-123',
+        organization_id: '83e58256-5905-47e5-bc00-74cd776abd13',
         created_at: new Date(Date.now() - i * 60000).toISOString(),
         description: `Action ${i} performed`,
         ip_address: `192.168.1.${i % 255}`,
@@ -1218,7 +1231,7 @@ describe('Audit Logs Server Actions', () => {
       });
 
       const startTime = Date.now();
-      const result = await exportAuditLogs('org-123', undefined, {
+      const result = await exportAuditLogs('83e58256-5905-47e5-bc00-74cd776abd13', undefined, {
         format: 'csv',
         includeUserDetails: true,
       });
@@ -1236,7 +1249,7 @@ describe('Audit Logs Server Actions', () => {
     });
 
     it('should complete all operations within 30 seconds', async () => {
-      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'admin@example.com' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -1268,10 +1281,13 @@ describe('Audit Logs Server Actions', () => {
 
       // Run multiple operations in parallel
       await Promise.all([
-        getAuditLogs('org-123'),
-        getAuditLogsByUser('org-123', 'user-123'),
-        getAuditLogsByEntity('org-123', 'account', 'acc-1'),
-        getEntityTypes('org-123'),
+        getAuditLogs('83e58256-5905-47e5-bc00-74cd776abd13'),
+        getAuditLogsByUser(
+          '83e58256-5905-47e5-bc00-74cd776abd13',
+          'fcdec6df-4d44-4bc6-b7c7-c5b58efface5'
+        ),
+        getAuditLogsByEntity('83e58256-5905-47e5-bc00-74cd776abd13', 'account', 'acc-1'),
+        getEntityTypes('83e58256-5905-47e5-bc00-74cd776abd13'),
       ]);
 
       const endTime = Date.now();
@@ -1283,7 +1299,7 @@ describe('Audit Logs Server Actions', () => {
 
   describe('Security and Validation', () => {
     it('should prevent SQL injection in filter parameters', async () => {
-      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'admin@example.com' };
       const maliciousInput = "'; DROP TABLE audit_logs; --";
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -1322,7 +1338,7 @@ describe('Audit Logs Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await getAuditLogs('org-123', {
+      const result = await getAuditLogs('83e58256-5905-47e5-bc00-74cd776abd13', {
         entityId: maliciousInput,
       });
 
@@ -1332,7 +1348,7 @@ describe('Audit Logs Server Actions', () => {
     });
 
     it('should sanitize CSV output to prevent formula injection', async () => {
-      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'admin@example.com' };
       const dangerousDescription = '=1+1';
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -1348,11 +1364,11 @@ describe('Audit Logs Server Actions', () => {
       const mockLogs = [
         {
           id: 'log-1',
-          user_id: 'user-123',
+          user_id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5',
           action: 'UPDATE',
           entity_type: 'account',
           entity_id: 'acc-1',
-          organization_id: 'org-123',
+          organization_id: '83e58256-5905-47e5-bc00-74cd776abd13',
           created_at: new Date().toISOString(),
           description: dangerousDescription,
           ip_address: '192.168.1.1',
@@ -1379,7 +1395,9 @@ describe('Audit Logs Server Actions', () => {
         return createQueryMock({ data: null, error: null });
       });
 
-      const result = await exportAuditLogs('org-123', undefined, { format: 'csv' });
+      const result = await exportAuditLogs('83e58256-5905-47e5-bc00-74cd776abd13', undefined, {
+        format: 'csv',
+      });
 
       expect(result.success).toBe(true);
       const csv = result.data as string;
@@ -1389,7 +1407,7 @@ describe('Audit Logs Server Actions', () => {
     });
 
     it('should validate action types are from allowed enum', async () => {
-      const mockUser = { id: 'user-123', email: 'admin@example.com' };
+      const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'admin@example.com' };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
         data: { user: mockUser },
@@ -1420,7 +1438,7 @@ describe('Audit Logs Server Actions', () => {
       const validActions = ['CREATE', 'UPDATE', 'DELETE', 'APPROVE'];
 
       for (const action of validActions) {
-        const result = await getAuditLogs('org-123', {
+        const result = await getAuditLogs('83e58256-5905-47e5-bc00-74cd776abd13', {
           action: action as any,
         });
         expect(result.success).toBe(true);
@@ -1436,7 +1454,7 @@ describe('Audit Logs Server Actions', () => {
           action: 'CREATE',
           entityType: 'account',
           entityId: `account-${i}`,
-          organizationId: 'org-123',
+          organizationId: '83e58256-5905-47e5-bc00-74cd776abd13',
           description: `Concurrent create ${i}`,
         })
       );
@@ -1444,11 +1462,11 @@ describe('Audit Logs Server Actions', () => {
       mockSupabaseClient.from.mockImplementation(() => {
         const logData = {
           id: `log-${Math.random()}`,
-          user_id: 'user-123',
+          user_id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5',
           action: 'CREATE',
           entity_type: 'account',
-          entity_id: 'account-1',
-          organization_id: 'org-123',
+          entity_id: '07e99801-2c11-47de-8df3-efbbb1c3ee6d',
+          organization_id: '83e58256-5905-47e5-bc00-74cd776abd13',
           created_at: new Date().toISOString(),
         };
         return {

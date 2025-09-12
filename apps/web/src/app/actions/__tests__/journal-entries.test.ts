@@ -63,8 +63,8 @@ describe('Journal Entries Server Actions', () => {
   });
 
   describe('getJournalEntries', () => {
-    const mockUser = { id: 'user-123', email: 'test@example.com' };
-    const mockOrganizationId = 'org-123';
+    const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'test@example.com' };
+    const mockOrganizationId = '83e58256-5905-47e5-bc00-74cd776abd13';
 
     it('should successfully fetch journal entries with default pagination', async () => {
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -146,14 +146,17 @@ describe('Journal Entries Server Actions', () => {
       mockSupabaseClient.from.mockReturnValueOnce(userOrgQuery).mockReturnValueOnce(queryMock);
 
       await getJournalEntries(mockOrganizationId, {
-        accountingPeriodId: 'period-123',
+        accountingPeriodId: '7eaa5471-e5af-43be-a411-6d6ae2bd2327',
         status: 'approved',
         dateFrom: '2024-01-01',
         dateTo: '2024-12-31',
         search: 'sales',
       });
 
-      expect(queryMock.eq).toHaveBeenCalledWith('accounting_period_id', 'period-123');
+      expect(queryMock.eq).toHaveBeenCalledWith(
+        'accounting_period_id',
+        '7eaa5471-e5af-43be-a411-6d6ae2bd2327'
+      );
       expect(queryMock.eq).toHaveBeenCalledWith('status', 'approved');
       expect(queryMock.gte).toHaveBeenCalledWith('entry_date', '2024-01-01');
       expect(queryMock.lte).toHaveBeenCalledWith('entry_date', '2024-12-31');
@@ -196,10 +199,10 @@ describe('Journal Entries Server Actions', () => {
   });
 
   describe('createJournalEntry', () => {
-    const mockUser = { id: 'user-123', email: 'test@example.com' };
+    const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'test@example.com' };
     const mockEntry = {
-      organization_id: 'org-123',
-      accounting_period_id: 'period-123',
+      organization_id: '83e58256-5905-47e5-bc00-74cd776abd13',
+      accounting_period_id: '7eaa5471-e5af-43be-a411-6d6ae2bd2327',
       entry_number: 'JE-2024-001',
       entry_date: '2024-01-15',
       description: 'Test entry',
@@ -237,7 +240,7 @@ describe('Journal Entries Server Actions', () => {
       // Mock accounting period check
       const periodQuery = createQueryMock({
         data: {
-          id: 'period-123',
+          id: '7eaa5471-e5af-43be-a411-6d6ae2bd2327',
           start_date: '2024-01-01',
           end_date: '2024-12-31',
           is_closed: false,
@@ -465,7 +468,7 @@ describe('Journal Entries Server Actions', () => {
       // Closed accounting period
       const periodQuery = createQueryMock({
         data: {
-          id: 'period-123',
+          id: '7eaa5471-e5af-43be-a411-6d6ae2bd2327',
           start_date: '2024-01-01',
           end_date: '2024-12-31',
           is_closed: true,
@@ -498,7 +501,7 @@ describe('Journal Entries Server Actions', () => {
 
       const periodQuery = createQueryMock({
         data: {
-          id: 'period-123',
+          id: '7eaa5471-e5af-43be-a411-6d6ae2bd2327',
           start_date: '2024-01-01',
           end_date: '2024-12-31',
           is_closed: false,
@@ -536,7 +539,7 @@ describe('Journal Entries Server Actions', () => {
 
       const periodQuery = createQueryMock({
         data: {
-          id: 'period-123',
+          id: '7eaa5471-e5af-43be-a411-6d6ae2bd2327',
           start_date: '2024-01-01',
           end_date: '2024-12-31',
           is_closed: false,
@@ -582,7 +585,7 @@ describe('Journal Entries Server Actions', () => {
 
       const periodQuery = createQueryMock({
         data: {
-          id: 'period-123',
+          id: '7eaa5471-e5af-43be-a411-6d6ae2bd2327',
           start_date: '2024-01-01',
           end_date: '2024-12-31',
           is_closed: false,
@@ -644,7 +647,7 @@ describe('Journal Entries Server Actions', () => {
 
       const periodQuery = createQueryMock({
         data: {
-          id: 'period-123',
+          id: '7eaa5471-e5af-43be-a411-6d6ae2bd2327',
           start_date: '2024-01-01',
           end_date: '2024-12-31',
           is_closed: false,
@@ -707,9 +710,9 @@ describe('Journal Entries Server Actions', () => {
   });
 
   describe('updateJournalEntry', () => {
-    const mockUser = { id: 'user-123', email: 'test@example.com' };
-    const entryId = 'entry-123';
-    const organizationId = 'org-123';
+    const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'test@example.com' };
+    const entryId = '98b6bf9e-d1f7-405c-8d3b-faab5648ae55';
+    const organizationId = '83e58256-5905-47e5-bc00-74cd776abd13';
     const updateData = {
       description: 'Updated description',
       status: 'approved' as const,
@@ -745,7 +748,9 @@ describe('Journal Entries Server Actions', () => {
       };
 
       // Get existing lines
-      const existingLines = [{ id: 'line-1', journal_entry_id: entryId }];
+      const existingLines = [
+        { id: '08554971-c0d5-422d-b1ae-0e4a99e60931', journal_entry_id: entryId },
+      ];
       const linesQuery = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
@@ -958,9 +963,9 @@ describe('Journal Entries Server Actions', () => {
   });
 
   describe('deleteJournalEntry', () => {
-    const mockUser = { id: 'user-123', email: 'test@example.com' };
-    const entryId = 'entry-123';
-    const organizationId = 'org-123';
+    const mockUser = { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5', email: 'test@example.com' };
+    const entryId = '98b6bf9e-d1f7-405c-8d3b-faab5648ae55';
+    const organizationId = '83e58256-5905-47e5-bc00-74cd776abd13';
 
     it('should successfully delete a journal entry', async () => {
       mockSupabaseClient.auth.getUser.mockResolvedValue({
@@ -1113,7 +1118,7 @@ describe('Journal Entries Server Actions', () => {
       };
 
       mockSupabaseClient.auth.getUser.mockResolvedValue({
-        data: { user: { id: 'user-123' } },
+        data: { user: { id: 'fcdec6df-4d44-4bc6-b7c7-c5b58efface5' } },
         error: null,
       });
 
@@ -1127,7 +1132,7 @@ describe('Journal Entries Server Actions', () => {
         }),
       });
 
-      const result = await getJournalEntries('org-123');
+      const result = await getJournalEntries('83e58256-5905-47e5-bc00-74cd776abd13');
 
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
@@ -1136,7 +1141,7 @@ describe('Journal Entries Server Actions', () => {
     it('should handle network errors', async () => {
       mockCreateClient.mockRejectedValue(new Error('Network error'));
 
-      const result = await getJournalEntries('org-123');
+      const result = await getJournalEntries('83e58256-5905-47e5-bc00-74cd776abd13');
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.INTERNAL_ERROR);
