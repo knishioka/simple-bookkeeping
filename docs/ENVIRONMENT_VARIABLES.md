@@ -153,12 +153,6 @@ API機能はNext.jsのServer Actionsで提供されます。
 - **用途**: デプロイメント状態の確認
 - **取得**: https://vercel.com/account/tokens
 
-#### `RENDER_API_KEY`
-
-- **説明**: Render APIキー
-- **用途**: デプロイメント状態の確認
-- **取得**: https://dashboard.render.com/u/settings
-
 ## 環境別の設定例
 
 ### ローカル開発環境（.env.local）

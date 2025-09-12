@@ -138,7 +138,6 @@ supabase/.env
 
 3. **プラットフォームごとの管理**
    - Vercel: ダッシュボードまたはCLIで管理
-   - Railway: ダッシュボードまたはCLIで管理
    - GitHub Actions: Secretsで管理
 
 ## 🚀 Vercel デプロイメント
@@ -207,24 +206,11 @@ vercel project                        # 現在の設定確認
 
 **注意：vercel.jsonに機密情報を記載しない**
 
-## 🚀 RenderとVercel両方でのデプロイメント
+## 🚀 Vercelでのデプロイメント設定
 
-### マルチプラットフォーム対応の設定のコツ
-
-本プロジェクトはRender（APIサーバー）とVercel（Webアプリ）の両方にデプロイできるよう設計されています。
-
-#### 1. **package.jsonのビルドスクリプト設定**
+### package.jsonのビルドスクリプト設定
 
 ```json
-// apps/api/package.json
-{
-  "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "tsx watch src/index.ts"
-  }
-}
-
 // apps/web/package.json
 {
   "scripts": {
@@ -235,20 +221,17 @@ vercel project                        # 現在の設定確認
 }
 ```
 
-#### 2. **環境変数の分離**
+### 環境変数の設定
 
 ```bash
-# Render用（APIサーバー）
-DATABASE_URL=postgresql://...
-JWT_SECRET=...
-NODE_ENV=production
-PORT=3001
-
 # Vercel用（Webアプリ）
-NEXT_PUBLIC_API_URL=https://your-api.onrender.com
+DATABASE_URL=postgresql://...
+NEXT_PUBLIC_SUPABASE_URL=https://...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
 ```
 
-#### 3. **ビルドコマンドの統一**
+### ビルドコマンドの統一
 
 ```json
 // ルートのpackage.json
@@ -262,36 +245,7 @@ NEXT_PUBLIC_API_URL=https://your-api.onrender.com
 }
 ```
 
-#### 4. **Renderでのデプロイ設定（render.yaml）**
-
-```yaml
-services:
-  - type: web
-    name: simple-bookkeeping-api
-    runtime: node
-    plan: free
-    buildCommand: pnpm install --prod=false && cd packages/database && npx prisma generate && cd ../.. && pnpm --filter @simple-bookkeeping/database build && pnpm --filter @simple-bookkeeping/core build && pnpm --filter @simple-bookkeeping/shared build && pnpm --filter @simple-bookkeeping/api build
-    startCommand: cd apps/api && node dist/index.js
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: DATABASE_URL
-        fromDatabase:
-          name: simple-bookkeeping-db
-          property: connectionString
-      - key: JWT_SECRET
-        generateValue: true
-      - key: CORS_ORIGIN
-        value: https://your-web-app.vercel.app
-
-databases:
-  - name: simple-bookkeeping-db
-    plan: free
-    databaseName: simple_bookkeeping
-    user: simple_bookkeeping_user
-```
-
-#### 5. **Vercelでのデプロイ設定（vercel.json）**
+### Vercelでのデプロイ設定（vercel.json）
 
 ```json
 // ルートのvercel.json（Gitデプロイメント設定のみ）
@@ -357,7 +311,6 @@ databases:
    ```
 
 3. **環境変数の確認**：
-   - Render: ダッシュボードで設定
    - Vercel: `vercel env add`で設定
 
 4. **Vercel特有の設定**：
@@ -431,24 +384,7 @@ databases:
 pnpm --filter @simple-bookkeeping/database prisma:generate
 ```
 
-#### Render特有の問題と解決策
-
-**1. Node.js型定義エラー**
-
-問題：`Cannot find type definition file for 'node'`、`Cannot find name 'global'`
-
-```bash
-# ❌ エラーが発生する設定（render.yaml）
-buildCommand: pnpm install && ...
-
-# ✅ 解決策1：devDependenciesもインストール
-buildCommand: pnpm install --prod=false && ...
-
-# ✅ 解決策2：tsconfig.jsonから"types": ["node"]を削除
-# TypeScriptが自動的に@types/nodeを検出
-```
-
-**2. seed.tsの配置場所**
+**5. seed.tsの配置場所**
 
 問題：seed.tsがsrcディレクトリにあるとビルドエラー
 
@@ -458,16 +394,6 @@ packages/database/src/seed.ts
 
 # ✅ 正しい配置
 packages/database/prisma/seed.ts
-```
-
-**3. Renderでビルドが失敗する場合：**
-
-```bash
-# package.jsonに追加
-"engines": {
-  "node": ">=18.0.0",
-  "pnpm": ">=8.0.0"
-}
 ```
 
 #### 共通の問題
