@@ -1,4 +1,11 @@
-import { JournalStatus } from '@simple-bookkeeping/types';
+// JournalStatus enum (migrated from @simple-bookkeeping/types)
+const JournalStatus = {
+  DRAFT: 'DRAFT',
+  APPROVED: 'APPROVED',
+  LOCKED: 'LOCKED',
+} as const;
+
+type JournalStatus = (typeof JournalStatus)[keyof typeof JournalStatus];
 import { z } from 'zod';
 
 import { FLOATING_POINT_TOLERANCE, REGEX_PATTERNS } from '../../constants';

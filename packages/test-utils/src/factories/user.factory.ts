@@ -1,5 +1,22 @@
 import { faker } from '@faker-js/faker';
-import { User, UserRole } from '@simple-bookkeeping/types';
+// User types (migrated from @simple-bookkeeping/types)
+const UserRole = {
+  ADMIN: 'ADMIN',
+  ACCOUNTANT: 'ACCOUNTANT',
+  VIEWER: 'VIEWER',
+} as const;
+
+type UserRole = (typeof UserRole)[keyof typeof UserRole];
+
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  organizationId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 import { generateSecurePassword } from '../test-config';
 

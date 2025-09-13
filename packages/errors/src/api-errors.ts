@@ -2,7 +2,12 @@
  * API-specific error classes
  */
 
-import { ValidationError } from '@simple-bookkeeping/types';
+// ValidationError type definition (migrated from @simple-bookkeeping/types)
+export interface ValidationError {
+  field: string;
+  message: string;
+  value?: unknown;
+}
 
 import { BaseError } from './base-error';
 import { getErrorMessage, Language } from './messages';

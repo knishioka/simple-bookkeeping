@@ -3,7 +3,7 @@ import {
   SimpleEntryConversionResult,
   TRANSACTION_PATTERNS,
   TransactionType,
-} from '@simple-bookkeeping/types';
+} from '@/types/simple-entry';
 
 export class SimpleEntryConverter {
   private accountMap: Map<string, string>;

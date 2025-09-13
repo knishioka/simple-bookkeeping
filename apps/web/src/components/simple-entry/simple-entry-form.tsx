@@ -1,7 +1,6 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { SimpleEntryInput, TransactionType, TRANSACTION_PATTERNS } from '@simple-bookkeeping/types';
 import { format } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -31,6 +30,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { SimpleEntryConverter } from '@/lib/simple-entry-converter';
 import { cn } from '@/lib/utils';
+import { SimpleEntryInput, TransactionType, TRANSACTION_PATTERNS } from '@/types/simple-entry';
 
 const formSchema = z.object({
   amount: z.number().min(1, '金額を入力してください'),

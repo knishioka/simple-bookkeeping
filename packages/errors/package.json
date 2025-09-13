@@ -8,9 +8,7 @@
     "build": "tsc",
     "dev": "tsc --watch"
   },
-  "dependencies": {
-    "@simple-bookkeeping/types": "workspace:*"
-  },
+  "dependencies": {},
   "devDependencies": {
     "typescript": "^5.8.3"
   }

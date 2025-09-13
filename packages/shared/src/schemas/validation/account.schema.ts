@@ -1,4 +1,13 @@
-import { AccountType } from '@simple-bookkeeping/types';
+// AccountType enum (migrated from @simple-bookkeeping/types)
+const AccountType = {
+  ASSET: 'ASSET',
+  LIABILITY: 'LIABILITY',
+  EQUITY: 'EQUITY',
+  REVENUE: 'REVENUE',
+  EXPENSE: 'EXPENSE',
+} as const;
+
+type AccountType = (typeof AccountType)[keyof typeof AccountType];
 import { z } from 'zod';
 
 import { ACCOUNT_CODE_MAX_LENGTH, ACCOUNT_NAME_MAX_LENGTH, REGEX_PATTERNS } from '../../constants';

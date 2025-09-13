@@ -131,9 +131,6 @@ importers:
       '@simple-bookkeeping/test-utils':
         specifier: workspace:*
         version: link:../../packages/test-utils
-      '@simple-bookkeeping/types':
-        specifier: workspace:*
-        version: link:../../packages/types
       '@supabase/auth-helpers-nextjs':
         specifier: ^0.10.0
         version: 0.10.0(@supabase/supabase-js@2.56.1)
@@ -303,9 +300,6 @@ importers:
       '@simple-bookkeeping/errors':
         specifier: workspace:*
         version: link:../errors
-      '@simple-bookkeeping/types':
-        specifier: workspace:*
-        version: link:../types
     devDependencies:
       '@types/node':
         specifier: ^20.19.1
@@ -343,10 +337,6 @@ importers:
         version: 5.9.2
 
   packages/errors:
-    dependencies:
-      '@simple-bookkeeping/types':
-        specifier: workspace:*
-        version: link:../types
     devDependencies:
       typescript:
         specifier: ^5.8.3
@@ -357,9 +347,6 @@ importers:
       '@simple-bookkeeping/database':
         specifier: workspace:*
         version: link:../database
-      '@simple-bookkeeping/types':
-        specifier: workspace:*
-        version: link:../types
       prom-client:
         specifier: ^15.1.0
         version: 15.1.3
@@ -400,9 +387,6 @@ importers:
 
   packages/supabase-client:
     dependencies:
-      '@simple-bookkeeping/types':
-        specifier: workspace:*
-        version: link:../types
       '@supabase/ssr':
         specifier: ^0.1.0
         version: 0.1.0(@supabase/supabase-js@2.56.1)
@@ -449,9 +433,6 @@ importers:
       '@faker-js/faker':
         specifier: ^8.4.1
         version: 8.4.1
-      '@simple-bookkeeping/types':
-        specifier: workspace:*
-        version: link:../types
       jsonwebtoken:
         specifier: ^9.0.2
         version: 9.0.2
@@ -467,16 +448,6 @@ importers:
         version: 20.19.11
       typescript:
         specifier: ^5.3.3
-        version: 5.9.2
-
-  packages/types:
-    dependencies:
-      zod:
-        specifier: ^4.0.14
-        version: 4.1.5
-    devDependencies:
-      typescript:
-        specifier: ^5.8.3
         version: 5.9.2
 
   packages/typescript-config: {}
