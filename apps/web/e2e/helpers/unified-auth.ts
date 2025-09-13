@@ -5,7 +5,8 @@
  */
 
 import { Page, BrowserContext } from '@playwright/test';
-import { TEST_CREDENTIALS } from '@simple-bookkeeping/test-utils';
+
+import { TEST_CREDENTIALS } from '../../src/test/test-config';
 
 /**
  * ユーザーロール定義

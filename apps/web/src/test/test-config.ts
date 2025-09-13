@@ -107,7 +107,11 @@ export function generateTestCredentials(
  * @returns true if in test environment
  */
 export function isTestEnvironment(): boolean {
-  return process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'e2e';
+  const nodeEnv = process.env.NODE_ENV;
+  // Check for test environment by checking the NODE_ENV or a custom TEST_ENV variable
+  return (
+    nodeEnv === 'test' || process.env.TEST_ENV === 'e2e' || process.env.JEST_WORKER_ID !== undefined
+  );
 }
 
 /**
