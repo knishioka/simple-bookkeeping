@@ -128,9 +128,6 @@ importers:
       '@simple-bookkeeping/supabase-client':
         specifier: workspace:*
         version: link:../../packages/supabase-client
-      '@simple-bookkeeping/test-utils':
-        specifier: workspace:*
-        version: link:../../packages/test-utils
       '@supabase/auth-helpers-nextjs':
         specifier: ^0.10.0
         version: 0.10.0(@supabase/supabase-js@2.56.1)
@@ -219,6 +216,9 @@ importers:
       '@axe-core/playwright':
         specifier: ^4.10.2
         version: 4.10.2(playwright-core@1.55.0)
+      '@faker-js/faker':
+        specifier: ^9.0.0
+        version: 9.9.0
       '@next/bundle-analyzer':
         specifier: ^15.5.2
         version: 15.5.2
@@ -290,19 +290,6 @@ importers:
         version: 20.19.11
       typescript:
         specifier: ^5.3.3
-        version: 5.9.2
-
-  packages/core:
-    dependencies:
-      '@simple-bookkeeping/database':
-        specifier: workspace:*
-        version: link:../database
-    devDependencies:
-      '@types/node':
-        specifier: ^20.19.1
-        version: 20.19.11
-      typescript:
-        specifier: ^5.9.2
         version: 5.9.2
 
   packages/database:
@@ -415,28 +402,6 @@ importers:
       tsx:
         specifier: ^4.7.0
         version: 4.20.5
-      typescript:
-        specifier: ^5.3.3
-        version: 5.9.2
-
-  packages/test-utils:
-    dependencies:
-      '@faker-js/faker':
-        specifier: ^8.4.1
-        version: 8.4.1
-      jsonwebtoken:
-        specifier: ^9.0.2
-        version: 9.0.2
-    devDependencies:
-      '@playwright/test':
-        specifier: ^1.48.0
-        version: 1.55.0
-      '@types/jsonwebtoken':
-        specifier: ^9.0.5
-        version: 9.0.10
-      '@types/node':
-        specifier: ^20.11.5
-        version: 20.19.11
       typescript:
         specifier: ^5.3.3
         version: 5.9.2
@@ -878,9 +843,9 @@ packages:
     resolution: {integrity: sha512-Z5kJ+wU3oA7MMIqVR9tyZRtjYPr4OC004Q4Rw7pgOKUOKkJfZ3O24nz3WYfGRpMDNmcOi3TwQOmgm7B7Tpii0w==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
-  '@faker-js/faker@8.4.1':
-    resolution: {integrity: sha512-XQ3cU+Q8Uqmrbf2e0cIC/QN43sTBSC8KF12u29Mb47tWrt2hAgBXSgpZMj4Ao8Uk0iJcU99QsOCaIL8934obCg==}
-    engines: {node: ^14.17.0 || ^16.13.0 || >=18.0.0, npm: '>=6.14.13'}
+  '@faker-js/faker@9.9.0':
+    resolution: {integrity: sha512-OEl393iCOoo/z8bMezRlJu+GlRGlsKbUAN7jKB6LhnKoqKve5DXRpalbItIIcwnCjs1k/FOPjFzcA6Qn+H+YbA==}
+    engines: {node: '>=18.0.0', npm: '>=9.0.0'}
 
   '@floating-ui/core@1.7.3':
     resolution: {integrity: sha512-sGnvb5dmrJaKEZ+LDIpguvdX3bDlEllmv4/ClQ9awcmCZrlx5jQyyMWFM5kBI+EyNOCDDiKk8il0zeuX3Zlg/w==}
@@ -5949,7 +5914,7 @@ snapshots:
       '@eslint/core': 0.15.2
       levn: 0.4.1
 
-  '@faker-js/faker@8.4.1': {}
+  '@faker-js/faker@9.9.0': {}
 
   '@floating-ui/core@1.7.3':
     dependencies:
