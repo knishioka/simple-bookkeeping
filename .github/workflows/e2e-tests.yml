@@ -161,7 +161,9 @@ jobs:
           echo "::notice title=E2E Performance (Shard ${{ matrix.shard }})::Tests completed in ${DURATION} seconds"
 
           # Save performance data with shard info
-          echo "{\"duration\": ${DURATION}, \"shard\": \"${{ matrix.shard }}\", \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > ../../performance-report-${{ matrix.shard }}.json
+          # Replace "/" in shard name to avoid file path issues
+          SHARD_NAME=$(echo "${{ matrix.shard }}" | sed 's/\//-/g')
+          echo "{\"duration\": ${DURATION}, \"shard\": \"${{ matrix.shard }}\", \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > performance-report-${SHARD_NAME}.json
           exit ${TEST_EXIT:-0}
 
       - name: Upload test results
@@ -185,5 +187,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: performance-report-shard-${{ strategy.job-index }}
-          path: performance-report-${{ matrix.shard }}.json
+          path: apps/web/performance-report-*.json
           retention-days: 7
