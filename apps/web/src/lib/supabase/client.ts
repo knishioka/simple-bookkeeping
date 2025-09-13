@@ -7,6 +7,16 @@ import type { Database } from './database.types';
  * クライアントサイドコンポーネントで使用
  */
 export function createClient() {
+  // Check if running in test environment with mock
+  if (typeof window !== 'undefined') {
+    const win = window as unknown as {
+      __supabaseClientMock?: () => ReturnType<typeof createBrowserClient>;
+    };
+    if (win.__supabaseClientMock) {
+      return win.__supabaseClientMock();
+    }
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
