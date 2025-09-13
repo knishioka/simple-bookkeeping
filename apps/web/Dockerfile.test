@@ -18,7 +18,6 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/database/package.json ./packages/database/
 COPY packages/types/package.json ./packages/types/
-COPY packages/errors/package.json ./packages/errors/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/test-utils/package.json ./packages/test-utils/
 COPY packages/core/package.json ./packages/core/
@@ -46,7 +45,6 @@ RUN pnpm --filter @simple-bookkeeping/database prisma:generate
 # Build only necessary packages and web app
 RUN pnpm --filter @simple-bookkeeping/database build || true
 RUN pnpm --filter @simple-bookkeeping/types build || true
-RUN pnpm --filter @simple-bookkeeping/errors build || true
 RUN pnpm --filter @simple-bookkeeping/shared build || true
 RUN pnpm --filter @simple-bookkeeping/web build
 

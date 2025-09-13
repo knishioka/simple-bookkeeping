@@ -241,11 +241,7 @@ This guide documents the deployment process for the Simple Bookkeeping monorepo 
    ```json
    // apps/api/tsconfig.json
    {
-     "references": [
-       { "path": "../../packages/types" },
-       { "path": "../../packages/database" },
-       { "path": "../../packages/errors" }
-     ]
+     "references": [{ "path": "../../packages/types" }, { "path": "../../packages/database" }]
    }
    ```
 

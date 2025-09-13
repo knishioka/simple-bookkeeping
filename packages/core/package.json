@@ -14,8 +14,7 @@
     "typecheck": "echo 'Core package is pre-built'"
   },
   "dependencies": {
-    "@simple-bookkeeping/database": "workspace:*",
-    "@simple-bookkeeping/errors": "workspace:*"
+    "@simple-bookkeeping/database": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.19.1",
