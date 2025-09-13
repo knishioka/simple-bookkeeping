@@ -297,9 +297,6 @@ importers:
       '@simple-bookkeeping/database':
         specifier: workspace:*
         version: link:../database
-      '@simple-bookkeeping/errors':
-        specifier: workspace:*
-        version: link:../errors
     devDependencies:
       '@types/node':
         specifier: ^20.19.1
@@ -332,12 +329,6 @@ importers:
       tsx:
         specifier: ^4.20.3
         version: 4.20.5
-      typescript:
-        specifier: ^5.8.3
-        version: 5.9.2
-
-  packages/errors:
-    devDependencies:
       typescript:
         specifier: ^5.8.3
         version: 5.9.2

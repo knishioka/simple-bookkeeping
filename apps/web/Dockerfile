@@ -8,7 +8,6 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/database/package.json ./packages/database/
 COPY packages/types/package.json ./packages/types/
-COPY packages/errors/package.json ./packages/errors/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/config/package.json ./packages/config/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
@@ -20,7 +19,6 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY --from=deps /app/packages/database/node_modules ./packages/database/node_modules
 COPY --from=deps /app/packages/types/node_modules ./packages/types/node_modules
-COPY --from=deps /app/packages/errors/node_modules ./packages/errors/node_modules
 COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 COPY --from=deps /app/packages/config/node_modules ./packages/config/node_modules
 COPY . .
@@ -30,7 +28,6 @@ RUN cd packages/database && \
 # Build shared packages first
 RUN pnpm -F @simple-bookkeeping/database build
 RUN pnpm -F @simple-bookkeeping/types build
-RUN pnpm -F @simple-bookkeeping/errors build
 RUN pnpm -F @simple-bookkeeping/shared build
 RUN pnpm -F @simple-bookkeeping/config build
 # Build web app with standalone output for Docker

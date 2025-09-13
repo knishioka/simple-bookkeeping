@@ -37,7 +37,6 @@ packages/
 [廃止予定]
 apps/api/             # Express.js API (移行中につき使用禁止)
 packages/types/       # 型定義 (TypeScript推論で代替)
-packages/errors/      # エラー定義 (Server Actions内で定義)
 ```
 
 ### よく使うコマンド

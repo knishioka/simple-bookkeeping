@@ -70,7 +70,7 @@ git checkout -b fix/bug-description
 
 - TypeScript strict modeを使用
 - 共通型定義は`@simple-bookkeeping/types`から import
-- エラーは`@simple-bookkeeping/errors`のクラスを使用
+- エラーハンドリングはServer Actions内で実装
 - UIコンポーネントは`shadcn/ui`を優先使用
 
 ### 4. テストの作成・実行

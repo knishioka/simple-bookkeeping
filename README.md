@@ -185,7 +185,7 @@ WEB_PORT=3010  # デフォルト: 3000
 - ✅ 包括的リファクタリング実施（2025年1月）
   - 共通コンポーネント・フックの抽出
   - 型定義の一元管理（@simple-bookkeeping/types）
-  - エラーハンドリングの統一（@simple-bookkeeping/errors）
+  - エラーハンドリングの統一（Server Actions内で実装）
 - ✅ 包括的テスト実装（2025年1月）
   - フロントエンドユニットテスト（React Testing Library）
   - E2Eテスト基盤構築（Playwright）
