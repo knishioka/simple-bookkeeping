@@ -104,13 +104,18 @@ test.describe('基本的なページアクセス', () => {
     // 存在しないページにアクセス
     await page.goto('/nonexistent-page');
 
-    // 404状態またはNext.jsの404ページを確認
-    const isNotFound =
-      (await page.locator('text=404').isVisible()) ||
-      (await page.locator('text=Not Found').isVisible()) ||
-      (await page.locator('text=This page could not be found').isVisible());
+    // 実際のnot-found.tsx実装に基づいた検証
+    // 404数字とページタイトルの確認
+    await expect(page.locator('h1')).toContainText('404');
+    await expect(page.locator('h2')).toContainText('ページが見つかりません');
 
-    expect(isNotFound).toBeTruthy();
+    // 説明テキストの確認
+    await expect(
+      page.locator('text=お探しのページは存在しないか、移動した可能性があります。')
+    ).toBeVisible();
+
+    // ホームに戻るボタンの確認
+    await expect(page.locator('text=ホームに戻る')).toBeVisible();
   });
 
   test('デモ画面からアカウント登録', async ({ page, context }) => {
