@@ -62,7 +62,7 @@ test.describe('ユーザー認証フロー', () => {
     await page.waitForSelector('button[type="submit"]', { state: 'visible' });
 
     // 新規登録リンクの確認
-    const signupLink = page.locator('a[href="/signup"]').first();
+    const signupLink = page.locator('a[href="/register"]').first();
     await expect(signupLink).toBeVisible();
   });
 
