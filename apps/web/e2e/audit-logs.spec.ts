@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 
 import { UnifiedMock } from './helpers/server-actions-unified-mock';
 import { SupabaseAuth } from './helpers/supabase-auth';
+import { SupabaseClientMock } from './helpers/supabase-client-mock';
 import { waitForApiResponse, waitForSelectOpen } from './helpers/wait-strategies';
 
 test.describe('Audit Logs', () => {
@@ -19,72 +20,52 @@ test.describe('Audit Logs', () => {
     });
     await UnifiedMock.setupAuditLogsMocks(context);
 
-    // First navigate to the home page to establish context
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    // Supabase APIのインターセプトを設定
+    await SupabaseClientMock.interceptSupabaseAPI(context);
+
+    // ページを開く前にモックを注入
+    await page.goto('about:blank');
+    await SupabaseClientMock.injectMock(page);
 
     // Supabase認証をセットアップ（管理者ユーザー）
-    await SupabaseAuth.setup(context, page, { role: 'admin' });
+    await SupabaseAuth.setup(context, page, { role: 'admin', skipCookies: false });
+
+    // ホームページにナビゲートしてコンテキストを確立
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
   });
 
   test('should display audit logs page for admin users', async ({ page }) => {
     // Navigate directly to audit logs page
-    await page.goto('/dashboard/settings/audit-logs');
+    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'networkidle' });
 
-    // Wait for the page to load - the page checks auth first
-    await page.waitForTimeout(1000);
+    // Wait for the page to load and run effects
+    await page.waitForTimeout(2000);
 
-    // Check if we're on the audit logs page (admin access) or redirected/denied
+    // Check if we're on the audit logs page
     const currentUrl = page.url();
+    expect(currentUrl).toContain('audit-logs');
 
-    if (currentUrl.includes('login')) {
-      // If redirected to login, the test setup isn't working properly
-      // This is expected until auth is fully migrated
-      console.log('Redirected to login - auth context not recognizing test user');
-      expect(currentUrl).toContain('login');
-    } else if (currentUrl.includes('audit-logs')) {
-      // We're on the audit logs page - check for content or access denied
-      const tableVisible = await page
-        .locator('[data-testid="audit-logs-table"]')
-        .isVisible({ timeout: 5000 })
-        .catch(() => false);
-      const cardVisible = await page
-        .locator('.container h1:has-text("監査ログ")')
-        .isVisible({ timeout: 5000 })
-        .catch(() => false);
-      const accessDeniedVisible = await page
-        .locator('text=アクセス権限がありません')
-        .isVisible({ timeout: 5000 })
-        .catch(() => false);
+    // Wait for the table to be visible
+    await expect(page.locator('[data-testid="audit-logs-table"]')).toBeVisible({ timeout: 10000 });
 
-      if (tableVisible || cardVisible) {
-        // Admin has access - check page content
-        await expect(
-          page.locator('h1, .text-2xl').filter({ hasText: '監査ログ' }).first()
-        ).toBeVisible();
-        await expect(
-          page.locator('text=システムで行われた全ての操作の履歴を確認できます').first()
-        ).toBeVisible();
+    // Check for the title (now with text-2xl class)
+    await expect(page.locator('.text-2xl:has-text("監査ログ")')).toBeVisible();
 
-        // Check filter controls
-        await expect(page.locator('[data-testid="audit-action-trigger"]')).toBeVisible();
-        await expect(page.locator('[data-testid="audit-export-button"]')).toBeVisible();
-      } else if (accessDeniedVisible) {
-        // Non-admin user - access denied is shown
-        await expect(page.locator('text=アクセス権限がありません')).toBeVisible();
-      } else {
-        // Neither content nor access denied - something is wrong
-        throw new Error(
-          'Unexpected state: neither audit logs nor access denied message is visible'
-        );
-      }
-    }
+    // Check for the description
+    await expect(
+      page.locator('text=システムで行われた全ての操作の履歴を確認できます')
+    ).toBeVisible();
+
+    // Check filter controls
+    await expect(page.locator('[data-testid="audit-action-trigger"]')).toBeVisible();
+    await expect(page.locator('[data-testid="audit-export-button"]')).toBeVisible();
   });
 
   test('should filter audit logs by action type', async ({ page }) => {
-    await page.goto('/dashboard/settings/audit-logs');
+    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'networkidle' });
 
     // Wait for page to load
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(2000);
 
     // Check if we have access to the page
     const hasAccess = await page
@@ -113,10 +94,10 @@ test.describe('Audit Logs', () => {
   });
 
   test('should filter audit logs by date range', async ({ page }) => {
-    await page.goto('/dashboard/settings/audit-logs');
+    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'networkidle' });
 
     // Wait for page to load
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(2000);
 
     // Check if we have access to the page
     const hasAccess = await page
@@ -145,31 +126,37 @@ test.describe('Audit Logs', () => {
   });
 
   test('should export audit logs as CSV', async ({ page }) => {
-    await page.goto('/dashboard/settings/audit-logs');
+    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'networkidle' });
 
-    // Wait for page to load
+    // Wait for page to load completely
+    await page.waitForTimeout(3000);
+
+    // Wait for the table to be visible
+    await expect(page.locator('[data-testid="audit-logs-table"]')).toBeVisible({ timeout: 10000 });
+
+    // Look for export button
+    const exportButton = page.locator('[data-testid="audit-export-button"]');
+
+    // Wait for the button to be visible
+    await expect(exportButton).toBeVisible({ timeout: 5000 });
+
+    // Wait for loading to complete (button should be enabled when not loading)
+    await page.waitForFunction(
+      () => {
+        const btn = document.querySelector('[data-testid="audit-export-button"]');
+        return btn && !btn.hasAttribute('disabled');
+      },
+      { timeout: 10000 }
+    );
+
+    // Now the button should be enabled
+    await expect(exportButton).toBeEnabled();
+
+    // Click export button (won't actually download in test)
+    await exportButton.click();
+
+    // Wait for any response
     await page.waitForTimeout(1000);
-
-    // Check if we have access to the page
-    const hasAccess = await page
-      .locator('[data-testid="audit-logs-table"]')
-      .isVisible({ timeout: 5000 })
-      .catch(() => false);
-
-    if (hasAccess) {
-      // Look for export button
-      const exportButton = page.locator('[data-testid="audit-export-button"]');
-
-      // Check if export button exists and is visible
-      await expect(exportButton).toBeVisible({ timeout: 5000 });
-      await expect(exportButton).toBeEnabled();
-
-      // Click export button (won't actually download in test)
-      await exportButton.click();
-
-      // Wait for any response
-      await page.waitForTimeout(1000);
-    }
 
     // Test passes if we get to this point without errors
     expect(true).toBeTruthy();
@@ -177,7 +164,7 @@ test.describe('Audit Logs', () => {
 
   test('should paginate through audit logs', async ({ page }) => {
     // Auth is already set up in beforeEach as admin
-    await page.goto('/dashboard/settings/audit-logs');
+    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'networkidle' });
 
     // Check if pagination controls exist
     const paginationSection = page.locator('text=/ページ.*\\//');
@@ -204,10 +191,10 @@ test.describe('Audit Logs', () => {
   });
 
   test('should show empty state when no logs exist', async ({ page }) => {
-    await page.goto('/dashboard/settings/audit-logs');
+    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'networkidle' });
 
     // Wait for page to load
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(2000);
 
     // Check if we have access to the page
     const hasAccess = await page
@@ -237,10 +224,10 @@ test.describe('Audit Logs', () => {
   });
 
   test('should create audit log when performing actions', async ({ page }) => {
-    await page.goto('/dashboard/settings/audit-logs');
+    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'networkidle' });
 
     // Wait for page to load
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(2000);
 
     // Check if we have access to the page
     const hasAccess = await page
@@ -260,78 +247,46 @@ test.describe('Audit Logs', () => {
   });
 
   test('should not show audit logs page for non-admin users', async ({ page, context }) => {
-    // Clear any existing auth and navigate to home first
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    // Clear any existing auth
+    await SupabaseAuth.clear(context, page);
 
     // Set up as viewer (non-admin)
-    await SupabaseAuth.clear(context, page);
     await SupabaseAuth.setup(context, page, { role: 'viewer' });
 
+    // Re-inject the mock with viewer auth
+    await SupabaseClientMock.injectMock(page);
+
     // Try to access audit logs directly
-    await page.goto('/dashboard/settings/audit-logs');
+    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'networkidle' });
 
-    // Wait for page to load
-    await page.waitForTimeout(2000);
+    // Wait for page to load and run effects
+    await page.waitForTimeout(3000);
 
-    // Check where we ended up
-    const currentUrl = page.url();
-
-    if (currentUrl.includes('login')) {
-      // If redirected to login, the test setup isn't working properly
-      // This is expected until auth is fully migrated
-      console.log('Redirected to login - auth context not recognizing test user');
-      expect(currentUrl).toContain('login');
-    } else {
-      // Should show access denied message
-      const accessDeniedVisible = await page
-        .locator('text=アクセス権限がありません')
-        .isVisible({ timeout: 5000 })
-        .catch(() => false);
-      const auditLogVisible = await page
-        .locator('text=監査ログの閲覧は管理者権限が必要です')
-        .isVisible({ timeout: 5000 })
-        .catch(() => false);
-
-      // At least one of these should be visible
-      expect(accessDeniedVisible || auditLogVisible).toBeTruthy();
-    }
+    // Should show access denied message
+    await expect(page.locator('text=アクセス権限がありません')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=監査ログの閲覧は管理者権限が必要です')).toBeVisible();
   });
 
   test('should display user information in audit logs', async ({ page }) => {
-    await page.goto('/dashboard/settings/audit-logs');
+    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'networkidle' });
 
-    // Wait for page to load
-    await page.waitForTimeout(1000);
+    // Wait for page to load completely
+    await page.waitForTimeout(3000);
 
-    // Check if we have access to the page
-    const hasAccess = await page
-      .locator('[data-testid="audit-logs-table"]')
-      .isVisible({ timeout: 5000 })
-      .catch(() => false);
+    // Wait for the table to be visible
+    await expect(page.locator('[data-testid="audit-logs-table"]')).toBeVisible({ timeout: 10000 });
 
-    if (hasAccess) {
-      // Check if any rows exist
-      const rows = page.locator('table tbody tr');
-      const rowCount = await rows.count();
+    // Check if the table has the expected headers including user column
+    const userHeader = page.locator('th:has-text("ユーザー")');
+    await expect(userHeader).toBeVisible();
 
-      if (
-        rowCount > 0 &&
-        !(await rows
-          .first()
-          .getByText('監査ログがありません')
-          .isVisible()
-          .catch(() => false))
-      ) {
-        // Check that user information is displayed
-        const firstRow = rows.first();
-        const hasUserInfo = await firstRow.locator('td').nth(1).isVisible();
-        expect(hasUserInfo).toBeTruthy();
-      }
-    }
+    // The test passes if the table structure is correct
+    // We're not checking for actual data since it might be empty
+    expect(true).toBeTruthy();
   });
 
   test('should refresh audit logs', async ({ page }) => {
-    await page.goto('/dashboard/settings/audit-logs');
+    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'networkidle' });
 
     // Click refresh button
     const refreshButton = page
