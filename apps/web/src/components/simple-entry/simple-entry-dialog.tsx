@@ -1,10 +1,5 @@
 'use client';
 
-import {
-  SimpleEntryInput,
-  TransactionType,
-  CreateJournalEntryDto,
-} from '@simple-bookkeeping/types';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
@@ -18,6 +13,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { SimpleEntryConverter } from '@/lib/simple-entry-converter';
+import { CreateJournalEntryDto } from '@/types/journal';
+import { SimpleEntryInput, TransactionType } from '@/types/simple-entry';
 
 import { SimpleEntryForm } from './simple-entry-form';
 import { TransactionTypeSelector } from './transaction-type-selector';

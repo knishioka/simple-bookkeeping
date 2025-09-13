@@ -1,9 +1,8 @@
 'use client';
 
-import { TRANSACTION_PATTERNS, TransactionType } from '@simple-bookkeeping/types';
-
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { TRANSACTION_PATTERNS, TransactionType } from '@/types/simple-entry';
 
 interface TransactionTypeSelectorProps {
   selectedType?: TransactionType;

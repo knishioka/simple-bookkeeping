@@ -1,5 +1,41 @@
 import { faker } from '@faker-js/faker';
-import { Account, AccountCategory, AccountType } from '@simple-bookkeeping/types';
+// Account types (migrated from @simple-bookkeeping/types)
+const AccountType = {
+  ASSET: 'ASSET',
+  LIABILITY: 'LIABILITY',
+  EQUITY: 'EQUITY',
+  REVENUE: 'REVENUE',
+  EXPENSE: 'EXPENSE',
+} as const;
+
+type AccountType = (typeof AccountType)[keyof typeof AccountType];
+
+type AccountCategory =
+  | 'current_asset'
+  | 'fixed_asset'
+  | 'current_liability'
+  | 'long_term_liability'
+  | 'equity'
+  | 'operating_revenue'
+  | 'operating_expense'
+  | 'non_operating_revenue'
+  | 'non_operating_expense';
+
+interface Account {
+  id: string;
+  code: string;
+  name: string;
+  type: AccountType;
+  category: AccountCategory;
+  description?: string;
+  isActive: boolean;
+  organizationId: string;
+  parentId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  parent?: Account;
+  children?: Account[];
+}
 
 /**
  * Factory for creating test account data

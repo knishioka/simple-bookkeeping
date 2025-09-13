@@ -36,7 +36,6 @@
     "typescript": "^5.3.3"
   },
   "peerDependencies": {
-    "@simple-bookkeeping/types": "workspace:*",
     "next": ">=15.4.7",
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0"
