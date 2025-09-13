@@ -42,7 +42,6 @@
     "@simple-bookkeeping/database": "workspace:*",
     "@simple-bookkeeping/shared": "workspace:*",
     "@simple-bookkeeping/supabase-client": "workspace:*",
-    "@simple-bookkeeping/test-utils": "workspace:*",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/auth-helpers-react": "^0.5.0",
     "@supabase/ssr": "^0.5.1",
@@ -74,6 +73,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",
+    "@faker-js/faker": "^9.0.0",
     "@next/bundle-analyzer": "^15.5.2",
     "@playwright/test": "^1.54.2",
     "@radix-ui/react-progress": "^1.1.7",
