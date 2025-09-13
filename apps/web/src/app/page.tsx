@@ -24,7 +24,7 @@ export default function HomePage() {
           <div className="flex justify-between items-center h-16">
             <h1 className="text-xl font-bold">Simple Bookkeeping</h1>
             <div className="space-x-4">
-              <Link href="/login">
+              <Link href="/auth/login">
                 <Button variant="outline">ログイン</Button>
               </Link>
               <Link href="/register">
@@ -55,7 +55,7 @@ export default function HomePage() {
                 </Link>
               </div>
               <div className="mt-3 rounded-md shadow sm:mt-0 sm:ml-3">
-                <Link href="/login">
+                <Link href="/auth/login">
                   <Button variant="outline" size="lg" className="w-full">
                     ログイン
                   </Button>
