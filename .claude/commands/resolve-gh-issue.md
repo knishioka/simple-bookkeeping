@@ -353,7 +353,7 @@ fi
   - 実装をシンプルに保ち、過度なエンジニアリングを避ける
   - TypeScriptの型安全性を維持（any型の使用禁止）
   - 共通型定義の使用（`@simple-bookkeeping/types`）
-  - エラークラスの使用（`@simple-bookkeeping/errors`）
+  - Server Actions内でエラーハンドリングを実装
 
   **注意**: `code-implementer`エージェントは`.claude/agents/code-implementer.md`に定義されています。
 
@@ -595,7 +595,6 @@ PR #<PR番号> での Issue #<元のIssue番号> の実装中に発見された�
   - `apps/web/src/app/api`: Next.js API Routes
   - `packages/database`: Prismaスキーマ
   - `packages/types`: 共通型定義
-  - `packages/errors`: エラー定義
   - `packages/shared`: 共有ユーティリティ
 - 共有パッケージへの変更は全体への影響を考慮
 - 適切なフィルターでコマンドを実行（例: `pnpm --filter @simple-bookkeeping/web test`）

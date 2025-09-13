@@ -59,24 +59,6 @@
   export interface PaginatedResponse<T> { ... }
   ```
 
-#### @simple-bookkeeping/errors
-
-- **役割**: エラーハンドリングの統一
-- **内容**:
-
-  ```typescript
-  // 基底エラー
-  export class BaseError extends Error { ... }
-
-  // APIエラー
-  export class NotFoundError extends BaseError { ... }
-  export class ValidationError extends BaseError { ... }
-
-  // ビジネスエラー
-  export class UnbalancedEntryError extends BaseError { ... }
-  export class ClosedPeriodError extends BaseError { ... }
-  ```
-
 #### @simple-bookkeeping/shared
 
 - **役割**: 共有ユーティリティ
@@ -153,7 +135,7 @@ pnpm --filter @simple-bookkeeping/web dev
 
 ### 2. エラーハンドリング
 
-カスタムエラーは`@simple-bookkeeping/errors`に定義し、統一的なエラーハンドリングを実現。
+エラーハンドリングはServer Actions内で実装し、適切なエラーメッセージを返す。
 
 ### 3. 循環参照の回避
 

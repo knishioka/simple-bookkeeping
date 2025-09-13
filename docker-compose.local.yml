@@ -51,7 +51,6 @@ services:
       - /app/apps/web/node_modules
       - /app/packages/database/node_modules
       - /app/packages/types/node_modules
-      - /app/packages/errors/node_modules
       - /app/packages/shared/node_modules
     command: sh -c "cd /app && pnpm --filter @simple-bookkeeping/database prisma:generate && pnpm --filter @simple-bookkeeping/api dev"
 
@@ -77,7 +76,6 @@ services:
       - /app/apps/web/node_modules
       - /app/packages/database/node_modules
       - /app/packages/types/node_modules
-      - /app/packages/errors/node_modules
       - /app/packages/shared/node_modules
     command: sh -c "cd /app && pnpm --filter @simple-bookkeeping/web dev"
 

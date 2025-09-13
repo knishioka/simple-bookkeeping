@@ -39,11 +39,13 @@ import { Account, JournalEntry } from '@simple-bookkeeping/types';
 ### 2. エラーハンドリング
 
 ```typescript
-// ✅ Good: 共通エラークラスを使用
-import { ValidationError, NotFoundError } from '@simple-bookkeeping/errors';
-
-if (!account) {
-  throw new NotFoundError('Account not found');
+// ✅ Good: Server Actions内でのエラーハンドリング
+// Server Actions内で適切なエラーメッセージを返す
+export async function getAccount(id: string) {
+  if (!account) {
+    return { error: 'Account not found' };
+  }
+  return { data: account };
 }
 ```
 
