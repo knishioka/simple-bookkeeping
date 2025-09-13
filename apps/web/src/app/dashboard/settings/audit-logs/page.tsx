@@ -48,27 +48,51 @@ export default function AuditLogsPage() {
   const [entityTypes, setEntityTypes] = useState<string[]>([]);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   // Get current user and organization info
   useEffect(() => {
     const checkAuthAndOrg = async () => {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      try {
+        const supabase = createClient();
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
 
-      if (user) {
-        // Get user's organization and role
-        const { data: userOrg } = await supabase
-          .from('user_organizations')
-          .select('organization_id, role')
-          .eq('user_id', user.id)
-          .single();
-
-        if (userOrg) {
-          setOrganizationId(userOrg.organization_id);
-          setUserRole(userOrg.role);
+        if (authError) {
+          console.error('Auth error:', authError);
+          setAuthLoading(false);
+          return;
         }
+
+        if (user) {
+          // Get user's organization and role
+          const { data: userOrg, error: orgError } = await supabase
+            .from('user_organizations')
+            .select('organization_id, role')
+            .eq('user_id', user.id)
+            .single();
+
+          if (orgError) {
+            console.error('Organization fetch error:', orgError);
+            setAuthLoading(false);
+            return;
+          }
+
+          if (userOrg) {
+            setOrganizationId(userOrg.organization_id);
+            setUserRole(userOrg.role);
+          }
+        } else {
+          // No user - set role to null to show access denied
+          setUserRole(null);
+        }
+      } catch (error) {
+        console.error('Error checking auth and org:', error);
+        setUserRole(null);
+      } finally {
+        setAuthLoading(false);
       }
     };
 
@@ -198,6 +222,15 @@ export default function AuditLogsPage() {
     return labels[action] || action;
   };
 
+  // Show loading state while checking auth
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   // Check if user is admin
   if (userRole !== null && userRole !== 'admin') {
     return (
@@ -253,7 +286,7 @@ export default function AuditLogsPage() {
     <div className="container mx-auto py-6 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>監査ログ</CardTitle>
+          <CardTitle className="text-2xl">監査ログ</CardTitle>
           <CardDescription>システムで行われた全ての操作の履歴を確認できます。</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
