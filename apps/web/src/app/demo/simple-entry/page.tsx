@@ -1,10 +1,5 @@
 'use client';
 
-import {
-  SimpleEntryInput,
-  TransactionType,
-  CreateJournalEntryDto,
-} from '@simple-bookkeeping/types';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -15,6 +10,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SimpleEntryConverter } from '@/lib/simple-entry-converter';
+import { CreateJournalEntryDto } from '@/types/journal';
+import { SimpleEntryInput, TransactionType } from '@/types/simple-entry';
 
 // Mock accounts for demo
 const mockAccounts = [

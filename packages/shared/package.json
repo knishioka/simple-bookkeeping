@@ -50,7 +50,6 @@
   },
   "dependencies": {
     "@simple-bookkeeping/database": "workspace:*",
-    "@simple-bookkeeping/types": "workspace:*",
     "prom-client": "^15.1.0",
     "redis": "^4.6.12",
     "winston": "^3.11.0",

@@ -8,14 +8,78 @@
 
 import { BrowserContext } from '@playwright/test';
 
-import type {
-  User,
-  Account,
-  JournalEntry,
-  Organization,
-  AccountingPeriod,
-  AuditLog,
-} from '@simple-bookkeeping/types';
+// TODO: These types should come from Prisma client or be defined locally
+// Temporary type definitions for E2E tests (migrated from @simple-bookkeeping/types)
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  organizationId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface Account {
+  id: string;
+  code: string;
+  name: string;
+  type: string;
+  category: string;
+  isActive: boolean;
+  organizationId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface JournalEntry {
+  id: string;
+  entryNumber: string;
+  entryDate: Date;
+  description: string;
+  status: string;
+  organizationId: string;
+  createdById: string;
+  createdAt: Date;
+  updatedAt: Date;
+  lines: Array<{
+    id: string;
+    accountId: string;
+    debitAmount: number;
+    creditAmount: number;
+    description?: string;
+  }>;
+}
+
+interface Organization {
+  id: string;
+  name: string;
+  type: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface AccountingPeriod {
+  id: string;
+  name: string;
+  startDate: Date;
+  endDate: Date;
+  isClosed: boolean;
+  organizationId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface AuditLog {
+  id: string;
+  userId: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  oldValues?: Record<string, unknown>;
+  newValues?: Record<string, unknown>;
+  createdAt: Date;
+}
 
 /**
  * Standard mock response templates

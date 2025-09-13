@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "@simple-bookkeeping/database": "workspace:*",
-    "@simple-bookkeeping/types": "workspace:*",
     "@simple-bookkeeping/errors": "workspace:*"
   },
   "devDependencies": {
