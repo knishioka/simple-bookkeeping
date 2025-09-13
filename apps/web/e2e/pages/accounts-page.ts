@@ -36,7 +36,7 @@ export class AccountsPage extends BasePage {
    * 勘定科目管理ページに移動
    */
   async navigate(): Promise<void> {
-    await this.goto('/demo/accounts');
+    await this.goto('/dashboard/accounts');
   }
 
   /**
