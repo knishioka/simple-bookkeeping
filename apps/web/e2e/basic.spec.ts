@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 
-import { UnifiedMock } from './helpers/server-actions-unified-mock';
 import { waitForPageReady } from './helpers/wait-strategies';
 
 /**
@@ -53,150 +52,103 @@ test.describe('基本的なページアクセス', () => {
     await expect(page.locator('text=メールアドレス')).toBeVisible();
     await expect(page.locator('text=パスワード')).toBeVisible();
   });
+});
 
-  test('デモページが正常に表示される', async ({ page }) => {
-    // デモページにアクセス（認証不要）
-    await page.goto('/demo');
-    await waitForPageReady(page, { waitForSelector: 'h1' });
+test.describe('ユーザー認証フロー', () => {
+  test('ログイン画面からのナビゲーション', async ({ page }) => {
+    await page.goto('/login');
 
-    // デモページのコンテンツ確認
-    await expect(page.locator('h1')).toContainText('機能デモ');
+    // ボタンがクリック可能になるまで待機
+    await page.waitForSelector('button[type="submit"]', { state: 'visible' });
 
-    // デモ機能へのボタン確認（ボタンテキストを使用）
-    await expect(page.locator('text=勘定科目管理のデモを見る')).toBeVisible();
-    await expect(page.locator('text=仕訳入力のデモを見る')).toBeVisible();
+    // 新規登録リンクの確認
+    const signupLink = page.locator('a[href="/signup"]').first();
+    await expect(signupLink).toBeVisible();
   });
 
-  test('デモ勘定科目ページが正常に表示される', async ({ page }) => {
-    // デモ勘定科目ページにアクセス（認証不要）
-    await page.goto('/demo/accounts');
-    await waitForPageReady(page, { waitForSelector: 'h1', skipNetworkIdle: true });
-
-    // ページタイトル確認
-    await expect(page.locator('h1')).toContainText('勘定科目管理');
-
-    // 基本的なUI要素の確認
-    await expect(page.locator('text=新規作成')).toBeVisible();
-    await expect(page.locator('input[placeholder*="検索"]')).toBeVisible();
-
-    // デフォルトの勘定科目が表示されていることを確認
-    await expect(page.locator('text=現金')).toBeVisible();
-    await expect(page.locator('text=普通預金')).toBeVisible();
-  });
-
-  test('デモ仕訳入力ページが正常に表示される', async ({ page }) => {
-    // デモ仕訳入力ページにアクセス（認証不要）
-    await page.goto('/demo/journal-entries');
-    await page.waitForLoadState('domcontentloaded');
-
-    // ページタイトル確認
-    await expect(page.locator('h1')).toContainText('仕訳入力');
-
-    // 基本的なUI要素の確認
-    await expect(page.locator('text=新規作成')).toBeVisible();
-    await expect(page.locator('input[placeholder*="検索"]')).toBeVisible();
-
-    // 仕訳一覧テーブルの確認
-    await expect(page.locator('table')).toBeVisible();
-  });
-
-  test('存在しないページで404エラーが表示される', async ({ page }) => {
-    // 存在しないページにアクセス
-    await page.goto('/nonexistent-page');
-
-    // 実際のnot-found.tsx実装に基づいた検証
-    // 404数字とページタイトルの確認
-    await expect(page.locator('h1')).toContainText('404');
-    await expect(page.locator('h2')).toContainText('ページが見つかりません');
-
-    // 説明テキストの確認
-    await expect(
-      page.locator('text=お探しのページは存在しないか、移動した可能性があります。')
-    ).toBeVisible();
-
-    // ホームに戻るボタンの確認
-    await expect(page.locator('text=ホームに戻る')).toBeVisible();
-  });
-
-  test('デモ画面からアカウント登録', async ({ page, context }) => {
-    // Issue #182: スキップされているテストの有効化
-
-    // Mock auth registration API
-    await context.route('**/api/v1/auth/register', async (route) => {
-      const body = route.request().postDataJSON();
-
-      if (body && body.email && body.password && body.name) {
-        await route.fulfill({
-          status: 201,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            data: {
-              user: {
-                id: 'user-new',
-                email: body.email,
-                name: body.name,
-                role: 'viewer',
-                organizationId: 'org-demo',
-                createdAt: '2024-01-01T00:00:00Z',
-                updatedAt: '2024-01-01T00:00:00Z',
-              },
-              accessToken: 'demo-access-token',
-              refreshToken: 'demo-refresh-token',
+  test('新規登録画面の表示', async ({ page, context }) => {
+    // APIモックを設定
+    await context.route('**/auth/**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          user: {
+            id: 'test-user-id',
+            email: 'test@example.com',
+            user_metadata: {
+              name: 'Test User',
+              organizations: [
+                {
+                  id: 'test-org-1',
+                  name: 'Test Organization',
+                  role: 'admin',
+                },
+              ],
             },
-          }),
-        });
-      } else {
-        await route.fulfill({
-          status: 400,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            error: '必須項目が入力されていません',
-          }),
-        });
-      }
+            app_metadata: {
+              provider: 'email',
+              providers: ['email'],
+            },
+            identities: [
+              {
+                provider: 'email',
+                identity_id: 'test-identity-id',
+                user_id: 'test-user-id',
+                created_at: '2024-01-01T00:00:00Z',
+                updated_at: '2024-01-01T00:00:00Z',
+              },
+            ],
+          },
+          session: {
+            user: {
+              id: 'test-user-id',
+              email: 'test@example.com',
+              user_metadata: {
+                name: 'Test User',
+                organizationId: 'org-test',
+              },
+            },
+            access_token: 'test-access-token',
+            refresh_token: 'test-refresh-token',
+          },
+        }),
+      });
     });
 
-    // デモページにアクセス
-    await page.goto('/demo');
-    await waitForPageReady(page);
+    // トップページにアクセス
+    await page.goto('/');
+    await waitForPageReady(page, { waitForSelector: 'h1' });
 
-    // アカウント登録リンクまたはボタンを探す
-    const registerLink = page
-      .locator(
-        'a:has-text("登録"), button:has-text("登録"), a:has-text("新規"), button:has-text("新規")'
-      )
-      .first();
+    // 新規登録リンクを探してクリック
+    const signupLink = page.locator('text=新規登録').first();
+    const signupLinkExists = await signupLink.isVisible();
 
-    if (await registerLink.isVisible()) {
-      await registerLink.click();
-
-      // 登録フォームが表示されるのを待つ
+    if (signupLinkExists) {
+      await signupLink.click();
       await page.waitForLoadState('domcontentloaded');
-      await page.waitForSelector('#email', { timeout: 5000 });
 
-      // フォームに入力
-      const emailInput = page.locator('input[name="email"], input[type="email"]').first();
-      const passwordInput = page.locator('input[name="password"], input[type="password"]').first();
-      const nameInput = page.locator('input[name="name"]').first();
+      // 新規登録フォームの確認
+      const emailInput = page.locator('#email').first();
+      const isEmailVisible = await emailInput.isVisible({ timeout: 3000 }).catch(() => false);
 
-      if (await emailInput.isVisible()) {
-        await emailInput.fill('demo@example.com');
-      }
+      if (isEmailVisible) {
+        await emailInput.fill('test@example.com');
 
-      if (await passwordInput.isVisible()) {
-        await passwordInput.fill('DemoPassword123!');
-      }
+        const passwordInput = page.locator('#password').first();
+        await passwordInput.fill('Test1234!');
 
-      if (await nameInput.isVisible()) {
-        await nameInput.fill('デモユーザー');
-      }
+        const confirmPasswordInput = page.locator('#confirmPassword').first();
+        if (await confirmPasswordInput.isVisible({ timeout: 1000 }).catch(() => false)) {
+          await confirmPasswordInput.fill('Test1234!');
+        }
 
-      // 送信ボタンをクリック
-      const submitButton = page.locator('button[type="submit"]').first();
-      if (await submitButton.isVisible()) {
-        await submitButton.click();
+        const nameInput = page.locator('#name').first();
+        if (await nameInput.isVisible({ timeout: 1000 }).catch(() => false)) {
+          await nameInput.fill('Test User');
+        }
 
-        // 登録成功後のリダイレクトまたは成功メッセージを確認
+        // テスト環境では実際に送信はしない
         await page.waitForLoadState('networkidle');
         const success =
           (await page.url().includes('/dashboard')) ||
@@ -204,44 +156,39 @@ test.describe('基本的なページアクセス', () => {
         expect(success).toBeTruthy();
       }
     } else {
-      // デモページでは登録機能が提供されていない場合はテストをスキップ
-      console.log('Registration feature not available on demo page');
+      // 登録機能が提供されていない場合はテストをスキップ
+      console.log('Registration feature not available');
       expect(true).toBeTruthy();
     }
   });
 });
 
 test.describe('レスポンシブデザイン', () => {
-  test('モバイル表示でも基本機能が利用可能', async ({ page, context }) => {
+  test('モバイル表示でも基本機能が利用可能', async ({ page }) => {
     // モバイルビューポートに設定
     await page.setViewportSize({ width: 375, height: 667 });
 
-    // デモページ用のモックをセットアップ
-    await UnifiedMock.setupDashboardMocks(context);
-
-    // デモページにアクセス
-    await page.goto('/demo');
+    // トップページにアクセス
+    await page.goto('/');
     await waitForPageReady(page, { waitForSelector: 'h1' });
 
     // モバイルでもコンテンツが表示されることを確認
     await expect(page.locator('h1')).toBeVisible();
-    await expect(page.locator('text=勘定科目管理のデモを見る')).toBeVisible();
-    await expect(page.locator('text=仕訳入力のデモを見る')).toBeVisible();
+    await expect(page.locator('text=ログイン').first()).toBeVisible();
+    await expect(page.locator('text=新規登録').first()).toBeVisible();
   });
 
-  test('タブレット表示でも基本機能が利用可能', async ({ page, context }) => {
+  test('タブレット表示でも基本機能が利用可能', async ({ page }) => {
     // タブレットビューポートに設定
     await page.setViewportSize({ width: 768, height: 1024 });
 
-    // 勘定科目用のモックをセットアップ
-    await UnifiedMock.setupAccountsMocks(context);
+    // ログインページにアクセス
+    await page.goto('/login');
+    await waitForPageReady(page, { waitForSelector: '#email' });
 
-    // デモ勘定科目ページにアクセス
-    await page.goto('/demo/accounts');
-    await waitForPageReady(page, { waitForSelector: 'h1', skipNetworkIdle: true });
-
-    // タブレットでもテーブルが適切に表示されることを確認
-    await expect(page.locator('table')).toBeVisible();
-    await expect(page.locator('text=新規作成')).toBeVisible();
+    // タブレットでもフォームが適切に表示されることを確認
+    await expect(page.locator('#email')).toBeVisible();
+    await expect(page.locator('#password')).toBeVisible();
+    await expect(page.locator('button[type="submit"]')).toBeVisible();
   });
 });

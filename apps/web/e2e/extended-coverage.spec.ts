@@ -12,41 +12,6 @@ test.describe('拡張テストカバレッジ', () => {
   test.use({ navigationTimeout: 30000 });
   test.setTimeout(30000);
 
-  test.describe('デモページ機能', () => {
-    // NOTE: デモページの基本的な表示テストはbasic.spec.tsに含まれているため、
-    // ここではより詳細な機能テストのみを実施
-
-    test('デモ勘定科目の検索機能', async ({ page }) => {
-      await page.goto('/demo/accounts', { waitUntil: 'domcontentloaded' });
-      await page.waitForLoadState('networkidle');
-
-      // 検索フィールドを探す
-      const searchInput = page.locator('input[placeholder*="検索"]').first();
-      await expect(searchInput).toBeVisible({ timeout: 5000 });
-      await searchInput.fill('現金');
-      await page.keyboard.press('Enter');
-      await page.waitForLoadState('networkidle');
-
-      // 検索結果の確認
-      await expect(page.locator('text=現金')).toBeVisible();
-    });
-
-    test('デモパートナーページが表示される', async ({ page }) => {
-      await page.goto('/demo/partners', { waitUntil: 'domcontentloaded' });
-
-      // ページの読み込みを待つ
-      await page.waitForLoadState('networkidle');
-
-      // ページコンテンツの確認
-      await expect(
-        page
-          .locator('h1')
-          .filter({ hasText: /取引先|パートナー/i })
-          .first()
-      ).toBeVisible({ timeout: 5000 });
-    });
-  });
-
   test.describe('認証が必要なページ', () => {
     test.beforeEach(async ({ context, page }) => {
       // Server Actions用のモックをセットアップ

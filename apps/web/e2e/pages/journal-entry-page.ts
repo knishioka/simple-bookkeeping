@@ -58,7 +58,7 @@ export class JournalEntryPage extends BasePage {
    * 仕訳入力ページに移動
    */
   async navigate(): Promise<void> {
-    await this.goto('/demo/journal-entries');
+    await this.goto('/dashboard/journal-entries');
   }
 
   /**
