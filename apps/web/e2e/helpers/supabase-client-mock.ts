@@ -8,16 +8,6 @@
 
 import { Page, BrowserContext } from '@playwright/test';
 
-/**
- * 型定義
- */
-interface UserMetadata {
-  name: string;
-  organization_id: string;
-  role: string;
-  permissions?: string[];
-}
-
 interface UserOrganization {
   id: string;
   user_id: string;
