@@ -10,12 +10,10 @@ const publicRoutes = [
   '/auth/signup',
   '/auth/reset-password',
   '/auth/verify-email',
-  '/demo',
 ];
 
 // Define route patterns for public access
 const publicPatterns = [
-  /^\/demo\/.*/,
   /^\/api\/auth\/.*/,
   /^\/api\/health/,
   /^\/_next\/.*/,
