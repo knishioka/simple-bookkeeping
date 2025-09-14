@@ -56,7 +56,7 @@ const modeConfigs = {
       '**/accounting-periods.spec.ts',
       '**/extended-coverage.spec.ts',
     ],
-    projects: ['chromium-fast'],
+    projects: ['chromium'],
   },
   ci: {
     timeout: 75000,
@@ -213,10 +213,10 @@ const getReporters = (): Array<[string, any] | string> => {
 const getProjects = () => {
   const projects = [];
 
-  // Chromium projects
-  if (config.projects.includes('chromium') || config.projects.includes('chromium-fast')) {
+  // Chromium projects - always use 'chromium' name for consistency with sharding
+  if (config.projects.includes('chromium')) {
     projects.push({
-      name: config.projects.includes('chromium-fast') ? 'chromium-fast' : 'chromium',
+      name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
         launchOptions: {
