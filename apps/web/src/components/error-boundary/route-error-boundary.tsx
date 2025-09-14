@@ -61,7 +61,7 @@ export function RouteErrorBoundary() {
 
         <CardFooter className="flex flex-col space-y-2">
           {errorStatus === 401 ? (
-            <Link href="/login" className="w-full">
+            <Link href="/auth/login" className="w-full">
               <Button className="w-full">ログインページへ</Button>
             </Link>
           ) : (
