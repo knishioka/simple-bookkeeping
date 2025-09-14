@@ -216,7 +216,7 @@ const getProjects = () => {
   // Chromium projects
   if (config.projects.includes('chromium') || config.projects.includes('chromium-fast')) {
     projects.push({
-      name: 'chromium',
+      name: config.projects.includes('chromium-fast') ? 'chromium-fast' : 'chromium',
       use: {
         ...devices['Desktop Chrome'],
         launchOptions: {
