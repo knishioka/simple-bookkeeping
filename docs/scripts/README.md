@@ -25,8 +25,7 @@ pnpm dev                # Web・API両方の開発サーバー起動
 pnpm db:init            # データベース初期化
 
 # デプロイメント監視
-pnpm deploy:check       # Vercel/Render両方の状態確認
-pnpm render:logs runtime # Renderのランタイムログ
+pnpm deploy:check       # デプロイメント状態確認
 pnpm vercel:logs build   # Vercelのビルドログ
 
 # 品質チェック
@@ -48,7 +47,7 @@ pnpm env:validate       # 環境変数検証
 
 #### check-full-build.sh
 
-- **用途**: Pre-push時の完全ビルドチェック（Vercel・Render両方）
+- **用途**: Pre-push時の完全ビルドチェック
 - **実行方法**: `pnpm prepush:check` または Gitのpre-pushフックで自動実行
 - **特徴**: 本番環境と同じビルド設定で検証
 - **使用場面**: pushやデプロイ前の包括的検証
@@ -57,21 +56,10 @@ pnpm env:validate       # 環境変数検証
 
 #### check-deployments.sh
 
-- **用途**: Render（API）とVercel（Web）の両プラットフォームのデプロイ状況確認
+- **用途**: Vercel（Web）のデプロイ状況確認
 - **実行方法**: `pnpm deploy:check`
-- **必要環境変数**: `RENDER_API_KEY`, `VERCEL_TOKEN`
-- **出力**: 各プラットフォームの最新デプロイメント状態、ビルド状況、健全性
-
-#### render-api-status.sh
-
-- **用途**: Render APIを使用した詳細なサービス状態監視
-- **実行方法**: `pnpm render:status`
-- **必要環境変数**: `RENDER_API_KEY`
-- **機能**:
-  - サービス詳細情報
-  - 最近のデプロイメント履歴
-  - ヘルスチェック状態
-  - デプロイメント統計
+- **必要環境変数**: `VERCEL_TOKEN`
+- **出力**: 最新デプロイメント状態、ビルド状況、健全性
 
 #### vercel-api-status.sh
 
@@ -83,19 +71,6 @@ pnpm env:validate       # 環境変数検証
   - ビルド状態
   - プロジェクト統計
   - エラー情報
-
-#### render-logs.sh
-
-- **用途**: Renderのログ取得・管理
-- **実行方法**: `pnpm render:logs <command> [options]`
-- **コマンド**:
-  - `runtime`: ランタイムログ
-  - `build`: ビルドログ
-  - `errors`: エラーログのみ
-  - `stream`: リアルタイムストリーミング
-  - `search <term>`: ログ検索
-  - `stats`: ログ統計
-- **例**: `pnpm render:logs errors --lines 50`
 
 #### vercel-logs.sh
 
@@ -122,27 +97,12 @@ pnpm env:validate       # 環境変数検証
   3. シードデータ投入
 - **使用場面**: 新規環境セットアップ、開発環境リセット
 
-#### migrate-render-db.sh
-
-- **用途**: Render環境向けのデータベースマイグレーション
-- **実行方法**: 手動実行
-- **特徴**: Render固有の環境変数を使用
-
-#### seed-render-db.sh
-
-- **用途**: Render環境のデータベースへのシードデータ投入
-- **実行方法**: 手動実行
-- **特徴**: 本番環境向けの初期データセットアップ
-
 #### db/sql/ ディレクトリ
 
 SQLファイルが整理されています：
 
-- `check-render-db.sql`: DB健全性チェッククエリ
 - `fix-failed-migration.sql`: マイグレーション失敗時の修復
-- `init-render-db.sql`: Render DB初期化
 - `insert-accounts.sql`: 勘定科目データ
-- `reset-render-db.sql`: DBリセット用
 
 ### 🧪 開発・テストスクリプト
 
@@ -201,17 +161,6 @@ SQLファイルが整理されています：
 - **用途**: ローカル開発環境の初期セットアップ
 - **実行方法**: 手動実行（新規開発者向け）
 - **処理内容**: 依存関係インストール、環境変数設定、DB初期化
-
-#### render-env-set.sh
-
-- **用途**: Render環境変数の一括設定
-- **実行方法**: 手動実行
-- **必要条件**: Render CLIのインストールと認証
-
-#### update-to-singapore.sh
-
-- **用途**: Renderリージョン移行（シンガポール）
-- **実行方法**: 手動実行（一度きりのマイグレーション）
 
 ### 📚 共有ライブラリ
 
@@ -294,15 +243,12 @@ pnpm deploy:check
 
 ```bash
 # エラーログの確認
-pnpm render:logs errors --lines 100
 pnpm vercel:logs errors --lines 100
 
 # リアルタイムログ監視
-pnpm render:logs stream
 pnpm vercel:logs stream
 
 # デプロイメント状態の詳細確認
-pnpm render:status
 pnpm vercel:status
 ```
 
@@ -310,7 +256,6 @@ pnpm vercel:status
 
 多くのデプロイメント管理スクリプトは以下の環境変数が必要です：
 
-- `RENDER_API_KEY`: Render APIアクセス用
 - `VERCEL_TOKEN`: Vercel APIアクセス用
 - `DATABASE_URL`: データベース接続URL
 - `NODE_ENV`: 環境指定（development/production）

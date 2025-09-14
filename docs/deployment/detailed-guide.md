@@ -5,7 +5,7 @@ This guide documents the deployment process for the Simple Bookkeeping monorepo 
 ## Overview
 
 - **Frontend (Next.js)**: Deployed to Vercel
-- **Backend (Express.js)**: Deployed to Render
+- **Backend (Express.js)**: Express.js API has been deprecated
 - **Database**: Supabase (PostgreSQL)
 - **Architecture**: pnpm workspace monorepo
 
@@ -13,7 +13,7 @@ This guide documents the deployment process for the Simple Bookkeeping monorepo 
 
 1. [Monorepo Deployment Challenges](#monorepo-deployment-challenges)
 2. [Vercel Deployment (Frontend)](#vercel-deployment-frontend)
-3. [Render Deployment (Backend)](#render-deployment-backend)
+3. [~~Render Deployment (Backend)~~](#render-deployment-backend) (Deprecated)
 4. [Environment Variable Management](#environment-variable-management)
 5. [TypeScript Build Issues and Solutions](#typescript-build-issues-and-solutions)
 6. [Platform-Specific Configurations](#platform-specific-configurations)
@@ -94,7 +94,7 @@ This guide documents the deployment process for the Simple Bookkeeping monorepo 
 
    ```bash
    # Required for Vercel
-   NEXT_PUBLIC_API_URL=https://your-api.onrender.com
+   NEXT_PUBLIC_API_URL=https://your-api-url.com
    NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
    ```

@@ -1,16 +1,15 @@
 # デプロイメントトラブルシューティングガイド
 
-このガイドでは、Vercel（フロントエンド）とRender（バックエンド）へのデプロイ時によく発生する問題と解決方法をまとめています。
+このガイドでは、Vercelへのデプロイ時によく発生する問題と解決方法をまとめています。
 
 ## 目次
 
 1. [Vercel特有の問題](#vercel特有の問題)
-2. [Render特有の問題](#render特有の問題)
-3. [共通の問題](#共通の問題)
-4. [データベース関連](#データベース関連)
-5. [環境変数関連](#環境変数関連)
-6. [ローカル開発環境の問題](#ローカル開発環境の問題)
-7. [テスト関連の問題](#テスト関連の問題)
+2. [共通の問題](#共通の問題)
+3. [データベース関連](#データベース関連)
+4. [環境変数関連](#環境変数関連)
+5. [ローカル開発環境の問題](#ローカル開発環境の問題)
+6. [テスト関連の問題](#テスト関連の問題)
 
 ## Vercel特有の問題
 
@@ -70,32 +69,6 @@ Schema validation error: buildCommand must be shorter than 256 characters
     "build:web": "pnpm --filter @simple-bookkeeping/database prisma:generate && pnpm build:packages && pnpm --filter @simple-bookkeeping/web build"
   }
 }
-```
-
-## Render特有の問題
-
-### 1. Node.js型定義エラー
-
-**エラー**:
-
-```
-Cannot find type definition file for 'node'
-Cannot find name 'global'
-```
-
-**解決方法**:
-
-```yaml
-# render.yaml
-buildCommand: pnpm install --prod=false && ...
-```
-
-### 2. Prismaクライアント生成エラー
-
-**エラー**:
-
-```
-Cannot find module '.prisma/client'
 ```
 
 **解決方法**: buildCommandに必ず含める
@@ -442,10 +415,6 @@ pnpm test
 pnpm vercel:logs build   # ビルドログ
 pnpm vercel:logs runtime # ランタイムログ
 
-# Renderログ
-pnpm render:logs build   # ビルドログ
-pnpm render:logs runtime # ランタイムログ
-pnpm render:logs errors  # エラーログ
 ```
 
 ### ビルドをローカルで再現
@@ -454,8 +423,6 @@ pnpm render:logs errors  # エラーログ
 # Vercel環境を再現
 NODE_ENV=production pnpm --filter @simple-bookkeeping/web build
 
-# Render環境を再現
-NODE_ENV=production pnpm --filter @simple-bookkeeping/api build
 ```
 
 ### キャッシュのクリア
@@ -554,7 +521,7 @@ app.use(
 **解決方法**:
 
 ```bash
-# Render のビルドコマンドに追加
+# Vercel のビルドコマンドに追加
 pnpm --filter @simple-bookkeeping/database prisma:migrate:deploy
 ```
 
@@ -587,9 +554,6 @@ pnpm --filter @simple-bookkeeping/database prisma:migrate:deploy
 ```bash
 # Vercel
 vercel logs
-
-# Render
-render logs $SERVICE_ID
 ```
 
 ### 2. ローカルでプロダクションビルド
@@ -638,30 +602,20 @@ cd ../.. && pnpm build
 vercel rollback
 ```
 
-**Render**:
-
-- ダッシュボードから以前のデプロイメントを選択して"Deploy"
-
 ### 2. 環境変数の一時的な上書き
 
 ```bash
 # Vercel
 vercel env add VARIABLE_NAME
-
-# Render
-render env set VARIABLE_NAME=value
 ```
 
 ### 3. ビルドキャッシュのクリア
 
 **Vercel**: ダッシュボードから"Redeploy"時に"Use existing Build Cache"のチェックを外す
 
-**Render**: 新しいコミットをプッシュするか、手動デプロイ
-
 ## サポート
 
 問題が解決しない場合は、以下を確認してください：
 
 1. [Vercel ドキュメント](https://vercel.com/docs)
-2. [Render ドキュメント](https://render.com/docs)
-3. プロジェクトのIssueトラッカー
+2. プロジェクトのIssueトラッカー
