@@ -67,7 +67,6 @@ direnv は以下のファイルから環境変数を自動的に読み込みま�
 # .env.local に以下を設定
 DATABASE_URL=postgresql://...
 JWT_SECRET=your-secret-key
-RENDER_API_KEY=rnd_xxxx  # Render CLI/API を使用する場合
 VERCEL_TOKEN=xxxx        # Vercel CLI/API を使用する場合
 ```
 
@@ -98,8 +97,6 @@ db:migrate
 db:studio
 
 # デプロイメント確認
-render:status
-render:logs
 vercel:status
 vercel:logs
 deploy:check

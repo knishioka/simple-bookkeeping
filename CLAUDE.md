@@ -72,8 +72,7 @@ pnpm db:migrate             # マイグレーション
 pnpm db:studio              # Prisma Studio
 
 # デプロイメント監視
-pnpm deploy:check           # 両プラットフォーム状態確認
-pnpm render:logs runtime    # Renderログ確認
+pnpm deploy:check           # デプロイメント状態確認
 pnpm vercel:logs build      # Vercelビルドログ確認
 ```
 
@@ -129,7 +128,7 @@ pnpm vercel:logs build      # Vercelビルドログ確認
 2. **[セキュリティとデプロイメント](./docs/ai-guide/security-deployment.md)**
    - 機密情報の取り扱い
    - セキュリティ対策とGitleaks
-   - Vercel/Renderデプロイメント
+   - Vercelデプロイメント
    - ビルドチェックの重要性
 
 3. **[テストガイド](./docs/ai-guide/testing-guide.md)**

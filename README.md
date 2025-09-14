@@ -282,11 +282,8 @@ pnpm db:studio
 ### デプロイメント監視
 
 ```bash
-# 両プラットフォームの状態確認
+# 状態確認
 pnpm deploy:check
-
-# Renderログ確認
-pnpm render:logs runtime
 
 # Vercelログ確認
 pnpm vercel:logs build
@@ -294,8 +291,7 @@ pnpm vercel:logs build
 
 ### 本番デプロイ
 
-- **Vercel（Web）**: mainブランチへのpushで自動デプロイ
-- **Render（API）**: mainブランチへのpushで自動デプロイ
+- **Vercel**: mainブランチへのpushで自動デプロイ
 
 詳細は[デプロイメントガイド](./docs/deployment/)を参照。
 

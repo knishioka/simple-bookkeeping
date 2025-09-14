@@ -7,7 +7,7 @@ The Simple Bookkeeping API provides a RESTful interface for managing accounting 
 ## Base URL
 
 - **Development**: `http://localhost:3001/api/v1`
-- **Production**: `https://simple-bookkeeping-api.onrender.com/api/v1`
+- **Production**: Express.js API has been deprecated - use Next.js Server Actions instead
 
 ## Authentication
 
