@@ -111,25 +111,25 @@ jobs:
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting comprehensive E2E test suite..."
           START_TIME=$(date +%s)
 
-          # Determine test configuration based on input
+          # Determine test mode based on input
           if [[ "${{ github.event.inputs.full_suite }}" == "true" || "${{ github.event_name }}" == "schedule" ]]; then
-            PLAYWRIGHT_CONFIG="playwright.config.ci.ts"
+            TEST_MODE="comprehensive"
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running FULL comprehensive test suite"
           else
-            PLAYWRIGHT_CONFIG="playwright.config.comprehensive.ts"
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running standard comprehensive test suite"
+            TEST_MODE="ci"
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running standard CI test suite"
           fi
 
           # Run comprehensive tests with optimized Docker settings
           docker compose -f docker-compose.test.yml run \
             --rm \
             -e CI=true \
+            -e TEST_MODE=${TEST_MODE} \
             -e REUSE_SERVER=true \
             -e BASE_URL=http://web-test:3000 \
             -e DEBUG=${{ github.event.inputs.debug || 'false' }} \
             -e TEST_RETRIES=3 \
             -e TEST_WORKERS=3 \
-            -e PLAYWRIGHT_ARGS="--config ${PLAYWRIGHT_CONFIG}" \
             -e NEXT_PUBLIC_SUPABASE_URL="${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}" \
             -e NEXT_PUBLIC_SUPABASE_ANON_KEY="${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}" \
             -e TEST_TIMEOUT=45000 \
