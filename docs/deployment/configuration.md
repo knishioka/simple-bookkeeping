@@ -2,7 +2,7 @@
 
 ## 📋 概要
 
-VercelとRenderのプロジェクト設定管理方法について説明します。
+Vercelのプロジェクト設定管理方法について説明します。
 
 ## 🔧 設定方法
 
@@ -24,34 +24,12 @@ export VERCEL_ORG_ID=team_xxxxxxxxxxxxx
 export VERCEL_PROJECT_ID=prj_xxxxxxxxxxxxx
 ```
 
-### Render
-
-#### 方法1: 設定ファイル（現在の実装）
-
-```bash
-# .render/services.json をコピーして編集
-cp .render/services.json.example .render/services.json
-```
-
-**注意**: これはカスタム実装で、公式サポートではありません。
-
-#### 方法2: 環境変数
-
-```bash
-export RENDER_SERVICE_ID=srv-xxxxxxxxxxxxx
-export RENDER_DB_ID=dpg-xxxxxxxxxxxxx
-```
-
 ## 📁 ファイル構造
 
 ```
 .vercel/
 ├── project.json     # Vercel CLIが自動生成（gitignore対象）
 └── README.txt       # Vercel CLIの説明
-
-.render/
-├── services.json         # カスタム設定ファイル（gitignore対象）
-└── services.json.example # テンプレート（git管理）
 ```
 
 ## 🤝 チーム開発
@@ -72,12 +50,6 @@ export RENDER_DB_ID=dpg-xxxxxxxxxxxxx
    # プロンプトに従ってプロジェクトを選択
    ```
 
-3. **Render設定**
-   ```bash
-   cp .render/services.json.example .render/services.json
-   # エディタで実際のサービスIDに更新
-   ```
-
 ### CI/CD環境
 
 GitHub ActionsやCI環境では環境変数を使用：
@@ -86,7 +58,6 @@ GitHub ActionsやCI環境では環境変数を使用：
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-  RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
 ```
 
 ## 🔐 セキュリティ
@@ -96,9 +67,6 @@ env:
 ```gitignore
 # Vercel（公式推奨）
 .vercel
-
-# Render（カスタム）
-.render/services.json
 ```
 
 ### 機密性レベル
@@ -112,7 +80,7 @@ env:
 スクリプトは以下の順序で設定を読み込みます：
 
 1. **環境変数**（最優先）
-2. **設定ファイル**（`.vercel/project.json`, `.render/services.json`）
+2. **設定ファイル**（`.vercel/project.json`）
 3. **エラー**（どちらも見つからない場合）
 
 ## 💡 推奨事項
@@ -120,7 +88,6 @@ env:
 ### ローカル開発
 
 - `.vercel/project.json` を使用（Vercel）
-- `.render/services.json` を使用（Render）
 
 ### CI/CD
 
@@ -138,12 +105,7 @@ env:
 
 ```bash
 # 設定ファイルを使用（デフォルト）
-pnpm render:status
 pnpm vercel:status
-
-# 環境変数を使用
-export RENDER_SERVICE_ID=srv-xxxxx
-pnpm render:status
 
 # 混在も可能
 export VERCEL_TOKEN=xxxxx  # 認証は環境変数

@@ -449,26 +449,13 @@ pnpm install --shamefully-hoist
    - ルートのvercel.jsonはGit設定のみ
    - buildCommandが長い場合はpackage.jsonにスクリプト化
 
-   **Render:**
-   - render.yamlでbuildCommandに`--prod=false`を指定
-   - TypeScript関連のエラーはdevDependenciesの問題が多い
-   - データベース接続はfromDatabaseプロパティで自動設定
-
 ## 🚀 デプロイメント状況の確認
 
 ### デプロイメント監視コマンド
 
 ```bash
-# 両プラットフォームの状態を一度に確認
+# デプロイメント状態の確認
 pnpm deploy:check
-
-# Renderの状態確認（API版）
-pnpm render:status
-
-# Renderのログ確認
-pnpm render:logs runtime    # ランタイムログ
-pnpm render:logs build      # ビルドログ
-pnpm render:logs errors     # エラーログのみ
 
 # Vercelの状態確認（API版）
 pnpm vercel:status
@@ -477,32 +464,6 @@ pnpm vercel:status
 pnpm vercel:logs build      # ビルドログ
 pnpm vercel:logs runtime    # ランタイムログ
 ```
-
-### Render APIのセットアップ
-
-1. **APIキーの取得**
-   - https://dashboard.render.com/u/settings にアクセス
-   - API Keysセクションで新しいキーを作成
-
-2. **環境変数の設定**
-
-   ```bash
-   # .env.localに追加
-   RENDER_API_KEY=rnd_xxxxxxxxxxxxxxxxxxxxxxxxxx
-   ```
-
-3. **サービス設定（オプション）**
-   ```bash
-   # .render/services.jsonを作成してサービスIDを保存
-   {
-     "services": {
-       "api": {
-         "id": "srv-xxxxxxxxxxxxxxxxxx",
-         "name": "simple-bookkeeping-api"
-       }
-     }
-   }
-   ```
 
 ### Vercel APIのセットアップ
 
@@ -588,7 +549,6 @@ pnpm vercel:logs runtime    # ランタイムログ
 
 2. **pre-push時（完全ビルドチェック）**
    - Vercel用Webアプリの完全ビルド
-   - Render用APIサーバーの完全ビルド
    - 共有パッケージのビルド
 
 **ローカルでのビルドチェック方法：**
@@ -599,12 +559,11 @@ pnpm check:types        # TypeScriptの型チェック
 pnpm lint              # ESLintチェック
 
 # 完全ビルドチェック（push前）
-pnpm build:check       # Vercel/Render両方のビルドチェック
+pnpm build:check       # ビルドチェック
 pnpm prepush:check     # pre-pushフックと同じチェック
 
 # 個別のビルドチェック
 pnpm --filter @simple-bookkeeping/web build    # Vercel (Web)
-pnpm --filter @simple-bookkeeping/api build    # Render (API)
 ```
 
 **ビルドエラーが発生した場合：**
