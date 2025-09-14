@@ -114,7 +114,6 @@ services:
       # Mount test files and config (read-only for consistency)
       - ./apps/web/e2e:/app/apps/web/e2e:ro
       - ./apps/web/playwright.config.ts:/app/apps/web/playwright.config.ts:ro
-      - ./apps/web/playwright.config.ci.ts:/app/apps/web/playwright.config.ci.ts:ro
       # Mount output directories (read-write for results)
       - ./playwright-report:/app/playwright-report:rw
       - ./test-results:/app/test-results:rw
