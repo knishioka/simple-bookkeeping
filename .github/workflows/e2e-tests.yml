@@ -135,6 +135,7 @@ jobs:
           NEXTAUTH_SECRET: test-nextauth-secret
           NEXTAUTH_URL: http://localhost:3000
           CI: true
+          TEST_MODE: fast
           NODE_ENV: test
           REUSE_SERVER: true
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
@@ -151,10 +152,10 @@ jobs:
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting fast E2E test suite (shard ${{ matrix.shard }})"
           START_TIME=$(date +%s)
 
-          # Run fast test suite with sharding and optimized config
+          # Run fast test suite with sharding and unified config
           cd apps/web
-          timeout 360 npx playwright test --config playwright.config.fast.ts --shard=${{ matrix.shard }} --grep-invert="@slow|@integration" || TEST_EXIT=$?
-            
+          timeout 360 npx playwright test --shard=${{ matrix.shard }} --grep-invert="@slow|@integration" || TEST_EXIT=$?
+
           END_TIME=$(date +%s)
           DURATION=$((END_TIME - START_TIME))
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] Fast E2E tests (shard ${{ matrix.shard }}) completed in ${DURATION} seconds with exit code ${TEST_EXIT:-0}"
