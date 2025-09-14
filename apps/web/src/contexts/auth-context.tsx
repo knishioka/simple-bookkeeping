@@ -310,7 +310,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setUser(null);
     setCurrentOrganization(null);
     toast.success('ログアウトしました');
-    router.push('/login');
+    router.push('/auth/login');
 
     // Original logout code commented out:
     /*
@@ -322,7 +322,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setUser(null);
       setCurrentOrganization(null);
       toast.success('ログアウトしました');
-      router.push('/login');
+      router.push('/auth/login');
     } catch {
       // Logout failed
       // Even if logout fails, clear local state
@@ -331,7 +331,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       localStorage.removeItem('user');
       setUser(null);
       setCurrentOrganization(null);
-      router.push('/login');
+      router.push('/auth/login');
     }
     */
   };
