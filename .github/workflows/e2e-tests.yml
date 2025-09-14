@@ -113,16 +113,33 @@ jobs:
           # Wait for server to be fully ready (optimized for fast startup)
           echo "Waiting for web server to be ready..."
           COUNTER=0
-          MAX_WAIT=60
+          MAX_WAIT=90
           while [ $COUNTER -lt $MAX_WAIT ]; do
             COUNTER=$((COUNTER+1))
             if curl -f http://localhost:3000 >/dev/null 2>&1; then
-              echo "Web server is ready after $COUNTER seconds"
-              break
+              echo "Web server responded after $COUNTER seconds, checking auth routes..."
+              # Additional check for auth routes to ensure full initialization
+              if curl -f http://localhost:3000/auth/login >/dev/null 2>&1; then
+                echo "Auth routes are ready, giving server 3 more seconds to fully stabilize..."
+                sleep 3
+                # Final verification that server is fully ready
+                if curl -f http://localhost:3000/auth/login >/dev/null 2>&1 && curl -f http://localhost:3000 >/dev/null 2>&1; then
+                  echo "✅ Web server is fully ready after $((COUNTER+3)) seconds"
+                  break
+                fi
+              else
+                echo "Auth routes not ready yet, continuing to wait..."
+              fi
             fi
             if [ $COUNTER -eq $MAX_WAIT ]; then
               echo "ERROR: Server failed to start within $MAX_WAIT seconds"
+              echo "Checking server process..."
               ps aux | grep node
+              echo "Checking port 3000..."
+              netstat -an | grep 3000 || lsof -i :3000 || true
+              echo "Attempting to get server response..."
+              curl -v http://localhost:3000 2>&1 || true
+              curl -v http://localhost:3000/auth/login 2>&1 || true
               exit 1
             fi
             sleep 1
