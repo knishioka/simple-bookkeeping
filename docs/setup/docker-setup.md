@@ -28,36 +28,34 @@ cp .env.docker .env
 
 デフォルトでは以下のポートを使用します：
 
-- **Web (Next.js)**: 3000番ポート
-- **API (Express)**: 3001番ポート
-- **PostgreSQL**: 内部ネットワークのみ（外部公開なし）
+- **Web (Next.js)**: 3000番ポート（ローカル実行）
+- **PostgreSQL**: 5432番ポート
 
 ポートが競合する場合は、`.env`ファイルで変更できます：
 
 ```bash
 # .env
-WEB_PORT=3010  # 3000が使用中の場合
-API_PORT=3011  # 3001が使用中の場合
+DB_PORT=5433  # 5432が使用中の場合
 ```
 
-### 3. コンテナの起動
+### 3. データベースの起動
 
 ```bash
-# プロダクション環境の起動
+# PostgreSQLコンテナの起動
 docker-compose up -d
 
-# 開発環境の起動（ホットリロード有効）
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+# Webアプリケーションの起動（別ターミナルで）
+pnpm dev
 ```
 
 ### 4. データベースの初期化
 
 ```bash
-# コンテナ内でマイグレーション実行
-docker-compose exec api pnpm -F @simple-bookkeeping/database db:migrate
+# マイグレーション実行
+pnpm --filter @simple-bookkeeping/database db:migrate
 
 # シードデータの投入
-docker-compose exec api pnpm -F @simple-bookkeeping/database db:seed
+pnpm --filter @simple-bookkeeping/database db:seed
 ```
 
 ## 開発環境での使用
@@ -67,29 +65,25 @@ docker-compose exec api pnpm -F @simple-bookkeeping/database db:seed
 開発環境では、ソースコードの変更が自動的に反映されます：
 
 ```bash
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+# データベースコンテナを起動
+docker-compose up -d
+
+# アプリケーションを開発モードで起動
+pnpm dev
 ```
 
 ### ログの確認
 
 ```bash
-# 全サービスのログ
-docker-compose logs -f
+# PostgreSQLのログ
+docker-compose logs -f postgres
 
-# 特定サービスのログ
-docker-compose logs -f api
-docker-compose logs -f web
+# アプリケーションのログはターミナルに直接表示されます
 ```
 
-### コンテナへのアクセス
+### PostgreSQLコンテナへのアクセス
 
 ```bash
-# APIコンテナ
-docker-compose exec api sh
-
-# Webコンテナ
-docker-compose exec web sh
-
 # PostgreSQLコンテナ
 docker-compose exec postgres psql -U postgres -d simple_bookkeeping
 ```
@@ -100,12 +94,10 @@ docker-compose exec postgres psql -U postgres -d simple_bookkeeping
 
 ```bash
 # 使用中のポートを確認
-lsof -i :3000
-lsof -i :3001
+lsof -i :5432
 
 # .envファイルでポートを変更
-echo "WEB_PORT=3010" >> .env
-echo "API_PORT=3011" >> .env
+echo "DB_PORT=5433" >> .env
 
 # コンテナを再起動
 docker-compose down
@@ -140,7 +132,7 @@ docker-compose up -d --build
 
 1. **PostgreSQLポートの非公開**: データベースは内部ネットワークのみでアクセス可能
 2. **環境変数の管理**: `.env`ファイルはGitにコミットしない
-3. **ローカル開発用**: JWT_SECRETなどは開発用の値を使用
+3. **ローカル開発用**: 開発用の認証情報を使用
 
 ## 本番環境へのデプロイ
 

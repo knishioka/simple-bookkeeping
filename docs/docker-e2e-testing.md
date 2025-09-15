@@ -95,19 +95,13 @@ make -f Makefile.docker logs
 - **用途**: テスト用データベース
 - **特徴**: tmpfsによる高速I/O
 
-#### 2. API Server (api-test)
+#### 2. Web Server (web-test)
 
-- **ビルド**: apps/api/Dockerfile.test
-- **用途**: バックエンドAPI
-- **ヘルスチェック**: /api/v1/health
-
-#### 3. Web Server (web-test)
-
-- **ビルド**: apps/web/Dockerfile.test
-- **用途**: Next.jsフロントエンド
+- **ビルド**: apps/web/Dockerfile
+- **用途**: Next.jsフルスタックアプリケーション
 - **ヘルスチェック**: /
 
-#### 4. Playwright Runner
+#### 3. Playwright Runner
 
 - **ビルド**: Dockerfile.playwright
 - **用途**: E2Eテスト実行
