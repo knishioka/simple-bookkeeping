@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
-import { createPartnerWithAuth, updatePartnerWithAuth } from '@/app/actions/partners-wrapper';
+import { createPartner, updatePartner } from '@/app/actions/partners';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -32,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useOrganization } from '@/hooks/use-organization';
 
 import type { Database } from '@/lib/supabase/database.types';
 
@@ -71,6 +72,7 @@ interface PartnerDialogProps {
 }
 
 export function PartnerDialog({ open, onOpenChange, partner, onSuccess }: PartnerDialogProps) {
+  const { organizationId } = useOrganization();
   const form = useForm<PartnerFormData>({
     resolver: zodResolver(partnerSchema),
     defaultValues: {
@@ -136,6 +138,10 @@ export function PartnerDialog({ open, onOpenChange, partner, onSuccess }: Partne
   }, [partner, form]);
 
   const onSubmit = async (data: PartnerFormData) => {
+    if (!organizationId) {
+      toast.error('組織が選択されていません');
+      return;
+    }
     try {
       // Convert empty strings to null for nullable fields
       const processedData = {
@@ -156,7 +162,7 @@ export function PartnerDialog({ open, onOpenChange, partner, onSuccess }: Partne
       };
 
       if (partner) {
-        const result = await updatePartnerWithAuth(partner.id, processedData);
+        const result = await updatePartner(partner.id, organizationId, processedData);
         if (result.success) {
           toast.success('取引先を更新しました');
           onSuccess();
@@ -165,7 +171,7 @@ export function PartnerDialog({ open, onOpenChange, partner, onSuccess }: Partne
           toast.error(result.error.message || '取引先の更新に失敗しました');
         }
       } else {
-        const result = await createPartnerWithAuth(processedData);
+        const result = await createPartner({ ...processedData, organization_id: organizationId });
         if (result.success) {
           toast.success('取引先を登録しました');
           onSuccess();

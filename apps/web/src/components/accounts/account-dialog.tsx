@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 
-import { createAccountWithAuth, updateAccountWithAuth } from '@/app/actions/accounts-wrapper';
+import { createAccount, updateAccount } from '@/app/actions/accounts';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -30,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useOrganization } from '@/hooks/use-organization';
 import { useServerAction } from '@/hooks/useServerAction';
 import { createAccountSchema, CreateAccountInput } from '@/types/schemas';
 
@@ -77,8 +78,9 @@ export function AccountDialog({
   accounts,
   onSuccess,
 }: AccountDialogProps) {
-  const { execute: createAccount } = useServerAction(createAccountWithAuth);
-  const { execute: updateAccount } = useServerAction(updateAccountWithAuth);
+  const { organizationId } = useOrganization();
+  const { execute: createAccountAction } = useServerAction(createAccount);
+  const { execute: updateAccountAction } = useServerAction(updateAccount);
   const form = useForm<AccountFormData>({
     resolver: zodResolver(createAccountSchema),
     defaultValues: {
@@ -90,6 +92,10 @@ export function AccountDialog({
   });
 
   const onSubmit = async (data: AccountFormData) => {
+    if (!organizationId) {
+      toast.error('組織が選択されていません');
+      return;
+    }
     try {
       // Convert "none" value to undefined for parentId
       const processedData = {
@@ -109,7 +115,7 @@ export function AccountDialog({
           is_active: true, // Default to active
         };
 
-        await updateAccount(account.id, updateData, {
+        await updateAccountAction(account.id, organizationId, updateData, {
           successMessage: '勘定科目を更新しました',
           onSuccess: () => {
             onSuccess();
@@ -121,6 +127,7 @@ export function AccountDialog({
         // Create new account
         // Convert camelCase to snake_case for database
         const createData = {
+          organization_id: organizationId,
           code: processedData.code,
           name: processedData.name,
           account_type: processedData.accountType,
@@ -129,7 +136,7 @@ export function AccountDialog({
           is_active: true, // Default to active
         };
 
-        await createAccount(createData, {
+        await createAccountAction(createData, {
           successMessage: '勘定科目を作成しました',
           onSuccess: () => {
             onSuccess();

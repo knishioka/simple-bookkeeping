@@ -3,7 +3,7 @@
 import { Calendar, Download, Printer } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
-import { getTrialBalanceWithAuth } from '@/app/actions/reports-wrapper';
+import { getTrialBalance } from '@/app/actions/reports';
 import { ExportDialog } from '@/components/reports/ExportDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useOrganization } from '@/hooks/use-organization';
 import { useServerAction } from '@/hooks/useServerAction';
 
 import type { TrialBalanceItem } from '@/app/actions/reports';
@@ -37,7 +38,8 @@ interface TrialBalanceData {
 
 export default function TrialBalancePage() {
   const [data, setData] = useState<TrialBalanceData | null>(null);
-  const { execute, isLoading } = useServerAction(getTrialBalanceWithAuth);
+  const { organizationId, isLoading: isOrgLoading } = useOrganization();
+  const { execute, isLoading } = useServerAction(getTrialBalance);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [asOfDate, setAsOfDate] = useState(() => {
     const date = new Date();
@@ -45,8 +47,11 @@ export default function TrialBalancePage() {
   });
 
   const fetchTrialBalance = useCallback(async () => {
+    if (!organizationId) {
+      return;
+    }
     // For trial balance, we use the asOfDate as both start and end date
-    const result = await execute(asOfDate, asOfDate, undefined, {
+    const result = await execute(organizationId, asOfDate, asOfDate, undefined, {
       errorMessage: '試算表の取得に失敗しました',
       showToast: true,
     });
@@ -68,11 +73,13 @@ export default function TrialBalancePage() {
       };
       setData(transformedData);
     }
-  }, [execute, asOfDate]);
+  }, [execute, asOfDate, organizationId]);
 
   useEffect(() => {
-    fetchTrialBalance();
-  }, [fetchTrialBalance]);
+    if (organizationId) {
+      fetchTrialBalance();
+    }
+  }, [fetchTrialBalance, organizationId]);
 
   const handleDateChange = () => {
     fetchTrialBalance();
@@ -133,7 +140,10 @@ export default function TrialBalancePage() {
                 />
               </div>
             </div>
-            <Button onClick={handleDateChange} disabled={isLoading}>
+            <Button
+              onClick={handleDateChange}
+              disabled={isLoading || isOrgLoading || !organizationId}
+            >
               表示
             </Button>
           </div>
@@ -146,7 +156,7 @@ export default function TrialBalancePage() {
           <CardDescription>基準日: {asOfDate}</CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {isLoading || isOrgLoading ? (
             <div className="text-center py-8">読み込み中...</div>
           ) : data ? (
             <>

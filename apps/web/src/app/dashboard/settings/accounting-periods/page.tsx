@@ -4,10 +4,10 @@ import { Plus, Calendar, Check, Edit, Trash2 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 
 import {
-  getAccountingPeriodsWithAuth,
-  activateAccountingPeriodWithAuth,
-  deleteAccountingPeriodWithAuth,
-} from '@/app/actions/accounting-periods-wrapper';
+  getAccountingPeriods,
+  activateAccountingPeriod,
+  deleteAccountingPeriod,
+} from '@/app/actions/accounting-periods';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useOrganization } from '@/hooks/use-organization';
 import { useToast } from '@/hooks/use-toast';
 
 import { AccountingPeriodFormDialog } from './accounting-period-form-dialog';
@@ -56,15 +57,20 @@ function transformPeriodForUI(period: AccountingPeriod): AccountingPeriodUI {
 
 export default function AccountingPeriodsPage() {
   const [periods, setPeriods] = useState<AccountingPeriodUI[]>([]);
+  const { organizationId, isLoading: isOrgLoading } = useOrganization();
   const [loading, setLoading] = useState(true);
   const [selectedPeriod, setSelectedPeriod] = useState<AccountingPeriodUI | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const { toast } = useToast();
 
   const fetchPeriods = useCallback(async () => {
+    if (!organizationId) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
-      const result = await getAccountingPeriodsWithAuth();
+      const result = await getAccountingPeriods(organizationId);
 
       if (!result.success) {
         throw new Error(result.error.message);
@@ -83,15 +89,25 @@ export default function AccountingPeriodsPage() {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, organizationId]);
 
   useEffect(() => {
-    fetchPeriods();
-  }, [fetchPeriods]);
+    if (organizationId) {
+      fetchPeriods();
+    }
+  }, [fetchPeriods, organizationId]);
 
   const handleActivate = async (periodId: string) => {
+    if (!organizationId) {
+      toast({
+        title: 'エラー',
+        description: '組織が選択されていません',
+        variant: 'destructive',
+      });
+      return;
+    }
     try {
-      const result = await activateAccountingPeriodWithAuth(periodId);
+      const result = await activateAccountingPeriod(periodId);
 
       if (!result.success) {
         throw new Error(result.error.message);
@@ -114,8 +130,16 @@ export default function AccountingPeriodsPage() {
   };
 
   const handleDelete = async (periodId: string) => {
+    if (!organizationId) {
+      toast({
+        title: 'エラー',
+        description: '組織が選択されていません',
+        variant: 'destructive',
+      });
+      return;
+    }
     try {
-      const result = await deleteAccountingPeriodWithAuth(periodId);
+      const result = await deleteAccountingPeriod(periodId);
 
       if (!result.success) {
         throw new Error(result.error.message);
@@ -166,7 +190,7 @@ export default function AccountingPeriodsPage() {
     });
   };
 
-  if (loading) {
+  if (loading || isOrgLoading) {
     return (
       <div className="container mx-auto py-6">
         <div className="flex items-center justify-center h-64">

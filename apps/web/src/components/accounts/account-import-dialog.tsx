@@ -2,7 +2,7 @@
 
 import { Upload, X } from 'lucide-react';
 
-import { importAccountsFromCSVWithAuth } from '@/app/actions/accounts-wrapper';
+import { importAccountsFromCSV } from '@/app/actions/accounts';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -15,6 +15,7 @@ import {
 import { FileDropzone } from '@/components/ui/file-dropzone';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { useOrganization } from '@/hooks/use-organization';
 import { useServerFileImport } from '@/hooks/use-server-file-import';
 
 interface AccountImportDialogProps {
@@ -24,6 +25,7 @@ interface AccountImportDialogProps {
 }
 
 export function AccountImportDialog({ open, onOpenChange, onSuccess }: AccountImportDialogProps) {
+  const { organizationId } = useOrganization();
   const {
     file,
     loading,
@@ -33,7 +35,8 @@ export function AccountImportDialog({ open, onOpenChange, onSuccess }: AccountIm
     handleImport,
     handleCancel,
   } = useServerFileImport({
-    importAction: importAccountsFromCSVWithAuth,
+    importAction: importAccountsFromCSV,
+    extraFields: organizationId ? { organizationId } : {},
     onSuccess: (imported) => {
       if (imported > 0) {
         onSuccess();
