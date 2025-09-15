@@ -321,6 +321,25 @@ Claude Codeの専門サブエージェントは、特定の条件下で自動的
 - インポート文の整理
 - コードフォーマットの統一
 
+#### ci-investigator (CI失敗調査専門)
+
+**自動呼び出しトリガー:**
+
+- PR作成/更新時のCI失敗
+- `/merge-and-pull`コマンドのCI失敗
+- `resolve-gh-issue`ワークフローのCI失敗
+- デプロイメント前のCI失敗検出
+
+**主な機能:**
+
+- GitHub Actionsステータスの自動チェック
+- 失敗ログの詳細解析とエラー分類
+- WebSearchによるエラー解決策の検索
+- 構造化レポートの生成（優先度付き）
+- 既知の問題と新規回帰の区別
+- フレーキーテストの検出とスコアリング
+- 具体的な修正手順の提供
+
 ### ベストプラクティス
 
 1. **proactive activation**: サブエージェントは必要に応じて自動的に呼び出されますが、明示的に呼び出すこともできます
@@ -333,6 +352,9 @@ Claude Codeの専門サブエージェントは、特定の条件下で自動的
 
    ```
    code-implementer → test-runner → code-reviewer → pre-push-validator
+
+   # CI失敗時の自動フロー
+   ci-investigator → auto-fixer → test-runner → pre-push-validator
    ```
 
 3. **WebSearch活用**: サブエージェントは自動的にWebSearchを使用して最新情報を取得
