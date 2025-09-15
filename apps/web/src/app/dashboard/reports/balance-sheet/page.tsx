@@ -3,13 +3,14 @@
 import { Calendar, Download } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
-import { getBalanceSheetWithAuth } from '@/app/actions/reports-wrapper';
+import { getBalanceSheet } from '@/app/actions/reports';
 import { ReportLayout } from '@/components/common/ReportLayout';
 import { ReportTable, ReportItem } from '@/components/common/ReportTable';
 import { ExportDialog } from '@/components/reports/ExportDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { useOrganization } from '@/hooks/use-organization';
 import { useServerAction } from '@/hooks/useServerAction';
 import { getToday } from '@/lib/formatters';
 
@@ -46,19 +47,25 @@ interface BalanceSheetData {
 export default function BalanceSheetPage() {
   const [asOfDate, setAsOfDate] = useState(getToday());
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
-  const { execute, data: rawData, isLoading } = useServerAction(getBalanceSheetWithAuth);
+  const { organizationId, isLoading: isOrgLoading } = useOrganization();
+  const { execute, data: rawData, isLoading } = useServerAction(getBalanceSheet);
   const data = rawData as BalanceSheetData | null;
 
   const fetchBalanceSheet = useCallback(async () => {
-    await execute(asOfDate, undefined, {
+    if (!organizationId) {
+      return;
+    }
+    await execute(organizationId, asOfDate, undefined, {
       errorMessage: '貸借対照表の取得に失敗しました',
       showToast: true,
     });
-  }, [execute, asOfDate]);
+  }, [execute, asOfDate, organizationId]);
 
   useEffect(() => {
-    fetchBalanceSheet();
-  }, [fetchBalanceSheet]);
+    if (organizationId) {
+      fetchBalanceSheet();
+    }
+  }, [fetchBalanceSheet, organizationId]);
 
   const handleExport = () => {
     setExportDialogOpen(true);
@@ -147,7 +154,10 @@ export default function BalanceSheetPage() {
                     />
                   </div>
                 </div>
-                <Button onClick={fetchBalanceSheet} disabled={isLoading}>
+                <Button
+                  onClick={fetchBalanceSheet}
+                  disabled={isLoading || isOrgLoading || !organizationId}
+                >
                   表示
                 </Button>
               </div>
@@ -162,7 +172,7 @@ export default function BalanceSheetPage() {
           </div>
         </div>
 
-        {isLoading ? (
+        {isLoading || isOrgLoading ? (
           <div className="text-center py-8">読み込み中...</div>
         ) : data ? (
           <div className="grid grid-cols-2 gap-6 print:gap-0">

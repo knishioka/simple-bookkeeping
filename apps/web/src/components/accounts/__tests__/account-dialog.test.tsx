@@ -1,12 +1,12 @@
-// Mock Server Actions wrapper modules first (before any imports that use them)
+// Mock Server Actions modules first (before any imports that use them)
 const mockCreateAccount = jest.fn();
 const mockUpdateAccount = jest.fn();
 
-jest.mock('@/app/actions/accounts-wrapper', () => ({
-  get createAccountWithAuth() {
+jest.mock('@/app/actions/accounts', () => ({
+  get createAccount() {
     return mockCreateAccount;
   },
-  get updateAccountWithAuth() {
+  get updateAccount() {
     return mockUpdateAccount;
   },
 }));
@@ -24,6 +24,14 @@ jest.mock('react-hot-toast', () => ({
     success: jest.fn(),
     error: jest.fn(),
   },
+}));
+
+// Mock useOrganization hook
+jest.mock('@/hooks/use-organization', () => ({
+  useOrganization: () => ({
+    organizationId: 'test-org-id',
+    isLoading: false,
+  }),
 }));
 
 const mockToast = toast as jest.Mocked<typeof toast>;
@@ -186,6 +194,7 @@ describe('AccountDialog - ユーザーインタラクション', () => {
           account_type: 'ASSET',
           category: 'general',
           is_active: true,
+          organization_id: 'test-org-id',
         })
       );
 
@@ -238,6 +247,7 @@ describe('AccountDialog - ユーザーインタラクション', () => {
           category: 'general',
           parent_account_id: '550e8400-e29b-41d4-a716-446655440001',
           is_active: true,
+          organization_id: 'test-org-id',
         });
       });
     });
@@ -291,7 +301,7 @@ describe('AccountDialog - ユーザーインタラクション', () => {
       });
 
       await waitFor(() => {
-        expect(mockUpdateAccount).toHaveBeenCalledWith('5', {
+        expect(mockUpdateAccount).toHaveBeenCalledWith('5', 'test-org-id', {
           code: '1110',
           name: '現金・小切手',
           account_type: 'ASSET',

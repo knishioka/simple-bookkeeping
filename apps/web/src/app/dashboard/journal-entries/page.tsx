@@ -3,10 +3,7 @@
 import { Calendar, Plus, Search, Upload } from 'lucide-react';
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 
-import {
-  getJournalEntriesWithAuth,
-  approveJournalEntryWithAuth,
-} from '@/app/actions/journal-entries-wrapper';
+import { getJournalEntries, updateJournalEntry } from '@/app/actions/journal-entries';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -25,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useOrganization } from '@/hooks/use-organization';
 import { useServerAction } from '@/hooks/useServerAction';
 
 // Lazy load heavy dialog components
@@ -80,8 +78,9 @@ const statusColors = {
 
 export default function JournalEntriesPage() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
-  const { execute: fetchEntriesAction, isLoading } = useServerAction(getJournalEntriesWithAuth);
-  const { execute: approveAction } = useServerAction(approveJournalEntryWithAuth);
+  const { organizationId, isLoading: isOrgLoading } = useOrganization();
+  const { execute: fetchEntriesAction, isLoading } = useServerAction(getJournalEntries);
+  const { execute: updateAction } = useServerAction(updateJournalEntry);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -90,10 +89,11 @@ export default function JournalEntriesPage() {
   const [selectedMonth, setSelectedMonth] = useState<string>('');
 
   const fetchJournalEntries = useCallback(async () => {
+    if (!organizationId) {
+      return;
+    }
     try {
-      const result = await fetchEntriesAction(undefined, {
-        showToast: false, // Don't show toast on initial load
-      });
+      const result = await fetchEntriesAction(organizationId);
 
       if (result && result.items) {
         // Transform the data to match the expected format
@@ -104,20 +104,8 @@ export default function JournalEntriesPage() {
           description: entry.description,
           status: entry.status.toUpperCase() as 'DRAFT' | 'APPROVED' | 'CANCELLED',
           documentNumber: undefined, // document_number field doesn't exist in current schema
-          lines: entry.lines.map((line) => ({
-            id: line.id,
-            accountId: line.account_id,
-            account: line.account || {
-              id: line.account_id,
-              code: '',
-              name: '',
-            },
-            debitAmount: line.debit_amount || 0,
-            creditAmount: line.credit_amount || 0,
-            description: line.description,
-            taxRate: line.tax_rate,
-          })),
-          totalAmount: entry.totalAmount || 0,
+          lines: [], // Lines will be loaded when needed
+          totalAmount: 0, // Will be calculated from lines when loaded
           createdAt: entry.created_at,
           updatedAt: entry.updated_at,
         }));
@@ -127,10 +115,12 @@ export default function JournalEntriesPage() {
     } catch (error) {
       console.error('Failed to fetch journal entries:', error);
     }
-  }, [fetchEntriesAction]);
+  }, [fetchEntriesAction, organizationId]);
 
   useEffect(() => {
-    fetchJournalEntries();
+    if (organizationId) {
+      fetchJournalEntries();
+    }
 
     // Preload heavy components in the background after initial render
     const timer = setTimeout(() => {
@@ -139,7 +129,7 @@ export default function JournalEntriesPage() {
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [fetchJournalEntries]);
+  }, [fetchJournalEntries, organizationId]);
 
   const filteredEntries = entries.filter((entry) => {
     const matchesSearch =
@@ -163,12 +153,15 @@ export default function JournalEntriesPage() {
   };
 
   const handleApprove = async (entry: JournalEntry) => {
+    if (!organizationId) {
+      return;
+    }
     try {
-      await approveAction(entry.id, {
-        successMessage: '仕訳を承認しました',
-        errorMessage: '仕訳の承認に失敗しました',
-        onSuccess: () => fetchJournalEntries(),
+      await updateAction(entry.id, organizationId, {
+        entry: { status: 'approved' },
       });
+      // If updateAction succeeds, it returns the data directly
+      await fetchJournalEntries();
     } catch (error) {
       console.error('Failed to approve journal entry:', error);
     }
@@ -181,13 +174,6 @@ export default function JournalEntriesPage() {
       month: 'long',
       day: 'numeric',
     });
-  };
-
-  const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('ja-JP', {
-      style: 'currency',
-      currency: 'JPY',
-    }).format(amount);
   };
 
   return (
@@ -254,7 +240,7 @@ export default function JournalEntriesPage() {
             </Select>
           </div>
 
-          {isLoading ? (
+          {isLoading || isOrgLoading ? (
             <div className="text-center py-8">読み込み中...</div>
           ) : filteredEntries.length === 0 ? (
             <div className="text-center py-8 text-gray-500">仕訳が見つかりません</div>
@@ -279,28 +265,12 @@ export default function JournalEntriesPage() {
                     <TableCell>{formatDate(entry.entryDate)}</TableCell>
                     <TableCell>{entry.description}</TableCell>
                     <TableCell>
-                      <div className="space-y-1">
-                        {entry.lines
-                          .filter((line) => line.debitAmount > 0)
-                          .map((line, idx) => (
-                            <div key={idx} className="text-sm">
-                              {line.account.name}
-                            </div>
-                          ))}
-                      </div>
+                      <div className="text-sm text-gray-500">-</div>
                     </TableCell>
                     <TableCell>
-                      <div className="space-y-1">
-                        {entry.lines
-                          .filter((line) => line.creditAmount > 0)
-                          .map((line, idx) => (
-                            <div key={idx} className="text-sm">
-                              {line.account.name}
-                            </div>
-                          ))}
-                      </div>
+                      <div className="text-sm text-gray-500">-</div>
                     </TableCell>
-                    <TableCell className="text-right">{formatAmount(entry.totalAmount)}</TableCell>
+                    <TableCell className="text-right">-</TableCell>
                     <TableCell>
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
