@@ -1,54 +1,14 @@
 #!/bin/bash
 
 # ============================================================================
-# check-full-build.sh - Pre-push Comprehensive Build Validation
+# check-full-build.sh - Legacy Wrapper Script
 # ============================================================================
-# Purpose: Full build validation for Vercel (Web) platform
-# Usage: Automatically run by pre-push hook or manually via pnpm prepush:check
-# Scope: Builds all packages to ensure deployment readiness
+# Purpose: Backward compatibility wrapper that redirects to build-tools.sh
+# Note: This script is maintained for compatibility with existing workflows
 # ============================================================================
 
-echo "🚀 Running full build checks..."
+# Get the directory of this script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-# Track errors
-ERRORS=0
-
-# Check Web app build (Vercel)
-echo -e "${YELLOW}🔨 Building Web application (Vercel)...${NC}"
-if NODE_ENV=production pnpm --filter @simple-bookkeeping/web build; then
-    echo -e "${GREEN}✅ Web app build successful${NC}"
-else
-    echo -e "${RED}❌ Web app build failed!${NC}"
-    ERRORS=$((ERRORS + 1))
-fi
-
-# Check shared packages build
-echo -e "\n${YELLOW}🔨 Building shared packages...${NC}"
-if pnpm build:packages; then
-    echo -e "${GREEN}✅ Shared packages build successful${NC}"
-else
-    echo -e "${RED}❌ Shared packages build failed!${NC}"
-    ERRORS=$((ERRORS + 1))
-fi
-
-# Summary
-echo -e "\n${YELLOW}========================================${NC}"
-if [ $ERRORS -eq 0 ]; then
-    echo -e "${GREEN}✅ All builds passed successfully!${NC}"
-    echo -e "${GREEN}Safe to push to production.${NC}"
-    exit 0
-else
-    echo -e "${RED}❌ $ERRORS build(s) failed!${NC}"
-    echo -e "${RED}Please fix the errors before pushing.${NC}"
-    echo -e "\n${YELLOW}Tips:${NC}"
-    echo "- Run 'pnpm build' to see all errors"
-    echo "- Check TypeScript errors with 'pnpm typecheck'"
-    echo "- Verify dependencies with 'pnpm check:deps'"
-    exit 1
-fi
+# Redirect to the consolidated build-tools.sh
+exec "$SCRIPT_DIR/build-tools.sh" check-full "$@"

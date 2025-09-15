@@ -27,7 +27,7 @@ export default function HomePage() {
               <Link href="/auth/login">
                 <Button variant="outline">ログイン</Button>
               </Link>
-              <Link href="/register">
+              <Link href="/auth/signup">
                 <Button>新規登録</Button>
               </Link>
             </div>
@@ -48,7 +48,7 @@ export default function HomePage() {
             </p>
             <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
               <div className="rounded-md shadow">
-                <Link href="/register">
+                <Link href="/auth/signup">
                   <Button size="lg" className="w-full">
                     無料で始める
                   </Button>

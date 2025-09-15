@@ -35,7 +35,7 @@ test.describe('基本的なページアクセス', () => {
 
   test('ログインページが正常に表示される', async ({ page }) => {
     // ログインページにアクセス
-    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+    await page.goto('/auth/login', { waitUntil: 'domcontentloaded' });
 
     // フォーム要素が表示されるまで待機
     await page.waitForSelector('#email', { timeout: 10000 });
@@ -50,19 +50,19 @@ test.describe('基本的なページアクセス', () => {
 
     // フォームのラベル確認
     await expect(page.locator('text=メールアドレス')).toBeVisible();
-    await expect(page.locator('text=パスワード')).toBeVisible();
+    await expect(page.locator('label[for="password"]')).toBeVisible();
   });
 });
 
 test.describe('ユーザー認証フロー', () => {
   test('ログイン画面からのナビゲーション', async ({ page }) => {
-    await page.goto('/login');
+    await page.goto('/auth/login');
 
     // ボタンがクリック可能になるまで待機
     await page.waitForSelector('button[type="submit"]', { state: 'visible' });
 
     // 新規登録リンクの確認
-    const signupLink = page.locator('a[href="/register"]').first();
+    const signupLink = page.locator('a[href="/auth/signup"]').first();
     await expect(signupLink).toBeVisible();
   });
 
@@ -183,7 +183,7 @@ test.describe('レスポンシブデザイン', () => {
     await page.setViewportSize({ width: 768, height: 1024 });
 
     // ログインページにアクセス
-    await page.goto('/login');
+    await page.goto('/auth/login');
     await waitForPageReady(page, { waitForSelector: '#email' });
 
     // タブレットでもフォームが適切に表示されることを確認
