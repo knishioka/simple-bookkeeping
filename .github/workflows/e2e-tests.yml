@@ -171,8 +171,8 @@ jobs:
 
           # Run fast test suite with sharding and unified config
           cd apps/web
-          # TEST_MODE is already set in env section above, no need to set it inline
-          timeout 360 npx playwright test --shard=${{ matrix.shard }} --grep-invert="@slow|@integration" || TEST_EXIT=$?
+          # Set TEST_MODE inline to ensure proper configuration is used
+          timeout 360 TEST_MODE=fast npx playwright test --shard=${{ matrix.shard }} --grep-invert="@slow|@integration" || TEST_EXIT=$?
 
           END_TIME=$(date +%s)
           DURATION=$((END_TIME - START_TIME))
