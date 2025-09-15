@@ -5,10 +5,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import {
-  createAccountingPeriodWithAuth,
-  updateAccountingPeriodWithAuth,
-} from '@/app/actions/accounting-periods-wrapper';
+import { createAccountingPeriod, updateAccountingPeriod } from '@/app/actions/accounting-periods';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -29,6 +26,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { useOrganization } from '@/hooks/use-organization';
 import { useToast } from '@/hooks/use-toast';
 
 import type { Database } from '@/lib/supabase/database.types';
@@ -106,6 +104,7 @@ export function AccountingPeriodFormDialog({
   period,
   onSuccess,
 }: AccountingPeriodFormDialogProps) {
+  const { organizationId } = useOrganization();
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const isEdit = !!period;
@@ -145,6 +144,14 @@ export function AccountingPeriodFormDialog({
   }, [period, form]);
 
   const onSubmit = async (data: CreateAccountingPeriodDto | UpdateAccountingPeriodDto) => {
+    if (!organizationId) {
+      toast({
+        title: 'エラー',
+        description: '組織が選択されていません',
+        variant: 'destructive',
+      });
+      return;
+    }
     setLoading(true);
     try {
       let result;
@@ -157,7 +164,7 @@ export function AccountingPeriodFormDialog({
         // Handle isActive -> is_closed transformation
         if (data.isActive !== undefined) updateData.is_closed = !data.isActive;
 
-        result = await updateAccountingPeriodWithAuth(period.id, updateData);
+        result = await updateAccountingPeriod(period.id, updateData);
       } else {
         // For create, all fields are required
         const createData = {
@@ -169,7 +176,7 @@ export function AccountingPeriodFormDialog({
           is_closed: !data.isActive,
         };
 
-        result = await createAccountingPeriodWithAuth(createData);
+        result = await createAccountingPeriod(organizationId, createData);
       }
 
       if (!result.success) {

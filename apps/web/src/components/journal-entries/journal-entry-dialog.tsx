@@ -2,17 +2,14 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Minus, Plus } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { z } from 'zod';
 
-import { getAccountsWithAuth } from '@/app/actions/accounts-wrapper';
-import {
-  createJournalEntryWithAuth,
-  updateJournalEntryWithAuth,
-} from '@/app/actions/journal-entries-wrapper';
-import { getPartnersWithAuth } from '@/app/actions/partners-wrapper';
+import { getAccounts } from '@/app/actions/accounts';
+import { createJournalEntry, updateJournalEntry } from '@/app/actions/journal-entries';
+import { getPartners } from '@/app/actions/partners';
 import { AccountSearchCombobox } from '@/components/ui/account-search-combobox';
 import { Button } from '@/components/ui/button';
 import {
@@ -34,6 +31,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { PartnerSelect } from '@/components/ui/partner-select';
 import { Textarea } from '@/components/ui/textarea';
+import { useOrganization } from '@/hooks/use-organization';
 import { getCurrentAccountingPeriodId } from '@/lib/organization';
 
 const journalEntryLineSchema = z.object({
@@ -128,6 +126,7 @@ export function JournalEntryDialog({
   entry,
   onSuccess,
 }: JournalEntryDialogProps) {
+  const { organizationId } = useOrganization();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [partners, setPartners] = useState<
     Array<{ id: string; code: string; name: string; partnerType: 'CUSTOMER' | 'VENDOR' | 'BOTH' }>
@@ -158,6 +157,52 @@ export function JournalEntryDialog({
     control: form.control,
     name: 'lines',
   });
+
+  const fetchAccounts = useCallback(async () => {
+    if (!organizationId) return;
+    try {
+      const result = await getAccounts(organizationId, { pageSize: 1000 });
+      if (result.success && result.data) {
+        const transformedAccounts = result.data.items.map((acc) => ({
+          id: acc.id,
+          code: acc.code,
+          name: acc.name,
+          nameKana: acc.name_kana || undefined,
+          accountType: acc.account_type.toUpperCase() as
+            | 'ASSET'
+            | 'LIABILITY'
+            | 'EQUITY'
+            | 'REVENUE'
+            | 'EXPENSE',
+        }));
+        setAccounts(transformedAccounts);
+      }
+    } catch (error) {
+      console.error('Failed to fetch accounts:', error);
+      toast.error('勘定科目の取得に失敗しました');
+    }
+  }, [organizationId]);
+
+  const fetchPartners = useCallback(async () => {
+    if (!organizationId) return;
+    try {
+      const result = await getPartners(organizationId, { pageSize: 1000 });
+      if (result.success && result.data) {
+        const transformedPartners = result.data.items.map((partner) => ({
+          id: partner.id,
+          code: partner.code,
+          name: partner.name,
+          partnerType: (partner.partner_type === 'both'
+            ? 'BOTH'
+            : partner.partner_type.toUpperCase()) as 'CUSTOMER' | 'VENDOR' | 'BOTH',
+        }));
+        setPartners(transformedPartners);
+      }
+    } catch (error) {
+      console.error('Failed to fetch partners:', error);
+      // Partners are optional, so we don't show an error toast
+    }
+  }, [organizationId]);
 
   useEffect(() => {
     if (open) {
@@ -191,53 +236,13 @@ export function JournalEntryDialog({
         });
       }
     }
-  }, [open, entry, form]);
-
-  const fetchAccounts = async () => {
-    try {
-      const result = await getAccountsWithAuth({ pageSize: 1000 });
-      if (result.success && result.data) {
-        const transformedAccounts = result.data.items.map((acc) => ({
-          id: acc.id,
-          code: acc.code,
-          name: acc.name,
-          nameKana: acc.name_kana || undefined,
-          accountType: acc.account_type.toUpperCase() as
-            | 'ASSET'
-            | 'LIABILITY'
-            | 'EQUITY'
-            | 'REVENUE'
-            | 'EXPENSE',
-        }));
-        setAccounts(transformedAccounts);
-      }
-    } catch (error) {
-      console.error('Failed to fetch accounts:', error);
-      toast.error('勘定科目の取得に失敗しました');
-    }
-  };
-
-  const fetchPartners = async () => {
-    try {
-      const result = await getPartnersWithAuth({ pageSize: 1000 });
-      if (result.success && result.data) {
-        const transformedPartners = result.data.items.map((partner) => ({
-          id: partner.id,
-          code: partner.code,
-          name: partner.name,
-          partnerType: (partner.partner_type === 'both'
-            ? 'BOTH'
-            : partner.partner_type.toUpperCase()) as 'CUSTOMER' | 'VENDOR' | 'BOTH',
-        }));
-        setPartners(transformedPartners);
-      }
-    } catch (error) {
-      console.error('Failed to fetch partners:', error);
-      // Partners are optional, so we don't show an error toast
-    }
-  };
+  }, [open, entry, form, fetchAccounts, fetchPartners]);
 
   const onSubmit = async (data: JournalEntryFormData) => {
+    if (!organizationId) {
+      toast.error('組織が選択されていません');
+      return;
+    }
     setLoading(true);
     try {
       // Get current accounting period if not set
@@ -260,7 +265,7 @@ export function JournalEntryDialog({
 
       if (entry) {
         // Update existing entry
-        const result = await updateJournalEntryWithAuth(entry.id, {
+        const result = await updateJournalEntry(entry.id, organizationId, {
           entry: {
             entry_date: data.entryDate,
             description: data.description,
@@ -279,9 +284,9 @@ export function JournalEntryDialog({
         // Create new entry with auto-generated entry number
         const entryNumber = `JE-${Date.now().toString().slice(-6)}`; // Temporary number
 
-        const result = await createJournalEntryWithAuth({
+        const result = await createJournalEntry({
           entry: {
-            organization_id: '', // Will be overwritten by wrapper
+            organization_id: organizationId,
             accounting_period_id: accountingPeriodId,
             entry_number: entryNumber,
             entry_date: data.entryDate,

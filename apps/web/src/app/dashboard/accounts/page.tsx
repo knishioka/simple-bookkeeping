@@ -3,7 +3,7 @@
 import { Plus, Search, Upload } from 'lucide-react';
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 
-import { getAccountsWithAuth } from '@/app/actions/accounts-wrapper';
+import { getAccounts } from '@/app/actions/accounts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useOrganization } from '@/hooks/use-organization';
 import { useServerAction } from '@/hooks/useServerAction';
 
 import type { Database } from '@/lib/supabase/database.types';
@@ -66,7 +67,8 @@ const AccountTypeLabels: Record<string, string> = {
 
 export default function AccountsPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const { execute: fetchAccountsAction, isLoading } = useServerAction(getAccountsWithAuth);
+  const { organizationId, isLoading: isOrgLoading } = useOrganization();
+  const { execute: fetchAccountsAction, isLoading } = useServerAction(getAccounts);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -74,10 +76,10 @@ export default function AccountsPage() {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const fetchAccounts = useCallback(async () => {
-    const result = await fetchAccountsAction(undefined, {
-      errorMessage: '勘定科目の取得に失敗しました',
-      showToast: true,
-    });
+    if (!organizationId) {
+      return;
+    }
+    const result = await fetchAccountsAction(organizationId);
 
     if (result && result.items) {
       // Transform the data to match the expected format
@@ -94,11 +96,13 @@ export default function AccountsPage() {
 
       setAccounts(transformedAccounts);
     }
-  }, [fetchAccountsAction]);
+  }, [fetchAccountsAction, organizationId]);
 
   useEffect(() => {
-    fetchAccounts();
-  }, [fetchAccounts]);
+    if (organizationId) {
+      fetchAccounts();
+    }
+  }, [fetchAccounts, organizationId]);
 
   const filteredAccounts = accounts.filter((account) => {
     const matchesSearch =
@@ -184,7 +188,7 @@ export default function AccountsPage() {
             </Select>
           </div>
 
-          {isLoading ? (
+          {isLoading || isOrgLoading ? (
             <div className="text-center py-8">読み込み中...</div>
           ) : filteredAccounts.length === 0 ? (
             <div className="text-center py-8 text-gray-500">勘定科目が見つかりません</div>

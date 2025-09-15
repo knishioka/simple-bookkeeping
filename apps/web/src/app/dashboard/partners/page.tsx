@@ -4,7 +4,7 @@ import { Plus, Search } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-import { getPartnersWithAuth, deletePartnerWithAuth } from '@/app/actions/partners-wrapper';
+import { getPartners, deletePartner } from '@/app/actions/partners';
 import { PartnerDialog } from '@/components/partners/partner-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,6 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useOrganization } from '@/hooks/use-organization';
 
 import type { Database } from '@/lib/supabase/database.types';
 
@@ -37,6 +38,7 @@ const partnerTypeLabels = {
 
 export default function PartnersPage() {
   const [partners, setPartners] = useState<Partner[]>([]);
+  const { organizationId, isLoading: isOrgLoading } = useOrganization();
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
@@ -44,15 +46,19 @@ export default function PartnersPage() {
   const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
 
   const fetchPartners = useCallback(async () => {
+    if (!organizationId) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
-      const params: Parameters<typeof getPartnersWithAuth>[0] = {};
+      const params: Parameters<typeof getPartners>[1] = {};
       if (searchTerm) params.search = searchTerm;
       if (selectedType && selectedType !== 'all') {
         params.partner_type = selectedType as 'customer' | 'supplier' | 'both';
       }
 
-      const result = await getPartnersWithAuth(params);
+      const result = await getPartners(organizationId, params);
       if (result.success) {
         setPartners(result.data.items);
       } else {
@@ -65,11 +71,13 @@ export default function PartnersPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, selectedType]);
+  }, [searchTerm, selectedType, organizationId]);
 
   useEffect(() => {
-    fetchPartners();
-  }, [fetchPartners]);
+    if (organizationId) {
+      fetchPartners();
+    }
+  }, [fetchPartners, organizationId]);
 
   const handleCreateNew = () => {
     setEditingPartner(null);
@@ -82,12 +90,16 @@ export default function PartnersPage() {
   };
 
   const handleDelete = async (partnerId: string) => {
+    if (!organizationId) {
+      toast.error('組織が選択されていません');
+      return;
+    }
     if (!confirm('この取引先を削除してもよろしいですか？')) {
       return;
     }
 
     try {
-      const result = await deletePartnerWithAuth(partnerId);
+      const result = await deletePartner(partnerId, organizationId);
       if (result.success) {
         toast.success('取引先を削除しました');
         await fetchPartners();
@@ -146,7 +158,7 @@ export default function PartnersPage() {
             </Select>
           </div>
 
-          {loading ? (
+          {loading || isOrgLoading ? (
             <div className="text-center py-8">読み込み中...</div>
           ) : (
             <Table>
