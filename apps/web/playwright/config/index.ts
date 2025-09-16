@@ -17,7 +17,7 @@ export {
 // Export all from other modules
 export * from './projects';
 export * from './reporters';
-export * from './credentials';
+export * from './auth-config';
 export * from './timeouts';
 export * from './validation';
 
