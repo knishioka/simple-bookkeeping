@@ -1,4 +1,6 @@
-version: '3.8'
+# Docker Compose configuration for local development
+# Provides PostgreSQL database for local development
+# Web application should be run separately using: pnpm dev
 
 services:
   postgres:
@@ -8,41 +10,15 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-simple_bookkeeping}
+    ports:
+      - '${DB_PORT:-5432}:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres}']
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - simple-bookkeeping-network
-    # PostgreSQLポートは外部に公開しない（内部ネットワークのみ）
-
-  web:
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
-    container_name: simple-bookkeeping-web
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      # NEXT_PUBLIC_API_URL は削除されました（Express.js API廃止）
-      NODE_ENV: ${NODE_ENV:-development}
-    ports:
-      - '${WEB_PORT:-3000}:3000'
-    networks:
-      - simple-bookkeeping-network
-    volumes:
-      - ./apps/web:/app/apps/web
-      - ./packages:/app/packages
-      - /app/node_modules
-      - /app/apps/web/node_modules
 
 volumes:
   postgres_data:
-
-networks:
-  simple-bookkeeping-network:
-    driver: bridge
