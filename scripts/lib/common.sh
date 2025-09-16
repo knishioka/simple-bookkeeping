@@ -115,8 +115,7 @@ run_command() {
     print_debug "Running: $*"
 
     # Use "$@" to safely pass arguments without eval
-    # shellcheck disable=SC2068
-    if ! $@; then
+    if ! "$@"; then
         die "$error_msg"
     fi
 }
@@ -131,11 +130,10 @@ run_silent() {
     print_debug "Running silently: $*"
 
     # Use command substitution with "$@" to safely execute without eval
-    # shellcheck disable=SC2068
-    output=$($@ 2>&1)
+    output=$("$@" 2>&1)
     status=$?
 
-    if [ $status -ne 0 ]; then
+    if [ "$status" -ne 0 ]; then
         echo "$output" >&2
         die "$error_msg"
     fi
@@ -194,17 +192,14 @@ kill_port() {
     local pid
 
     if [[ "$OSTYPE" == "darwin"* ]]; then
-        # shellcheck disable=SC2086
-        pid=$(lsof -ti:$port 2>/dev/null)
+        pid=$(lsof -ti:"$port" 2>/dev/null)
     else
-        # shellcheck disable=SC2086
-        pid=$(lsof -t -i:$port 2>/dev/null)
+        pid=$(lsof -t -i:"$port" 2>/dev/null)
     fi
 
     if [ -n "$pid" ]; then
         print_warning "Killing process $pid on port $port"
-        # shellcheck disable=SC2086
-        kill -9 $pid 2>/dev/null || true
+        kill -9 "$pid" 2>/dev/null || true
         sleep 1
     fi
 }
@@ -214,11 +209,9 @@ is_port_in_use() {
     local port="$1"
 
     if [[ "$OSTYPE" == "darwin"* ]]; then
-        # shellcheck disable=SC2086
-        lsof -ti:$port &>/dev/null
+        lsof -ti:"$port" &>/dev/null
     else
-        # shellcheck disable=SC2086
-        lsof -t -i:$port &>/dev/null
+        lsof -t -i:"$port" &>/dev/null
     fi
 }
 
@@ -231,7 +224,7 @@ wait_for_port() {
     print_info "Waiting for port $port to be available..."
 
     while is_port_in_use "$port"; do
-        if [ $elapsed -ge $timeout ]; then
+        if [ "$elapsed" -ge "$timeout" ]; then
             return 1
         fi
         sleep 1
@@ -250,7 +243,7 @@ wait_for_service() {
     print_info "Waiting for service at $url..."
 
     while ! curl -s -o /dev/null -w "%{http_code}" "$url" | grep -q "^[23]"; do
-        if [ $elapsed -ge $timeout ]; then
+        if [ "$elapsed" -ge "$timeout" ]; then
             return 1
         fi
         sleep 1
@@ -275,9 +268,9 @@ setup_cleanup() {
 
 # Default cleanup function
 default_cleanup() {
-    local exit_code=$?
+    local exit_code="$?"
 
-    if [ $exit_code -ne 0 ]; then
+    if [ "$exit_code" -ne 0 ]; then
         print_error "Script exited with code $exit_code"
     fi
 
@@ -309,12 +302,12 @@ format_duration() {
     local minutes=$(((seconds % 3600) / 60))
     local secs=$((seconds % 60))
 
-    if [ $hours -gt 0 ]; then
-        printf "%dh %dm %ds" $hours $minutes $secs
-    elif [ $minutes -gt 0 ]; then
-        printf "%dm %ds" $minutes $secs
+    if [ "$hours" -gt 0 ]; then
+        printf "%dh %dm %ds" "$hours" "$minutes" "$secs"
+    elif [ "$minutes" -gt 0 ]; then
+        printf "%dm %ds" "$minutes" "$secs"
     else
-        printf "%ds" $secs
+        printf "%ds" "$secs"
     fi
 }
 

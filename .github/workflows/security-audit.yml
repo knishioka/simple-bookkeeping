@@ -29,25 +29,31 @@ jobs:
         id: audit
         continue-on-error: true
         run: |
-          echo "## Security Audit Report" > audit-report.md
-          echo "Date: $(date +'%Y-%m-%d %H:%M:%S')" >> audit-report.md
-          echo "" >> audit-report.md
+          {
+            echo "## Security Audit Report"
+            echo "Date: $(date +'%Y-%m-%d %H:%M:%S')"
+            echo ""
+            echo "### pnpm audit"
+            echo '```'
+          } > audit-report.md
 
-          # pnpm audit
-          echo "### pnpm audit" >> audit-report.md
-          echo '```' >> audit-report.md
-          pnpm audit --audit-level moderate 2>&1 | tee -a audit-report.md || echo "pnpm audit found vulnerabilities"
-          echo '```' >> audit-report.md
-          echo "" >> audit-report.md
+          pnpm audit --audit-level moderate | tee -a audit-report.md 2>&1 || echo "pnpm audit found vulnerabilities"
+
+          {
+            echo '```'
+            echo ""
+          } >> audit-report.md
 
           # Check for outdated dependencies
-          echo "### Outdated Dependencies" >> audit-report.md
-          echo '```' >> audit-report.md
+          {
+            echo "### Outdated Dependencies"
+            echo '```'
+          } >> audit-report.md
           pnpm outdated 2>&1 | head -30 >> audit-report.md || true
           echo '```' >> audit-report.md
 
           # Set exit code based on audit results
-          pnpm audit --audit-level high 2>&1 > /dev/null || echo "high_vulnerabilities=true" >> $GITHUB_OUTPUT
+          pnpm audit --audit-level high > /dev/null 2>&1 || echo "high_vulnerabilities=true" >> "$GITHUB_OUTPUT"
 
       - name: Check for critical updates
         id: critical
@@ -58,8 +64,8 @@ jobs:
           echo "" >> audit-report.md
 
           for package in $CRITICAL_PACKAGES; do
-            current=$(pnpm list $package --depth=0 2>/dev/null | grep -E "^$package " | awk '{print $2}' || echo "not installed")
-            latest=$(npm view $package version 2>/dev/null || echo "unknown")
+            current=$(pnpm list "$package" --depth=0 2>/dev/null | grep -E "^$package " | awk '{print $2}' || echo "not installed")
+            latest=$(npm view "$package" version 2>/dev/null || echo "unknown")
             echo "- **$package**: Current: $current, Latest: $latest" >> audit-report.md
           done
 
@@ -76,16 +82,15 @@ jobs:
               repo: context.repo.repo,
               title: '🚨 Security vulnerabilities detected - ' + new Date().toISOString().split('T')[0],
               body: `Security audit found vulnerabilities that require attention.
-              
+
               ${report}
-              
+
               ## Action Required
-              
+
               1. Review the vulnerabilities listed above
               2. Update affected packages using \`pnpm update\` or Dependabot PRs
               3. For major updates, create a separate issue for planning
               4. Close this issue once all high/critical vulnerabilities are resolved
-              
               ---
               *This issue was automatically created by the weekly security audit workflow.*`,
               labels: ['security', 'urgent', 'dependencies']
@@ -104,6 +109,8 @@ jobs:
       - name: Summary
         if: always()
         run: |
-          echo "## 📊 Security Audit Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          cat audit-report.md >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## 📊 Security Audit Summary"
+            echo ""
+            cat audit-report.md
+          } >> "$GITHUB_STEP_SUMMARY"

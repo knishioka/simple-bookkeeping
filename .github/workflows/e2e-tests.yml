@@ -107,17 +107,17 @@ jobs:
           fi
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] Found .next directory, starting server..."
           pnpm start &
-          SERVER_PID=$!
-          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server started with PID: $SERVER_PID"
+          SERVER_PID="$!"
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server started with PID: ${SERVER_PID}"
 
           # Wait for server to be fully ready (optimized for fast startup)
           echo "Waiting for web server to be ready..."
           COUNTER=0
           MAX_WAIT=90
-          while [ $COUNTER -lt $MAX_WAIT ]; do
+          while [ "$COUNTER" -lt "$MAX_WAIT" ]; do
             COUNTER=$((COUNTER+1))
             if curl -f http://localhost:3000 >/dev/null 2>&1; then
-              echo "Web server responded after $COUNTER seconds, checking auth routes..."
+              echo "Web server responded after ${COUNTER} seconds, checking auth routes..."
               # Additional check for auth routes to ensure full initialization
               if curl -f http://localhost:3000/auth/login >/dev/null 2>&1; then
                 echo "Auth routes are ready, giving server 3 more seconds to fully stabilize..."
@@ -131,10 +131,10 @@ jobs:
                 echo "Auth routes not ready yet, continuing to wait..."
               fi
             fi
-            if [ $COUNTER -eq $MAX_WAIT ]; then
-              echo "ERROR: Server failed to start within $MAX_WAIT seconds"
+            if [ "$COUNTER" -eq "$MAX_WAIT" ]; then
+              echo "ERROR: Server failed to start within ${MAX_WAIT} seconds"
               echo "Checking server process..."
-              ps aux | grep node
+              pgrep -f node > /dev/null && echo "Node processes found" || echo "No node process found"
               echo "Checking port 3000..."
               netstat -an | grep 3000 || lsof -i :3000 || true
               echo "Attempting to get server response..."
@@ -172,18 +172,20 @@ jobs:
           # Run fast test suite with sharding and unified config
           cd apps/web
           # Set TEST_MODE inline to ensure proper configuration is used
-          timeout 360 env TEST_MODE=fast npx playwright test --shard=${{ matrix.shard }} --grep-invert="@slow|@integration" || TEST_EXIT=$?
+          timeout 360 env TEST_MODE=fast npx playwright test --shard=${{ matrix.shard }} --grep-invert="@slow|@integration" || TEST_EXIT="$?"
 
           END_TIME=$(date +%s)
           DURATION=$((END_TIME - START_TIME))
-          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Fast E2E tests (shard ${{ matrix.shard }}) completed in ${DURATION} seconds with exit code ${TEST_EXIT:-0}"
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Fast E2E tests (shard ${{ matrix.shard }}) completed in ${DURATION}s" \
+            "with exit code ${TEST_EXIT:-0}"
           echo "::notice title=E2E Performance (Shard ${{ matrix.shard }})::Tests completed in ${DURATION} seconds"
 
           # Save performance data with shard info
           # Replace "/" in shard name to avoid file path issues
           SHARD_NAME=$(echo "${{ matrix.shard }}" | sed 's/\//-/g')
-          echo "{\"duration\": ${DURATION}, \"shard\": \"${{ matrix.shard }}\", \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > performance-report-${SHARD_NAME}.json
-          exit ${TEST_EXIT:-0}
+          echo "{\"duration\": ${DURATION}, \"shard\": \"${{ matrix.shard }}\", " \
+            "\"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > "performance-report-${SHARD_NAME}.json"
+          exit "${TEST_EXIT:-0}"
 
       - name: Upload test results
         if: always()

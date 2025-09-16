@@ -17,7 +17,8 @@ services:
       # Performance optimization for test environment
       POSTGRES_INITDB_ARGS: '--encoding=UTF-8 --lc-collate=C --lc-ctype=C'
       POSTGRES_HOST_AUTH_METHOD: md5
-    # Remove host port mapping for complete isolation (can be enabled for debugging)
+    # Remove host port mapping for complete isolation
+    # (can be enabled for debugging)
     # ports:
     #   - '5433:5432'
     volumes:
@@ -51,20 +52,32 @@ services:
       # Test-specific settings
       NEXT_TELEMETRY_DISABLED: '1'
       # Supabase configuration (required for app startup)
-      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-https://placeholder.supabase.co}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-placeholder-key}
-      # Note: Authentication is mocked in E2E tests - no real auth provider needed
-    # Remove host port mapping for complete isolation (can be enabled for debugging)
+      NEXT_PUBLIC_SUPABASE_URL: >
+        ${NEXT_PUBLIC_SUPABASE_URL:-https://placeholder.supabase.co}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: >
+        ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-placeholder-key}
+      # Note: Authentication is mocked in E2E tests
+      # No real auth provider needed
+    # Remove host port mapping for complete isolation
+    # (can be enabled for debugging)
     # ports:
     #   - '3010:3000'
     networks:
       - simple-bookkeeping-test
     healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://127.0.0.1:3000']
+      test:
+        - CMD
+        - wget
+        - '--no-verbose'
+        - '--tries=1'
+        - '--spider'
+        - 'http://127.0.0.1:3000'
       interval: 5s
       timeout: 15s
-      retries: 30 # Balanced between 40 and 20 for reliability (Issue #317)
-      start_period: 75s # Balanced between 90s and 60s for Docker startup (Issue #317)
+      # Balanced between 40 and 20 for reliability (Issue #317)
+      retries: 30
+      # Balanced between 90s and 60s for Docker startup (Issue #317)
+      start_period: 75s
     restart: unless-stopped
     # Remove volume mounts that break the standalone container
     # volumes:
@@ -94,12 +107,17 @@ services:
       CI: 'true'
       NODE_ENV: test
       # Supabase configuration (required for test environment)
-      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:-https://placeholder.supabase.co}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-placeholder-key}
-      # Note: Authentication is mocked in E2E tests - no real auth provider needed
+      NEXT_PUBLIC_SUPABASE_URL: >
+        ${NEXT_PUBLIC_SUPABASE_URL:-https://placeholder.supabase.co}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: >
+        ${NEXT_PUBLIC_SUPABASE_ANON_KEY:-placeholder-key}
+      # Note: Authentication is mocked in E2E tests
+      # No real auth provider needed
       # Test database connection for setup/teardown
-      TEST_DATABASE_URL: postgresql://test:test@postgres-test:5432/bookkeeping_test?schema=public
-      DATABASE_URL: postgresql://test:test@postgres-test:5432/bookkeeping_test?schema=public
+      TEST_DATABASE_URL: >
+        postgresql://test:test@postgres-test:5432/bookkeeping_test?schema=public
+      DATABASE_URL: >
+        postgresql://test:test@postgres-test:5432/bookkeeping_test?schema=public
       # Playwright specific settings
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '0'
       PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: ''
