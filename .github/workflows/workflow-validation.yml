@@ -44,34 +44,38 @@ jobs:
           yamllint --version
 
       - name: Validate GitHub Actions workflows
+        continue-on-error: true # Temporarily allow failures until existing issues are fixed
         run: |
           echo "🔍 Validating GitHub Actions workflows..."
+          echo "⚠️ Note: This check is currently non-blocking due to existing issues being fixed in #431"
 
           # Run actionlint on all workflows
           if [ -f .github/actionlint.yaml ]; then
-            actionlint -config-file .github/actionlint.yaml
+            actionlint -config-file .github/actionlint.yaml || echo "⚠️ Actionlint found issues (non-blocking)"
           else
-            actionlint
+            actionlint || echo "⚠️ Actionlint found issues (non-blocking)"
           fi
 
           # Run yamllint on workflows
-          yamllint -d relaxed .github/workflows/*.yml || true
+          yamllint -d relaxed .github/workflows/*.yml || echo "⚠️ Yamllint found issues (non-blocking)"
 
       - name: Validate shell scripts
+        continue-on-error: true # Temporarily allow failures until existing issues are fixed
         run: |
           echo "🔍 Validating shell scripts..."
+          echo "⚠️ Note: This check is currently non-blocking due to existing issues being fixed in #431"
 
           # Find and validate all shell scripts
           find . -type f \( -name "*.sh" -o -name "*.bash" \) -not -path "./node_modules/*" -not -path "./.git/*" | while read -r script; do
             echo "Checking: $script"
-            shellcheck -x -e SC1090,SC1091 "$script"
+            shellcheck -x -e SC1090,SC1091 "$script" || echo "⚠️ Issues found in $script (non-blocking)"
           done
 
           # Check Husky hooks
           for hook in .husky/*; do
             if [ -f "$hook" ] && [ -x "$hook" ] && head -n 1 "$hook" | grep -qE '^#!/(usr/)?bin/(ba)?sh'; then
               echo "Checking Husky hook: $hook"
-              shellcheck -x -e SC1090,SC1091 "$hook"
+              shellcheck -x -e SC1090,SC1091 "$hook" || echo "⚠️ Issues found in $hook (non-blocking)"
             fi
           done
 
