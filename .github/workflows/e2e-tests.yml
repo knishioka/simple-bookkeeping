@@ -134,7 +134,9 @@ jobs:
             if [ "$COUNTER" -eq "$MAX_WAIT" ]; then
               echo "ERROR: Server failed to start within ${MAX_WAIT} seconds"
               echo "Checking server process..."
-              pgrep -f node || ps aux | grep -E '[n]ode'
+              if ! pgrep -f node > /dev/null; then
+                ps aux | grep -E '[n]ode' || echo "No node process found"
+              fi
               echo "Checking port 3000..."
               netstat -an | grep 3000 || lsof -i :3000 || true
               echo "Attempting to get server response..."
@@ -182,7 +184,7 @@ jobs:
           # Save performance data with shard info
           # Replace "/" in shard name to avoid file path issues
           SHARD_NAME=$(echo "${{ matrix.shard }}" | sed 's/\//-/g')
-          echo "{\"duration\": ${DURATION}, \"shard\": \"${{ matrix.shard }}\", \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > performance-report-${SHARD_NAME}.json
+          echo "{\"duration\": ${DURATION}, \"shard\": \"${{ matrix.shard }}\", \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > "performance-report-${SHARD_NAME}.json"
           exit "${TEST_EXIT:-0}"
 
       - name: Upload test results

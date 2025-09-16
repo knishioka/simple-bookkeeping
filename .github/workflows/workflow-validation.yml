@@ -30,8 +30,9 @@ jobs:
           # Install actionlint using Go
           echo "Installing actionlint..."
           go install github.com/rhysd/actionlint/cmd/actionlint@latest
-          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-          export PATH="$(go env GOPATH)/bin:$PATH"
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          GOPATH_BIN="$(go env GOPATH)/bin"
+          export PATH="${GOPATH_BIN}:$PATH"
           actionlint -version || echo "actionlint version check failed, continuing..."
 
           # Install shellcheck (usually pre-installed on Ubuntu runners)

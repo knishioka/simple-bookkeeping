@@ -76,16 +76,15 @@ jobs:
               repo: context.repo.repo,
               title: '🚨 Security vulnerabilities detected - ' + new Date().toISOString().split('T')[0],
               body: `Security audit found vulnerabilities that require attention.
-              
+
               ${report}
-              
+
               ## Action Required
-              
+
               1. Review the vulnerabilities listed above
               2. Update affected packages using \`pnpm update\` or Dependabot PRs
               3. For major updates, create a separate issue for planning
               4. Close this issue once all high/critical vulnerabilities are resolved
-              
               ---
               *This issue was automatically created by the weekly security audit workflow.*`,
               labels: ['security', 'urgent', 'dependencies']
@@ -104,6 +103,6 @@ jobs:
       - name: Summary
         if: always()
         run: |
-          echo "## 📊 Security Audit Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          cat audit-report.md >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 Security Audit Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          cat audit-report.md >> "$GITHUB_STEP_SUMMARY"

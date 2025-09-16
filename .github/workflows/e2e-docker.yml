@@ -220,7 +220,6 @@ jobs:
                 `**Commit**: ${context.sha}\n` +
                 `**Triggered by**: ${context.eventName}\n\n` +
                 `🤖 This issue was automatically created by the E2E test workflow.`;
-              
               await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
