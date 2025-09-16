@@ -1,50 +1,43 @@
 FROM node:20-alpine AS base
 RUN corepack enable
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
+
+# Prune workspace to only include necessary packages
+FROM base AS pruner
+RUN pnpm add -g turbo
+COPY . .
+RUN turbo prune @simple-bookkeeping/web --docker
 
 # Dependencies
 FROM base AS deps
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
-COPY apps/web/package.json ./apps/web/
-COPY packages/database/package.json ./packages/database/
-COPY packages/types/package.json ./packages/types/
-COPY packages/shared/package.json ./packages/shared/
-COPY packages/config/package.json ./packages/config/
-COPY packages/typescript-config/package.json ./packages/typescript-config/
-RUN pnpm install --frozen-lockfile
+# First copy lockfile and workspace config for better caching
+COPY --from=pruner /app/out/json/ .
+RUN pnpm install --frozen-lockfile --prefer-offline
 
 # Build
 FROM base AS build
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
-COPY --from=deps /app/packages/database/node_modules ./packages/database/node_modules
-COPY --from=deps /app/packages/types/node_modules ./packages/types/node_modules
-COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
-COPY --from=deps /app/packages/config/node_modules ./packages/config/node_modules
-COPY . .
-# Generate Prisma client using prisma from database package node_modules
-RUN cd packages/database && \
-    ./node_modules/.bin/prisma generate
-# Build shared packages first
-RUN pnpm -F @simple-bookkeeping/database build
-RUN pnpm -F @simple-bookkeeping/types build
-RUN pnpm -F @simple-bookkeeping/shared build
-RUN pnpm -F @simple-bookkeeping/config build
-# Build web app with standalone output for Docker
+RUN pnpm add -g turbo
+COPY --from=deps /app/ .
+COPY --from=pruner /app/out/full/ .
+# Copy Prisma schema for generation
+COPY packages/database/prisma ./packages/database/prisma
+# Use turbo to build with proper caching and dependency resolution
 ENV DOCKER_BUILD=true
-RUN pnpm -F @simple-bookkeeping/web build
+RUN turbo run build --filter=@simple-bookkeeping/web
 
 # Runner
 FROM base AS runner
 ENV NODE_ENV production
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
 
 # Copy the standalone build output (Next.js creates this with output: 'standalone')
 COPY --from=build --chown=nodejs:nodejs /app/apps/web/.next/standalone ./
 COPY --from=build --chown=nodejs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
-# Copy Prisma client with engine binaries
-COPY --from=build --chown=nodejs:nodejs /app/node_modules/.pnpm/@prisma+client@*/node_modules/.prisma ./node_modules/.pnpm/@prisma+client@6.10.1_prisma@6.10.1_typescript@5.8.3__typescript@5.8.3/node_modules/.prisma
+COPY --from=build --chown=nodejs:nodejs /app/apps/web/public ./apps/web/public
+# Copy Prisma client with engine binaries (using glob pattern for version independence)
+COPY --from=build --chown=nodejs:nodejs /app/node_modules/.pnpm/@prisma+client@*/node_modules/.prisma ./node_modules/.prisma
 
 USER nodejs
 
