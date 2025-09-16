@@ -1,0 +1,24 @@
+---
+extends: default
+
+# Ignore files that shouldn't be validated
+ignore: |
+  node_modules/
+  .next/
+  dist/
+  build/
+
+rules:
+  line-length:
+    max: 150
+    level: warning
+  truthy:
+    allowed-values: ['true', 'false', 'on', 'off']
+  comments:
+    min-spaces-from-content: 1
+  document-start: disable
+  braces:
+    max-spaces-inside: 1
+  indentation:
+    spaces: 2
+    indent-sequences: true

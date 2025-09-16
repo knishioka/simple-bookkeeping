@@ -30,8 +30,9 @@ jobs:
           # Install actionlint using Go
           echo "Installing actionlint..."
           go install github.com/rhysd/actionlint/cmd/actionlint@latest
-          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-          export PATH="$(go env GOPATH)/bin:$PATH"
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          GOPATH_BIN="$(go env GOPATH)/bin"
+          export PATH="${GOPATH_BIN}:$PATH"
           actionlint -version || echo "actionlint version check failed, continuing..."
 
           # Install shellcheck (usually pre-installed on Ubuntu runners)
@@ -56,8 +57,13 @@ jobs:
             actionlint || echo "⚠️ Actionlint found issues (non-blocking)"
           fi
 
-          # Run yamllint on workflows
-          yamllint -d relaxed .github/workflows/*.yml || echo "⚠️ Yamllint found issues (non-blocking)"
+          # Run yamllint on workflows and docker-compose files
+          # Use project config if available, otherwise use relaxed rules
+          if [ -f .yamllint ] || [ -f .yamllint.yaml ] || [ -f .yamllint.yml ]; then
+            yamllint .github/workflows/*.yml docker-compose*.yml || echo "⚠️ Yamllint found issues (non-blocking)"
+          else
+            yamllint -d relaxed .github/workflows/*.yml docker-compose*.yml || echo "⚠️ Yamllint found issues (non-blocking)"
+          fi
 
       - name: Validate shell scripts
         continue-on-error: true # Temporarily allow failures until existing issues are fixed
