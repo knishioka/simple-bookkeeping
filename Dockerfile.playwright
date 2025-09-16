@@ -27,10 +27,8 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/database/package.json ./packages/database/
-COPY packages/types/package.json ./packages/types/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/test-utils/package.json ./packages/test-utils/
-COPY packages/core/package.json ./packages/core/
 COPY packages/config/package.json ./packages/config/
 
 # Install dependencies
@@ -48,7 +46,6 @@ RUN pnpm --filter @simple-bookkeeping/database prisma:generate
 
 # Build only necessary packages (needed for test helpers)
 RUN pnpm --filter @simple-bookkeeping/database build || true
-RUN pnpm --filter @simple-bookkeeping/types build || true
 RUN pnpm --filter @simple-bookkeeping/shared build || true
 RUN pnpm --filter @simple-bookkeeping/config build || true
 RUN pnpm --filter @simple-bookkeeping/test-utils build || true
