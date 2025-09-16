@@ -36,7 +36,7 @@ jobs:
           # pnpm audit
           echo "### pnpm audit" >> audit-report.md
           echo '```' >> audit-report.md
-          pnpm audit --audit-level moderate 2>&1 | tee -a audit-report.md || echo "pnpm audit found vulnerabilities"
+          pnpm audit --audit-level moderate | tee -a audit-report.md 2>&1 || echo "pnpm audit found vulnerabilities"
           echo '```' >> audit-report.md
           echo "" >> audit-report.md
 
@@ -47,7 +47,7 @@ jobs:
           echo '```' >> audit-report.md
 
           # Set exit code based on audit results
-          pnpm audit --audit-level high 2>&1 > /dev/null || echo "high_vulnerabilities=true" >> $GITHUB_OUTPUT
+          pnpm audit --audit-level high > /dev/null 2>&1 || echo "high_vulnerabilities=true" >> "$GITHUB_OUTPUT"
 
       - name: Check for critical updates
         id: critical
@@ -58,8 +58,8 @@ jobs:
           echo "" >> audit-report.md
 
           for package in $CRITICAL_PACKAGES; do
-            current=$(pnpm list $package --depth=0 2>/dev/null | grep -E "^$package " | awk '{print $2}' || echo "not installed")
-            latest=$(npm view $package version 2>/dev/null || echo "unknown")
+            current=$(pnpm list "$package" --depth=0 2>/dev/null | grep -E "^$package " | awk '{print $2}' || echo "not installed")
+            latest=$(npm view "$package" version 2>/dev/null || echo "unknown")
             echo "- **$package**: Current: $current, Latest: $latest" >> audit-report.md
           done
 

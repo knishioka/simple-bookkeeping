@@ -69,7 +69,7 @@ install_actionlint() {
         sudo mv actionlint /usr/local/bin/
     fi
 
-    return $?
+    return "$?"
 }
 
 # Install shellcheck if needed
@@ -88,7 +88,7 @@ install_shellcheck() {
         sudo apt-get update && sudo apt-get install -y shellcheck
     fi
 
-    return $?
+    return "$?"
 }
 
 # Install yamllint if needed
@@ -104,7 +104,7 @@ install_yamllint() {
         return 1
     fi
 
-    return $?
+    return "$?"
 }
 
 # Validate a single workflow file
@@ -124,7 +124,7 @@ validate_workflow() {
             actionlint_args="-config-file $ACTIONLINT_CONFIG"
         fi
 
-        if actionlint_output=$(actionlint $actionlint_args "$workflow_file" 2>&1); then
+        if actionlint_output=$(actionlint ${actionlint_args} "$workflow_file" 2>&1); then
             print_success "  ${CHECK_MARK} actionlint: No issues found"
         else
             print_error "  ${CROSS_MARK} actionlint: Issues found"
@@ -146,7 +146,7 @@ validate_workflow() {
         fi
     fi
 
-    return $errors_found
+    return "$errors_found"
 }
 
 # Validate a shell script
@@ -170,7 +170,7 @@ validate_script() {
         fi
     fi
 
-    return $errors_found
+    return "$errors_found"
 }
 
 # Validate YAML files
@@ -234,7 +234,7 @@ validate_all_workflows() {
 
     # Check for workflow files
     shopt -s nullglob  # Make glob patterns return empty if no matches
-    workflow_files=($WORKFLOWS_DIR/*.yml $WORKFLOWS_DIR/*.yaml)
+    workflow_files=("$WORKFLOWS_DIR"/*.yml "$WORKFLOWS_DIR"/*.yaml)
     shopt -u nullglob
 
     if [ ${#workflow_files[@]} -eq 0 ]; then

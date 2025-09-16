@@ -84,17 +84,17 @@ jobs:
 
           # Wait for postgres with health check
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] Waiting for PostgreSQL to be healthy..."
-          timeout 60 bash -c 'until [ "$(docker compose -f docker-compose.test.yml ps -q postgres-test | xargs docker inspect --format="{{.State.Health.Status}}" 2>/dev/null)" = "healthy" ]; do 
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] PostgreSQL not ready yet...";
-            sleep 3; 
-          done'
+          timeout 60 bash -c "until [ \"\$(docker compose -f docker-compose.test.yml ps -q postgres-test | xargs docker inspect --format='{{.State.Health.Status}}' 2>/dev/null)\" = 'healthy' ]; do
+            echo \"[\$(date '+%Y-%m-%d %H:%M:%S')] PostgreSQL not ready yet...\";
+            sleep 3;
+          done"
 
           # Wait for Web service with proper health check
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] Waiting for web service to be healthy..."
-          timeout 90 bash -c 'until docker compose -f docker-compose.test.yml exec -T web-test curl -f http://localhost:3000/api/health >/dev/null 2>&1; do 
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Web service not ready yet...";
-            sleep 3; 
-          done'
+          timeout 90 bash -c "until docker compose -f docker-compose.test.yml exec -T web-test curl -f http://localhost:3000/api/health >/dev/null 2>&1; do
+            echo \"[\$(date '+%Y-%m-%d %H:%M:%S')] Web service not ready yet...\";
+            sleep 3;
+          done"
 
       - name: Check service status
         if: always()
@@ -124,7 +124,7 @@ jobs:
           docker compose -f docker-compose.test.yml run \
             --rm \
             -e CI=true \
-            -e TEST_MODE=${TEST_MODE} \
+            -e TEST_MODE="${TEST_MODE}" \
             -e REUSE_SERVER=true \
             -e BASE_URL=http://web-test:3000 \
             -e DEBUG=${{ github.event.inputs.debug || 'false' }} \
@@ -134,7 +134,7 @@ jobs:
             -e NEXT_PUBLIC_SUPABASE_ANON_KEY="${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}" \
             -e TEST_TIMEOUT=45000 \
             -e PLAYWRIGHT_GLOBAL_TIMEOUT=1800000 \
-            playwright || TEST_EXIT_CODE=$?
+            playwright || TEST_EXIT_CODE="$?"
 
           END_TIME=$(date +%s)
           DURATION=$((END_TIME - START_TIME))
@@ -142,8 +142,8 @@ jobs:
           echo "::notice title=Comprehensive E2E Performance::Tests completed in ${DURATION} seconds"
 
           # Export test results
-          echo "TEST_EXIT_CODE=${TEST_EXIT_CODE:-0}" >> $GITHUB_ENV
-          echo "TEST_DURATION=${DURATION}" >> $GITHUB_ENV
+          echo "TEST_EXIT_CODE=${TEST_EXIT_CODE:-0}" >> "$GITHUB_ENV"
+          echo "TEST_DURATION=${DURATION}" >> "$GITHUB_ENV"
 
           # Always exit 0 to allow artifact upload
           exit 0
@@ -247,7 +247,7 @@ jobs:
           if [ "${TEST_EXIT_CODE:-0}" -ne 0 ]; then
             echo "❌ Comprehensive E2E tests failed with exit code ${TEST_EXIT_CODE}"
             echo "::error title=Comprehensive E2E Failure::Tests failed with exit code ${TEST_EXIT_CODE} after ${TEST_DURATION:-unknown} seconds"
-            exit ${TEST_EXIT_CODE}
+            exit "${TEST_EXIT_CODE}"
           else
             echo "✅ All comprehensive E2E tests passed successfully!"
             echo "::notice title=Comprehensive E2E Success::All tests passed in ${TEST_DURATION:-unknown} seconds"
