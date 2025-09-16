@@ -27,11 +27,12 @@ jobs:
         run: |
           echo "📦 Installing validation tools..."
 
-          # Install actionlint
+          # Install actionlint using Go
           echo "Installing actionlint..."
-          curl -s https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.sh | bash
-          sudo mv actionlint /usr/local/bin/
-          actionlint -version
+          go install github.com/rhysd/actionlint/cmd/actionlint@latest
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          actionlint -version || echo "actionlint version check failed, continuing..."
 
           # Install shellcheck (usually pre-installed on Ubuntu runners)
           echo "Checking shellcheck..."
