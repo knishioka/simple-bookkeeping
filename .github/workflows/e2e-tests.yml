@@ -134,9 +134,7 @@ jobs:
             if [ "$COUNTER" -eq "$MAX_WAIT" ]; then
               echo "ERROR: Server failed to start within ${MAX_WAIT} seconds"
               echo "Checking server process..."
-              if ! pgrep -f node > /dev/null; then
-                ps aux | grep -E '[n]ode' || echo "No node process found"
-              fi
+              pgrep -f node > /dev/null && echo "Node processes found" || echo "No node process found"
               echo "Checking port 3000..."
               netstat -an | grep 3000 || lsof -i :3000 || true
               echo "Attempting to get server response..."

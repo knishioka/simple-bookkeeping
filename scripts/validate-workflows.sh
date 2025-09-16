@@ -137,7 +137,7 @@ validate_workflow() {
     # Run yamllint
     if command_exists yamllint; then
         local yamllint_output
-        if yamllint_output=$(yamllint -d relaxed "$workflow_file" 2>&1); then
+        if yamllint_output=$(yamllint "$workflow_file" 2>&1); then
             print_success "  ${CHECK_MARK} yamllint: No issues found"
         else
             print_warning "  ${WARNING_SIGN} yamllint: Issues found"

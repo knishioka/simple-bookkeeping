@@ -29,20 +29,26 @@ jobs:
         id: audit
         continue-on-error: true
         run: |
-          echo "## Security Audit Report" > audit-report.md
-          echo "Date: $(date +'%Y-%m-%d %H:%M:%S')" >> audit-report.md
-          echo "" >> audit-report.md
+          {
+            echo "## Security Audit Report"
+            echo "Date: $(date +'%Y-%m-%d %H:%M:%S')"
+            echo ""
+            echo "### pnpm audit"
+            echo '```'
+          } > audit-report.md
 
-          # pnpm audit
-          echo "### pnpm audit" >> audit-report.md
-          echo '```' >> audit-report.md
           pnpm audit --audit-level moderate | tee -a audit-report.md 2>&1 || echo "pnpm audit found vulnerabilities"
-          echo '```' >> audit-report.md
-          echo "" >> audit-report.md
+
+          {
+            echo '```'
+            echo ""
+          } >> audit-report.md
 
           # Check for outdated dependencies
-          echo "### Outdated Dependencies" >> audit-report.md
-          echo '```' >> audit-report.md
+          {
+            echo "### Outdated Dependencies"
+            echo '```'
+          } >> audit-report.md
           pnpm outdated 2>&1 | head -30 >> audit-report.md || true
           echo '```' >> audit-report.md
 
@@ -103,6 +109,8 @@ jobs:
       - name: Summary
         if: always()
         run: |
-          echo "## 📊 Security Audit Summary" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          cat audit-report.md >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "## 📊 Security Audit Summary"
+            echo ""
+            cat audit-report.md
+          } >> "$GITHUB_STEP_SUMMARY"
