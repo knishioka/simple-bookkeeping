@@ -13,7 +13,7 @@
     "build": "turbo run build",
     "build:packages": "turbo run build --filter='./packages/*'",
     "build:apps": "turbo run build --filter='./apps/*'",
-    "build:web": "pnpm --filter @simple-bookkeeping/database prisma:generate && pnpm build:packages && NODE_ENV=production pnpm --filter @simple-bookkeeping/web build",
+    "build:web": "NODE_ENV=production turbo run build --filter=@simple-bookkeeping/web",
     "start": "turbo run start",
     "lint": "turbo run lint",
     "lint:strict": "turbo run lint && npx eslint 'apps/**/*.{ts,tsx}' 'packages/**/*.ts' --max-warnings 0",
@@ -69,7 +69,9 @@
     "test:failing": "cd apps/web && REUSE_SERVER=true npx playwright test e2e/accounting-periods.spec.ts:55:174 e2e/audit-logs.spec.ts:81:95:122:145:193 e2e/extended-coverage.spec.ts:68 --project=chromium --reporter=list --timeout=20000",
     "test:accounting": "cd apps/web && REUSE_SERVER=true npx playwright test e2e/accounting-periods.spec.ts --project=chromium --reporter=list",
     "test:audit": "cd apps/web && REUSE_SERVER=true npx playwright test e2e/audit-logs.spec.ts --project=chromium --reporter=list",
-    "migrate:users": "tsx scripts/migrate-users-to-supabase.ts"
+    "migrate:users": "tsx scripts/migrate-users-to-supabase.ts",
+    "build:benchmark": "bash scripts/benchmark-build.sh",
+    "build:clean": "pnpm clean && rm -rf .turbo"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",

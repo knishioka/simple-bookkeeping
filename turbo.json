@@ -3,9 +3,25 @@
   "globalDependencies": ["**/.env.*local"],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
-      "env": ["NODE_ENV", "DATABASE_URL"]
+      "dependsOn": ["^build", "prisma:generate"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**", "*.tsbuildinfo"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "env": [
+        "NODE_ENV",
+        "DATABASE_URL",
+        "NEXT_PUBLIC_API_URL",
+        "NEXTAUTH_URL",
+        "NEXTAUTH_SECRET",
+        "JWT_SECRET",
+        "DOCKER_BUILD",
+        "ANALYZE"
+      ]
+    },
+    "prisma:generate": {
+      "cache": true,
+      "inputs": ["prisma/schema.prisma"],
+      "outputs": ["node_modules/.prisma/**", "node_modules/@prisma/client/**", "generated/**"],
+      "env": ["DATABASE_URL"]
     },
     "dev": {
       "cache": false,
@@ -23,15 +39,26 @@
       "dependsOn": ["build"]
     },
     "lint": {
-      "outputs": []
+      "outputs": [".eslintcache"],
+      "cache": true,
+      "inputs": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", ".eslintrc*", "eslint.config.*"]
     },
     "lint:fix": {
-      "outputs": []
+      "outputs": [],
+      "cache": false
     },
     "test": {
-      "outputs": [],
+      "outputs": ["coverage/**"],
       "dependsOn": [],
-      "env": ["NODE_ENV"]
+      "env": ["NODE_ENV"],
+      "inputs": [
+        "**/*.ts",
+        "**/*.tsx",
+        "**/*.test.*",
+        "**/*.spec.*",
+        "jest.config.*",
+        "vitest.config.*"
+      ]
     },
     "test:watch": {
       "cache": false,
@@ -41,28 +68,31 @@
       "outputs": ["coverage/**"],
       "dependsOn": []
     },
+    "test:e2e": {
+      "dependsOn": ["build"],
+      "env": ["NODE_ENV", "DATABASE_URL", "NEXTAUTH_URL"],
+      "cache": false
+    },
     "typecheck": {
-      "outputs": []
+      "outputs": ["*.tsbuildinfo", "**/*.tsbuildinfo"],
+      "cache": true,
+      "inputs": ["**/*.ts", "**/*.tsx", "**/tsconfig.json"]
     },
     "clean": {
       "cache": false
     },
     "db:migrate": {
       "cache": false,
-      "env": ["DATABASE_URL"]
+      "env": ["DATABASE_URL"],
+      "inputs": ["prisma/schema.prisma", "prisma/migrations/**"]
     },
     "db:seed": {
       "cache": false,
       "env": ["DATABASE_URL"],
       "dependsOn": ["db:migrate"]
-    },
-    "db:generate": {
-      "cache": false,
-      "outputs": ["node_modules/.prisma/**", "node_modules/@prisma/client/**"]
-    },
-    "prisma:generate": {
-      "cache": false,
-      "outputs": ["node_modules/.prisma/**", "node_modules/@prisma/client/**"]
     }
+  },
+  "remoteCache": {
+    "signature": true
   }
 }
