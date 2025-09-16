@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p ${WEB_PORT:-3000}",
-    "build": "next build",
+    "build": "NODE_ENV=production next build",
     "start": "next start -p ${WEB_PORT:-3000}",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
