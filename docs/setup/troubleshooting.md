@@ -15,8 +15,8 @@
 pg_isready -h localhost -p 5432
 
 # Dockerを使用している場合
-docker compose -f docker-compose.local.yml ps
-docker compose -f docker-compose.local.yml restart postgres
+docker compose ps
+docker compose restart postgres
 
 # ローカルインストールの場合（macOS）
 brew services restart postgresql@15
