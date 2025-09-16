@@ -84,14 +84,16 @@ jobs:
 
           # Wait for postgres with health check
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] Waiting for PostgreSQL to be healthy..."
-          timeout 60 bash -c "until [ \"\$(docker compose -f docker-compose.test.yml ps -q postgres-test | xargs docker inspect --format='{{.State.Health.Status}}' 2>/dev/null)\" = 'healthy' ]; do
+          timeout 60 bash -c "until [ \"\$(docker compose -f docker-compose.test.yml ps -q postgres-test | \
+            xargs docker inspect --format='{{.State.Health.Status}}' 2>/dev/null)\" = 'healthy' ]; do
             echo \"[\$(date '+%Y-%m-%d %H:%M:%S')] PostgreSQL not ready yet...\";
             sleep 3;
           done"
 
           # Wait for Web service with proper health check
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] Waiting for web service to be healthy..."
-          timeout 90 bash -c "until docker compose -f docker-compose.test.yml exec -T web-test curl -f http://localhost:3000/api/health >/dev/null 2>&1; do
+          timeout 90 bash -c "until docker compose -f docker-compose.test.yml exec -T web-test \
+            curl -f http://localhost:3000/api/health >/dev/null 2>&1; do
             echo \"[\$(date '+%Y-%m-%d %H:%M:%S')] Web service not ready yet...\";
             sleep 3;
           done"

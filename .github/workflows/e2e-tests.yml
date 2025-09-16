@@ -176,13 +176,15 @@ jobs:
 
           END_TIME=$(date +%s)
           DURATION=$((END_TIME - START_TIME))
-          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Fast E2E tests (shard ${{ matrix.shard }}) completed in ${DURATION} seconds with exit code ${TEST_EXIT:-0}"
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Fast E2E tests (shard ${{ matrix.shard }}) completed in ${DURATION}s" \
+            "with exit code ${TEST_EXIT:-0}"
           echo "::notice title=E2E Performance (Shard ${{ matrix.shard }})::Tests completed in ${DURATION} seconds"
 
           # Save performance data with shard info
           # Replace "/" in shard name to avoid file path issues
           SHARD_NAME=$(echo "${{ matrix.shard }}" | sed 's/\//-/g')
-          echo "{\"duration\": ${DURATION}, \"shard\": \"${{ matrix.shard }}\", \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > "performance-report-${SHARD_NAME}.json"
+          echo "{\"duration\": ${DURATION}, \"shard\": \"${{ matrix.shard }}\", " \
+            "\"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > "performance-report-${SHARD_NAME}.json"
           exit "${TEST_EXIT:-0}"
 
       - name: Upload test results

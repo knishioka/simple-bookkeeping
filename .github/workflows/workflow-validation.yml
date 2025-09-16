@@ -57,8 +57,13 @@ jobs:
             actionlint || echo "⚠️ Actionlint found issues (non-blocking)"
           fi
 
-          # Run yamllint on workflows
-          yamllint -d relaxed .github/workflows/*.yml || echo "⚠️ Yamllint found issues (non-blocking)"
+          # Run yamllint on workflows and docker-compose files
+          # Use project config if available, otherwise use relaxed rules
+          if [ -f .yamllint ] || [ -f .yamllint.yaml ] || [ -f .yamllint.yml ]; then
+            yamllint .github/workflows/*.yml docker-compose*.yml || echo "⚠️ Yamllint found issues (non-blocking)"
+          else
+            yamllint -d relaxed .github/workflows/*.yml docker-compose*.yml || echo "⚠️ Yamllint found issues (non-blocking)"
+          fi
 
       - name: Validate shell scripts
         continue-on-error: true # Temporarily allow failures until existing issues are fixed

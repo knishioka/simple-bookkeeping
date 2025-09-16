@@ -1,6 +1,13 @@
 ---
 extends: default
 
+# Ignore files that shouldn't be validated
+ignore: |
+  node_modules/
+  .next/
+  dist/
+  build/
+
 rules:
   line-length:
     max: 150
@@ -12,3 +19,6 @@ rules:
   document-start: disable
   braces:
     max-spaces-inside: 1
+  indentation:
+    spaces: 2
+    indent-sequences: true
