@@ -13,7 +13,7 @@
     "build": "turbo run build",
     "build:packages": "turbo run build --filter='./packages/*'",
     "build:apps": "turbo run build --filter='./apps/*'",
-    "build:web": "NODE_ENV=production turbo run build --filter=@simple-bookkeeping/web",
+    "build:web": "turbo run build --filter=@simple-bookkeeping/web",
     "start": "turbo run start",
     "lint": "turbo run lint",
     "lint:strict": "turbo run lint && npx eslint 'apps/**/*.{ts,tsx}' 'packages/**/*.ts' --max-warnings 0",
