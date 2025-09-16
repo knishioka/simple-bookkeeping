@@ -1,0 +1,30 @@
+# actionlint configuration
+# https://github.com/rhysd/actionlint/blob/main/docs/config.md
+
+# Enable shellcheck integration for run steps
+shellcheck:
+  enable: true
+
+# Enable pyflakes integration for Python scripts
+pyflakes:
+  enable: false
+
+# Ignore specific errors
+# Format: {file pattern}:{line}:{column}: {error message pattern}
+ignore:
+  # Ignore warnings about outdated runner images
+  - 'runs-on:.*(ubuntu-18.04|ubuntu-16.04)'
+  # Ignore warnings about deprecated Node.js versions in actions
+  - 'node-version:.*"(10|12)"'
+
+# Self-hosted runner configuration
+self-hosted-runner:
+  # Labels for self-hosted runners (if any)
+  labels: []
+
+# Configuration paths to check
+config-variables:
+  # Add any custom configuration variables used in workflows
+  # For example, if using {{ vars.CUSTOM_VAR }}
+  - VERCEL_PROJECT_ID
+  - VERCEL_ORG_ID

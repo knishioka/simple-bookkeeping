@@ -31,7 +31,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "prepare": "if [ \"$NODE_ENV\" != \"production\" ]; then husky install; fi",
-    "postinstall": "chmod +x scripts/*.sh 2>/dev/null || true",
+    "postinstall": "chmod +x scripts/*.sh scripts/validate-workflows.sh 2>/dev/null || true",
     "clean": "turbo run clean && rm -rf node_modules",
     "db:init": "./scripts/init-db.sh",
     "db:migrate": "turbo run db:migrate",
@@ -71,7 +71,11 @@
     "test:audit": "cd apps/web && REUSE_SERVER=true npx playwright test e2e/audit-logs.spec.ts --project=chromium --reporter=list",
     "migrate:users": "tsx scripts/migrate-users-to-supabase.ts",
     "build:benchmark": "bash scripts/benchmark-build.sh",
-    "build:clean": "pnpm clean && rm -rf .turbo"
+    "build:clean": "pnpm clean && rm -rf .turbo",
+    "validate:workflows": "bash scripts/validate-workflows.sh",
+    "validate:scripts": "bash scripts/validate-workflows.sh -s",
+    "validate:yaml": "bash scripts/validate-workflows.sh -y",
+    "validate:all": "bash scripts/validate-workflows.sh"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",

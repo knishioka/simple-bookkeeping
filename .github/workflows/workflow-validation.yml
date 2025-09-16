@@ -1,0 +1,107 @@
+name: Workflow Validation
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - 'scripts/**/*.sh'
+      - 'scripts/**/*.bash'
+      - '.husky/**'
+      - 'docker-compose*.yml'
+      - 'docker-compose*.yaml'
+
+jobs:
+  validate-workflows:
+    name: Validate Workflows and Scripts
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install validation tools
+        run: |
+          echo "📦 Installing validation tools..."
+
+          # Install actionlint
+          echo "Installing actionlint..."
+          curl -s https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.sh | bash
+          sudo mv actionlint /usr/local/bin/
+          actionlint -version
+
+          # Install shellcheck (usually pre-installed on Ubuntu runners)
+          echo "Checking shellcheck..."
+          shellcheck --version || sudo apt-get update && sudo apt-get install -y shellcheck
+
+          # Install yamllint
+          echo "Installing yamllint..."
+          pip install yamllint
+          yamllint --version
+
+      - name: Validate GitHub Actions workflows
+        run: |
+          echo "🔍 Validating GitHub Actions workflows..."
+
+          # Run actionlint on all workflows
+          if [ -f .github/actionlint.yaml ]; then
+            actionlint -config-file .github/actionlint.yaml
+          else
+            actionlint
+          fi
+
+          # Run yamllint on workflows
+          yamllint -d relaxed .github/workflows/*.yml || true
+
+      - name: Validate shell scripts
+        run: |
+          echo "🔍 Validating shell scripts..."
+
+          # Find and validate all shell scripts
+          find . -type f \( -name "*.sh" -o -name "*.bash" \) -not -path "./node_modules/*" -not -path "./.git/*" | while read -r script; do
+            echo "Checking: $script"
+            shellcheck -x -e SC1090,SC1091 "$script"
+          done
+
+          # Check Husky hooks
+          for hook in .husky/*; do
+            if [ -f "$hook" ] && [ -x "$hook" ] && head -n 1 "$hook" | grep -qE '^#!/(usr/)?bin/(ba)?sh'; then
+              echo "Checking Husky hook: $hook"
+              shellcheck -x -e SC1090,SC1091 "$hook"
+            fi
+          done
+
+      - name: Validate YAML files
+        run: |
+          echo "🔍 Validating YAML configuration files..."
+
+          # Validate docker-compose files
+          for compose_file in docker-compose*.yml docker-compose*.yaml; do
+            if [ -f "$compose_file" ]; then
+              echo "Checking: $compose_file"
+              yamllint -d relaxed "$compose_file"
+            fi
+          done
+
+      - name: Run comprehensive validation script
+        run: |
+          echo "🚀 Running comprehensive validation..."
+
+          # Make the script executable
+          chmod +x scripts/validate-workflows.sh
+
+          # Run the validation script
+          bash scripts/validate-workflows.sh
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "✅ Validation complete!"
+          echo ""
+          echo "Tools used:"
+          echo "  - actionlint: $(actionlint -version 2>&1 | head -1)"
+          echo "  - shellcheck: $(shellcheck --version | grep version: | cut -d' ' -f2)"
+          echo "  - yamllint: $(yamllint --version)"
