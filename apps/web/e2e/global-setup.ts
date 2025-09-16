@@ -5,12 +5,22 @@
 
 import { chromium, FullConfig } from '@playwright/test';
 
+import {
+  validateTestEnvironment,
+  getTestAdminCredentials,
+  shouldPrepareAuthState,
+  getAuthStatePath,
+  URLS,
+  HEALTH_CHECK,
+  ENV_KEYS,
+} from '../playwright/config';
+
 /**
  * グローバルセットアップ関数
  * 全テスト実行前に一度だけ実行される
  */
 async function globalSetup(config: FullConfig) {
-  console.log('🚀 Starting E2E test global setup...');
+  console.warn('🚀 Starting E2E test global setup...');
 
   const startTime = Date.now();
 
@@ -19,12 +29,12 @@ async function globalSetup(config: FullConfig) {
     validateEnvironment();
 
     // テスト用認証状態の準備（必要に応じて）
-    if (process.env.PREPARE_AUTH_STATE === 'true') {
+    if (shouldPrepareAuthState()) {
       await prepareAuthState(config);
     }
 
     // データベースのセットアップ（CI環境のみ）
-    if (process.env.CI) {
+    if (process.env[ENV_KEYS.CI]) {
       await setupTestDatabase();
     }
 
@@ -32,7 +42,7 @@ async function globalSetup(config: FullConfig) {
     await performHealthCheck();
 
     const duration = Date.now() - startTime;
-    console.log(`✅ Global setup completed in ${duration}ms`);
+    console.warn(`✅ Global setup completed in ${duration}ms`);
   } catch (error) {
     console.error('❌ Global setup failed:', error);
     throw error;
@@ -43,21 +53,16 @@ async function globalSetup(config: FullConfig) {
  * 環境変数の検証
  */
 function validateEnvironment() {
-  console.log('🔍 Validating environment variables...');
+  console.warn('🔍 Validating environment variables...');
 
-  const requiredVars = [
-    'NODE_ENV',
-    // 必要に応じて追加
-  ];
-
-  const missingVars = requiredVars.filter((varName) => !process.env[varName]);
+  const missingVars = validateTestEnvironment();
 
   if (missingVars.length > 0) {
     console.warn(`⚠️ Missing environment variables: ${missingVars.join(', ')}`);
   }
 
   // テスト環境の確認
-  if (process.env.NODE_ENV !== 'test') {
+  if (process.env[ENV_KEYS.NODE_ENV] !== 'test') {
     console.warn('⚠️ NODE_ENV is not set to "test"');
   }
 }
@@ -67,7 +72,7 @@ function validateEnvironment() {
  * 認証が必要なテストのために事前にログイン状態を作成
  */
 async function prepareAuthState(config: FullConfig) {
-  console.log('🔐 Preparing authentication state...');
+  console.warn('🔐 Preparing authentication state...');
 
   const browser = await chromium.launch();
   const context = await browser.newContext();
@@ -78,21 +83,22 @@ async function prepareAuthState(config: FullConfig) {
     const baseURL = config.projects[0]?.use?.baseURL || 'http://localhost:3000';
 
     // ログインページにアクセス
-    await page.goto(`${baseURL}/login`);
+    await page.goto(`${baseURL}${URLS.LOGIN_PATH}`);
 
     // テスト用認証情報でログイン
-    await page.fill('input[name="email"]', 'admin@example.com');
-    await page.fill('input[name="password"]', 'admin123');
+    const credentials = getTestAdminCredentials();
+    await page.fill('input[name="email"]', credentials.email);
+    await page.fill('input[name="password"]', credentials.password);
     await page.click('button[type="submit"]');
 
     // ログイン成功を待つ
-    await page.waitForURL('**/dashboard/**', { timeout: 10000 }).catch(() => {
+    await page.waitForURL(URLS.DASHBOARD_PATH, { timeout: 10000 }).catch(() => {
       console.warn('⚠️ Could not prepare auth state - continuing without it');
     });
 
     // 認証状態を保存
-    await context.storageState({ path: '.auth/admin.json' });
-    console.log('✅ Authentication state saved');
+    await context.storageState({ path: getAuthStatePath() });
+    console.warn('✅ Authentication state saved');
   } catch (error) {
     console.warn('⚠️ Failed to prepare auth state:', error);
   } finally {
@@ -104,7 +110,7 @@ async function prepareAuthState(config: FullConfig) {
  * テスト用データベースのセットアップ
  */
 async function setupTestDatabase() {
-  console.log('🗄️ Setting up test database...');
+  console.warn('🗄️ Setting up test database...');
 
   // CI環境でのデータベースセットアップ
   // 必要に応じて実装
@@ -115,7 +121,7 @@ async function setupTestDatabase() {
     // シードデータ投入
     // await exec('pnpm db:seed');
 
-    console.log('✅ Test database ready');
+    console.warn('✅ Test database ready');
   } catch (error) {
     console.warn('⚠️ Database setup failed:', error);
   }
@@ -126,7 +132,7 @@ async function setupTestDatabase() {
  * アプリケーションが起動していることを確認
  */
 async function performHealthCheck() {
-  console.log('🏥 Performing health check...');
+  console.warn('🏥 Performing health check...');
 
   // Import unified test environment configuration
   const { getTestEnvironment } = await import('@simple-bookkeeping/config');
@@ -139,11 +145,13 @@ async function performHealthCheck() {
   // Only check the Next.js web server since Express.js API has been removed
   const urls = [{ url: webUrl, name: 'Web' }];
 
-  console.log('ℹ️ Checking Next.js web server health (Express.js API has been removed)');
+  console.warn('ℹ️ Checking Next.js web server health (Express.js API has been removed)');
 
   // Add retry logic for CI environment
-  const maxRetries = process.env.CI ? 5 : 1;
-  const retryDelay = 2000; // 2 seconds
+  const maxRetries = process.env[ENV_KEYS.CI]
+    ? HEALTH_CHECK.MAX_RETRIES_CI
+    : HEALTH_CHECK.MAX_RETRIES_LOCAL;
+  const retryDelay = HEALTH_CHECK.RETRY_DELAY;
 
   for (const { url, name } of urls) {
     let attempts = 0;
@@ -156,11 +164,11 @@ async function performHealthCheck() {
         const response = await fetch(url, { method: 'HEAD' });
 
         if (response.ok) {
-          console.log(`✅ ${name} service at ${url} is healthy`);
+          console.warn(`✅ ${name} service at ${url} is healthy`);
           isHealthy = true;
         } else if (response.status === 404 && name === 'Web') {
           // For web service, 404 might be acceptable during startup
-          console.log(`✅ ${name} service at ${url} is responding (404)`);
+          console.warn(`✅ ${name} service at ${url} is responding (404)`);
           isHealthy = true;
         } else {
           console.warn(`⚠️ ${name} service at ${url} returned status ${response.status}`);
