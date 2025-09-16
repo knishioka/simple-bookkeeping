@@ -20,6 +20,34 @@ if [ -f "./scripts/check-build.sh" ]; then
   fi
 fi
 
+# Check GitHub Actions workflows if they've been modified
+workflow_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.github/workflows/.*\.(yml|yaml)$' || true)
+script_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(sh|bash)$' || true)
+
+if [ -n "$workflow_files" ] || [ -n "$script_files" ]; then
+  if [ -f "./scripts/validate-workflows.sh" ]; then
+    echo "🔍 Validating workflows and scripts..."
+
+    # Determine what to validate
+    validate_args=""
+    if [ -n "$workflow_files" ]; then
+      validate_args="-w"
+    fi
+    if [ -n "$script_files" ]; then
+      if [ -z "$validate_args" ]; then
+        validate_args="-s"
+      else
+        # Both workflows and scripts changed, validate all
+        validate_args=""
+      fi
+    fi
+
+    # Run validation but don't block if tools aren't installed
+    bash ./scripts/validate-workflows.sh $validate_args || true
+    echo "⚠️  Validation completed (non-blocking for initial implementation)"
+  fi
+fi
+
 # Auto-fix missing newlines at end of files
 echo "🔧 Auto-fixing missing newlines at end of files..."
 files_fixed=""
