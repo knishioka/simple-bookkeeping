@@ -393,7 +393,6 @@ export function sanitizeErrorMessage(message: string): string {
     .replace(/secret["\s:=]+["']?[\w-]+/gi, 'secret=[REDACTED]') // Secrets
     .replace(/\b[\w._%+-]+@[\w.-]+\.[A-Z]{2,}\b/gi, '[EMAIL]') // Email addresses
     .replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '[IP]') // IP addresses
-    .replace(/\/home\/[\w/]+/g, '/home/[USER]') // User home paths
-    .replace(/\/Users\/[\w/]+/g, '/Users/[USER]') // macOS user paths
-    .replace(/\/Users\/\[USER\][\w.]*\//g, '/Users/[USER]/'); // Handle already partially replaced paths
+    .replace(/\/home\/[\w.-]+(?:\/[\w.-]+)*/g, '/home/[USER]') // User home paths
+    .replace(/\/Users\/[\w.-]+(?:\/[\w.-]+)*/g, '/Users/[USER]'); // macOS user paths - more precise pattern
 }
