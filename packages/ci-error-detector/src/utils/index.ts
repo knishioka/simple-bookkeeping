@@ -388,6 +388,8 @@ export function sanitizeErrorMessage(message: string): string {
   // Remove potential sensitive information
   return message
     .replace(/Bearer\s+[\w-]+/gi, 'Bearer [REDACTED]') // API tokens
+    .replace(/jwt\s+[\w-]+\.[\w-]+\.[\w-]+/gi, 'jwt=[REDACTED]') // JWT tokens
+    .replace(/oauth[\s:=]+["']?[\w-]+/gi, 'oauth=[REDACTED]') // OAuth tokens
     .replace(/api[_-]?key["\s:=]+["']?[\w-]+/gi, 'api_key=[REDACTED]') // API keys
     .replace(/password["\s:=]+["']?[^"'\s]+/gi, 'password=[REDACTED]') // Passwords
     .replace(/secret["\s:=]+["']?[\w-]+/gi, 'secret=[REDACTED]') // Secrets

@@ -11,7 +11,7 @@
  *   ./analyze-github-logs.ts --repo owner/repo --workflow "CI Pipeline"
  */
 
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 
 import { CIErrorClassifier, ErrorSeverity } from '../src';
 
@@ -44,15 +44,40 @@ class GitHubLogAnalyzer {
   }
 
   /**
+   * Validate repository format
+   */
+  private validateRepo(repo: string): void {
+    const repoPattern = /^[\w-]+\/[\w.-]+$/;
+    if (!repoPattern.test(repo)) {
+      throw new Error(`Invalid repository format: ${repo}. Expected format: owner/repo`);
+    }
+  }
+
+  /**
    * Fetch failed runs from GitHub
    */
   async fetchFailedRuns(repo: string, workflow?: string): Promise<GitHubRun[]> {
-    try {
-      const cmd = workflow
-        ? `gh run list --repo ${repo} --workflow "${workflow}" --status failure --json id,status,conclusion,name,htmlUrl,createdAt --limit 10`
-        : `gh run list --repo ${repo} --status failure --json id,status,conclusion,name,htmlUrl,createdAt --limit 10`;
+    this.validateRepo(repo);
 
-      const output = execSync(cmd, { encoding: 'utf-8' });
+    try {
+      const args = [
+        'run',
+        'list',
+        '--repo',
+        repo,
+        '--status',
+        'failure',
+        '--json',
+        'id,status,conclusion,name,htmlUrl,createdAt',
+        '--limit',
+        '10',
+      ];
+
+      if (workflow) {
+        args.push('--workflow', workflow);
+      }
+
+      const output = execFileSync('gh', args, { encoding: 'utf-8' });
       return JSON.parse(output);
     } catch (error) {
       console.error('Failed to fetch runs from GitHub:', error);
@@ -64,10 +89,17 @@ class GitHubLogAnalyzer {
    * Fetch logs for a specific run
    */
   async fetchRunLogs(repo: string, runId: string): Promise<string> {
+    this.validateRepo(repo);
+
+    // Validate run ID
+    if (!/^\d+$/.test(runId)) {
+      throw new Error('Invalid run ID. Must be a numeric value.');
+    }
+
     try {
       console.log(`📥 Fetching logs for run ${runId}...`);
-      const cmd = `gh run view ${runId} --repo ${repo} --log-failed`;
-      return execSync(cmd, { encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024 }); // 50MB buffer
+      const args = ['run', 'view', runId, '--repo', repo, '--log-failed'];
+      return execFileSync('gh', args, { encoding: 'utf-8', maxBuffer: 50 * 1024 * 1024 }); // 50MB buffer
     } catch (error) {
       console.error(`Failed to fetch logs for run ${runId}:`, error);
       return '';

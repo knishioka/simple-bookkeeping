@@ -11,7 +11,7 @@
  *   pnpm --filter @simple-bookkeeping/ci-error-detector analyze:github 436 --job "Lint" --verbose
  */
 
-import { execSync } from 'child_process';
+import { execSync, execFileSync } from 'child_process';
 import * as fs from 'fs';
 
 import { CIErrorClassifier } from '../src/core/classifier';
@@ -77,7 +77,12 @@ class GitHubCIAnalyzer {
 
   constructor(options: { repo?: string; maxRetries?: number } = {}) {
     this.classifier = new CIErrorClassifier();
-    this.repo = options.repo || this.detectRepo();
+    if (options.repo) {
+      this.validateRepo(options.repo);
+      this.repo = options.repo;
+    } else {
+      this.repo = this.detectRepo();
+    }
     this.maxRetries = options.maxRetries || 3;
   }
 
@@ -86,7 +91,9 @@ class GitHubCIAnalyzer {
       const remoteUrl = execSync('git config --get remote.origin.url', { encoding: 'utf8' }).trim();
       const match = remoteUrl.match(/github\.com[:/]([^/]+\/[^.]+)/);
       if (match) {
-        return match[1];
+        const repo = match[1];
+        this.validateRepo(repo);
+        return repo;
       }
     } catch {
       // Fallback to default repo if detection fails
@@ -94,16 +101,24 @@ class GitHubCIAnalyzer {
     return 'knishioka/simple-bookkeeping';
   }
 
-  private executeGHCommand(command: string, retries = this.maxRetries): string {
+  private validateRepo(repo: string): void {
+    const repoPattern = /^[\w-]+\/[\w.-]+$/;
+    if (!repoPattern.test(repo)) {
+      throw new Error(`Invalid repository format: ${repo}. Expected format: owner/repo`);
+    }
+  }
+
+  private executeGHCommand(args: string[], retries = this.maxRetries): string {
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        return execSync(`gh ${command}`, {
+        return execFileSync('gh', args, {
           encoding: 'utf8',
           maxBuffer: 50 * 1024 * 1024, // 50MB buffer for large logs
         });
-      } catch {
+      } catch (error) {
         if (attempt === retries) {
-          throw new Error(`GitHub CLI command failed after ${retries} attempts: ${error.message}`);
+          const message = error instanceof Error ? error.message : 'Unknown error';
+          throw new Error(`GitHub CLI command failed after ${retries} attempts: ${message}`);
         }
         console.error(`Attempt ${attempt} failed, retrying...`);
         // Exponential backoff
@@ -117,10 +132,21 @@ class GitHubCIAnalyzer {
   async analyzePR(prNumber: string): Promise<CIErrorReport> {
     console.log(`🔍 Analyzing PR #${prNumber} in ${this.repo}...`);
 
+    // Validate PR number
+    if (!/^\d+$/.test(prNumber)) {
+      throw new Error('Invalid PR number. Must be a numeric value.');
+    }
+
     // Get PR checks
-    const checksJson = this.executeGHCommand(
-      `pr checks ${prNumber} --repo ${this.repo} --json name,status,conclusion,link`
-    );
+    const checksJson = this.executeGHCommand([
+      'pr',
+      'checks',
+      prNumber,
+      '--repo',
+      this.repo,
+      '--json',
+      'name,status,conclusion,link',
+    ]);
     const checks: GitHubCheckRun[] = JSON.parse(checksJson);
 
     // Find failed checks
@@ -152,9 +178,16 @@ class GitHubCIAnalyzer {
     console.log(`❌ Found ${failedChecks.length} failed checks`);
 
     // Get the latest workflow run for the PR
-    const runsJson = this.executeGHCommand(
-      `run list --repo ${this.repo} --json id,name,status,conclusion,htmlUrl,createdAt,updatedAt --limit 50`
-    );
+    const runsJson = this.executeGHCommand([
+      'run',
+      'list',
+      '--repo',
+      this.repo,
+      '--json',
+      'id,name,status,conclusion,htmlUrl,createdAt,updatedAt',
+      '--limit',
+      '50',
+    ]);
     const runs: GitHubWorkflowRun[] = JSON.parse(runsJson);
 
     // Analyze each failed check
@@ -170,9 +203,15 @@ class GitHubCIAnalyzer {
       if (run) {
         try {
           // Get detailed job information
-          const jobsJson = this.executeGHCommand(
-            `run view ${run.id} --repo ${this.repo} --json jobs`
-          );
+          const jobsJson = this.executeGHCommand([
+            'run',
+            'view',
+            String(run.id),
+            '--repo',
+            this.repo,
+            '--json',
+            'jobs',
+          ]);
           const jobsData = JSON.parse(jobsJson);
           const jobs: GitHubJob[] = jobsData.jobs;
 
@@ -184,9 +223,16 @@ class GitHubCIAnalyzer {
 
             // Get job logs
             try {
-              const logs = this.executeGHCommand(
-                `run view ${run.id} --repo ${this.repo} --log --job ${job.id}`
-              );
+              const logs = this.executeGHCommand([
+                'run',
+                'view',
+                String(run.id),
+                '--repo',
+                this.repo,
+                '--log',
+                '--job',
+                String(job.id),
+              ]);
 
               allLogs.push(`\n=== Job: ${job.name} ===`);
               allLogs.push(logs);
@@ -257,10 +303,21 @@ class GitHubCIAnalyzer {
   async analyzeRun(runId: string): Promise<CIErrorReport> {
     console.log(`Analyzing workflow run #${runId}...`);
 
+    // Validate run ID
+    if (!/^\d+$/.test(runId)) {
+      throw new Error('Invalid run ID. Must be a numeric value.');
+    }
+
     // Get run details
-    const runJson = this.executeGHCommand(
-      `run view ${runId} --repo ${this.repo} --json id,name,status,conclusion,htmlUrl,jobs`
-    );
+    const runJson = this.executeGHCommand([
+      'run',
+      'view',
+      runId,
+      '--repo',
+      this.repo,
+      '--json',
+      'id,name,status,conclusion,htmlUrl,jobs',
+    ]);
     const runData = JSON.parse(runJson);
     const jobs: GitHubJob[] = runData.jobs;
 
@@ -271,9 +328,16 @@ class GitHubCIAnalyzer {
     for (const job of failedJobs) {
       console.log(`\nProcessing failed job: ${job.name}`);
       try {
-        const logs = this.executeGHCommand(
-          `run view ${runId} --repo ${this.repo} --log --job ${job.id}`
-        );
+        const logs = this.executeGHCommand([
+          'run',
+          'view',
+          runId,
+          '--repo',
+          this.repo,
+          '--log',
+          '--job',
+          String(job.id),
+        ]);
         allLogs.push(`\n=== Job: ${job.name} ===`);
         allLogs.push(logs);
       } catch {
