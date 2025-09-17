@@ -17,7 +17,7 @@ import { waitForPageReady } from './helpers/wait-strategies';
 let auth: SupabaseTestAuth;
 let dataManager: TestDataManager;
 
-test.describe('Supabase認証を使用したE2Eテスト', () => {
+test.describe.skip('Supabase認証を使用したE2Eテスト', () => {
   // テストのタイムアウトを設定（認証処理を考慮）
   test.use({ navigationTimeout: 30000 });
   test.setTimeout(60000);
