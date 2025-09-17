@@ -255,7 +255,6 @@ export const ENV_KEYS = {
   NODE_ENV: 'NODE_ENV',
   PORT: 'PORT',
   PROD_URL: 'PROD_URL',
-  REUSE_SERVER: 'REUSE_SERVER',
   USE_GLOBAL_SETUP: 'USE_GLOBAL_SETUP',
   PREPARE_AUTH_STATE: 'PREPARE_AUTH_STATE',
 } as const;
@@ -305,7 +304,10 @@ export const HEALTH_CHECK = {
 // Server Configuration
 // ============================================
 export const SERVER_CONFIG = {
-  COMMAND: 'pnpm --filter @simple-bookkeeping/web dev',
+  // Use production build in CI for performance
+  COMMAND: process.env.CI
+    ? 'pnpm --filter @simple-bookkeeping/web start'
+    : 'pnpm --filter @simple-bookkeeping/web dev',
   ENV: {
     NODE_ENV: 'test',
   },

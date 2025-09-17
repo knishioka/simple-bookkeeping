@@ -66,11 +66,8 @@ const getWebServerConfig = () => {
     return undefined;
   }
 
-  // Skip if reusing existing server
-  if (process.env[ENV_KEYS.REUSE_SERVER] === 'true') {
-    return undefined;
-  }
-
+  // Always use Playwright's native web server management in CI
+  // In local development, reuse existing server if running
   return {
     command: SERVER_CONFIG.COMMAND,
     port: PORTS.WEB,
@@ -81,6 +78,10 @@ const getWebServerConfig = () => {
     env: {
       ...SERVER_CONFIG.ENV,
       [ENV_KEYS.PORT]: String(PORTS.WEB),
+      DATABASE_URL:
+        process.env.DATABASE_URL || 'postgresql://test:test@localhost:5432/bookkeeping_test',
+      NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'test-nextauth-secret',
+      NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
       // Supabase environment variables are already set by setSupabaseEnvVars()
       NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
       NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,

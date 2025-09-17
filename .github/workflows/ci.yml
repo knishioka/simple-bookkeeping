@@ -7,8 +7,21 @@ on:
     branches: [main]
 
 jobs:
+  # Setup job that builds and caches dependencies
+  setup:
+    name: Setup and Build
+    uses: ./.github/workflows/reusable-setup.yml
+    with:
+      node-version: '20'
+      build-packages: true
+      build-app: true
+      setup-database: false
+      install-playwright: false
+    secrets: inherit
+
   lint:
     name: Lint
+    needs: setup
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,19 +33,23 @@ jobs:
           node-version: 20
           cache: 'pnpm'
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Restore dependencies from cache
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Restore build cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            packages/*/dist
+            **/*.tsbuildinfo
+          key: ${{ runner.os }}-build-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-build-
 
       - name: Generate Prisma Client
         run: pnpm --filter @simple-bookkeeping/database prisma:generate
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test?schema=public
-
-      - name: Build packages
-        run: pnpm build:packages
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
 
       - name: Run linting
         run: pnpm lint:strict
@@ -42,6 +59,7 @@ jobs:
 
   typecheck:
     name: Type Check
+    needs: setup
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -53,30 +71,35 @@ jobs:
           node-version: 20
           cache: 'pnpm'
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Restore dependencies from cache
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Restore build cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            packages/*/dist
+            **/*.tsbuildinfo
+          key: ${{ runner.os }}-build-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-build-
 
       - name: Generate Prisma Client
         run: pnpm --filter @simple-bookkeeping/database prisma:generate
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test?schema=public
 
-      - name: Build packages
-        run: pnpm build:packages
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
-
       - name: Run type checking
         run: pnpm typecheck
 
   test:
     name: Test
+    needs: setup
     runs-on: ubuntu-latest
 
     services:
       postgres:
-        image: postgres:15
+        image: postgres:16
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -99,19 +122,23 @@ jobs:
           node-version: 20
           cache: 'pnpm'
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Restore dependencies from cache
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Restore build cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            packages/*/dist
+            **/*.tsbuildinfo
+          key: ${{ runner.os }}-build-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-build-
 
       - name: Generate Prisma Client
         run: pnpm --filter @simple-bookkeeping/database prisma:generate
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test?schema=public
-
-      - name: Build packages
-        run: pnpm build:packages
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
 
       - name: Setup database schema
         run: cd packages/database && npx prisma db push --skip-generate
@@ -134,8 +161,9 @@ jobs:
           TEST_VIEWER_EMAIL: ${{ secrets.TEST_VIEWER_EMAIL || 'viewer.test@localhost' }}
           TEST_VIEWER_PASSWORD: ${{ secrets.TEST_VIEWER_PASSWORD || 'ViewerTest123!' }}
 
-  build:
-    name: Build
+  build-verification:
+    name: Build Verification
+    needs: setup
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -147,23 +175,41 @@ jobs:
           node-version: 20
           cache: 'pnpm'
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Restore dependencies from cache
+        run: pnpm install --frozen-lockfile --prefer-offline
 
-      - name: Generate Prisma Client
-        run: pnpm --filter @simple-bookkeeping/database prisma:generate
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test?schema=public
+      - name: Restore build cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            apps/web/.next
+            packages/*/dist
+            **/*.tsbuildinfo
+          key: ${{ runner.os }}-build-${{ github.sha }}
 
-      - name: Build packages
-        run: pnpm build:packages
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
+      - name: Verify build outputs exist
+        run: |
+          echo "Checking build outputs..."
+          if [ ! -d "apps/web/.next" ]; then
+            echo "ERROR: apps/web/.next directory not found!"
+            exit 1
+          fi
+          echo "✅ Build outputs verified"
 
-      - name: Build applications
-        run: pnpm build
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_bookkeeping?schema=public
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
+  # Final status check for branch protection
+  ci-status:
+    name: CI Status
+    if: always()
+    needs: [lint, typecheck, test, build-verification]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check CI status
+        run: |
+          if [[ "${{ needs.lint.result }}" != "success" ]] || \
+             [[ "${{ needs.typecheck.result }}" != "success" ]] || \
+             [[ "${{ needs.test.result }}" != "success" ]] || \
+             [[ "${{ needs.build-verification.result }}" != "success" ]]; then
+            echo "❌ CI failed"
+            exit 1
+          fi
+          echo "✅ CI passed"

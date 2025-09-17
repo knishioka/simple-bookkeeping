@@ -12,7 +12,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Setup job that builds and caches dependencies
+  setup:
+    name: Setup E2E Environment
+    uses: ./.github/workflows/reusable-setup.yml
+    with:
+      node-version: '20'
+      build-packages: true
+      build-app: true
+      setup-database: false
+      install-playwright: true
+      playwright-browsers: 'chromium'
+    secrets: inherit
+
   e2e-tests:
+    needs: setup
     runs-on: ubuntu-latest
     timeout-minutes: 8 # Reduced to 8 minutes for fast test suite (Issue #336)
 
@@ -48,102 +62,36 @@ jobs:
           node-version: 20
           cache: 'pnpm'
 
-      - name: Install dependencies
-        run: pnpm install
+      - name: Restore dependencies from cache
+        run: pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Generate Prisma Client
+        run: pnpm --filter @simple-bookkeeping/database prisma:generate
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/bookkeeping_test
+
+      - name: Restore build cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            apps/web/.next
+            packages/*/dist
+            **/*.tsbuildinfo
+          key: ${{ runner.os }}-build-${{ github.sha }}
+          fail-on-cache-miss: true
 
       - name: Setup database
         env:
           DATABASE_URL: postgresql://test:test@localhost:5432/bookkeeping_test
         run: |
-          pnpm --filter @simple-bookkeeping/database prisma:generate
           cd packages/database && npx prisma db push --skip-generate
 
-      - name: Build packages first
-        run: pnpm build:packages
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
-
-      - name: Build Web application
-        run: pnpm --filter @simple-bookkeeping/web build
-        env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/bookkeeping_test
-          DOCKER_BUILD: false
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
-
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        id: playwright-cache
+      - name: Restore Playwright browsers cache
+        uses: actions/cache/restore@v4
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json', '**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-playwright-
-
-      - name: Install Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm --filter @simple-bookkeeping/web exec playwright install --with-deps chromium
-
-      - name: Install Playwright browser deps (cache hit)
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: pnpm --filter @simple-bookkeeping/web exec playwright install-deps chromium
-
-      - name: Start Web server in background
-        env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/bookkeeping_test
-          NEXTAUTH_SECRET: test-nextauth-secret
-          NEXTAUTH_URL: http://localhost:3000
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
-        run: |
-          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting web server..."
-          cd apps/web
-          # Check if build output exists
-          if [ ! -d ".next" ]; then
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: .next directory not found!"
-            ls -la
-            exit 1
-          fi
-          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Found .next directory, starting server..."
-          pnpm start &
-          SERVER_PID="$!"
-          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server started with PID: ${SERVER_PID}"
-
-          # Wait for server to be fully ready (optimized for fast startup)
-          echo "Waiting for web server to be ready..."
-          COUNTER=0
-          MAX_WAIT=90
-          while [ "$COUNTER" -lt "$MAX_WAIT" ]; do
-            COUNTER=$((COUNTER+1))
-            if curl -f http://localhost:3000 >/dev/null 2>&1; then
-              echo "Web server responded after ${COUNTER} seconds, checking auth routes..."
-              # Additional check for auth routes to ensure full initialization
-              if curl -f http://localhost:3000/auth/login >/dev/null 2>&1; then
-                echo "Auth routes are ready, giving server 3 more seconds to fully stabilize..."
-                sleep 3
-                # Final verification that server is fully ready
-                if curl -f http://localhost:3000/auth/login >/dev/null 2>&1 && curl -f http://localhost:3000 >/dev/null 2>&1; then
-                  echo "✅ Web server is fully ready after $((COUNTER+3)) seconds"
-                  break
-                fi
-              else
-                echo "Auth routes not ready yet, continuing to wait..."
-              fi
-            fi
-            if [ "$COUNTER" -eq "$MAX_WAIT" ]; then
-              echo "ERROR: Server failed to start within ${MAX_WAIT} seconds"
-              echo "Checking server process..."
-              pgrep -f node > /dev/null && echo "Node processes found" || echo "No node process found"
-              echo "Checking port 3000..."
-              netstat -an | grep 3000 || lsof -i :3000 || true
-              echo "Attempting to get server response..."
-              curl -v http://localhost:3000 2>&1 || true
-              curl -v http://localhost:3000/auth/login 2>&1 || true
-              exit 1
-            fi
-            sleep 1
-          done
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}-chromium
+          fail-on-cache-miss: true
 
       - name: Run E2E tests with performance tracking
         env:
@@ -154,7 +102,6 @@ jobs:
           CI: true
           TEST_MODE: fast
           NODE_ENV: test
-          REUSE_SERVER: true
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
           # Test credentials from secrets (with fallbacks)
@@ -170,9 +117,9 @@ jobs:
           START_TIME=$(date +%s)
 
           # Run fast test suite with sharding and unified config
+          # Playwright will automatically start the web server based on webServer config
           cd apps/web
-          # Set TEST_MODE inline to ensure proper configuration is used
-          timeout 360 env TEST_MODE=fast npx playwright test --shard=${{ matrix.shard }} --grep-invert="@slow|@integration" || TEST_EXIT="$?"
+          timeout 360 npx playwright test --shard=${{ matrix.shard }} --grep-invert="@slow|@integration" || TEST_EXIT="$?"
 
           END_TIME=$(date +%s)
           DURATION=$((END_TIME - START_TIME))
