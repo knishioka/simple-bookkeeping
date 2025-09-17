@@ -1,5 +1,4 @@
 #!/usr/bin/env tsx
-/* eslint-disable no-console */
 /**
  * Migration script from Prisma (PostgreSQL) to Supabase
  * This script migrates existing data from the current database to Supabase
