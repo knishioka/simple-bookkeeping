@@ -1,0 +1,137 @@
+name: Reusable Setup Workflow
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: 'Node.js version to use'
+        type: string
+        default: '20'
+      build-packages:
+        description: 'Whether to build packages'
+        type: boolean
+        default: true
+      build-app:
+        description: 'Whether to build the application'
+        type: boolean
+        default: false
+      setup-database:
+        description: 'Whether to setup database schema'
+        type: boolean
+        default: false
+      install-playwright:
+        description: 'Whether to install Playwright browsers'
+        type: boolean
+        default: false
+      playwright-browsers:
+        description: 'Playwright browsers to install'
+        type: string
+        default: 'chromium'
+    outputs:
+      cache-key:
+        description: 'Cache key for dependencies'
+        value: ${{ jobs.setup.outputs.cache-key }}
+      build-cache-key:
+        description: 'Cache key for build outputs'
+        value: ${{ jobs.setup.outputs.build-cache-key }}
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.cache.outputs.cache-key }}
+      build-cache-key: ${{ steps.cache.outputs.build-cache-key }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: 'pnpm'
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm --filter @simple-bookkeeping/database prisma:generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test?schema=public
+
+      - name: Build packages
+        if: ${{ inputs.build-packages }}
+        run: pnpm build:packages
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
+
+      - name: Build application
+        if: ${{ inputs.build-app }}
+        run: pnpm --filter @simple-bookkeeping/web build
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test?schema=public
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
+          DOCKER_BUILD: false
+
+      - name: Setup database schema
+        if: ${{ inputs.setup-database }}
+        run: |
+          cd packages/database && npx prisma db push --skip-generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test?schema=public
+
+      - name: Cache Playwright browsers
+        if: ${{ inputs.install-playwright }}
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}-${{ inputs.playwright-browsers }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install Playwright browsers
+        if: ${{ inputs.install-playwright && steps.playwright-cache.outputs.cache-hit != 'true' }}
+        run: pnpm --filter @simple-bookkeeping/web exec playwright install --with-deps ${{ inputs.playwright-browsers }}
+
+      - name: Install Playwright browser deps (cache hit)
+        if: ${{ inputs.install-playwright && steps.playwright-cache.outputs.cache-hit == 'true' }}
+        run: pnpm --filter @simple-bookkeeping/web exec playwright install-deps ${{ inputs.playwright-browsers }}
+
+      - name: Cache build outputs
+        if: ${{ inputs.build-app }}
+        uses: actions/cache@v4
+        with:
+          path: |
+            apps/web/.next
+            packages/*/dist
+            **/*.tsbuildinfo
+          key: ${{ runner.os }}-build-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-build-
+
+      - name: Output cache keys
+        id: cache
+        run: |
+          echo "cache-key=${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}" >> $GITHUB_OUTPUT
+          echo "build-cache-key=${{ runner.os }}-build-${{ github.sha }}" >> $GITHUB_OUTPUT

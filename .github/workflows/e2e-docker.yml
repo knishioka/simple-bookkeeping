@@ -127,7 +127,6 @@ jobs:
             --rm \
             -e CI=true \
             -e TEST_MODE="${TEST_MODE}" \
-            -e REUSE_SERVER=true \
             -e BASE_URL=http://web-test:3000 \
             -e DEBUG=${{ github.event.inputs.debug || 'false' }} \
             -e TEST_RETRIES=3 \
