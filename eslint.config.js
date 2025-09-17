@@ -186,7 +186,7 @@ export default [
 
   // Seed and script files overrides
   {
-    files: ['**/seed.ts', '**/scripts/**/*.js'],
+    files: ['**/seed.ts', '**/scripts/**/*.{js,ts}', '**/examples/**/*.{js,ts}'],
     rules: {
       'no-console': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
