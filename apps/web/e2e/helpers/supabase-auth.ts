@@ -57,7 +57,15 @@ let supabaseAdmin: ReturnType<typeof createClient> | null = null;
 /**
  * テスト環境モードの判定
  */
-function getTestMode(): 'docker' | 'cloud' {
+function getTestMode(): 'docker' | 'cloud' | 'mock' {
+  // Check if we're using placeholder/mock values
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+  if (url.includes('placeholder') || !serviceKey) {
+    return 'mock';
+  }
+
   return (process.env.E2E_TEST_MODE as 'docker' | 'cloud') || 'docker';
 }
 
@@ -151,8 +159,19 @@ export class SupabaseAuth {
    * テストユーザーを作成または取得
    */
   private static async ensureTestUser(role: UserRole): Promise<SupabaseUser> {
-    const admin = getSupabaseAdmin();
+    const mode = getTestMode();
     const testUser = SUPABASE_TEST_USERS[role];
+
+    // モックモードの場合は、モックユーザーを返す
+    if (mode === 'mock') {
+      return {
+        id: `mock-${role}-${Date.now()}`,
+        email: testUser.email,
+        user_metadata: testUser.metadata,
+      };
+    }
+
+    const admin = getSupabaseAdmin();
 
     try {
       // 既存ユーザーを削除（クリーンな状態を保証）
@@ -194,7 +213,23 @@ export class SupabaseAuth {
    * 実際のSupabase認証を使用してログイン
    */
   private static async authenticateUser(role: UserRole): Promise<SupabaseSession> {
+    const mode = getTestMode();
     const testUser = SUPABASE_TEST_USERS[role];
+
+    // モックモードの場合は、モックセッションを返す
+    if (mode === 'mock') {
+      return {
+        access_token: `mock-access-token-${role}-${Date.now()}`,
+        refresh_token: `mock-refresh-token-${role}-${Date.now()}`,
+        expires_at: Date.now() / 1000 + 3600,
+        user: {
+          id: `mock-${role}-${Date.now()}`,
+          email: testUser.email,
+          user_metadata: testUser.metadata,
+        },
+      };
+    }
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -326,6 +361,7 @@ export class SupabaseAuth {
    * 認証をセットアップ（メインメソッド）
    *
    * 実際のSupabase認証を使用してテスト環境をセットアップします。
+   * 環境に応じて実際のSupabaseまたはモック認証を使用します。
    */
   static async setup(
     context: BrowserContext,
@@ -333,6 +369,13 @@ export class SupabaseAuth {
     options: SupabaseAuthOptions = {}
   ): Promise<void> {
     const { role = 'admin', organizationId, customUser, skipCookies = false } = options;
+    const mode = getTestMode();
+
+    // モックモードの場合は従来のモック認証を使用
+    if (mode === 'mock') {
+      await this.setupMockAuth(context, page, options);
+      return;
+    }
 
     try {
       // テストユーザーを作成または取得
@@ -393,6 +436,83 @@ export class SupabaseAuth {
 
   static async setupAsViewer(context: BrowserContext, page: Page): Promise<void> {
     await this.setup(context, page, { role: 'viewer' });
+  }
+
+  /**
+   * モック認証のセットアップ（Supabaseが利用できない場合のフォールバック）
+   */
+  private static async setupMockAuth(
+    context: BrowserContext,
+    page: Page,
+    options: SupabaseAuthOptions = {}
+  ): Promise<void> {
+    const { role = 'admin', organizationId, customUser, skipCookies = false } = options;
+
+    // モックユーザーデータ
+    const mockUser = {
+      id: `mock-${role}-${Date.now()}`,
+      email: SUPABASE_TEST_USERS[role].email,
+      user_metadata: {
+        ...SUPABASE_TEST_USERS[role].metadata,
+        ...(customUser?.user_metadata || {}),
+        organization_id: organizationId || SUPABASE_TEST_USERS[role].metadata.organization_id,
+      },
+    };
+
+    // モックセッションの作成
+    const mockSession = {
+      access_token: `mock-access-token-${role}-${Date.now()}`,
+      refresh_token: `mock-refresh-token-${role}-${Date.now()}`,
+      expires_at: Date.now() / 1000 + 3600,
+      user: mockUser,
+    };
+
+    // ページが読み込まれていない場合は読み込む
+    const currentUrl = page.url();
+    if (currentUrl === 'about:blank' || !currentUrl.startsWith('http')) {
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+    }
+
+    // ローカルストレージとセッションストレージに設定
+    await page.evaluate(
+      ({ sessionData }) => {
+        // Mock Supabase session
+        const storageKey = 'sb-placeholder-auth-token';
+        const sessionInfo = {
+          currentSession: {
+            access_token: sessionData.access_token,
+            refresh_token: sessionData.refresh_token,
+            expires_at: sessionData.expires_at,
+            expires_in: 3600,
+            token_type: 'bearer',
+            user: sessionData.user,
+          },
+          expiresAt: sessionData.expires_at,
+        };
+
+        localStorage.setItem(storageKey, JSON.stringify(sessionInfo));
+        localStorage.setItem('mockAuth', 'true');
+        sessionStorage.setItem('isAuthenticated', 'true');
+        sessionStorage.setItem('authRole', sessionData.user.user_metadata.role);
+      },
+      { sessionData: mockSession }
+    );
+
+    // Cookie設定（必要な場合）
+    if (!skipCookies) {
+      await context.addCookies([
+        {
+          name: 'sb-auth-token',
+          value: mockSession.access_token,
+          domain: 'localhost',
+          path: '/',
+          expires: mockSession.expires_at,
+          httpOnly: false,
+          secure: false,
+          sameSite: 'Lax',
+        },
+      ]);
+    }
   }
 
   /**

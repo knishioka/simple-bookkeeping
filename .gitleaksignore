@@ -7,3 +7,8 @@
 49a4b17897aa3ac505a3422e4a9f0acdd4e337e8:apps/web/e2e/helpers/supabase-auth.ts:jwt:78
 49a4b17897aa3ac505a3422e4a9f0acdd4e337e8:scripts/test-e2e-docker.sh:jwt:196
 49a4b17897aa3ac505a3422e4a9f0acdd4e337e8:scripts/test-e2e-docker.sh:jwt:197
+e5c082798d164845653870745aafae951178484b:.env.test.local.example:jwt:15
+e5c082798d164845653870745aafae951178484b:.env.test.local.example:jwt:18
+e5c082798d164845653870745aafae951178484b:apps/web/e2e/helpers/supabase-auth.ts:jwt:78
+e5c082798d164845653870745aafae951178484b:scripts/test-e2e-docker.sh:jwt:196
+e5c082798d164845653870745aafae951178484b:scripts/test-e2e-docker.sh:jwt:197
