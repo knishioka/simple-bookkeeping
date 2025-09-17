@@ -117,7 +117,8 @@ run_package_typecheck() {
 
     # Check if typecheck script exists
     if grep -q '"typecheck"' "$pkg_dir/package.json" 2>/dev/null; then
-        if run_silent "pnpm --filter '$pkg_name' typecheck" "Type check failed for $pkg_name"; then
+        # Run typecheck directly without run_silent to avoid shell parsing issues
+        if pnpm --filter "$pkg_name" typecheck > /dev/null 2>&1; then
             print_success "$CHECK_MARK Type check passed: $pkg_name"
             return 0
         else

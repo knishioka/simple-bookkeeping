@@ -10,12 +10,19 @@
         "NODE_ENV",
         "DATABASE_URL",
         "NEXT_PUBLIC_API_URL",
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
         "NEXTAUTH_URL",
         "NEXTAUTH_SECRET",
         "JWT_SECRET",
         "DOCKER_BUILD",
         "ANALYZE"
       ]
+    },
+    "build:packages": {
+      "dependsOn": ["prisma:generate"],
+      "outputs": ["dist/**", "*.tsbuildinfo"],
+      "cache": true
     },
     "prisma:generate": {
       "cache": true,
@@ -39,13 +46,22 @@
       "dependsOn": ["build"]
     },
     "lint": {
+      "dependsOn": ["prisma:generate"],
       "outputs": [".eslintcache"],
       "cache": true,
       "inputs": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", ".eslintrc*", "eslint.config.*"]
     },
+    "lint:strict": {
+      "dependsOn": ["lint"],
+      "cache": false
+    },
     "lint:fix": {
       "outputs": [],
       "cache": false
+    },
+    "format:check": {
+      "cache": true,
+      "inputs": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.json", "**/*.md"]
     },
     "test": {
       "outputs": ["coverage/**"],
@@ -70,10 +86,20 @@
     },
     "test:e2e": {
       "dependsOn": ["build"],
-      "env": ["NODE_ENV", "DATABASE_URL", "NEXTAUTH_URL"],
+      "env": [
+        "NODE_ENV",
+        "DATABASE_URL",
+        "NEXTAUTH_URL",
+        "NEXTAUTH_SECRET",
+        "TEST_MODE",
+        "CI",
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+      ],
       "cache": false
     },
     "typecheck": {
+      "dependsOn": ["prisma:generate", "^build"],
       "outputs": ["*.tsbuildinfo", "**/*.tsbuildinfo"],
       "cache": true,
       "inputs": ["**/*.ts", "**/*.tsx", "**/tsconfig.json"]

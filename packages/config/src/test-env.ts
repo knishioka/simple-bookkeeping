@@ -82,7 +82,8 @@ export const TEST_ENV = {
   headless: process.env.TEST_HEADLESS !== 'false',
 
   // Feature flags
-  reuseServer: process.env.REUSE_SERVER === 'true',
+  // Deprecated: Use Playwright's native webServer configuration instead
+  reuseServer: false,
   useGlobalSetup: process.env.USE_GLOBAL_SETUP !== 'false',
   disableRateLimit: process.env.DISABLE_RATE_LIMIT === 'true',
 } as const;
