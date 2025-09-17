@@ -102,16 +102,27 @@ jobs:
           CI: true
           TEST_MODE: fast
           NODE_ENV: test
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
+          # Supabase Test Environment
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.TEST_SUPABASE_SERVICE_ROLE_KEY || '' }}
+          SUPABASE_DB_URL: ${{ secrets.TEST_SUPABASE_DB_URL || '' }}
           # Test credentials from secrets (with fallbacks)
           TEST_JWT_SECRET: ${{ secrets.TEST_JWT_SECRET || 'test-jwt-secret-do-not-use-in-production' }}
-          TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL || 'admin.test@localhost' }}
-          TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD || 'AdminTest123!' }}
-          TEST_ACCOUNTANT_EMAIL: ${{ secrets.TEST_ACCOUNTANT_EMAIL || 'accountant.test@localhost' }}
-          TEST_ACCOUNTANT_PASSWORD: ${{ secrets.TEST_ACCOUNTANT_PASSWORD || 'AccountantTest123!' }}
-          TEST_VIEWER_EMAIL: ${{ secrets.TEST_VIEWER_EMAIL || 'viewer.test@localhost' }}
-          TEST_VIEWER_PASSWORD: ${{ secrets.TEST_VIEWER_PASSWORD || 'ViewerTest123!' }}
+          TEST_ADMIN_EMAIL: ${{ secrets.TEST_ADMIN_EMAIL || 'admin.e2e@test.localhost' }}
+          TEST_ADMIN_PASSWORD: ${{ secrets.TEST_ADMIN_PASSWORD || 'AdminE2E123!@#' }}
+          TEST_ADMIN_NAME: ${{ secrets.TEST_ADMIN_NAME || 'E2E Test Admin' }}
+          TEST_ACCOUNTANT_EMAIL: ${{ secrets.TEST_ACCOUNTANT_EMAIL || 'accountant.e2e@test.localhost' }}
+          TEST_ACCOUNTANT_PASSWORD: ${{ secrets.TEST_ACCOUNTANT_PASSWORD || 'AccountantE2E123!@#' }}
+          TEST_ACCOUNTANT_NAME: ${{ secrets.TEST_ACCOUNTANT_NAME || 'E2E Test Accountant' }}
+          TEST_VIEWER_EMAIL: ${{ secrets.TEST_VIEWER_EMAIL || 'viewer.e2e@test.localhost' }}
+          TEST_VIEWER_PASSWORD: ${{ secrets.TEST_VIEWER_PASSWORD || 'ViewerE2E123!@#' }}
+          TEST_VIEWER_NAME: ${{ secrets.TEST_VIEWER_NAME || 'E2E Test Viewer' }}
+          TEST_ORGANIZATION_ID: ${{ secrets.TEST_ORGANIZATION_ID || 'test-org-e2e-001' }}
+          # Test configuration
+          TEST_HEADLESS: true
+          TEST_DEBUG_MODE: false
+          TEST_SKIP_AUTH: false
         run: |
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting fast E2E test suite (shard ${{ matrix.shard }})"
           START_TIME=$(date +%s)
