@@ -4,11 +4,57 @@
 
 本ドキュメントでは、Simple Bookkeeping プロジェクトのE2Eテストで使用するSupabase認証環境のセットアップ手順を説明します。実際のSupabase認証を使用することで、本番環境により近い形でのテストが可能になります。
 
+## 🚀 クイックスタート（Docker版 - 推奨）
+
+外部のSupabaseプロジェクトを作成する必要がなく、Dockerで完全にローカルな環境を構築できます。
+
+```bash
+# 1. Docker環境を起動してE2Eテストを実行
+bash scripts/test-e2e-docker.sh
+
+# 2. テスト後もSupabaseを起動したままにする場合
+bash scripts/test-e2e-docker.sh --keep-running
+
+# 3. 環境をクリーンアップ
+bash scripts/test-e2e-docker.sh --cleanup
+```
+
+### Docker環境の利点
+
+- ✅ 外部サービスへの依存なし
+- ✅ 完全にローカルで実行可能
+- ✅ CI/CDでも同じ環境を使用可能
+- ✅ 無料（Supabaseの料金プランに依存しない）
+- ✅ 高速（ネットワーク遅延なし）
+
 ## 重要な注意事項
 
-⚠️ **テスト専用のSupabaseプロジェクトを必ず使用してください。本番環境のSupabaseプロジェクトは絶対に使用しないでください。**
+⚠️ **クラウド版を使用する場合は、テスト専用のSupabaseプロジェクトを必ず使用してください。本番環境のSupabaseプロジェクトは絶対に使用しないでください。**
 
 ## セットアップ手順
+
+### 方法1: Docker環境（推奨）
+
+#### 必要なもの
+
+- Docker Desktop（最新版）
+- pnpm
+- Node.js 20以上
+
+#### セットアップ
+
+```bash
+# 1. 環境変数ファイルをコピー
+cp .env.test.local.example .env.test.local
+
+# 2. Docker Composeで起動
+docker-compose -f docker-compose.supabase-test.yml up -d
+
+# 3. E2Eテストを実行
+pnpm --filter web test:e2e
+```
+
+### 方法2: Supabaseクラウド版
 
 ### 1. Supabaseテストプロジェクトの作成
 

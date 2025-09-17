@@ -55,6 +55,13 @@ export interface SupabaseAuthOptions {
 let supabaseAdmin: ReturnType<typeof createClient> | null = null;
 
 /**
+ * テスト環境モードの判定
+ */
+function getTestMode(): 'docker' | 'cloud' {
+  return (process.env.E2E_TEST_MODE as 'docker' | 'cloud') || 'docker';
+}
+
+/**
  * Supabase Admin クライアントの取得（シングルトン）
  */
 function getSupabaseAdmin() {
@@ -63,15 +70,32 @@ function getSupabaseAdmin() {
     const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseServiceRoleKey) {
-      throw new Error('Missing Supabase test environment variables. Please set up .env.test.local');
+      const mode = getTestMode();
+      if (mode === 'docker') {
+        // Docker環境のデフォルト値を使用
+        const dockerUrl = 'http://localhost:8000';
+        const dockerServiceKey =
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU';
+        console.log('Using Docker Supabase environment (local)');
+        supabaseAdmin = createClient(dockerUrl, dockerServiceKey, {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false,
+          },
+        });
+      } else {
+        throw new Error(
+          'Missing Supabase test environment variables. Please set up .env.test.local or use Docker environment'
+        );
+      }
+    } else {
+      supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      });
     }
-
-    supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
   }
   return supabaseAdmin;
 }

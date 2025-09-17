@@ -1,0 +1,291 @@
+# Docker Compose configuration for E2E testing with Supabase Local
+# This configuration provides a complete Supabase local stack for testing
+# Features:
+# - Complete Supabase local stack (Auth, Storage, Realtime, etc.)
+# - Network isolation for testing
+# - Automatic database initialization
+# - No external dependencies
+
+version: '3.8'
+
+services:
+  # Supabase Local Stack
+  supabase-db:
+    image: supabase/postgres:15.1.0.117
+    container_name: supabase-postgres-test
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_PORT: 5432
+      # JWT Secret for Supabase (use a fixed test secret)
+      JWT_SECRET: 'super-secret-jwt-token-with-at-least-32-characters-for-testing'
+      # Supabase specific settings
+      POSTGRES_INITDB_ARGS: '--encoding=UTF-8 --lc-collate=C --lc-ctype=C'
+    volumes:
+      - type: tmpfs
+        target: /var/lib/postgresql/data
+        tmpfs:
+          size: 256M
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 2s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    networks:
+      - supabase-test
+    restart: unless-stopped
+
+  supabase-kong:
+    image: kong:2.8.1
+    container_name: supabase-kong-test
+    environment:
+      KONG_DATABASE: 'off'
+      KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
+      KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
+      KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
+    volumes:
+      - ./supabase/volumes/api/kong.yml:/var/lib/kong/kong.yml:ro
+    ports:
+      - '${KONG_HTTP_PORT:-8000}:8000/tcp'
+      - '${KONG_HTTPS_PORT:-8443}:8443/tcp'
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    networks:
+      - supabase-test
+    restart: unless-stopped
+
+  supabase-auth:
+    image: supabase/gotrue:v2.99.0
+    container_name: supabase-auth-test
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${API_EXTERNAL_URL:-http://localhost:8000}
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://postgres:postgres@supabase-db:5432/postgres?search_path=auth
+      GOTRUE_SITE_URL: ${SITE_URL:-http://localhost:3000}
+      GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS:-http://localhost:3000/auth/callback}
+      GOTRUE_DISABLE_SIGNUP: 'false'
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_JWT_SECRET: 'super-secret-jwt-token-with-at-least-32-characters-for-testing'
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: 'true'
+      GOTRUE_MAILER_AUTOCONFIRM: 'true'
+      GOTRUE_SMTP_ADMIN_EMAIL: admin@test.local
+      GOTRUE_SMTP_HOST: supabase-mail
+      GOTRUE_SMTP_PORT: 2500
+      GOTRUE_SMTP_USER: ''
+      GOTRUE_SMTP_PASS: ''
+      GOTRUE_SMTP_SENDER_NAME: 'Test'
+      GOTRUE_MAILER_URLPATHS_INVITE: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_RECOVERY: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: /auth/v1/verify
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    networks:
+      - supabase-test
+    restart: unless-stopped
+
+  supabase-realtime:
+    image: supabase/realtime:v2.25.35
+    container_name: supabase-realtime-test
+    environment:
+      DB_HOST: supabase-db
+      DB_PORT: 5432
+      DB_NAME: postgres
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_SSL: 'false'
+      PORT: 4000
+      JWT_SECRET: 'super-secret-jwt-token-with-at-least-32-characters-for-testing'
+      REPLICATION_MODE: RLS
+      REPLICATION_POLL_INTERVAL: 100
+      SECURE_CHANNELS: 'true'
+      SLOT_NAME: supabase_realtime_rls
+      TEMPORARY_SLOT: 'true'
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    networks:
+      - supabase-test
+    restart: unless-stopped
+
+  supabase-storage:
+    image: supabase/storage-api:v0.43.11
+    container_name: supabase-storage-test
+    environment:
+      ANON_KEY: ${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0}
+      SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU}
+      POSTGREST_URL: http://supabase-rest:3000
+      PGRST_JWT_SECRET: 'super-secret-jwt-token-with-at-least-32-characters-for-testing'
+      DATABASE_URL: postgres://postgres:postgres@supabase-db:5432/postgres
+      FILE_SIZE_LIMIT: 52428800
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: stub
+      REGION: stub
+      GLOBAL_S3_BUCKET: stub
+      ENABLE_IMAGE_TRANSFORMATION: 'true'
+      IMGPROXY_URL: http://supabase-imgproxy:5001
+    volumes:
+      - type: tmpfs
+        target: /var/lib/storage
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+      supabase-rest:
+        condition: service_started
+    networks:
+      - supabase-test
+    restart: unless-stopped
+
+  supabase-imgproxy:
+    image: darthsim/imgproxy:v3.8.0
+    container_name: supabase-imgproxy-test
+    environment:
+      IMGPROXY_BIND: ':5001'
+      IMGPROXY_LOCAL_FILESYSTEM_ROOT: '/'
+      IMGPROXY_USE_ETAG: 'true'
+      IMGPROXY_ENABLE_WEBP_DETECTION: 'true'
+    networks:
+      - supabase-test
+    restart: unless-stopped
+
+  supabase-meta:
+    image: supabase/postgres-meta:v0.68.0
+    container_name: supabase-meta-test
+    environment:
+      PG_META_PORT: 8080
+      PG_META_DB_HOST: supabase-db
+      PG_META_DB_PORT: 5432
+      PG_META_DB_NAME: postgres
+      PG_META_DB_USER: postgres
+      PG_META_DB_PASSWORD: postgres
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    networks:
+      - supabase-test
+    restart: unless-stopped
+
+  supabase-rest:
+    image: postgrest/postgrest:v11.2.0
+    container_name: supabase-rest-test
+    environment:
+      PGRST_DB_URI: postgres://postgres:postgres@supabase-db:5432/postgres
+      PGRST_DB_SCHEMAS: public,storage
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: 'super-secret-jwt-token-with-at-least-32-characters-for-testing'
+      PGRST_DB_USE_LEGACY_GUCS: 'false'
+      PGRST_APP_SETTINGS_JWT_SECRET: 'super-secret-jwt-token-with-at-least-32-characters-for-testing'
+      PGRST_APP_SETTINGS_JWT_EXP: 3600
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+    networks:
+      - supabase-test
+    restart: unless-stopped
+
+  # Test mail server for capturing emails
+  supabase-mail:
+    image: inbucket/inbucket:3.0.3
+    container_name: supabase-mail-test
+    ports:
+      - '${INBUCKET_PORT:-54324}:9000'
+    networks:
+      - supabase-test
+    restart: unless-stopped
+
+  # Test application services
+  web-test:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: runner
+    container_name: simple-bookkeeping-web-test
+    depends_on:
+      supabase-kong:
+        condition: service_started
+      supabase-auth:
+        condition: service_started
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: '1'
+      # Supabase local configuration
+      NEXT_PUBLIC_SUPABASE_URL: http://supabase-kong:8000
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU}
+    ports:
+      - '3010:3000'
+    networks:
+      - supabase-test
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - '--no-verbose'
+        - '--tries=1'
+        - '--spider'
+        - 'http://127.0.0.1:3000'
+      interval: 5s
+      timeout: 15s
+      retries: 30
+      start_period: 75s
+    restart: unless-stopped
+
+  playwright:
+    build:
+      context: .
+      dockerfile: Dockerfile.playwright
+      args:
+        PLAYWRIGHT_VERSION: 'v1.48.0'
+    container_name: simple-bookkeeping-playwright
+    depends_on:
+      web-test:
+        condition: service_healthy
+      supabase-kong:
+        condition: service_started
+    environment:
+      # Test URLs
+      TEST_WEB_URL: http://web-test:3000
+      BASE_URL: http://web-test:3000
+      # Environment detection
+      DOCKER_ENV: 'true'
+      CI: 'true'
+      NODE_ENV: test
+      # Supabase configuration for E2E tests
+      NEXT_PUBLIC_SUPABASE_URL: http://supabase-kong:8000
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU}
+      # Database URL for Supabase
+      DATABASE_URL: postgres://postgres:postgres@supabase-db:5432/postgres?search_path=public
+      # Test settings
+      TEST_RETRIES: '2'
+      TEST_WORKERS: '2'
+      TEST_TIMEOUT: '60000'
+    volumes:
+      - ./apps/web/e2e:/app/apps/web/e2e:ro
+      - ./apps/web/playwright.config.ts:/app/apps/web/playwright.config.ts:ro
+      - ./playwright-report:/app/playwright-report:rw
+      - ./test-results:/app/test-results:rw
+      - ./coverage:/app/coverage:rw
+      - ./artifacts:/app/artifacts:rw
+    networks:
+      - supabase-test
+    command: []
+
+networks:
+  supabase-test:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.29.0.0/16
