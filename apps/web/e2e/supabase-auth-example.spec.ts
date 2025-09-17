@@ -5,6 +5,18 @@ import { getTestDataManager } from './helpers/test-data-manager';
 import { waitForPageReady } from './helpers/wait-strategies';
 
 /**
+ * Check if we're running in mock mode (CI environment without real Supabase)
+ */
+function isInMockMode(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+  return (
+    url.includes('placeholder') || !serviceKey || serviceKey === 'placeholder_service_role_key'
+  );
+}
+
+/**
  * Supabase認証を使用したE2Eテストの例
  *
  * このテストは実際のSupabase認証を使用してユーザーのログイン、
@@ -24,9 +36,18 @@ test.describe('Supabase認証を使用したE2Eテスト', () => {
   });
 
   test.afterAll(async () => {
-    // データをクリーンアップ
-    const dataManager = getTestDataManager();
-    await dataManager.cleanupAllTestData();
+    // モックモードではTestDataManagerが使えないのでスキップ
+    if (isInMockMode()) {
+      console.log('Skipping data cleanup in mock mode');
+      return;
+    }
+
+    try {
+      const dataManager = getTestDataManager();
+      await dataManager.cleanupAllTestData();
+    } catch (error) {
+      console.warn('Failed to cleanup test data:', error);
+    }
   });
 
   test('実際のSupabase認証でログインできる', async ({ page, context }) => {
