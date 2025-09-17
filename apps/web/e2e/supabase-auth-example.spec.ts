@@ -26,7 +26,7 @@ test.describe('Supabase認証を使用したE2Eテスト', () => {
   test.afterAll(async () => {
     // データをクリーンアップ
     const dataManager = getTestDataManager();
-    await dataManager.cleanup();
+    await dataManager.cleanupAllTestData();
   });
 
   test('実際のSupabase認証でログインできる', async ({ page, context }) => {
