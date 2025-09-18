@@ -1,5 +1,23 @@
 # セキュリティとデプロイメント
 
+## ⛔️ 最重要：チェック回避の完全禁止
+
+### 絶対に使用してはいけない環境変数・コマンド
+
+**以下の使用は完全禁止（自動検出により即座にブロックされます）：**
+
+- `SKIP=gitleaks` - Gitleaksによるシークレット検出の回避
+- `SKIP=lint-staged` - ESLint/Prettierチェックの回避
+- `PRE_COMMIT_ALLOW_NO_CONFIG=1` - pre-commitフック全体の回避
+- `git commit --no-verify` - フックのスキップ
+- その他あらゆるチェック回避手段
+
+**セキュリティ対策の実装：**
+
+1. **ローカル環境**: `.husky/pre-commit`でSKIP環境変数を自動検出・ブロック
+2. **CI/CD環境**: GitHub Actions `security-check.yml`で全PR/pushを監視
+3. **コミット履歴**: 禁止パターンを含むコミットメッセージを自動検出
+
 ## 🔐 機密情報の取り扱い
 
 ### 絶対にコミットしてはいけないもの

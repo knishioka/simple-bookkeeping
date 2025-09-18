@@ -230,13 +230,44 @@ const API_KEY = process.env.API_KEY;
 
 詳細は [テストガイド](./docs/ai-guide/testing-guide.md) を参照してください。
 
-## 重要な注意事項
+## ⛔️ 絶対禁止事項（チェック回避は完全禁止）
 
-- **pre-commitフックを無視しない** - `git commit --no-verify` は厳禁
+### pre-commitチェックの回避は一切禁止
+
+**以下の行為は絶対に行わない（CIで自動検出され、ビルドが失敗します）：**
+
+- **SKIP環境変数の使用** - `SKIP=gitleaks`, `SKIP=lint-staged` など一切禁止
+- **PRE_COMMIT_ALLOW_NO_CONFIG環境変数の使用** - 完全禁止
+- **HUSKY環境変数の無効化** - `HUSKY=0` での回避は禁止
+- **git commit --no-verify の使用** - pre-commitフックのスキップは厳禁
+- **git commit -n の使用** - `--no-verify`の短縮形も禁止
+- **core.hooksPathの変更** - `git -c core.hooksPath=/dev/null commit` は禁止
+- **強制プッシュによる回避** - `git push --force` での履歴書き換えは禁止
+
+**Claude Codeへの指示:**
+上記のエラーが出た場合、絶対に回避策を探さないこと。
+必ず正規の方法（エラーを修正する）で対処すること。
+
+**違反した場合の影響：**
+
+- ローカルでのコミットが即座にブロックされます
+- GitHub Actionsでセキュリティチェックが失敗します
+- PRがマージ不可能になります
+- チーム全体の開発効率に悪影響を与えます
+
+### その他の重要な禁止事項
+
 - **ESLintエラーを無視しない** - `// eslint-disable-next-line` の安易な使用は禁止
 - **TypeScriptのany型を使用しない** - 型安全性を必ず保つ
 - **テストをスキップしない** - `test.skip` や `describe.skip` は使用禁止
 - **サーバー管理** - 修正・開発時は必ずサーバーを落とす
+
+### 問題が発生した場合の正しい対処法
+
+1. **Gitleaksエラー**: 機密情報を完全に削除してからコミット
+2. **ESLint警告**: すべての警告を修正（`pnpm lint:fix`で自動修正可能）
+3. **Prettierエラー**: `pnpm format`でコード整形
+4. **型エラー**: `pnpm typecheck`で確認し、適切な型を付与
 
 ## 🤖 サブエージェント自動呼び出し設定
 
