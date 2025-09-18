@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+# prepare-commit-msg フックは --no-verify でもスキップされない
+# これを利用して --no-verify 使用の痕跡を記録
+
+COMMIT_MSG_FILE=$1
+COMMIT_SOURCE=$2
+SHA1=$3
+
+# --no-verify 検出のための追加チェック
+# pre-commitフックが実行されたかをチェックするマーカーファイル
+MARKER_FILE=".git/pre-commit-executed"
+
+# pre-commitが実行されていない場合、--no-verifyが使用された可能性
+if [ ! -f "$MARKER_FILE" ]; then
+  echo "⚠️  警告: pre-commitフックがスキップされました"
+  echo "git commit --no-verify の使用は禁止されています"
+  echo ""
+  echo "GitHub ActionsのCIチェックで失敗します"
+  echo "正しい方法でコミットしてください"
+
+  # コミットメッセージに警告を追加
+  echo "" >> "$COMMIT_MSG_FILE"
+  echo "# ⚠️ WARNING: Pre-commit hooks were bypassed" >> "$COMMIT_MSG_FILE"
+fi
+
+# マーカーファイルをクリーンアップ
+rm -f "$MARKER_FILE" 2>/dev/null || true
