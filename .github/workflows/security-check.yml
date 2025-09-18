@@ -1,0 +1,141 @@
+name: Security Check
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  gitleaks:
+    name: Secret Detection
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  lint-strict:
+    name: Lint Check (Zero Warnings)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm --filter @simple-bookkeeping/database prisma:generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test?schema=public
+
+      - name: Build packages
+        run: pnpm build:packages
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
+
+      - name: Run ESLint with zero warnings
+        run: pnpm lint:strict
+        env:
+          CI: true
+
+  commit-message-check:
+    name: Commit Message Validation
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for prohibited patterns
+        run: |
+          echo "🔍 Checking commit messages for prohibited patterns..."
+
+          # Get all commit messages in this PR
+          commits=$(git log origin/${{ github.base_ref }}..HEAD --pretty=format:"%H %s")
+
+          # Check for SKIP, PRE_COMMIT, HUSKY patterns
+          if echo "$commits" | grep -iE "(SKIP=|PRE_COMMIT_ALLOW_NO_CONFIG|HUSKY=0)"; then
+            echo "❌ エラー: コミットメッセージに禁止されたパターンが検出されました"
+            echo ""
+            echo "以下のパターンは使用禁止です:"
+            echo "  - SKIP=*"
+            echo "  - PRE_COMMIT_ALLOW_NO_CONFIG=*"
+            echo "  - HUSKY=0"
+            echo ""
+            echo "すべてのチェックを正規の方法で通過させてください"
+            exit 1
+          fi
+
+          # Check for --no-verify usage indicators
+          if echo "$commits" | grep -iE "(--no-verify|-n[[:space:]]|Pre-commit hooks were bypassed)"; then
+            echo "❌ エラー: pre-commitフック回避の痕跡が検出されました"
+            echo ""
+            echo "以下の使用は禁止されています:"
+            echo "  - git commit --no-verify"
+            echo "  - git commit -n"
+            echo ""
+            echo "すべてのチェックを正規の方法で通過させてください"
+            exit 1
+          fi
+
+          echo "✅ コミットメッセージのチェックが完了しました"
+
+  security-summary:
+    name: Security Check Summary
+    runs-on: ubuntu-latest
+    needs: [gitleaks, lint-strict, commit-message-check]
+    if: always()
+    steps:
+      - name: Security Check Status
+        run: |
+          echo "🔐 Security Check Summary"
+          echo "========================"
+
+          if [ "${{ needs.gitleaks.result }}" = "failure" ]; then
+            echo "❌ Secret Detection: Failed"
+            echo "   機密情報が検出されました。削除してください。"
+          else
+            echo "✅ Secret Detection: Passed"
+          fi
+
+          if [ "${{ needs.lint-strict.result }}" = "failure" ]; then
+            echo "❌ Lint Check: Failed"
+            echo "   ESLintの警告・エラーを修正してください。"
+          else
+            echo "✅ Lint Check: Passed"
+          fi
+
+          if [ "${{ needs.commit-message-check.result }}" = "failure" ]; then
+            echo "❌ Commit Message: Failed"
+            echo "   禁止されたパターンが検出されました。"
+          else
+            echo "✅ Commit Message: Passed"
+          fi
+
+          # Exit with failure if any check failed
+          if [ "${{ needs.gitleaks.result }}" = "failure" ] || \
+             [ "${{ needs.lint-strict.result }}" = "failure" ] || \
+             [ "${{ needs.commit-message-check.result }}" = "failure" ]; then
+            echo ""
+            echo "⚠️  セキュリティチェックに失敗しました"
+            echo "詳細は上記の各ジョブのログを確認してください"
+            exit 1
+          fi
+
+          echo ""
+          echo "🎉 すべてのセキュリティチェックに合格しました"

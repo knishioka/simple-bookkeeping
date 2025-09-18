@@ -1,3 +1,30 @@
+# Check for prohibited environment variables and bypass attempts
+if [ -n "$SKIP" ] || [ -n "$PRE_COMMIT_ALLOW_NO_CONFIG" ] || [ -n "$HUSKY" ] && [ "$HUSKY" = "0" ]; then
+  echo "❌ エラー: pre-commitチェックの回避は禁止されています"
+  echo ""
+  echo "検出された禁止環境変数:"
+  [ -n "$SKIP" ] && echo "  - SKIP=$SKIP"
+  [ -n "$PRE_COMMIT_ALLOW_NO_CONFIG" ] && echo "  - PRE_COMMIT_ALLOW_NO_CONFIG=$PRE_COMMIT_ALLOW_NO_CONFIG"
+  [ "$HUSKY" = "0" ] && echo "  - HUSKY=0"
+  echo ""
+  echo "すべてのチェックを通過させてからコミットしてください:"
+  echo "  1. gitleaksのシークレット検出をクリア"
+  echo "  2. ESLintの警告をゼロに"
+  echo "  3. Prettierのフォーマットを適用"
+  echo ""
+  echo "⚠️  以下の回避手段も禁止されています:"
+  echo "  - git commit --no-verify"
+  echo "  - git commit -n"
+  echo "  - git -c core.hooksPath=/dev/null commit"
+  echo ""
+  echo "詳細は docs/ai-guide/security-deployment.md を参照してください"
+  exit 1
+fi
+
+# Create marker file to detect --no-verify usage
+# This will be checked by prepare-commit-msg hook
+touch .git/pre-commit-executed
+
 # Check for secrets using gitleaks
 if command -v gitleaks >/dev/null 2>&1; then
   echo "🔍 Checking for secrets with gitleaks..."
