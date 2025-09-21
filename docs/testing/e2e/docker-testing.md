@@ -15,8 +15,8 @@ Docker E2Eテスト環境は以下の特徴を持ちます：
 
 | サービス      | ポート | 説明                          |
 | ------------- | ------ | ----------------------------- |
-| postgres-test | 5433   | PostgreSQL 16（テスト専用DB） |
-| api-test      | 3011   | Express.js API（テスト用）    |
+| supabase-test | 54321  | Supabase Studio（テスト用）   |
+| postgres-test | 54323  | PostgreSQL 16（テスト専用DB） |
 | web-test      | 3010   | Next.js Web（テスト用）       |
 | playwright    | -      | Playwrightテストランナー      |
 
@@ -116,21 +116,21 @@ pnpm test:e2e:docker:headed
 
    # 各サービスの状態を確認
    docker compose -f docker-compose.test.yml ps
-   docker compose -f docker-compose.test.yml logs api-test
    docker compose -f docker-compose.test.yml logs web-test
+   docker compose -f docker-compose.test.yml logs postgres-test
    ```
 
 2. **手動でコンテナにアクセス**
 
    ```bash
-   # APIサーバーに接続
-   docker compose -f docker-compose.test.yml exec api-test sh
-
    # Webサーバーに接続
    docker compose -f docker-compose.test.yml exec web-test sh
 
    # データベースに接続
-   docker compose -f docker-compose.test.yml exec postgres-test psql -U test bookkeeping_test
+   docker compose -f docker-compose.test.yml exec postgres-test psql -U postgres postgres
+
+   # Supabase Studioにアクセス
+   open http://localhost:54321
    ```
 
 3. **ブラウザを表示してテスト**

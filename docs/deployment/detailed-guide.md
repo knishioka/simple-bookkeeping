@@ -4,16 +4,16 @@ This guide documents the deployment process for the Simple Bookkeeping monorepo 
 
 ## Overview
 
-- **Frontend (Next.js)**: Deployed to Vercel
-- **Backend (Express.js)**: Express.js API has been deprecated
-- **Database**: Supabase (PostgreSQL)
+- **Frontend + Backend (Next.js)**: Deployed to Vercel with Server Actions
+- **Database & Auth**: Supabase (PostgreSQL + Auth Service)
 - **Architecture**: pnpm workspace monorepo
+- **API Pattern**: Server Actions (no separate API server)
 
 ## Table of Contents
 
 1. [Monorepo Deployment Challenges](#monorepo-deployment-challenges)
-2. [Vercel Deployment (Frontend)](#vercel-deployment-frontend)
-3. [~~Render Deployment (Backend)~~](#render-deployment-backend) (Deprecated)
+2. [Vercel Deployment (Full Stack)](#vercel-deployment-full-stack)
+3. [Supabase Configuration](#supabase-configuration)
 4. [Environment Variable Management](#environment-variable-management)
 5. [TypeScript Build Issues and Solutions](#typescript-build-issues-and-solutions)
 6. [Platform-Specific Configurations](#platform-specific-configurations)
@@ -24,11 +24,11 @@ This guide documents the deployment process for the Simple Bookkeeping monorepo 
 
 ### 1. Shared Dependencies
 
-**Challenge**: Both frontend and backend depend on shared packages (`@simple-bookkeeping/database`, `@simple-bookkeeping/types`, etc.)
+**Challenge**: The Next.js app depends on shared packages (`@simple-bookkeeping/database`, `@simple-bookkeeping/shared`, etc.)
 
 **Solution**:
 
-- Ensure all shared packages are built before the main applications
+- Ensure all shared packages are built before the main application
 - Use proper build commands that respect dependency order
 - Include workspace root in deployment context
 
@@ -57,7 +57,7 @@ This guide documents the deployment process for the Simple Bookkeeping monorepo 
 - Ensure pnpm version consistency across environments
 - Some platforms may require `--shamefully-hoist` flag
 
-## Vercel Deployment (Frontend)
+## Vercel Deployment (Full Stack)
 
 ### Setup Process
 
@@ -94,55 +94,62 @@ This guide documents the deployment process for the Simple Bookkeeping monorepo 
 
    ```bash
    # Required for Vercel
-   NEXT_PUBLIC_API_URL=https://your-api-url.com
    NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+   DATABASE_URL=your-supabase-db-url
    ```
 
 3. **TypeScript Path Resolution**:
    - Vercel automatically handles Next.js path aliases
    - No additional configuration needed for `@/` imports
 
-## Render Deployment (Backend)
+## Supabase Configuration
 
 ### Setup Process
 
-1. **Create Web Service**:
-   - Connect GitHub repository
-   - Set root directory to repository root (not `apps/api`)
+1. **Create Supabase Project**:
+   - Sign up at [supabase.com](https://supabase.com)
+   - Create new project with region close to users
+   - Note the project URL and API keys
 
-2. **Build Configuration**:
+2. **Database Schema Setup**:
 
-   ```yaml
-   # Build Command
-   pnpm install --frozen-lockfile && pnpm build --filter=@simple-bookkeeping/api
+   ```bash
+   # Run migrations
+   pnpm db:migrate:deploy
 
-   # Start Command
-   node apps/api/dist/index.js
+   # Set up Row Level Security
+   pnpm supabase:rls
    ```
 
 3. **Environment Variables**:
+
    ```bash
-   NODE_ENV=production
-   PORT=3001
-   DATABASE_URL=your-supabase-connection-string
-   JWT_SECRET=your-jwt-secret
-   CORS_ORIGIN=https://your-frontend.vercel.app
+   # Public (client-side)
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+
+   # Private (server-side)
+   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+   DATABASE_URL=postgresql://postgres:[password]@[host]:5432/postgres
    ```
 
 ### Key Learnings
 
-1. **Root Directory Must Be Repository Root**:
-   - Unlike Vercel, Render needs the full monorepo context
-   - Setting root to `apps/api` will fail due to missing workspace packages
+1. **Row Level Security (RLS)**:
+   - Enable RLS on all tables
+   - Create policies for user access control
+   - Test policies thoroughly
 
-2. **Build Command Complexity**:
-   - Must install dependencies AND build in one command
-   - Use `&&` to chain commands
+2. **Auth Configuration**:
+   - Configure auth providers in Supabase dashboard
+   - Set up redirect URLs for OAuth providers
+   - Configure email templates
 
-3. **TypeScript Compilation**:
-   - Ensure `tsconfig.json` outputs to correct directory
-   - Check that all type imports are resolved during build
+3. **Connection Pooling**:
+   - Use Supabase's built-in connection pooler
+   - Configure appropriate pool size for serverless
 
 ## Environment Variable Management
 
@@ -153,25 +160,29 @@ This guide documents the deployment process for the Simple Bookkeeping monorepo 
    ```bash
    # Vercel
    vercel env add DATABASE_URL
+   vercel env add SUPABASE_SERVICE_ROLE_KEY
    vercel env pull .env.local
 
-   # Render
-   # Use dashboard or render.yaml
+   # Local development
+   cp .env.local.example .env.local
+   # Edit .env.local with your values
    ```
 
 2. **Environment-Specific Variables**:
 
    ```bash
    # Development (.env.local)
-   DATABASE_URL=postgresql://localhost:5432/bookkeeping_dev
+   DATABASE_URL=postgresql://postgres:postgres@localhost:54323/postgres
+   NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
 
-   # Production (Platform Dashboard)
-   DATABASE_URL=postgresql://production-url
+   # Production (Vercel Dashboard)
+   DATABASE_URL=postgresql://postgres:[password]@[host]:5432/postgres
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
    ```
 
 3. **Variable Naming Conventions**:
-   - Frontend: Use `NEXT_PUBLIC_` prefix for client-side variables
-   - Backend: Standard naming without prefix
+   - Client-side: Use `NEXT_PUBLIC_` prefix for browser-accessible variables
+   - Server-side: Standard naming for Server Actions and API routes
    - Never commit `.env` files
 
 ### Security Considerations
@@ -182,7 +193,8 @@ This guide documents the deployment process for the Simple Bookkeeping monorepo 
 
 2. **Use Platform Secret Management**:
    - Vercel: Environment Variables in dashboard
-   - Render: Environment tab in service settings
+   - Supabase: API keys in project settings
+   - Use Vercel's encrypted secrets for sensitive data
 
 ## TypeScript Build Issues and Solutions
 
@@ -284,29 +296,32 @@ This guide documents the deployment process for the Simple Bookkeeping monorepo 
    }
    ```
 
-### Render
+### Supabase
 
-1. **render.yaml** (Optional):
+1. **supabase/config.toml** (Local Development):
 
-   ```yaml
-   services:
-     - type: web
-       name: simple-bookkeeping-api
-       env: node
-       buildCommand: pnpm install --frozen-lockfile && pnpm build --filter=@simple-bookkeeping/api
-       startCommand: node apps/api/dist/index.js
-       envVars:
-         - key: NODE_ENV
-           value: production
-         - key: DATABASE_URL
-           fromDatabase:
-             name: bookkeeping-db
-             property: connectionString
+   ```toml
+   [api]
+   port = 54321
+   schemas = ["public", "storage", "graphql_public"]
+
+   [db]
+   port = 54322
+   pool_size = 10
+
+   [auth]
+   site_url = "http://localhost:3000"
+   redirect_uri = "http://localhost:3000/auth/callback"
    ```
 
-2. **Health Check Configuration**:
-   - Path: `/api/v1/health`
-   - Add health endpoint to prevent service sleeping
+2. **Row Level Security Policies**:
+   ```sql
+   -- Example RLS policy
+   CREATE POLICY "Users can view own data"
+   ON public.transactions
+   FOR SELECT
+   USING (auth.uid() = user_id);
+   ```
 
 ## Troubleshooting Guide
 
@@ -327,22 +342,22 @@ This guide documents the deployment process for the Simple Bookkeeping monorepo 
    - Verify `getStaticPaths` for static generation
    - Ensure API routes are properly exported
 
-### Render Issues
+### Server Actions Issues
 
-1. **Build Timeout**:
-   - Increase build timeout in settings
-   - Optimize build process (cache dependencies)
-   - Consider pre-building locally and deploying dist
+1. **Authentication Errors**:
+   - Verify Supabase service role key is set
+   - Check cookie configuration for auth
+   - Ensure proper session handling
 
-2. **Service Keeps Restarting**:
-   - Check logs for uncaught exceptions
-   - Verify all environment variables are set
-   - Ensure health check endpoint returns 200
+2. **Database Connection Issues**:
+   - Check DATABASE_URL format
+   - Verify Supabase project is active
+   - Check connection pool settings
 
-3. **CORS Errors**:
-   - Verify CORS_ORIGIN environment variable
-   - Check Express CORS middleware configuration
-   - Ensure preflight requests are handled
+3. **Server Action Failures**:
+   - Check server-side logs in Vercel
+   - Verify all required env variables
+   - Test actions locally first
 
 ### Database Connection Issues
 
@@ -396,15 +411,22 @@ This guide documents the deployment process for the Simple Bookkeeping monorepo 
    - Monitor API response times
 
 2. **Health Checks**:
+
    ```typescript
-   // Health endpoint implementation
-   app.get('/api/v1/health', (req, res) => {
-     res.json({
-       status: 'healthy',
+   // app/api/health/route.ts
+   import { NextResponse } from 'next/server';
+   import { createClient } from '@/lib/supabase/server';
+
+   export async function GET() {
+     const supabase = createClient();
+     const { error } = await supabase.from('_health_check').select('*').limit(1);
+
+     return NextResponse.json({
+       status: error ? 'unhealthy' : 'healthy',
        timestamp: new Date().toISOString(),
-       version: process.env.npm_package_version,
+       database: !error,
      });
-   });
+   }
    ```
 
 ### 4. Security Best Practices
@@ -414,10 +436,11 @@ This guide documents the deployment process for the Simple Bookkeeping monorepo 
    - Use different secrets per environment
    - Rotate secrets regularly
 
-2. **API Security**:
-   - Implement rate limiting
-   - Use HTTPS everywhere
-   - Validate all inputs
+2. **Server Actions Security**:
+   - Validate all inputs with Zod
+   - Use Supabase RLS for data access control
+   - Implement rate limiting with Vercel Edge Config
+   - Always verify user authentication
 
 ### 5. Performance Optimization
 
@@ -426,10 +449,11 @@ This guide documents the deployment process for the Simple Bookkeeping monorepo 
    - Optimize images with Next.js Image
    - Use Edge Functions for geo-distributed logic
 
-2. **Backend (Render)**:
-   - Implement caching strategies
-   - Use connection pooling for database
-   - Monitor memory usage
+2. **Server Actions (Vercel)**:
+   - Use React Server Components for static data
+   - Implement data caching with unstable_cache
+   - Use Supabase's connection pooler
+   - Monitor function execution time
 
 ## Specific Challenges and Solutions
 
@@ -483,41 +507,52 @@ const pool = new Pool({
 });
 ```
 
-### 5. CORS Preflight Failures
+### 5. Server Action Authentication
 
-**Challenge**: Complex CORS issues with authentication headers
+**Challenge**: Ensuring Server Actions are properly authenticated
 
 **Solution**:
 
-```javascript
-// Comprehensive CORS configuration
-app.use(
-  cors({
-    origin: process.env.CORS_ORIGIN,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    exposedHeaders: ['X-Total-Count'],
-  })
-);
+```typescript
+// app/actions/protected-action.ts
+'use server';
+
+import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
+
+export async function protectedAction() {
+  const supabase = createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    redirect('/login');
+  }
+
+  // Action logic here
+}
 ```
 
 ## Migration Guide
 
-### From Railway to Render
+### From Express.js to Server Actions
 
-1. **Export environment variables from Railway**
-2. **Update database connection strings**
-3. **Modify build commands for Render format**
-4. **Update CORS origins**
-5. **Test thoroughly before switching DNS**
+1. **Move API logic to Server Actions**:
+   - Create actions in `app/actions/`
+   - Replace API calls with Server Action invocations
+   - Update authentication to use Supabase
 
-### From Heroku to Render
+2. **Update Database Access**:
+   - Replace direct Prisma calls with Supabase client
+   - Implement Row Level Security policies
+   - Update connection strings
 
-1. **Use Render's Heroku migration tool**
-2. **Update Procfile to render.yaml**
-3. **Migrate add-ons to Render services**
-4. **Update environment variables**
+3. **Remove API Dependencies**:
+   - Remove Express.js and middleware packages
+   - Update build scripts
+   - Clean up unused environment variables
 
 ## Conclusion
 
@@ -534,6 +569,6 @@ Remember to:
 For additional help, consult the platform documentation:
 
 - [Vercel Documentation](https://vercel.com/docs)
-- [Render Documentation](https://render.com/docs)
-- [pnpm Workspaces](https://pnpm.io/workspaces)
+- [Next.js Server Actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions)
 - [Supabase Documentation](https://supabase.com/docs)
+- [pnpm Workspaces](https://pnpm.io/workspaces)

@@ -6,66 +6,73 @@ This guide describes how to set up and troubleshoot the test environment for Sim
 
 The project uses different testing frameworks:
 
-- **Jest** - Unit and integration tests for both API and Web apps
+- **Jest** - Unit and integration tests for the Web app and packages
 - **Playwright** - End-to-end (E2E) tests for the Web app
+- **Supabase Local** - Local Supabase instance for testing
 
 ## Database Configuration
 
 ### Local Development
 
-The test environment supports multiple database configurations:
+The test environment uses Supabase for database and authentication:
 
-1. **Default Configuration (CI)**
+1. **Supabase Local Configuration**
+   - User: `postgres`
+   - Password: `postgres`
+   - Database: `postgres`
+   - Connection: `postgresql://postgres:postgres@localhost:54323/postgres`
+   - Studio URL: `http://localhost:54321`
+
+2. **CI Configuration**
    - User: `postgres`
    - Password: `postgres`
    - Database: `simple_bookkeeping_test`
    - Connection: `postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test`
 
-2. **Custom User Configuration (Local)**
-   - User: `bookkeeping`
-   - Password: `bookkeeping`
-   - Database: `simple_bookkeeping_test`
-   - Connection: `postgresql://bookkeeping:bookkeeping@localhost:5432/simple_bookkeeping_test`
-
 ### Setting Up Test Database
 
 ```bash
-# Using default postgres user
-createdb -U postgres simple_bookkeeping_test
+# Start Supabase locally
+pnpm supabase:start
 
-# Using custom user
-createuser -U postgres bookkeeping
-createdb -U postgres -O bookkeeping simple_bookkeeping_test
+# Reset database for clean state
+pnpm supabase:reset
 
-# Grant permissions
-psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE simple_bookkeeping_test TO bookkeeping;"
+# Check status
+pnpm supabase:status
 ```
 
 ### Environment Variables
 
-Set the `TEST_DATABASE_URL` environment variable to use a custom database configuration:
+Set the environment variables for Supabase:
 
 ```bash
 # In .env.test or .env.local
-TEST_DATABASE_URL=postgresql://bookkeeping:bookkeeping@localhost:5432/simple_bookkeeping_test
+DATABASE_URL=postgresql://postgres:postgres@localhost:54323/postgres
+NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
 ## Port Configuration
 
 The application uses configurable ports to avoid conflicts:
 
-- **Web Server**: Default 3000 (configurable via `WEB_PORT`)
-- **API Server**: Default 3001 (configurable via `API_PORT`)
+- **Web Server**: Default 3000 (configurable via `PORT`)
+- **Supabase Studio**: 54321
+- **Supabase API**: 54322
+- **PostgreSQL**: 54323
 
 ### Checking Port Availability
 
 ```bash
 # Check if ports are available
-pnpm dev:check-ports
+lsof -i :3000  # Next.js
+lsof -i :54321 # Supabase Studio
+lsof -i :54323 # PostgreSQL
 
-# Use custom ports
-export WEB_PORT=3002
-export API_PORT=3003
+# Use custom port for Next.js
+export PORT=3002
 pnpm dev
 ```
 
@@ -77,20 +84,19 @@ If you encounter port conflicts:
 
    ```bash
    lsof -i :3000  # Check web port
-   lsof -i :3001  # Check API port
+   lsof -i :54321 # Check Supabase Studio
    ```
 
 2. **Stop the process:**
 
    ```bash
    kill $(lsof -t -i:3000)  # Stop process on port 3000
-   kill $(lsof -t -i:3001)  # Stop process on port 3001
+   pnpm supabase:stop       # Stop Supabase services
    ```
 
 3. **Use alternative ports:**
    ```bash
-   export WEB_PORT=3002
-   export API_PORT=3003
+   export PORT=3002
    ```
 
 ## Common Issues and Solutions
@@ -107,22 +113,21 @@ If you encounter port conflicts:
    psql -U postgres -c "\du"
    ```
 
-2. Create the test user if missing:
+2. Start Supabase if not running:
 
    ```bash
-   createuser -U postgres bookkeeping
-   psql -U postgres -c "ALTER USER bookkeeping WITH PASSWORD 'bookkeeping';"
+   pnpm supabase:start
    ```
 
-3. Grant database permissions:
+3. Reset database if needed:
 
    ```bash
-   psql -U postgres -c "GRANT ALL ON DATABASE simple_bookkeeping_test TO bookkeeping;"
+   pnpm supabase:reset
    ```
 
 4. Use environment variable override:
    ```bash
-   TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test pnpm test
+   DATABASE_URL=postgresql://postgres:postgres@localhost:54323/postgres pnpm test
    ```
 
 ### 2. JSDOM Navigation Warnings
@@ -135,20 +140,19 @@ This warning occurs in Jest tests when code attempts to navigate (e.g., `window.
 
 ### 3. Port Already in Use
 
-**Error:** `Port 3001 is already in use`
+**Error:** `Port 3000 is already in use`
 
 **Solutions:**
 
 1. Check what's using the port:
 
    ```bash
-   pnpm dev:check-ports
+   lsof -i :3000
    ```
 
-2. Stop the conflicting process or use different ports:
+2. Stop the conflicting process or use different port:
    ```bash
-   export WEB_PORT=4000
-   export API_PORT=4001
+   export PORT=4000
    pnpm dev
    ```
 
@@ -175,7 +179,7 @@ pnpm test:coverage
 pnpm test:watch
 
 # Run specific package tests
-pnpm --filter @simple-bookkeeping/api test
+pnpm --filter @simple-bookkeeping/database test
 pnpm --filter @simple-bookkeeping/web test
 ```
 
@@ -221,14 +225,13 @@ pnpm --filter @simple-bookkeeping/web test:e2e auth-test.spec.ts
 
 ## Troubleshooting Checklist
 
-- [ ] Database server is running
+- [ ] Supabase is running (`pnpm supabase:status`)
 - [ ] Test database exists
-- [ ] Database user has proper permissions
-- [ ] Ports are available (3000, 3001)
+- [ ] Ports are available (3000, 54321, 54323)
 - [ ] Environment variables are set correctly
 - [ ] Dependencies are installed (`pnpm install`)
-- [ ] Prisma client is generated (`pnpm --filter @simple-bookkeeping/database prisma:generate`)
-- [ ] Config package is built (`pnpm --filter @simple-bookkeeping/config build`)
+- [ ] Prisma client is generated (`pnpm db:generate`)
+- [ ] Database migrations are applied (`pnpm db:migrate`)
 
 ## Related Documentation
 

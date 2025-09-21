@@ -156,7 +156,7 @@ const {
 ### 既存データのマイグレーション
 
 ```bash
-# Prismaデータベースからのマイグレーション
+# Supabaseへのマイグレーション
 pnpm --filter @simple-bookkeeping/supabase-client db:migrate
 ```
 

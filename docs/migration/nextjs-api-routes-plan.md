@@ -1,13 +1,14 @@
-# Next.js API Routes Migration Plan (Phase 3.1)
+# Server Actions Migration Plan (Updated)
 
-## Issue #244: 基本APIのNext.js API Routes移行
+## Current Architecture: Server Actions with Supabase
 
-### Current Status: ⚠️ Blocked
+### Current Status: ✅ Implemented
 
-This migration is blocked due to dependencies on:
+The project has successfully migrated to:
 
-- **Phase 1** (#242): Supabase environment setup - Not implemented
-- **Phase 2** (#243): Authentication migration - Not implemented
+- **Server Actions**: Instead of API Routes, using Next.js Server Actions
+- **Supabase**: Complete authentication and database solution
+- **No Express.js**: All backend logic is now in Server Actions
 
 ### Implementation Attempt Summary
 
@@ -141,25 +142,24 @@ const isClosed = !period.isActive; // Inverse logic
 5. **Dual-run period**: Run both v1 and v2 APIs in parallel
 6. **Gradual cutover**: Switch frontend to v2 endpoints gradually
 
-### Alternative Approach
+### Implemented Approach
 
-If Supabase migration is delayed, consider:
+The project has adopted Server Actions instead:
 
-1. **Keep Express.js API**: Continue using existing API
-2. **Create BFF Layer**: Build a Backend-for-Frontend in Next.js that calls Express API
-3. **Gradual refactoring**: Slowly move logic from Express to Next.js
-4. **Schema alignment**: Update database schema gradually to support both systems
+1. **Server Actions**: All backend logic in `app/actions/` directory
+2. **Direct Database Access**: Using Supabase client in Server Actions
+3. **No API Layer**: Server Actions eliminate the need for API routes
+4. **Type Safety**: Full type safety between client and server
 
-### Dependencies to Install
+### Already Installed Dependencies
 
-When ready to implement:
+For Server Actions implementation:
 
 ```bash
-pnpm --filter @simple-bookkeeping/web add \
-  jsonwebtoken \
-  @types/jsonwebtoken \
-  csv-parser \
-  @types/csv-parse
+# Already installed
+@supabase/ssr
+@supabase/supabase-js
+zod # for validation
 ```
 
 ### Testing Approach
@@ -182,13 +182,18 @@ Once implemented:
 | Data inconsistency      | High   | Implement transaction support |
 | Missing features        | Medium | Feature parity checklist      |
 
-### Conclusion
+### Current Implementation
 
-The migration to Next.js API Routes is technically feasible but requires:
+The project has successfully migrated to Server Actions:
 
-1. Completion of prerequisite phases (1 & 2)
-2. Significant schema adaptation work
-3. Careful planning to avoid breaking changes
-4. Comprehensive testing strategy
+1. **Server Actions**: Located in `app/actions/` directory
+2. **Supabase Integration**: Complete auth and database solution
+3. **No Breaking Changes**: Gradual migration approach
+4. **Type Safety**: Full end-to-end type safety
 
-The proof-of-concept provides a solid foundation for the file structure and patterns, but actual implementation should wait until dependencies are resolved.
+Server Actions provide better DX than API Routes:
+
+- No manual API client needed
+- Automatic type inference
+- Built-in validation
+- Simplified error handling

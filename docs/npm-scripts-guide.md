@@ -104,7 +104,7 @@ pnpm db:migrate && pnpm db:seed
 
    ```bash
    pnpm --filter @simple-bookkeeping/web dev
-   pnpm --filter @simple-bookkeeping/api test
+   pnpm --filter @simple-bookkeeping/database test
    ```
 
 3. **環境変数**: direnvを使用している場合、プロジェクトディレクトリに入ると自動的に環境変数が設定されます

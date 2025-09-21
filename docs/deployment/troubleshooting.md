@@ -77,20 +77,6 @@ Schema validation error: buildCommand must be shorter than 256 characters
 buildCommand: pnpm --filter @simple-bookkeeping/database prisma:generate && ...
 ```
 
-### 3. ポート競合エラー
-
-**エラー**:
-
-```
-Port 3001 is already in use
-```
-
-**解決方法**: 環境変数でポートを変更
-
-```bash
-PORT=4000 pnpm --filter @simple-bookkeeping/api start
-```
-
 ## 共通の問題
 
 ### 1. モノレポの依存関係エラー
@@ -196,7 +182,7 @@ pnpm --filter @simple-bookkeeping/database prisma migrate dev --name init
 **エラー**:
 
 ```
-Error: JWT_SECRET is not defined
+Error: SUPABASE_URL is not defined
 ```
 
 **解決方法**:
@@ -206,12 +192,13 @@ Error: JWT_SECRET is not defined
 source .env.local
 
 # または環境変数を直接設定
-export JWT_SECRET="your-secret-key"
+export NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+export NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
 ```
 
 ### 2. NEXT*PUBLIC*環境変数が反映されない
 
-**エラー**: フロントエンドでAPIエンドポイントが見つからない
+**エラー**: フロントエンドでSupabaseクライアントが初期化できない
 
 **解決方法**:
 
@@ -250,14 +237,16 @@ Error: listen EADDRINUSE: address already in use :::3000
 
 ```bash
 # 使用中のプロセスを確認
-lsof -i :3000
-lsof -i :3001
+lsof -i :3000  # Next.js
+lsof -i :54321 # Supabase Studio
+lsof -i :54322 # Supabase API
 
 # プロセスを終了
 kill -9 <PID>
 
-# またはスクリプトで確認
-node scripts/check-ports.js
+# Supabaseを再起動
+pnpm supabase:stop
+pnpm supabase:start
 ```
 
 ### 2. pnpm installエラー
@@ -327,17 +316,17 @@ export default defineConfig({
 **エラー**:
 
 ```
-Error: connect ECONNREFUSED 127.0.0.1:5432
+Error: connect ECONNREFUSED 127.0.0.1:54323
 ```
 
 **解決方法**:
 
 ```bash
-# テスト用データベースを起動
-docker-compose -f docker-compose.test.yml up -d
+# Supabaseローカルサービスを起動
+pnpm supabase:start
 
 # または環境変数を設定
-DATABASE_URL="postgresql://test:test@localhost:5432/test" pnpm test
+DATABASE_URL="postgresql://postgres:postgres@localhost:54323/postgres" pnpm test
 ```
 
 ### 3. Playwrightインストールエラー
@@ -385,22 +374,16 @@ NODE_ENV=production pnpm build
 PrismaClientInitializationError: User was denied access on the database `(not available)`
 ```
 
-**原因**: テスト用のPostgreSQLが起動していない
+**原因**: テスト用のSupabaseが起動していない
 
 **解決方法**:
 
 ```bash
-# DockerでテストDBを起動
-docker run -d \
-  --name postgres-test \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=simple_bookkeeping_test \
-  -p 5432:5432 \
-  postgres:15
+# Supabaseを起動
+pnpm supabase:start
 
-# またはローカルPostgreSQLでテストDBを作成
-createdb simple_bookkeeping_test
+# テストデータベースをリセット
+pnpm supabase:reset
 
 # テスト実行
 pnpm test
@@ -498,20 +481,29 @@ Cannot find module '@simple-bookkeeping/types'
 pnpm build:packages
 ```
 
-### 3. CORS エラー
+### 3. Supabase認証エラー
 
-**症状**: フロントエンドからAPIにアクセスできない
+**症状**: Server Actionsで認証エラーが発生
 
 **解決方法**:
 
 ```typescript
-// apps/api/src/index.ts
-app.use(
-  cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-    credentials: true,
-  })
-);
+// app/actions/内のServer Actions
+import { createClient } from '@/lib/supabase/server';
+
+export async function myAction() {
+  const supabase = createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    throw new Error('認証が必要です');
+  }
+
+  // アクションの処理
+}
 ```
 
 ## データベース関連
@@ -522,16 +514,16 @@ app.use(
 
 ```bash
 # Vercel のビルドコマンドに追加
-pnpm --filter @simple-bookkeeping/database prisma:migrate:deploy
+pnpm db:migrate:deploy
 ```
 
-### 2. 接続エラー
+### 2. Supabase接続エラー
 
 **確認事項**:
 
-- DATABASE_URLが正しく設定されている
-- SSL設定が適切（`?sslmode=require`）
-- ファイアウォール/IP制限の確認
+- NEXT_PUBLIC_SUPABASE_URLが正しく設定されている
+- NEXT_PUBLIC_SUPABASE_ANON_KEYが正しく設定されている
+- SUPABASE_SERVICE_ROLE_KEYがサーバーサイドで設定されている
 
 ## 環境変数関連
 

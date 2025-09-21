@@ -10,24 +10,21 @@
 
 #### @simple-bookkeeping/web
 
-- **役割**: フロントエンドアプリケーション
-- **技術**: Next.js 14, React 18, TypeScript
+- **役割**: フルスタックアプリケーション
+- **技術**: Next.js 14, React 18, TypeScript, Server Actions
 - **主要機能**:
   - ユーザーインターフェース
-  - 認証画面
+  - Server Actionsによるビジネスロジック
+  - Supabase Authによる認証
   - 勘定科目管理
   - 仕訳入力
   - 財務諸表表示
 
-#### @simple-bookkeeping/api
+#### @simple-bookkeeping/api （削除済み）
 
-- **役割**: バックエンドAPIサーバー
-- **技術**: Express.js, TypeScript, Prisma
-- **主要機能**:
-  - RESTful API
-  - 認証・認可
-  - データベース操作
-  - ビジネスロジック
+- **状態**: 完全削除済み
+- **移行先**: Server Actions (apps/web/app/actions/)
+- **理由**: Supabase + Server Actionsアーキテクチャへの統一
 
 ### 共有パッケージ
 
