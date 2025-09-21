@@ -13,44 +13,86 @@
 5. [開発ワークフロー](#開発ワークフロー)
 6. [トラブルシューティング](#トラブルシューティング)
 
+## 環境別Supabase設定
+
+### 🔴 重要: 環境ごとのSupabase使用方針
+
+| 環境                  | Supabase設定              | 用途           |
+| --------------------- | ------------------------- | -------------- |
+| **development/local** | ローカルSupabase (必須)   | 開発・デバッグ |
+| **test**              | ローカルSupabase (Docker) | E2Eテスト・CI  |
+| **production**        | クラウドSupabase          | 本番環境       |
+
+**⚠️ 開発環境では必ずローカルSupabaseを使用してください**
+
 ## セットアップ
 
-### 1. Supabaseプロジェクトの作成
+### 1. ローカル開発環境（dev/local）- 必須
 
-1. [Supabase](https://app.supabase.com)にアクセスしてプロジェクトを作成
-2. プロジェクトダッシュボードから以下の情報を取得：
-   - Project URL
-   - Anon Key
-   - Service Role Key
-   - Project ID
+#### 方法1: Supabase CLI（推奨）
+
+```bash
+# Supabase CLIのインストール
+brew install supabase/tap/supabase  # macOS
+npm install -g supabase              # npm
+
+# ローカルSupabaseを起動
+supabase start
+
+# 起動後のサービス:
+# - API: http://localhost:54321
+# - DB:  postgresql://postgres:postgres@localhost:54322/postgres
+# - Studio: http://localhost:54323
+# - Inbucket: http://localhost:54324
+```
+
+#### 方法2: Docker Compose
+
+```bash
+# Docker Composeで起動
+docker-compose -f docker-compose.supabase-test.yml up -d
+
+# 起動後のサービス:
+# - API Gateway: http://localhost:8000
+# - DB: postgresql://postgres:postgres@supabase-db:5432/postgres
+```
 
 ### 2. 環境変数の設定
 
 ```bash
-# .env.supabase.exampleをコピーして設定
-cp .env.supabase.example .env.local
+# .env.local.exampleをコピー
+cp .env.local.example .env.local
 
-# 取得した情報を.env.localに設定
+# .env.localはデフォルトでローカルSupabase設定済み
+# 変更不要でそのまま使用可能
 ```
 
-### 3. Supabase CLIのインストール
+デフォルト設定（.env.local）:
 
-```bash
-# macOS
-brew install supabase/tap/supabase
-
-# npm/yarn
-npm install -g supabase
+```env
+# ローカルSupabase（開発環境用）
+NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
+DATABASE_URL=postgresql://postgres:postgres@localhost:54322/postgres?schema=public
 ```
 
-### 4. ローカル開発環境の起動
+### 3. 本番環境の設定（production）
+
+本番環境でのみクラウドSupabaseを使用:
+
+1. [Supabase](https://app.supabase.com)でプロジェクトを作成
+2. プロジェクトダッシュボードから以下を取得：
+   - Project URL
+   - Anon Key
+   - Service Role Key
+3. Vercel環境変数に設定
 
 ```bash
-# Supabaseローカル環境を起動
-supabase start
-
-# 停止
-supabase stop
+# 本番環境のみ（Vercel環境変数）
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-production-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-production-service-key
 ```
 
 ## データベース構造

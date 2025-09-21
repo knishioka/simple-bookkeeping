@@ -11,7 +11,8 @@
 - **目的**: 日本の個人事業主・中小企業向け複式簿記システム
 - **技術**: Next.js 14 (App Router) + TypeScript + Supabase + PostgreSQL
 - **構成**: pnpm workspaceによるモノレポ
-- **アーキテクチャ**: Server Actions を使用したフルスタック Next.js アプリケーション
+- **アーキテクチャ**: Supabase + Server Actions によるフルスタック Next.js アプリケーション
+- **開発環境**: ローカルSupabase (http://localhost:54321) 必須
 
 ### 重要なディレクトリ構造
 
@@ -34,17 +35,18 @@ packages/
 ├── database/          # Prisma スキーマ (@simple-bookkeeping/database)
 └── shared/           # 共有ユーティリティ (@simple-bookkeeping/shared)
 
-[廃止予定]
-apps/api/             # Express.js API (移行中につき使用禁止)
+[削除済み]
+apps/api/             # Express.js API (完全削除済み - 使用不可)
 packages/types/       # 型定義 (TypeScript推論で代替)
 ```
 
 ### よく使うコマンド
 
 ```bash
-# 開発サーバー起動
+# 開発環境の起動（ローカルSupabase必須）
+pnpm supabase:start          # Supabase CLI起動（推奨）
+pnpm supabase:docker         # または Docker Compose起動
 pnpm dev                     # Next.js開発サーバー起動
-pnpm --filter web dev        # 同上（互換性のため残存）
 
 # ビルド
 pnpm build                   # 全体ビルド
@@ -62,9 +64,8 @@ pnpm test:audit            # 監査ログのテスト
 pnpm test:demo             # デモページのテスト
 
 # サービス状態確認
-pnpm health                 # Web/APIサービスの状態確認
+pnpm health                 # Webサービスの状態確認
 pnpm health:services       # HTTP応答確認
-# pnpm health:api は削除されました（Express.js API廃止済み）
 
 # DB操作
 pnpm db:init                # DB初期化（マイグレーション＋シード）
@@ -78,40 +79,50 @@ pnpm vercel:logs build      # Vercelビルドログ確認
 
 詳細は [npm-scripts-guide.md](./docs/npm-scripts-guide.md) を参照してください。
 
-## ⚠️ アーキテクチャ移行中の注意事項
+## 🏗️ 現在のアーキテクチャ（Supabase中心）
 
-### 現在進行中の移行
+### アーキテクチャ構成
 
-**From (現在):**
+**現在の技術スタック:**
 
-# Express.js APIサーバーは廃止されました
+- Next.js 14 App Router + Server Actions (Port 3000)
+- Supabase (Database + Auth + RLS)
+- PostgreSQL 16
+- Prisma ORM (Supabaseデータベースへの接続)
+- shadcn/ui + Tailwind CSS
 
-- Next.js フロントエンド (Port 3000)
-- JWT認証
-- Prisma ORM
+### 環境別Supabase設定
 
-**To (移行先):**
+| 環境       | Supabase設定           | URL                              |
+| ---------- | ---------------------- | -------------------------------- |
+| 開発環境   | ローカルSupabase (CLI) | http://localhost:54321           |
+| テスト環境 | Docker Compose版       | http://localhost:54321           |
+| 本番環境   | Supabase Cloud         | https://[project-id].supabase.co |
 
-- Next.js Server Actions のみ
-- Supabase (Database + Auth)
-- Row Level Security (RLS)
-- Edge Functions (必要に応じて)
+**⚠️ 重要: Express.js APIは完全に削除されました。新規実装は必ずServer Actions + Supabaseを使用してください。**
 
-### 実装時の重要な指針
+### 実装時の必須ルール
 
-1. **新機能はServer Actionsで実装**
+1. **すべての新機能はServer Actionsで実装**
    - `/app/actions/` ディレクトリに配置
-   - Express.js APIは使用しない
+   - Express.js APIは存在しないため使用不可
    - 例: `app/actions/accounts.ts`
 
-2. **認証はSupabaseを使用**
-   - JWT認証コードは追加しない
+2. **認証は必ずSupabaseを使用**
+   - JWT認証は廃止済み - 使用禁止
    - `@supabase/ssr` を使用
    - サーバーコンポーネントでの認証チェック
+   - RLS (Row Level Security) ポリシーの活用
 
 3. **データベースアクセス**
-   - 新規: Supabase Client経由
-   - 既存: Prisma (移行までの暫定)
+   - 優先: Supabase Client経由（新規実装）
+   - 暫定: Prisma ORM（既存コードのみ）
+   - 今後: 段階的にSupabase Clientへ統一
+
+4. **Supabase起動必須**
+   - 開発前に必ず `pnpm supabase:start` を実行
+   - または `pnpm supabase:docker` でDocker版を起動
+   - 起動確認: http://localhost:54321
 
 ## 📚 詳細ガイドライン
 
@@ -143,6 +154,12 @@ pnpm vercel:logs build      # Vercelビルドログ確認
    - Server Actions実装例
    - 継続的な改善
 
+5. **[Supabaseガイドライン](./docs/ai-guide/supabase-guidelines.md)**
+   - Supabase環境設定
+   - RLSポリシーの実装
+   - Edge Functionsの活用
+   - トラブルシューティング
+
 ### プロジェクト固有のドキュメント
 
 - [システム構成](./docs/architecture/README.md) - システム構成とポート番号
@@ -152,14 +169,14 @@ pnpm vercel:logs build      # Vercelビルドログ確認
 - [direnvセットアップ](./docs/direnv-setup.md) - direnvを使用した環境変数管理
 - [デプロイメントガイド](./docs/deployment/) - デプロイメントガイド
 
-### API仕様（廃止予定）
+### API仕様（完全廃止）
 
-**注意: 以下のExpress.js APIエンドポイントは廃止予定です。新規実装ではServer Actionsを使用してください。**
+**Express.js APIは完全に削除されました。以下のエンドポイントは存在しません：**
 
-- ~~認証エンドポイント: `/api/v1/auth/*`~~ → Supabase Auth
-- ~~勘定科目: `/api/v1/accounts`~~ → Server Actions
-- ~~仕訳: `/api/v1/journal-entries`~~ → Server Actions
-- ~~レポート: `/api/v1/reports/*`~~ → Server Actions
+- ❌ ~~認証エンドポイント: `/api/v1/auth/*`~~ → ✅ Supabase Auth を使用
+- ❌ ~~勘定科目: `/api/v1/accounts`~~ → ✅ Server Actions を使用
+- ❌ ~~仕訳: `/api/v1/journal-entries`~~ → ✅ Server Actions を使用
+- ❌ ~~レポート: `/api/v1/reports/*`~~ → ✅ Server Actions を使用
 
 ### データベーススキーマ
 
