@@ -2,14 +2,15 @@
 
 ## 概要
 
-このプロジェクトはDocker Composeを使用してコンテナ環境で動作します。ポートの競合を避けるため、環境変数による柔軟な設定が可能です。
+このプロジェクトはSupabaseのDocker Composeを使用してローカル開発環境を構築します。Supabaseは認証、データベース、リアルタイム機能を提供する統合プラットフォームです。
 
-> ⚠️ **重要**: このDocker設定はローカル開発専用です。本番環境へのデプロイには[Render.com](https://render.com)を使用してください。詳細は[デプロイメントガイド](./deployment-guide.md)を参照してください。
+> ⚠️ **重要**: このDocker設定はローカル開発専用です。本番環境へのデプロイには[Vercel](https://vercel.com)を使用してください。詳細は[デプロイメントガイド](./deployment-guide.md)を参照してください。
 
 ## 必要な環境
 
 - Docker Desktop (Docker Engine 20.10以上)
 - Docker Compose v2
+- Supabase CLI (pnpm経由でインストール済み)
 
 ## セットアップ手順
 
@@ -17,32 +18,33 @@
 
 ```bash
 # ローカル開発用の設定ファイルをコピー
-cp .env.docker .env
+cp .env.local.example .env.local
 
-# 必要に応じてポート番号を変更
-# API_PORT=3001 (デフォルト)
-# WEB_PORT=3000 (デフォルト)
+# Supabase URLとキーは自動的に設定されます
+# NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
+# NEXT_PUBLIC_SUPABASE_ANON_KEY=（自動生成）
 ```
 
 ### 2. ポート戦略
 
 デフォルトでは以下のポートを使用します：
 
-- **Web (Next.js)**: 3000番ポート（ローカル実行）
-- **PostgreSQL**: 5432番ポート
+- **Web (Next.js)**: 3000番ポート
+- **Supabase Studio**: 54321番ポート
+- **Supabase API**: 54322番ポート
+- **PostgreSQL**: 54323番ポート（Supabase内部）
+- **Supabase Auth**: 54324番ポート
 
-ポートが競合する場合は、`.env`ファイルで変更できます：
+ポートが競合する場合は、`supabase/config.toml`で変更できます。
 
-```bash
-# .env
-DB_PORT=5433  # 5432が使用中の場合
-```
-
-### 3. データベースの起動
+### 3. Supabaseの起動
 
 ```bash
-# PostgreSQLコンテナの起動
-docker-compose up -d
+# Supabase CLIを使用（推奨）
+pnpm supabase:start
+
+# またはDocker Composeを直接使用
+pnpm supabase:docker
 
 # Webアプリケーションの起動（別ターミナルで）
 pnpm dev
@@ -52,10 +54,13 @@ pnpm dev
 
 ```bash
 # マイグレーション実行
-pnpm --filter @simple-bookkeeping/database db:migrate
+pnpm db:migrate
 
 # シードデータの投入
-pnpm --filter @simple-bookkeeping/database db:seed
+pnpm db:seed
+
+# Supabase Studioで確認
+open http://localhost:54321
 ```
 
 ## 開発環境での使用
@@ -65,27 +70,36 @@ pnpm --filter @simple-bookkeeping/database db:seed
 開発環境では、ソースコードの変更が自動的に反映されます：
 
 ```bash
-# データベースコンテナを起動
-docker-compose up -d
+# Supabaseを起動
+pnpm supabase:start
 
 # アプリケーションを開発モードで起動
 pnpm dev
+
+# Server Actionsの変更も自動反映されます
 ```
 
 ### ログの確認
 
 ```bash
-# PostgreSQLのログ
-docker-compose logs -f postgres
+# Supabaseのログ
+pnpm supabase:logs
+
+# 特定サービスのログ（Docker使用時）
+docker logs supabase-db -f
+docker logs supabase-auth -f
 
 # アプリケーションのログはターミナルに直接表示されます
 ```
 
-### PostgreSQLコンテナへのアクセス
+### PostgreSQLへのアクセス
 
 ```bash
-# PostgreSQLコンテナ
-docker-compose exec postgres psql -U postgres -d simple_bookkeeping
+# Supabase経由でアクセス
+pnpm supabase db
+
+# またはpsqlで直接接続
+psql postgresql://postgres:postgres@localhost:54323/postgres
 ```
 
 ## トラブルシューティング
@@ -94,54 +108,56 @@ docker-compose exec postgres psql -U postgres -d simple_bookkeeping
 
 ```bash
 # 使用中のポートを確認
-lsof -i :5432
+lsof -i :54321  # Supabase Studio
+lsof -i :54322  # Supabase API
+lsof -i :54323  # PostgreSQL
 
-# .envファイルでポートを変更
-echo "DB_PORT=5433" >> .env
-
-# コンテナを再起動
-docker-compose down
-docker-compose up -d
+# Supabaseを停止して再起動
+pnpm supabase:stop
+pnpm supabase:start
 ```
 
 ### データベース接続エラー
 
 ```bash
-# PostgreSQLの状態確認
-docker-compose ps postgres
-docker-compose logs postgres
+# Supabaseの状態確認
+pnpm supabase:status
 
 # データベースの再作成
-docker-compose down -v  # ボリュームも削除
-docker-compose up -d
+pnpm supabase:stop
+pnpm supabase:reset  # データベースをリセット
+pnpm supabase:start
 ```
 
 ### ビルドエラー
 
 ```bash
-# キャッシュをクリアして再ビルド
-docker-compose build --no-cache
+# Supabaseのクリーンアップ
+pnpm supabase:stop
+pnpm supabase:clean  # ボリューム削除
 
-# 全てをクリーンアップ
-docker-compose down -v
+# Docker全体のクリーンアップ（必要な場合）
 docker system prune -a
-docker-compose up -d --build
+
+# 再起動
+pnpm supabase:start
 ```
 
 ## セキュリティ上の注意
 
-1. **PostgreSQLポートの非公開**: データベースは内部ネットワークのみでアクセス可能
-2. **環境変数の管理**: `.env`ファイルはGitにコミットしない
-3. **ローカル開発用**: 開発用の認証情報を使用
+1. **Supabaseキーの管理**: 匿名キーとサービスロールキーを適切に管理
+2. **環境変数の管理**: `.env.local`ファイルはGitにコミットしない
+3. **Row Level Security**: データベースアクセスはRLSポリシーで制御
+4. **ローカル開発用**: 開発用の認証情報を使用
 
 ## 本番環境へのデプロイ
 
-> 🚨 **重要**: Docker構成はローカル開発専用です。本番環境には使用しないでください。
+> 🚨 **重要**: ローカルSupabase構成は開発専用です。本番環境には使用しないでください。
 
 本番環境へのデプロイには以下の方法を推奨します：
 
-1. **Render.com** - APIサーバーとPostgreSQLデータベース
-2. **Vercel** - Next.jsフロントエンド
+1. **Vercel** - Next.jsアプリケーション（Server Actions含む）
+2. **Supabase Cloud** - 本番用データベースと認証サービス
 
 詳細な手順は以下のドキュメントを参照してください：
 

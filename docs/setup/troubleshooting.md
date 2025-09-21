@@ -45,48 +45,52 @@ pnpm --filter @simple-bookkeeping/database prisma:generate
 
 ### 401 Unauthorized エラー
 
-**原因**: JWTトークンが無効または期限切れ
+**原因**: Supabaseセッショントークンが無効または期限切れ
 
 **解決方法**:
 
 ```javascript
 // ブラウザのコンソールで実行
 localStorage.clear();
+sessionStorage.clear();
 // その後、再度ログイン
 ```
 
-### CORS エラー
+### Supabase認証エラー
 
-**エラー**: `Access to fetch at 'http://localhost:3001' from origin 'http://localhost:3000' has been blocked by CORS policy`
+**エラー**: `AuthApiError: Invalid login credentials`
 
 **解決方法**:
 
 ```bash
-# .envファイルでCORS_ORIGINを確認
-CORS_ORIGIN=http://localhost:3000
+# Supabaseの環境変数を確認
+cat .env.local | grep SUPABASE
 
-# APIサーバーを再起動
-pnpm --filter @simple-bookkeeping/api dev
+# Supabaseローカルサービスの再起動
+pnpm supabase:stop
+pnpm supabase:start
 ```
 
 ## 🌐 ポート関連
 
 ### ポート競合
 
-**エラー**: `Error: listen EADDRINUSE: address already in use :::3000`
+**エラー**: `Error: listen EADDRINUSE: address already in use`
 
 **解決方法**:
 
 ```bash
 # 使用中のポートを確認
-lsof -i :3000
-lsof -i :3001
+lsof -i :3000  # Next.js
+lsof -i :54321 # Supabase Studio
+lsof -i :54322 # Supabase API
+lsof -i :54323 # Supabase DB
 
 # プロセスを終了
 kill -9 <PID>
 
 # または環境変数でポートを変更
-WEB_PORT=3002 API_PORT=3003 pnpm dev
+PORT=3002 pnpm dev
 ```
 
 ## 📦 パッケージ関連
@@ -155,22 +159,26 @@ NODE_ENV=test pnpm db:migrate
 ### アプリケーションログ
 
 ```bash
-# APIサーバーのログ
-tail -f apps/api/logs/combined.log
+# Next.jsサーバーのログ
+pnpm dev 2>&1 | tee dev.log
 
-# エラーログのみ
-tail -f apps/api/logs/error.log
+# Supabaseのログ
+pnpm supabase:logs
+
+# Server Actionsのデバッグ
+# app/actions/*.ts にconsole.logを追加して確認
 ```
 
 ### Dockerログ
 
 ```bash
-# すべてのサービスのログ
-docker compose logs -f
+# Supabase Dockerのログ
+pnpm supabase:docker:logs
 
 # 特定のサービスのログ
-docker compose logs -f api
-docker compose logs -f postgres
+docker logs supabase-db -f      # Database
+docker logs supabase-auth -f    # Auth Service
+docker logs supabase-studio -f  # Studio UI
 ```
 
 ## 🔄 リセット手順
