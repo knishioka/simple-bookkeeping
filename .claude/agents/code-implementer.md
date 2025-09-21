@@ -46,11 +46,13 @@ Issue要件に基づいてコードを実装し、WebSearchで最新のベスト
 - 型推論を最大限活用
 - 明示的な型定義で意図を明確化
 
-### 3. Server Actions優先
+### 3. Supabase + Server Actions必須
 
-- 新機能はServer Actionsで実装
-- Express.js APIは使用しない
-- Supabase統合を活用
+- **すべての新機能はServer Actionsで実装**
+- **Express.js APIは完全削除済み - 使用不可**
+- **Supabase優先**: 認証、データベース、リアルタイム機能
+- **RLS (Row Level Security) ポリシーを考慮**
+- **環境変数**: `NEXT_PUBLIC_SUPABASE_*`を使用
 
 ### 4. エラー処理
 

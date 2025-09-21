@@ -26,10 +26,11 @@ Simple Bookkeepingは、日本の確定申告（青色申告）に対応した�
 
 ### バックエンド
 
-- **Framework**: Express.js + TypeScript
-- **Database**: PostgreSQL 15+
-- **ORM**: Prisma
-- **Authentication**: Passport.js + JWT
+- **Framework**: Next.js Server Actions + TypeScript
+- **Database**: PostgreSQL 16+ (Supabase)
+- **ORM**: Prisma / Supabase Client
+- **Authentication**: Supabase Auth (Row Level Security)
+- **Real-time**: Supabase Realtime
 - **Testing**: Jest + Supertest
 
 ### インフラ・開発環境
@@ -44,14 +45,19 @@ Simple Bookkeepingは、日本の確定申告（青色申告）に対応した�
 ```
 simple-bookkeeping/
 ├── apps/
-│   ├── web/              # Next.js フロントエンド
-│   └── api/              # Express.js バックエンド
+│   └── web/              # Next.js フルスタックアプリケーション
+│       ├── app/
+│       │   └── actions/  # Server Actions (ビジネスロジック)
+│       └── lib/
+│           └── supabase/ # Supabaseクライアント設定
 ├── packages/
 │   ├── database/         # Prismaスキーマとマイグレーション
-│   ├── types/            # 共通型定義
 │   ├── errors/           # エラーハンドリング
 │   ├── shared/           # 共有ユーティリティ
 │   └── typescript-config/# 共通TypeScript設定
+├── supabase/
+│   ├── migrations/       # Supabaseマイグレーション
+│   └── functions/        # Edge Functions (必要に応じて)
 └── docs/                 # ドキュメント
 ```
 
@@ -72,8 +78,8 @@ simple-bookkeeping/
 
 - Node.js 18.0.0以上（推奨: 20.0.0以上）
 - pnpm 8.0.0以上
-- PostgreSQL 14以上（オプション：Dockerを使用する場合は不要）
-- Docker & Docker Compose（オプション）
+- Supabase CLI（推奨）またはDocker & Docker Compose
+- PostgreSQL 16以上（Supabase経由で自動提供）
 
 ### 推奨：asdfを使った環境構築
 
@@ -96,20 +102,26 @@ cd simple-bookkeeping
 pnpm install
 
 # 3. 環境変数の設定
-cp .env.example .env.local
-# .env.localを編集して必要な値を設定
+cp .env.local.example .env.local
+# .env.localはデフォルトでローカルSupabase設定済み
 
-# 4. データベースの初期化
+# 4. ローカルSupabaseの起動（必須）
+pnpm supabase:start    # Supabase CLI (推奨)
+# または
+pnpm supabase:docker   # Docker Compose
+
+# 5. データベースの初期化
 pnpm db:init
 
-# 5. 開発サーバーの起動
+# 6. 開発サーバーの起動
 pnpm dev
 ```
 
 アプリケーションは以下のURLでアクセス可能：
 
-- Web: http://localhost:3000
-- Web: http://localhost:3000
+- Webアプリケーション: http://localhost:3000
+- Supabase Studio: http://localhost:54323
+- Supabase API: http://localhost:54321
 
 ## セットアップ
 
@@ -140,7 +152,7 @@ WEB_PORT=3010  # デフォルト: 3000
 - [システム構成](./docs/architecture/README.md) - システム全体のアーキテクチャ
 - [システム仕様書](./docs/specifications/system-requirements.md) - 機能要件・非機能要件
 - [データモデル仕様書](./docs/specifications/data-model.md) - データベース設計
-- [API設計仕様書](./docs/specifications/api-design.md) - RESTful API仕様
+- [Server Actions設計](./docs/specifications/server-actions.md) - Server Actions仕様
 - [パッケージ構成](./docs/architecture/package-structure.md) - Monorepo構成
 
 ### 🧪 テスト・品質管理
@@ -203,10 +215,9 @@ WEB_PORT=3010  # デフォルト: 3000
 ### よく使うコマンド
 
 ```bash
-# 開発サーバー起動
-pnpm dev                     # 全サービス同時起動
-pnpm --filter web dev        # フロントエンドのみ
-pnpm --filter api dev        # バックエンドのみ
+# 開発サーバー起動（要Supabase起動）
+pnpm dev                     # Next.js開発サーバー
+pnpm --filter web dev        # Webアプリケーションのみ
 
 # ビルド
 pnpm build                   # 全体ビルド
@@ -221,9 +232,8 @@ pnpm typecheck              # TypeScript型チェック
 
 ```bash
 # サービスのヘルスチェック
-pnpm health                 # Web/APIサービスの状態確認
+pnpm health                 # Webサービスの状態確認
 pnpm health:services       # HTTP応答確認
-# pnpm health:api は削除されました（Express.js API廃止）
 ```
 
 詳細は[npmスクリプトガイド](./docs/npm-scripts-guide.md)を参照。

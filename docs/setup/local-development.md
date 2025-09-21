@@ -1,37 +1,38 @@
 # 💻 ローカル開発環境セットアップ
 
-Dockerを使用せずに、ローカルマシンに直接開発環境を構築する方法を説明します。
+Supabaseを使用したローカル開発環境の構築方法を説明します。
 
 ## 📋 前提条件
 
 - **Node.js** 18.0.0以上
 - **pnpm** 8.0.0以上
-- **PostgreSQL** 15以上
+- **Supabase CLI** または **Docker**
 - **Git**
 
 ## 🔧 セットアップ手順
 
-### 1. PostgreSQLのインストールと起動
+### 1. Supabase CLIのインストール
 
 #### macOS (Homebrew)
 
 ```bash
-brew install postgresql@15
-brew services start postgresql@15
+brew install supabase/tap/supabase
 ```
 
-#### Ubuntu/Debian
+#### npm/pnpm
 
 ```bash
-sudo apt-get install postgresql-15
-sudo systemctl start postgresql
+pnpm install -g supabase
 ```
 
-### 2. データベースの作成
+### 2. Supabaseの起動
 
 ```bash
-createdb simple_bookkeeping
-createuser -P bookkeeping  # パスワードを設定
+# Supabaseローカル開発環境を起動
+supabase start
+
+# またはDocker Composeを使用
+pnpm supabase:docker
 ```
 
 ### 3. プロジェクトのセットアップ
@@ -50,24 +51,16 @@ cp .env.example .env.local
 
 ### 4. 環境変数の設定
 
-`.env.local`ファイルを編集して、データベース接続情報を更新：
+`.env.local`ファイルを編集して、Supabase接続情報を設定：
 
 ```bash
-# PostgreSQL接続文字列
-DATABASE_URL="postgresql://bookkeeping:your-password@localhost:5432/simple_bookkeeping?schema=public"
+# Supabase接続設定（ローカル開発用）
+NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
 
-# JWT設定（本番環境では必ず変更してください）
-JWT_SECRET=local-dev-secret-change-in-production
-JWT_EXPIRES_IN=7d
-JWT_REFRESH_SECRET=local-dev-refresh-secret-change-in-production
-JWT_REFRESH_EXPIRES_IN=30d
-
-# APIサーバー設定
-API_PORT=3001
-CORS_ORIGIN=http://localhost:3000
-
-# フロントエンド設定（重要：/api/v1を含む完全なパスを指定）
-NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
+# データベース接続（Prisma用）
+DATABASE_URL=postgresql://postgres:postgres@localhost:54322/postgres?schema=public
 ```
 
 ### 5. データベースの初期化
@@ -89,12 +82,14 @@ pnpm build:packages
 ### 6. 開発サーバーの起動
 
 ```bash
-# すべてのサービスを起動
+# Supabaseが起動していることを確認
+supabase status
+
+# Next.js開発サーバーを起動
 pnpm dev
 
 # または個別に起動
 pnpm --filter @simple-bookkeeping/web dev    # Webアプリ
-pnpm --filter @simple-bookkeeping/api dev    # APIサーバー
 ```
 
 ## 🗂️ データベース管理
