@@ -135,8 +135,8 @@ NODE_ENV=test pnpm db:reset
 # Webアプリの確認
 curl -I http://localhost:3000
 
-# APIサーバーの確認
-curl http://localhost:3001/api/v1/health
+# Supabaseの確認
+curl http://localhost:54321/health
 ```
 
 ### デフォルト認証情報
@@ -148,10 +148,9 @@ Password: password123
 
 ## ⚠️ 注意事項
 
-1. **ポート競合**: デフォルトポート(3000, 3001)が使用中の場合は、環境変数で変更可能
-2. **データベース接続**: PostgreSQLが起動していることを確認
-3. **環境変数**: `NEXT_PUBLIC_API_URL`には必ず`/api/v1`を含める
-4. **CORS設定**: `CORS_ORIGIN`を正しく設定する
+1. **ポート競合**: デフォルトポート(3000)が使用中の場合は、環境変数で変更可能
+2. **データベース接続**: Supabaseが起動していることを確認
+3. **環境変数**: Supabase関連の環境変数を正しく設定
 
 ## 📚 関連ドキュメント
 

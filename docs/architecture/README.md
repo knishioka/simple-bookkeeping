@@ -97,31 +97,31 @@ Frontend → API ✅ HTTP calls
 API → PostgreSQL ✅ 内部ネットワーク
 ```
 
-## 🌐 API エンドポイント
+## 🌐 Server Actions
 
-### パブリック API
+### 主要な機能
 
-```
-GET  /api/v1/            # ヘルスチェック
-POST /api/v1/auth/login  # ログイン
-POST /api/v1/auth/register # 新規登録
-```
+```typescript
+// app/actions/auth.ts
+- signIn()  # ログイン処理
+- signUp()  # 新規登録
+- signOut() # ログアウト
 
-### 認証が必要な API
+// app/actions/accounts.ts
+- getAccounts()    # 勘定科目一覧取得
+- createAccount()  # 勘定科目作成
+- updateAccount()  # 勘定科目更新
+- deleteAccount()  # 勘定科目削除
 
-```
-# 勘定科目管理
-GET|POST|PUT|DELETE /api/v1/accounts
+// app/actions/journal-entries.ts
+- getJournalEntries()    # 仕訳一覧取得
+- createJournalEntry()   # 仕訳作成
+- updateJournalEntry()   # 仕訳更新
+- deleteJournalEntry()   # 仕訳削除
 
-# 仕訳入力
-GET|POST|PUT|DELETE /api/v1/journal-entries
-
-# レポート
-GET /api/v1/reports/balance-sheet
-GET /api/v1/reports/profit-loss
-
-# 組織管理
-GET|POST|PUT /api/v1/organizations
+// app/actions/reports.ts
+- getBalanceSheet()  # 貸借対照表
+- getProfitLoss()    # 損益計算書
 ```
 
 ## 📊 データフロー
@@ -139,15 +139,15 @@ JWT Token取得
 ### 2. 勘定科目管理
 
 ```
-勘定科目画面 → API呼び出し → データベース操作
-Frontend → POST /api/v1/accounts → PostgreSQL INSERT
+勘定科目画面 → Server Action → データベース操作
+Frontend → createAccount() → Supabase/PostgreSQL INSERT
 ```
 
 ### 3. 仕訳入力
 
 ```
 仕訳入力画面 → 複式簿記検証 → データベース保存
-Frontend → POST /api/v1/journal-entries → PostgreSQL Transaction
+Frontend → createJournalEntry() → Supabase/PostgreSQL Transaction
 ```
 
 ## 🔧 開発・運用コマンド
@@ -155,25 +155,24 @@ Frontend → POST /api/v1/journal-entries → PostgreSQL Transaction
 ### 開発環境起動
 
 ```bash
-# 個別起動
-pnpm --filter @simple-bookkeeping/web dev    # Frontend
-pnpm --filter @simple-bookkeeping/api dev    # Backend
+# Supabase起動（必須）
+pnpm supabase:start    # Supabase CLI版
+# または
+pnpm supabase:docker   # Docker Compose版
 
-# Docker Compose起動
-docker-compose up -d  # 全サービス起動
+# 開発サーバー起動
+pnpm dev              # Next.js開発サーバー (Port 3000)
 ```
 
 ### ポート競合時の対策
 
 ```bash
-# ポート変更
-export WEB_PORT=3030
-export API_PORT=3031
-docker-compose up -d
+# Next.jsポート変更
+export PORT=3030
+pnpm dev
 
-# または .env ファイルで設定
-echo "WEB_PORT=3030" >> .env
-echo "API_PORT=3031" >> .env
+# または .env.local ファイルで設定
+echo "PORT=3030" >> .env.local
 ```
 
 ## 🌍 外部公開時の考慮事項
