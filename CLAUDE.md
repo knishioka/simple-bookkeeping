@@ -35,9 +35,6 @@ packages/
 ├── database/          # Prisma スキーマ (@simple-bookkeeping/database)
 └── shared/           # 共有ユーティリティ (@simple-bookkeeping/shared)
 
-[削除済み]
-apps/api/             # Express.js API (完全削除済み - 使用不可)
-packages/types/       # 型定義 (TypeScript推論で代替)
 ```
 
 ### よく使うコマンド
@@ -99,17 +96,13 @@ pnpm vercel:logs build      # Vercelビルドログ確認
 | テスト環境 | Docker Compose版       | http://localhost:54321           |
 | 本番環境   | Supabase Cloud         | https://[project-id].supabase.co |
 
-**⚠️ 重要: Express.js APIは完全に削除されました。新規実装は必ずServer Actions + Supabaseを使用してください。**
-
 ### 実装時の必須ルール
 
 1. **すべての新機能はServer Actionsで実装**
    - `/app/actions/` ディレクトリに配置
-   - Express.js APIは存在しないため使用不可
    - 例: `app/actions/accounts.ts`
 
 2. **認証は必ずSupabaseを使用**
-   - JWT認証は廃止済み - 使用禁止
    - `@supabase/ssr` を使用
    - サーバーコンポーネントでの認証チェック
    - RLS (Row Level Security) ポリシーの活用
@@ -168,15 +161,6 @@ pnpm vercel:logs build      # Vercelビルドログ確認
 - [npmスクリプト一覧](./docs/npm-scripts-guide.md) - npmスクリプトの一覧と説明
 - [direnvセットアップ](./docs/direnv-setup.md) - direnvを使用した環境変数管理
 - [デプロイメントガイド](./docs/deployment/) - デプロイメントガイド
-
-### API仕様（完全廃止）
-
-**Express.js APIは完全に削除されました。以下のエンドポイントは存在しません：**
-
-- ❌ ~~認証エンドポイント: `/api/v1/auth/*`~~ → ✅ Supabase Auth を使用
-- ❌ ~~勘定科目: `/api/v1/accounts`~~ → ✅ Server Actions を使用
-- ❌ ~~仕訳: `/api/v1/journal-entries`~~ → ✅ Server Actions を使用
-- ❌ ~~レポート: `/api/v1/reports/*`~~ → ✅ Server Actions を使用
 
 ### データベーススキーマ
 

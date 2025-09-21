@@ -347,13 +347,11 @@ curl -s http://localhost:3000/demo/journal-entries | grep -q "仕訳入力" && e
 ### APIサーバー起動時も同様に確認
 
 ```bash
-# APIサーバー起動
-pnpm --filter @simple-bookkeeping/api dev
+# Supabase起動
+pnpm supabase:start
 
-# 疎通確認（廃止予定）
-# Express.js APIサーバーは段階的に廃止されます
-# curl -I http://localhost:3001/api/v1/
-# curl -s http://localhost:3001/api/v1/ | grep -q "Simple Bookkeeping API"
+# 疎通確認
+curl http://localhost:54321/health
 ```
 
 ## テスト駆動開発の原則

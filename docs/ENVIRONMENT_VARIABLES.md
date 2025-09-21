@@ -128,14 +128,6 @@ CORS_ORIGIN=https://simple-bookkeeping.vercel.app
 
 以下の環境変数は**Express.js API削除**に伴い廃止されました：
 
-```bash
-# ❌ 使用禁止 - 削除予定
-JWT_SECRET=deprecated-do-not-use
-NEXT_PUBLIC_API_URL=http://localhost:3001  # Express.js API削除済み
-API_PORT=3001  # Express.js API削除済み
-SESSION_SECRET=deprecated-do-not-use
-```
-
 ## 🔧 環境変数の取得方法
 
 ### ローカル開発環境
