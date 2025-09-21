@@ -2,6 +2,7 @@
 
 # Test environment keys (these are public demo keys from Supabase for local Docker testing)
 # These tokens are from Supabase's official demo and are safe for local testing
+# The keys below are the standard Supabase local development keys and are safe to include
 49a4b17897aa3ac505a3422e4a9f0acdd4e337e8:.env.test.local.example:jwt:15
 49a4b17897aa3ac505a3422e4a9f0acdd4e337e8:.env.test.local.example:jwt:18
 49a4b17897aa3ac505a3422e4a9f0acdd4e337e8:apps/web/e2e/helpers/supabase-auth.ts:jwt:78
@@ -17,3 +18,5 @@ e5c082798d164845653870745aafae951178484b:scripts/test-e2e-docker.sh:jwt:197
 4d1175b8bd7c555b71a6f6e6dcb8817f26d36af0:apps/web/e2e/helpers/supabase-auth.ts:jwt:86
 4d1175b8bd7c555b71a6f6e6dcb8817f26d36af0:scripts/test-e2e-docker.sh:jwt:196
 4d1175b8bd7c555b71a6f6e6dcb8817f26d36af0:scripts/test-e2e-docker.sh:jwt:197
+ce953228ce38eff221a9a2d7da14c4ccbb38ea93:.env.local.example:jwt:23
+ce953228ce38eff221a9a2d7da14c4ccbb38ea93:.env.local.example:jwt:24
