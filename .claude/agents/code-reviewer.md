@@ -47,7 +47,6 @@ model: opus
 - 認証・認可の不備（**Supabase Auth未使用**）
 - 機密情報の露出
 - 重大なパフォーマンス問題
-- **Express.js APIの使用（削除済みのため使用不可）**
 - **RLSポリシーの欠落**
 
 ### 🟡 Warning（修正推奨）

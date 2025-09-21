@@ -49,7 +49,6 @@ Issue要件に基づいてコードを実装し、WebSearchで最新のベスト
 ### 3. Supabase + Server Actions必須
 
 - **すべての新機能はServer Actionsで実装**
-- **Express.js APIは完全削除済み - 使用不可**
 - **Supabase優先**: 認証、データベース、リアルタイム機能
 - **RLS (Row Level Security) ポリシーを考慮**
 - **環境変数**: `NEXT_PUBLIC_SUPABASE_*`を使用
