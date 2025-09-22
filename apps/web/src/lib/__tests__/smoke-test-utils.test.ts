@@ -8,7 +8,7 @@
  * - Helper functions (getCurrentDate, getWorkflowExecutionCount)
  */
 
-import { execSync } from 'child_process';
+import { spawnSync } from 'child_process';
 
 import {
   checkExecutionLimit,
@@ -19,10 +19,21 @@ import {
 
 // Mock child_process
 jest.mock('child_process', () => ({
-  execSync: jest.fn(),
+  spawnSync: jest.fn(),
 }));
 
-const mockExecSync = execSync as jest.MockedFunction<typeof execSync>;
+const mockSpawnSync = spawnSync as jest.MockedFunction<typeof spawnSync>;
+
+// Helper to create mock spawnSync return value
+const createMockSpawnResult = (stdout: string, status = 0, stderr = '') =>
+  ({
+    stdout,
+    stderr,
+    status,
+    signal: null,
+    output: [stdout],
+    pid: 123,
+  }) as any;
 
 describe('Smoke Test Utilities', () => {
   const originalEnv = process.env;
@@ -52,15 +63,19 @@ describe('Smoke Test Utilities', () => {
     describe('successful execution checks', () => {
       it('should return true when under the limit', async () => {
         process.env.GITHUB_REPOSITORY = 'owner/repo';
-        mockExecSync.mockReturnValueOnce('3' as any);
+        mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('3'));
 
         const result = await checkExecutionLimit();
 
         expect(result).toBe(true);
-        expect(mockExecSync).toHaveBeenCalledWith(
-          expect.stringContaining(
-            'gh api repos/owner/repo/actions/workflows/production-e2e-smoke-test.yml/runs'
-          ),
+        expect(mockSpawnSync).toHaveBeenCalledWith(
+          'gh',
+          [
+            'api',
+            'repos/owner/repo/actions/workflows/production-e2e-smoke-test.yml/runs',
+            '--jq',
+            expect.any(String),
+          ],
           expect.objectContaining({
             encoding: 'utf8',
           })
@@ -69,7 +84,14 @@ describe('Smoke Test Utilities', () => {
 
       it('should return true when exactly at limit minus one', async () => {
         process.env.GITHUB_REPOSITORY = 'owner/repo';
-        mockExecSync.mockReturnValueOnce('4' as any);
+        mockSpawnSync.mockReturnValueOnce({
+          stdout: '4',
+          stderr: '',
+          status: 0,
+          signal: null,
+          output: ['4'],
+          pid: 123,
+        } as any);
 
         const result = await checkExecutionLimit({ maxExecutions: 5 });
 
@@ -78,7 +100,14 @@ describe('Smoke Test Utilities', () => {
 
       it('should return false when at the limit', async () => {
         process.env.GITHUB_REPOSITORY = 'owner/repo';
-        mockExecSync.mockReturnValueOnce('5' as any);
+        mockSpawnSync.mockReturnValueOnce({
+          stdout: '5',
+          stderr: '',
+          status: 0,
+          signal: null,
+          output: ['5'],
+          pid: 123,
+        } as any);
 
         const result = await checkExecutionLimit({ maxExecutions: 5 });
 
@@ -90,7 +119,14 @@ describe('Smoke Test Utilities', () => {
 
       it('should return false when over the limit', async () => {
         process.env.GITHUB_REPOSITORY = 'owner/repo';
-        mockExecSync.mockReturnValueOnce('10' as any);
+        mockSpawnSync.mockReturnValueOnce({
+          stdout: '10',
+          stderr: '',
+          status: 0,
+          signal: null,
+          output: ['10'],
+          pid: 123,
+        } as any);
 
         const result = await checkExecutionLimit({ maxExecutions: 5 });
 
@@ -100,7 +136,7 @@ describe('Smoke Test Utilities', () => {
 
     describe('configuration handling', () => {
       it('should use custom configuration when provided', async () => {
-        mockExecSync.mockReturnValueOnce('2' as any);
+        mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('2'));
 
         const result = await checkExecutionLimit({
           maxExecutions: 10,
@@ -110,21 +146,29 @@ describe('Smoke Test Utilities', () => {
         });
 
         expect(result).toBe(true);
-        expect(mockExecSync).toHaveBeenCalledWith(
-          expect.stringContaining('repos/custom/repo/actions/workflows/custom-workflow.yml'),
+        expect(mockSpawnSync).toHaveBeenCalledWith(
+          'gh',
+          expect.arrayContaining([
+            'api',
+            'repos/custom/repo/actions/workflows/custom-workflow.yml/runs',
+          ]),
           expect.anything()
         );
       });
 
       it('should use GITHUB_REPOSITORY environment variable when repository not specified', async () => {
         process.env.GITHUB_REPOSITORY = 'env/repo';
-        mockExecSync.mockReturnValueOnce('1' as any);
+        mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('1'));
 
         const result = await checkExecutionLimit();
 
         expect(result).toBe(true);
-        expect(mockExecSync).toHaveBeenCalledWith(
-          expect.stringContaining('repos/env/repo'),
+        expect(mockSpawnSync).toHaveBeenCalledWith(
+          'gh',
+          expect.arrayContaining([
+            'api',
+            'repos/env/repo/actions/workflows/production-e2e-smoke-test.yml/runs',
+          ]),
           expect.anything()
         );
       });
@@ -132,15 +176,16 @@ describe('Smoke Test Utilities', () => {
       it('should pass GITHUB_TOKEN to gh CLI', async () => {
         process.env.GITHUB_REPOSITORY = 'owner/repo';
         process.env.GITHUB_TOKEN = 'test-github-token';
-        mockExecSync.mockReturnValueOnce('1' as any);
+        mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('1'));
 
         await checkExecutionLimit();
 
-        expect(mockExecSync).toHaveBeenCalledWith(
-          expect.anything(),
+        expect(mockSpawnSync).toHaveBeenCalledWith(
+          'gh',
+          expect.any(Array),
           expect.objectContaining({
             env: expect.objectContaining({
-              GH_TOKEN: 'test-github-token',
+              GITHUB_TOKEN: 'test-github-token',
             }),
           })
         );
@@ -150,12 +195,13 @@ describe('Smoke Test Utilities', () => {
         process.env.GITHUB_REPOSITORY = 'owner/repo';
         process.env.GH_TOKEN = 'test-gh-token';
         delete process.env.GITHUB_TOKEN;
-        mockExecSync.mockReturnValueOnce('1' as any);
+        mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('1'));
 
         await checkExecutionLimit();
 
-        expect(mockExecSync).toHaveBeenCalledWith(
-          expect.anything(),
+        expect(mockSpawnSync).toHaveBeenCalledWith(
+          'gh',
+          expect.any(Array),
           expect.objectContaining({
             env: expect.objectContaining({
               GH_TOKEN: 'test-gh-token',
@@ -168,38 +214,30 @@ describe('Smoke Test Utilities', () => {
     describe('timezone handling', () => {
       it('should use JST timezone by default', async () => {
         process.env.GITHUB_REPOSITORY = 'owner/repo';
-        mockExecSync.mockReturnValueOnce('1' as any);
+        mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('1'));
 
         await checkExecutionLimit();
 
         // For 2024-12-20T12:00:00Z, JST (UTC+9) would be 2024-12-20T21:00:00
         // So the JST date is still 2024-12-20
         const expectedDate = '2024-12-20';
-        expect(mockExecSync).toHaveBeenCalledWith(
-          expect.stringContaining(`"${expectedDate}T00:00:00+09:00"`),
-          expect.anything()
-        );
-        expect(mockExecSync).toHaveBeenCalledWith(
-          expect.stringContaining(`"${expectedDate}T23:59:59+09:00"`),
-          expect.anything()
-        );
+        const lastCall = mockSpawnSync.mock.calls[0];
+        const jqQuery = lastCall[1].find((arg: string) => arg.includes('select'));
+        expect(jqQuery).toContain(`${expectedDate}T00:00:00+09:00`);
+        expect(jqQuery).toContain(`${expectedDate}T23:59:59+09:00`);
       });
 
       it('should use UTC timezone when useJST is false', async () => {
         process.env.GITHUB_REPOSITORY = 'owner/repo';
-        mockExecSync.mockReturnValueOnce('1' as any);
+        mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('1'));
 
         await checkExecutionLimit({ useJST: false });
 
         const expectedDate = '2024-12-20';
-        expect(mockExecSync).toHaveBeenCalledWith(
-          expect.stringContaining(`"${expectedDate}T00:00:00Z"`),
-          expect.anything()
-        );
-        expect(mockExecSync).toHaveBeenCalledWith(
-          expect.stringContaining(`"${expectedDate}T23:59:59Z"`),
-          expect.anything()
-        );
+        const lastCall = mockSpawnSync.mock.calls[0];
+        const jqQuery = lastCall[1].find((arg: string) => arg.includes('select'));
+        expect(jqQuery).toContain(`${expectedDate}T00:00:00Z`);
+        expect(jqQuery).toContain(`${expectedDate}T23:59:59Z`);
       });
 
       it('should handle date rollover correctly in JST', async () => {
@@ -208,16 +246,72 @@ describe('Smoke Test Utilities', () => {
         jest.setSystemTime(lateUTCTime);
 
         process.env.GITHUB_REPOSITORY = 'owner/repo';
-        mockExecSync.mockReturnValueOnce('1' as any);
+        mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('1'));
 
         await checkExecutionLimit({ useJST: true });
 
         // In JST, this would be 2024-12-21
         const expectedDate = '2024-12-21';
-        expect(mockExecSync).toHaveBeenCalledWith(
-          expect.stringContaining(`"${expectedDate}T00:00:00+09:00"`),
-          expect.anything()
+        const lastCall = mockSpawnSync.mock.calls[0];
+        const jqQuery = lastCall[1].find((arg: string) => arg.includes('select'));
+        expect(jqQuery).toContain(`${expectedDate}T00:00:00+09:00`);
+      });
+    });
+
+    describe('input validation', () => {
+      it('should reject invalid repository format', async () => {
+        process.env.GITHUB_REPOSITORY = 'owner/repo; rm -rf /';
+
+        const result = await checkExecutionLimit();
+
+        expect(result).toBe(false);
+        expect(console.error).toHaveBeenCalledWith(
+          '[Execution Limit Check] Error checking execution limit:',
+          expect.objectContaining({
+            message: expect.stringContaining('Invalid repository format'),
+          })
         );
+      });
+
+      it('should reject repository with command injection attempt', async () => {
+        const result = await checkExecutionLimit({
+          repository: 'owner/repo && echo hacked',
+          workflowName: 'test.yml',
+        });
+
+        expect(result).toBe(false);
+        expect(console.error).toHaveBeenCalledWith(
+          '[Execution Limit Check] Error checking execution limit:',
+          expect.objectContaining({
+            message: expect.stringContaining('Invalid repository format'),
+          })
+        );
+      });
+
+      it('should reject invalid workflow name', async () => {
+        const result = await checkExecutionLimit({
+          repository: 'owner/repo',
+          workflowName: '../../../etc/passwd',
+        });
+
+        expect(result).toBe(false);
+        expect(console.error).toHaveBeenCalledWith(
+          '[Execution Limit Check] Error checking execution limit:',
+          expect.objectContaining({
+            message: expect.stringContaining('Invalid workflow name'),
+          })
+        );
+      });
+
+      it('should accept valid repository and workflow formats', async () => {
+        mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('2'));
+
+        const result = await checkExecutionLimit({
+          repository: 'my-org/my_repo-123',
+          workflowName: 'production-test.yml',
+        });
+
+        expect(result).toBe(true);
       });
     });
 
@@ -236,9 +330,14 @@ describe('Smoke Test Utilities', () => {
 
       it('should return false when GitHub API call fails', async () => {
         process.env.GITHUB_REPOSITORY = 'owner/repo';
-        mockExecSync.mockImplementation(() => {
-          throw new Error('Command failed: gh api ...');
-        });
+        mockSpawnSync.mockReturnValueOnce({
+          stdout: '',
+          stderr: 'Command failed: gh api ...',
+          status: 1,
+          signal: null,
+          output: [''],
+          pid: 123,
+        } as any);
 
         const result = await checkExecutionLimit();
 
@@ -250,10 +349,14 @@ describe('Smoke Test Utilities', () => {
 
       it('should handle workflow not found (HTTP 404) gracefully', async () => {
         process.env.GITHUB_REPOSITORY = 'owner/repo';
-        mockExecSync.mockImplementation(() => {
-          const error = new Error('HTTP 404: Not Found');
-          throw error;
-        });
+        mockSpawnSync.mockReturnValueOnce({
+          stdout: '',
+          stderr: 'HTTP 404: Not Found',
+          status: 1,
+          signal: null,
+          output: [''],
+          pid: 123,
+        } as any);
 
         const result = await checkExecutionLimit();
 
@@ -265,9 +368,14 @@ describe('Smoke Test Utilities', () => {
 
       it('should throw authentication error for HTTP 401', async () => {
         process.env.GITHUB_REPOSITORY = 'owner/repo';
-        mockExecSync.mockImplementation(() => {
-          throw new Error('HTTP 401: Unauthorized');
-        });
+        mockSpawnSync.mockReturnValueOnce({
+          stdout: '',
+          stderr: 'HTTP 401: Unauthorized',
+          status: 1,
+          signal: null,
+          output: [''],
+          pid: 123,
+        } as any);
 
         const result = await checkExecutionLimit();
 
@@ -282,9 +390,14 @@ describe('Smoke Test Utilities', () => {
 
       it('should throw authentication error for HTTP 403', async () => {
         process.env.GITHUB_REPOSITORY = 'owner/repo';
-        mockExecSync.mockImplementation(() => {
-          throw new Error('HTTP 403: Forbidden');
-        });
+        mockSpawnSync.mockReturnValueOnce({
+          stdout: '',
+          stderr: 'HTTP 403: Forbidden',
+          status: 1,
+          signal: null,
+          output: [''],
+          pid: 123,
+        } as any);
 
         const result = await checkExecutionLimit();
 
@@ -299,7 +412,7 @@ describe('Smoke Test Utilities', () => {
 
       it('should handle invalid API response gracefully', async () => {
         process.env.GITHUB_REPOSITORY = 'owner/repo';
-        mockExecSync.mockReturnValueOnce('invalid-number' as any);
+        mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('invalid-number'));
 
         const result = await checkExecutionLimit();
 
@@ -314,7 +427,7 @@ describe('Smoke Test Utilities', () => {
 
       it('should handle empty API response', async () => {
         process.env.GITHUB_REPOSITORY = 'owner/repo';
-        mockExecSync.mockReturnValueOnce('' as any);
+        mockSpawnSync.mockReturnValueOnce(createMockSpawnResult(''));
 
         const result = await checkExecutionLimit();
 
@@ -323,7 +436,7 @@ describe('Smoke Test Utilities', () => {
 
       it('should trim whitespace from API response', async () => {
         process.env.GITHUB_REPOSITORY = 'owner/repo';
-        mockExecSync.mockReturnValueOnce('  3  \n' as any);
+        mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('  3  \n'));
 
         const result = await checkExecutionLimit();
 
@@ -334,7 +447,7 @@ describe('Smoke Test Utilities', () => {
     describe('logging', () => {
       it('should log check details', async () => {
         process.env.GITHUB_REPOSITORY = 'owner/repo';
-        mockExecSync.mockReturnValueOnce('2' as any);
+        mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('2'));
 
         await checkExecutionLimit();
 
@@ -351,7 +464,7 @@ describe('Smoke Test Utilities', () => {
 
       it('should log warning when limit exceeded', async () => {
         process.env.GITHUB_REPOSITORY = 'owner/repo';
-        mockExecSync.mockReturnValueOnce('5' as any);
+        mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('5'));
 
         await checkExecutionLimit({ maxExecutions: 5 });
 
@@ -368,7 +481,7 @@ describe('Smoke Test Utilities', () => {
   describe('getExecutionLimitStatus', () => {
     it('should return detailed status when under limit', async () => {
       process.env.GITHUB_REPOSITORY = 'owner/repo';
-      mockExecSync.mockReturnValueOnce('2' as any);
+      mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('2'));
 
       const status = await getExecutionLimitStatus();
 
@@ -382,7 +495,7 @@ describe('Smoke Test Utilities', () => {
 
     it('should return exceeded status when at limit', async () => {
       process.env.GITHUB_REPOSITORY = 'owner/repo';
-      mockExecSync.mockReturnValueOnce('5' as any);
+      mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('5'));
 
       const status = await getExecutionLimitStatus({ maxExecutions: 5 });
 
@@ -410,7 +523,7 @@ describe('Smoke Test Utilities', () => {
 
     it('should return error status when API call fails', async () => {
       process.env.GITHUB_REPOSITORY = 'owner/repo';
-      mockExecSync.mockImplementation(() => {
+      mockSpawnSync.mockImplementation(() => {
         throw new Error('API Error');
       });
 
@@ -426,7 +539,7 @@ describe('Smoke Test Utilities', () => {
     });
 
     it('should use custom configuration', async () => {
-      mockExecSync.mockReturnValueOnce('7' as any);
+      mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('7'));
 
       const status = await getExecutionLimitStatus({
         maxExecutions: 10,
@@ -449,7 +562,7 @@ describe('Smoke Test Utilities', () => {
       jest.setSystemTime(lateUTCTime);
 
       process.env.GITHUB_REPOSITORY = 'owner/repo';
-      mockExecSync.mockReturnValueOnce('1' as any);
+      mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('1'));
 
       const status = await getExecutionLimitStatus({ useJST: true });
 
@@ -543,14 +656,14 @@ describe('Smoke Test Utilities', () => {
     it('should handle complete success flow', async () => {
       process.env.GITHUB_REPOSITORY = 'owner/repo';
       process.env.GITHUB_TOKEN = 'test-token';
-      mockExecSync.mockReturnValueOnce('3' as any);
+      mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('3'));
 
       // Check limit
       const canExecute = await checkExecutionLimit();
       expect(canExecute).toBe(true);
 
       // Get status
-      mockExecSync.mockReturnValueOnce('3' as any);
+      mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('3'));
       const status = await getExecutionLimitStatus();
       expect(status.isLimitExceeded).toBe(false);
 
@@ -561,14 +674,14 @@ describe('Smoke Test Utilities', () => {
 
     it('should handle complete failure flow', async () => {
       process.env.GITHUB_REPOSITORY = 'owner/repo';
-      mockExecSync.mockReturnValueOnce('5' as any);
+      mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('5'));
 
       // Check limit
       const canExecute = await checkExecutionLimit({ maxExecutions: 5 });
       expect(canExecute).toBe(false);
 
       // Get status
-      mockExecSync.mockReturnValueOnce('5' as any);
+      mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('5'));
       const status = await getExecutionLimitStatus({ maxExecutions: 5 });
       expect(status.isLimitExceeded).toBe(true);
 
@@ -581,15 +694,20 @@ describe('Smoke Test Utilities', () => {
       process.env.GITHUB_REPOSITORY = 'owner/repo';
 
       // First call - workflow doesn't exist
-      mockExecSync.mockImplementationOnce(() => {
-        throw new Error('HTTP 404: Not Found - Workflow not found');
-      });
+      mockSpawnSync.mockReturnValueOnce({
+        stdout: '',
+        stderr: 'HTTP 404: Not Found - Workflow not found',
+        status: 1,
+        signal: null,
+        output: [''],
+        pid: 123,
+      } as any);
 
       const firstCheck = await checkExecutionLimit();
       expect(firstCheck).toBe(true); // Should allow execution for non-existent workflow
 
       // Second call - workflow exists with 1 execution
-      mockExecSync.mockReturnValueOnce('1' as any);
+      mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('1'));
       const secondCheck = await checkExecutionLimit();
       expect(secondCheck).toBe(true);
     });
@@ -599,7 +717,7 @@ describe('Smoke Test Utilities', () => {
 
       // Simulate increasing execution count
       for (let i = 0; i < 6; i++) {
-        mockExecSync.mockReturnValueOnce(String(i) as any);
+        mockSpawnSync.mockReturnValueOnce(createMockSpawnResult(String(i)));
         const result = await checkExecutionLimit({ maxExecutions: 5 });
 
         if (i < 5) {
@@ -614,7 +732,7 @@ describe('Smoke Test Utilities', () => {
   describe('edge cases', () => {
     it('should handle very large execution counts', async () => {
       process.env.GITHUB_REPOSITORY = 'owner/repo';
-      mockExecSync.mockReturnValueOnce('999999' as any);
+      mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('999999'));
 
       const result = await checkExecutionLimit({ maxExecutions: 5 });
 
@@ -623,7 +741,7 @@ describe('Smoke Test Utilities', () => {
 
     it('should handle negative numbers from API (invalid but should be handled)', async () => {
       process.env.GITHUB_REPOSITORY = 'owner/repo';
-      mockExecSync.mockReturnValueOnce('-1' as any);
+      mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('-1'));
 
       const result = await checkExecutionLimit({ maxExecutions: 5 });
 
@@ -631,21 +749,25 @@ describe('Smoke Test Utilities', () => {
     });
 
     it('should handle special characters in repository name', async () => {
-      mockExecSync.mockReturnValueOnce('1' as any);
+      mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('1'));
 
       const result = await checkExecutionLimit({
         repository: 'owner-123/repo.name-test',
       });
 
       expect(result).toBe(true);
-      expect(mockExecSync).toHaveBeenCalledWith(
-        expect.stringContaining('repos/owner-123/repo.name-test'),
+      expect(mockSpawnSync).toHaveBeenCalledWith(
+        'gh',
+        expect.arrayContaining([
+          'api',
+          'repos/owner-123/repo.name-test/actions/workflows/production-e2e-smoke-test.yml/runs',
+        ]),
         expect.anything()
       );
     });
 
     it('should handle special characters in workflow name', async () => {
-      mockExecSync.mockReturnValueOnce('1' as any);
+      mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('1'));
 
       const result = await checkExecutionLimit({
         repository: 'owner/repo',
@@ -653,8 +775,12 @@ describe('Smoke Test Utilities', () => {
       });
 
       expect(result).toBe(true);
-      expect(mockExecSync).toHaveBeenCalledWith(
-        expect.stringContaining('workflows/test-workflow_v2.1.yml'),
+      expect(mockSpawnSync).toHaveBeenCalledWith(
+        'gh',
+        expect.arrayContaining([
+          'api',
+          'repos/owner/repo/actions/workflows/test-workflow_v2.1.yml/runs',
+        ]),
         expect.anything()
       );
     });
@@ -663,7 +789,7 @@ describe('Smoke Test Utilities', () => {
       process.env.GITHUB_REPOSITORY = 'owner/repo';
       // execSync with encoding: 'utf8' always returns string, not Buffer
       // But if it did return a Buffer, toString() would be called on it
-      mockExecSync.mockReturnValueOnce('2' as any);
+      mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('2'));
 
       const result = await checkExecutionLimit();
 
@@ -672,7 +798,7 @@ describe('Smoke Test Utilities', () => {
 
     it('should handle concurrent calls', async () => {
       process.env.GITHUB_REPOSITORY = 'owner/repo';
-      mockExecSync.mockReturnValue('2' as any);
+      mockSpawnSync.mockReturnValue(createMockSpawnResult('2'));
 
       const results = await Promise.all([
         checkExecutionLimit(),
@@ -681,7 +807,7 @@ describe('Smoke Test Utilities', () => {
       ]);
 
       expect(results).toEqual([true, true, true]);
-      expect(mockExecSync).toHaveBeenCalledTimes(3);
+      expect(mockSpawnSync).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -718,14 +844,14 @@ describe('Smoke Test Utilities', () => {
       for (const testCase of testCases) {
         jest.setSystemTime(testCase.time);
         process.env.GITHUB_REPOSITORY = 'owner/repo';
-        mockExecSync.mockReturnValueOnce('1' as any);
+        mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('1'));
 
         await checkExecutionLimit({ useJST: testCase.useJST });
 
-        expect(mockExecSync).toHaveBeenCalledWith(
-          expect.stringContaining(`"${testCase.expectedDate}T`),
-          expect.anything()
-        );
+        // Check the jq query contains the expected date
+        const call = mockSpawnSync.mock.calls[mockSpawnSync.mock.calls.length - 1];
+        const jqQuery = call[1][3]; // The --jq parameter
+        expect(jqQuery).toContain(`"${testCase.expectedDate}T`);
       }
     });
   });
@@ -733,39 +859,39 @@ describe('Smoke Test Utilities', () => {
   describe('getWorkflowExecutionCount helper (indirect testing)', () => {
     it('should construct correct gh CLI command', async () => {
       process.env.GITHUB_REPOSITORY = 'owner/repo';
-      mockExecSync.mockReturnValueOnce('1' as any);
+      mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('1'));
 
       await checkExecutionLimit();
 
-      const call = mockExecSync.mock.calls[0];
-      const command = call[0] as string;
+      const call = mockSpawnSync.mock.calls[0];
+      const [cmd, args] = call;
 
       // Check command structure
-      expect(command).toContain('gh api');
-      expect(command).toContain(
-        'repos/owner/repo/actions/workflows/production-e2e-smoke-test.yml/runs'
-      );
-      expect(command).toContain('--jq');
-      expect(command).toContain('status == "completed"');
-      expect(command).toContain('conclusion == "success"');
-      expect(command).toContain('created_at >=');
-      expect(command).toContain('created_at <=');
-      expect(command).toContain('| length');
+      expect(cmd).toBe('gh');
+      expect(args[0]).toBe('api');
+      expect(args[1]).toBe('repos/owner/repo/actions/workflows/production-e2e-smoke-test.yml/runs');
+      expect(args[2]).toBe('--jq');
+
+      const jqQuery = args[3];
+      expect(jqQuery).toContain('status == "completed"');
+      expect(jqQuery).toContain('conclusion == "success"');
+      expect(jqQuery).toContain('created_at >=');
+      expect(jqQuery).toContain('created_at <=');
+      expect(jqQuery).toContain('| length');
     });
 
     it('should pass correct execution options', async () => {
       process.env.GITHUB_REPOSITORY = 'owner/repo';
       process.env.GITHUB_TOKEN = 'test-token';
-      mockExecSync.mockReturnValueOnce('1' as any);
+      mockSpawnSync.mockReturnValueOnce(createMockSpawnResult('1'));
 
       await checkExecutionLimit();
 
-      const call = mockExecSync.mock.calls[0];
-      const options = call[1] as any;
+      const call = mockSpawnSync.mock.calls[0];
+      const options = call[2] as any; // Third argument is options
 
       expect(options).toEqual({
         encoding: 'utf8',
-        stdio: ['pipe', 'pipe', 'pipe'],
         env: expect.objectContaining({
           GH_TOKEN: 'test-token',
         }),

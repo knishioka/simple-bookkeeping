@@ -5,7 +5,7 @@
  * including execution limit checking to prevent excessive load on production systems.
  */
 
-import { execSync } from 'child_process';
+import { spawnSync } from 'child_process';
 
 /**
  * Configuration for execution limit checking
@@ -159,29 +159,65 @@ async function getWorkflowExecutionCount(params: {
 }): Promise<number> {
   const { repository, workflowName, startDate, endDate } = params;
 
+  // Input validation to prevent injection attacks
+  // Repository must be in format: owner/repo (alphanumeric, hyphens, underscores, periods allowed)
+  // GitHub allows periods in repo names, but not consecutive or at the start/end
+  if (!/^[\w-]+\/[\w.-]+$/.test(repository)) {
+    throw new Error(
+      `Invalid repository format: ${repository}. Must be 'owner/repo' with alphanumeric characters, hyphens, periods, and underscores only.`
+    );
+  }
+
+  // Workflow name must be a valid filename with .yml or .yaml extension
+  if (!/^[\w.-]+\.(yml|yaml)$/.test(workflowName)) {
+    throw new Error(
+      `Invalid workflow name: ${workflowName}. Must be a valid filename ending in .yml or .yaml`
+    );
+  }
+
+  // Date validation (ISO 8601 format)
+  const dateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})$/;
+  if (!dateRegex.test(startDate) || !dateRegex.test(endDate)) {
+    throw new Error('Invalid date format. Dates must be in ISO 8601 format.');
+  }
+
   try {
     // Use gh CLI to query GitHub API
-    // gh is the recommended way to interact with GitHub API in GitHub Actions
-    const command =
-      `gh api repos/${repository}/actions/workflows/${workflowName}/runs ` +
-      `--jq '[.workflow_runs[] | select(.status == "completed" and .conclusion == "success" and .created_at >= "${startDate}" and .created_at <= "${endDate}")] | length'`;
+    // Using spawnSync instead of execSync for better security
+    const jqQuery = `[.workflow_runs[] | select(.status == "completed" and .conclusion == "success" and .created_at >= "${startDate}" and .created_at <= "${endDate}")] | length`;
 
     console.warn(`[Execution Limit Check] Executing GitHub API query...`);
 
-    const result = execSync(command, {
-      encoding: 'utf8',
-      stdio: ['pipe', 'pipe', 'pipe'], // Capture stdout and stderr
-      env: {
-        ...process.env,
-        // Ensure gh uses the correct authentication
-        GH_TOKEN: process.env.GITHUB_TOKEN || process.env.GH_TOKEN,
-      },
-    }).trim();
+    const result = spawnSync(
+      'gh',
+      ['api', `repos/${repository}/actions/workflows/${workflowName}/runs`, '--jq', jqQuery],
+      {
+        encoding: 'utf8',
+        env: {
+          // Only pass necessary environment variables
+          PATH: process.env.PATH,
+          HOME: process.env.HOME,
+          GH_TOKEN: process.env.GITHUB_TOKEN || process.env.GH_TOKEN,
+          GITHUB_TOKEN: process.env.GITHUB_TOKEN,
+        },
+      }
+    );
 
-    const count = parseInt(result, 10);
+    if (result.error) {
+      throw result.error;
+    }
+
+    if (result.status !== 0) {
+      const stderr = result.stderr || '';
+      throw new Error(`GitHub CLI failed with status ${result.status}: ${stderr}`);
+    }
+
+    const output = (result.stdout || '').trim();
+
+    const count = parseInt(output, 10);
 
     if (isNaN(count)) {
-      throw new Error(`Invalid execution count returned from API: ${result}`);
+      throw new Error(`Invalid execution count returned from API: ${output}`);
     }
 
     return count;
