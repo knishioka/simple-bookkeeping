@@ -1,0 +1,120 @@
+name: Production Smoke Tests
+
+on:
+  # 手動トリガー
+  workflow_dispatch:
+
+  # Vercelデプロイ完了後に自動実行（将来実装）
+  # deployment:
+  #   types: [created]
+
+  # 定期実行（1日1回、日本時間午前10時）
+  schedule:
+    - cron: '0 1 * * *' # UTC 1:00 = JST 10:00
+
+  # mainブランチへのマージ後
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.vscode/**'
+
+env:
+  # Node.jsバージョン
+  NODE_VERSION: '20'
+
+  # Production環境設定
+  PROD_URL: https://simple-bookkeeping-mu.vercel.app
+
+  # 実行回数制限
+  MAX_DAILY_RUNS: 3
+
+jobs:
+  smoke-test:
+    name: Run Production Smoke Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    # 本番環境へのアクセスを明示
+    environment:
+      name: production
+      url: ${{ env.PROD_URL }}
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: 📚 Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🎭 Install Playwright Browsers
+        run: pnpm exec playwright install chromium --with-deps
+
+      - name: 🧪 Run Smoke Tests
+        env:
+          # Production環境の認証情報（GitHub Secretsから）
+          PROD_TEST_EMAIL: ${{ secrets.PROD_TEST_EMAIL }}
+          PROD_TEST_PASSWORD: ${{ secrets.PROD_TEST_PASSWORD }}
+          PROD_URL: ${{ env.PROD_URL }}
+          # E2Eテストモード
+          TEST_MODE: prod
+        run: |
+          cd apps/web
+          pnpm test:e2e:prod:smoke
+
+      - name: 📊 Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-smoke
+          path: apps/web/playwright-report/
+          retention-days: 7
+
+      - name: 🔍 Upload Test Traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces-smoke
+          path: apps/web/test-results/
+          retention-days: 7
+
+      # Slackなどへの通知（オプション）
+      - name: 📢 Notify on Failure
+        if: failure()
+        run: |
+          echo "⚠️ Production smoke tests failed!"
+          echo "Check the test results and traces for details."
+          # TODO: Slack webhook or other notification service integration
+
+      - name: ✅ Success Message
+        if: success()
+        run: |
+          echo "✅ Production smoke tests passed successfully!"
+          echo "All critical user paths are functioning correctly."
+
+  # 実行回数制限チェック（将来実装）
+  check-limits:
+    name: Check Execution Limits
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - name: 🔒 Check Daily Execution Limit
+        run: |
+          echo "Checking daily execution limits..."
+          # TODO: Implement execution limit tracking
+          # - Use GitHub API to check workflow runs
+          # - Count today's executions
+          # - Skip if limit exceeded

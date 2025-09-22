@@ -20,6 +20,7 @@
     "test:e2e:comprehensive": "TEST_MODE=comprehensive playwright test",
     "test:e2e:local": "TEST_MODE=local playwright test",
     "test:e2e:prod": "TEST_MODE=prod playwright test",
+    "test:e2e:prod:smoke": "TEST_MODE=prod playwright test --grep @smoke",
     "test:e2e:basic": "./e2e-run-basic.sh",
     "test:e2e:docker": "../../scripts/test-runner.sh e2e",
     "test:e2e:docker:headed": "../../scripts/test-runner.sh e2e --headed",
