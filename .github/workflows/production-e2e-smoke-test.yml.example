@@ -1,0 +1,242 @@
+name: Production E2E Smoke Tests
+
+on:
+  # Manual trigger for production smoke tests
+  workflow_dispatch:
+    inputs:
+      skip_limit_check:
+        description: 'Skip execution limit check (use with caution)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+  # Scheduled run (daily at 2 AM JST / 5 PM UTC)
+  schedule:
+    - cron: '0 17 * * *'
+
+# Prevent concurrent runs
+concurrency:
+  group: production-e2e-smoke-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # Job 1: Check execution limits
+  check-limits:
+    name: Check Daily Execution Limits
+    runs-on: ubuntu-latest
+    outputs:
+      can_execute: ${{ steps.check.outputs.can_execute }}
+      execution_status: ${{ steps.check.outputs.status }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: |
+          cd apps/web
+          pnpm install --filter ./e2e...
+
+      - name: Check execution limit
+        id: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SKIP_LIMIT: ${{ github.event.inputs.skip_limit_check }}
+        run: |
+          cd apps/web/e2e
+
+          # Check if we should skip the limit check
+          if [[ "$SKIP_LIMIT" == "true" ]]; then
+            echo "⚠️ Execution limit check skipped by user request"
+            echo "can_execute=true" >> $GITHUB_OUTPUT
+            echo "status=Limit check skipped" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Run the execution limit check
+          npx tsx --no-warnings <<'EOF'
+          import { checkExecutionLimit, getExecutionLimitStatus, formatExecutionLimitStatus } from './smoke-test-utils.js';
+
+          async function check() {
+            try {
+              const status = await getExecutionLimitStatus({
+                maxExecutions: 5,
+                repository: process.env.GITHUB_REPOSITORY,
+                workflowName: 'production-e2e-smoke-test.yml',
+                useJST: true
+              });
+
+              console.log(formatExecutionLimitStatus(status));
+
+              // Set outputs for GitHub Actions
+              const fs = require('fs');
+              const output = process.env.GITHUB_OUTPUT;
+
+              fs.appendFileSync(output, `can_execute=${!status.isLimitExceeded}\n`);
+              fs.appendFileSync(output, `status=${JSON.stringify(status)}\n`);
+
+              if (status.isLimitExceeded) {
+                console.log('::warning::Daily execution limit exceeded. Smoke tests will be skipped.');
+                return;
+              }
+
+              console.log('::notice::Execution limit check passed. Tests can proceed.');
+
+            } catch (error) {
+              console.error('Error checking execution limit:', error);
+              // Fail safe - don't run tests if check fails
+              const fs = require('fs');
+              fs.appendFileSync(process.env.GITHUB_OUTPUT, 'can_execute=false\n');
+              fs.appendFileSync(process.env.GITHUB_OUTPUT, `status=Error: ${error.message}\n`);
+            }
+          }
+
+          check();
+          EOF
+
+      - name: Display execution status
+        run: |
+          echo "Can execute: ${{ steps.check.outputs.can_execute }}"
+          echo "Status: ${{ steps.check.outputs.status }}"
+
+  # Job 2: Run smoke tests (only if limit check passes)
+  smoke-tests:
+    name: Production E2E Smoke Tests
+    needs: check-limits
+    if: needs.check-limits.outputs.can_execute == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    environment:
+      name: production
+      url: ${{ secrets.PRODUCTION_URL }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm --filter web exec playwright install chromium
+
+      - name: Run production smoke tests
+        env:
+          PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
+          PRODUCTION_TEST_EMAIL: ${{ secrets.PRODUCTION_TEST_EMAIL }}
+          PRODUCTION_TEST_PASSWORD: ${{ secrets.PRODUCTION_TEST_PASSWORD }}
+          TEST_HEADLESS: true
+          TEST_TIMEOUT: 60000
+        run: |
+          cd apps/web
+          npx playwright test e2e/smoke-tests/production.spec.ts \
+            --grep "@smoke" \
+            --reporter=list,html \
+            --retries=2
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-smoke-${{ github.run_id }}
+          path: apps/web/playwright-report/
+          retention-days: 7
+
+      - name: Upload test videos on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-videos-smoke-${{ github.run_id }}
+          path: apps/web/test-results/
+          retention-days: 3
+
+  # Job 3: Notify results
+  notify:
+    name: Notify Test Results
+    needs: [check-limits, smoke-tests]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Determine status
+        id: status
+        run: |
+          if [[ "${{ needs.check-limits.outputs.can_execute }}" != "true" ]]; then
+            echo "status=skipped" >> $GITHUB_OUTPUT
+            echo "message=Smoke tests skipped due to execution limit" >> $GITHUB_OUTPUT
+          elif [[ "${{ needs.smoke-tests.result }}" == "success" ]]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "message=Production smoke tests passed successfully" >> $GITHUB_OUTPUT
+          elif [[ "${{ needs.smoke-tests.result }}" == "failure" ]]; then
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "message=Production smoke tests failed" >> $GITHUB_OUTPUT
+          else
+            echo "status=error" >> $GITHUB_OUTPUT
+            echo "message=Unexpected status in smoke test workflow" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send Slack notification
+        if: vars.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          STATUS="${{ steps.status.outputs.status }}"
+          MESSAGE="${{ steps.status.outputs.message }}"
+
+          # Set emoji based on status
+          case "$STATUS" in
+            success) EMOJI="✅" ;;
+            failure) EMOJI="❌" ;;
+            skipped) EMOJI="⏸️" ;;
+            *) EMOJI="⚠️" ;;
+          esac
+
+          # Send to Slack
+          curl -X POST $SLACK_WEBHOOK_URL \
+            -H 'Content-Type: application/json' \
+            -d "{
+              \"text\": \"$EMOJI Production E2E Smoke Test: $MESSAGE\",
+              \"blocks\": [
+                {
+                  \"type\": \"section\",
+                  \"text\": {
+                    \"type\": \"mrkdwn\",
+                    \"text\": \"$EMOJI *Production E2E Smoke Test*\\n$MESSAGE\"
+                  }
+                },
+                {
+                  \"type\": \"context\",
+                  \"elements\": [
+                    {
+                      \"type\": \"mrkdwn\",
+                      \"text\": \"Workflow: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>\"
+                    }
+                  ]
+                }
+              ]
+            }"
