@@ -51,7 +51,7 @@ interface ExecutionLimitResult {
  * // Basic usage with defaults
  * const canExecute = await checkExecutionLimit();
  * if (!canExecute) {
- *   console.log('Daily execution limit exceeded');
+ *   console.warn('Daily execution limit exceeded');
  *   process.exit(0);
  * }
  *
@@ -86,10 +86,10 @@ export async function checkExecutionLimit(config?: ExecutionLimitConfig): Promis
     const startDate = `${currentDate}T00:00:00${useJST ? '+09:00' : 'Z'}`;
     const endDate = `${currentDate}T23:59:59${useJST ? '+09:00' : 'Z'}`;
 
-    console.log(
+    console.warn(
       `[Execution Limit Check] Checking workflow runs for ${currentDate} (${useJST ? 'JST' : 'UTC'})`
     );
-    console.log(`[Execution Limit Check] Repository: ${repository}, Workflow: ${workflowName}`);
+    console.warn(`[Execution Limit Check] Repository: ${repository}, Workflow: ${workflowName}`);
 
     // Query GitHub API for workflow runs
     const executionCount = await getWorkflowExecutionCount({
@@ -99,7 +99,7 @@ export async function checkExecutionLimit(config?: ExecutionLimitConfig): Promis
       endDate,
     });
 
-    console.log(
+    console.warn(
       `[Execution Limit Check] Current executions today: ${executionCount}/${maxExecutions}`
     );
 
@@ -166,7 +166,7 @@ async function getWorkflowExecutionCount(params: {
       `gh api repos/${repository}/actions/workflows/${workflowName}/runs ` +
       `--jq '[.workflow_runs[] | select(.status == "completed" and .conclusion == "success" and .created_at >= "${startDate}" and .created_at <= "${endDate}")] | length'`;
 
-    console.log(`[Execution Limit Check] Executing GitHub API query...`);
+    console.warn(`[Execution Limit Check] Executing GitHub API query...`);
 
     const result = execSync(command, {
       encoding: 'utf8',

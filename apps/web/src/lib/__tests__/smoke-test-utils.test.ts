@@ -338,13 +338,13 @@ describe('Smoke Test Utilities', () => {
 
         await checkExecutionLimit();
 
-        expect(console.log).toHaveBeenCalledWith(
+        expect(console.warn).toHaveBeenCalledWith(
           expect.stringContaining('[Execution Limit Check] Checking workflow runs for')
         );
-        expect(console.log).toHaveBeenCalledWith(
+        expect(console.warn).toHaveBeenCalledWith(
           expect.stringContaining('Repository: owner/repo, Workflow: production-e2e-smoke-test.yml')
         );
-        expect(console.log).toHaveBeenCalledWith(
+        expect(console.warn).toHaveBeenCalledWith(
           expect.stringContaining('Current executions today: 2/5')
         );
       });
