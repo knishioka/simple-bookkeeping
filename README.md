@@ -4,6 +4,115 @@
 
 Simple Bookkeepingは、日本の確定申告（青色申告）に対応した複式簿記システムです。個人事業主や小規模事業者が簡単に帳簿管理と確定申告書類の作成ができることを目的としています。
 
+## システムアーキテクチャ
+
+```mermaid
+graph TB
+    %% UI層
+    subgraph "Client (Browser)"
+        Browser["🌐 ユーザーブラウザ<br/>React Components"]
+    end
+
+    %% アプリケーション層
+    subgraph "Next.js Application (Port 3000)"
+        subgraph "Frontend"
+            AppRouter["App Router<br/>(React Server Components)"]
+            ClientComps["Client Components<br/>・shadcn/ui<br/>・Zustand (State)<br/>・React Hook Form"]
+        end
+
+        subgraph "Backend"
+            ServerActions["Server Actions<br/>・Business Logic<br/>・Data Validation<br/>・Error Handling"]
+        end
+    end
+
+    %% データアクセス層
+    subgraph "Data Access Layer"
+        SupabaseClient["Supabase Client<br/>(@supabase/ssr)"]
+        PrismaORM["Prisma ORM<br/>(Schema & Migrations)"]
+    end
+
+    %% インフラ層
+    subgraph "Infrastructure"
+        subgraph "Supabase (Local: 54321 / Cloud)"
+            SupabaseAuth["🔐 Supabase Auth<br/>・JWT認証<br/>・セッション管理"]
+            RLS["🛡️ Row Level Security<br/>・アクセス制御<br/>・マルチテナント分離"]
+            PostgreSQL["🗄️ PostgreSQL 16<br/>・トランザクション<br/>・インデックス最適化"]
+            Realtime["📡 Realtime<br/>・WebSocket<br/>・Change Events"]
+        end
+    end
+
+    %% モノレポ構造
+    subgraph "Monorepo Structure (pnpm workspace)"
+        WebApp["apps/web<br/>Next.js App"]
+        DBPackage["packages/database<br/>Prisma Schema"]
+        SharedPackage["packages/shared<br/>Utilities"]
+        TypesPackage["packages/types<br/>Type Definitions"]
+    end
+
+    %% CI/CD
+    subgraph "CI/CD Pipeline"
+        GitHub["GitHub Actions<br/>・Lint & Type Check<br/>・Unit Tests<br/>・E2E Tests"]
+        Vercel["Vercel<br/>・Preview Deploy<br/>・Production Deploy"]
+    end
+
+    %% データフロー（太線で強調）
+    Browser -.->|"HTTPS"| AppRouter
+    AppRouter <-->|"Hydration"| ClientComps
+    ClientComps -->|"Form Submit"| ServerActions
+    AppRouter -->|"SSR Data"| ServerActions
+
+    ServerActions -->|"DB Operations"| SupabaseClient
+    ServerActions -->|"ORM Queries"| PrismaORM
+    SupabaseClient -->|"Auth Check"| SupabaseAuth
+    SupabaseClient -->|"Data Access"| RLS
+    PrismaORM -->|"SQL"| PostgreSQL
+    RLS -->|"Filtered Data"| PostgreSQL
+
+    ClientComps -.->|"Subscribe"| Realtime
+    Realtime -.->|"Events"| PostgreSQL
+
+    %% モノレポ依存
+    WebApp -.->|"imports"| DBPackage
+    WebApp -.->|"imports"| SharedPackage
+    WebApp -.->|"imports"| TypesPackage
+
+    %% デプロイフロー
+    GitHub -->|"on:push (main)"| Vercel
+    GitHub -.->|"PR Checks"| WebApp
+
+    %% スタイリング
+    classDef client fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef frontend fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef backend fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef data fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    classDef infra fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    classDef monorepo fill:#f5f5f5,stroke:#424242,stroke-width:1px
+    classDef cicd fill:#e3f2fd,stroke:#0d47a1,stroke-width:2px
+
+    class Browser client
+    class AppRouter,ClientComps frontend
+    class ServerActions backend
+    class SupabaseClient,PrismaORM data
+    class SupabaseAuth,RLS,PostgreSQL,Realtime infra
+    class WebApp,DBPackage,SharedPackage,TypesPackage monorepo
+    class GitHub,Vercel cicd
+```
+
+### 環境別構成
+
+| 環境           | Frontend              | Supabase               | PostgreSQL      | 用途           |
+| -------------- | --------------------- | ---------------------- | --------------- | -------------- |
+| **開発環境**   | http://localhost:3000 | http://localhost:54321 | localhost:54322 | ローカル開発   |
+| **テスト環境** | Docker内              | Docker Compose         | Docker内        | CI/E2Eテスト   |
+| **本番環境**   | https://[domain]      | Supabase Cloud         | Supabase管理    | プロダクション |
+
+### データフローの説明
+
+1. **認証フロー**: ブラウザ → Server Actions → Supabase Auth → JWT発行 → セッション確立
+2. **データ取得**: Server Components → Server Actions → Supabase Client/Prisma → RLS → PostgreSQL
+3. **データ更新**: Client Components → Server Actions → バリデーション → DB更新 → Realtime通知
+4. **リアルタイム**: PostgreSQL変更 → Realtime → WebSocket → Client購読者へ通知
+
 ## 主な機能
 
 - 複式簿記による仕訳入力
@@ -64,6 +173,7 @@ simple-bookkeeping/
 ## 📋 目次
 
 - [概要](#概要)
+- [システムアーキテクチャ](#システムアーキテクチャ)
 - [主な機能](#主な機能)
 - [技術スタック](#技術スタック)
 - [前提条件](#前提条件)
