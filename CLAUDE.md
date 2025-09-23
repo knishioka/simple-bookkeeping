@@ -445,6 +445,25 @@ model: opus
 ---
 ```
 
+### ⚠️ サブエージェントの重要な制限事項
+
+**サブエージェントは他のサブエージェントを呼び出すことができません：**
+
+- サブエージェント内から`Task`ツールを使用して別のサブエージェントを呼び出すことは**不可能**
+- 各サブエージェントは独立して動作し、必要な処理はすべて自身で完結させる必要があります
+- 複数のサブエージェントの連携が必要な場合は、メインのClaude Codeが調整役となります
+
+**例：**
+
+```typescript
+// ❌ サブエージェント内では動作しない
+const result = await Task('Run tests', 'テストを実行', 'test-runner');
+
+// ✅ メインのClaude Codeから実行
+const codeReview = await Task('Review code', 'レビュー実行', 'code-reviewer');
+const testResult = await Task('Run tests', 'テスト実行', 'test-runner');
+```
+
 ## 🎯 AI開発効率化のためのTips
 
 ### よくあるエラーの即座解決
