@@ -1,0 +1,635 @@
+name: Production E2E Smoke Tests
+
+on:
+  # Manual trigger for production smoke tests
+  workflow_dispatch:
+    inputs:
+      skip_limit_check:
+        description: 'Skip execution limit check (use with caution)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      notification_priority:
+        description: 'Notification priority level'
+        required: false
+        default: 'normal'
+        type: choice
+        options:
+          - 'critical' # All channels + create issue
+          - 'high' # Slack + Email
+          - 'normal' # Slack only
+          - 'low' # No notifications
+
+  # Scheduled run (daily at 2 AM JST / 5 PM UTC)
+  schedule:
+    - cron: '0 17 * * *'
+
+# Prevent concurrent runs
+concurrency:
+  group: production-e2e-smoke-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # Job 1: Check execution limits
+  check-limits:
+    name: Check Daily Execution Limits
+    runs-on: ubuntu-latest
+    outputs:
+      can_execute: ${{ steps.check.outputs.can_execute }}
+      execution_status: ${{ steps.check.outputs.status }}
+      execution_count: ${{ steps.check.outputs.execution_count }}
+      max_count: ${{ steps.check.outputs.max_count }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: |
+          cd apps/web
+          pnpm install --filter ./e2e...
+
+      - name: Check execution limit
+        id: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SKIP_LIMIT: ${{ github.event.inputs.skip_limit_check }}
+        run: |
+          cd apps/web/e2e
+
+          # Check if we should skip the limit check
+          if [[ "$SKIP_LIMIT" == "true" ]]; then
+            echo "⚠️ Execution limit check skipped by user request"
+            echo "can_execute=true" >> $GITHUB_OUTPUT
+            echo "status=Limit check skipped" >> $GITHUB_OUTPUT
+            echo "execution_count=0" >> $GITHUB_OUTPUT
+            echo "max_count=5" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Run the execution limit check
+          npx tsx --no-warnings <<'EOF'
+          import { getExecutionLimitStatus, formatExecutionLimitStatus } from './smoke-test-utils.js';
+
+          async function check() {
+            try {
+              const status = await getExecutionLimitStatus({
+                maxExecutions: 5,
+                repository: process.env.GITHUB_REPOSITORY,
+                workflowName: 'production-e2e-smoke-test.yml',
+                useJST: true
+              });
+
+              console.log(formatExecutionLimitStatus(status));
+
+              // Set outputs for GitHub Actions
+              const fs = require('fs');
+              const output = process.env.GITHUB_OUTPUT;
+
+              fs.appendFileSync(output, `can_execute=${!status.isLimitExceeded}\n`);
+              fs.appendFileSync(output, `status=${JSON.stringify(status).replace(/"/g, '\\"')}\n`);
+              fs.appendFileSync(output, `execution_count=${status.currentCount}\n`);
+              fs.appendFileSync(output, `max_count=${status.maxCount}\n`);
+
+              if (status.isLimitExceeded) {
+                console.log('::warning::Daily execution limit exceeded. Smoke tests will be skipped.');
+                return;
+              }
+
+              console.log('::notice::Execution limit check passed. Tests can proceed.');
+
+            } catch (error) {
+              console.error('Error checking execution limit:', error);
+              // Fail safe - don't run tests if check fails
+              const fs = require('fs');
+              fs.appendFileSync(process.env.GITHUB_OUTPUT, 'can_execute=false\n');
+              fs.appendFileSync(process.env.GITHUB_OUTPUT, `status=Error: ${error.message}\n`);
+              fs.appendFileSync(process.env.GITHUB_OUTPUT, 'execution_count=0\n');
+              fs.appendFileSync(process.env.GITHUB_OUTPUT, 'max_count=5\n');
+            }
+          }
+
+          check();
+          EOF
+
+      - name: Display execution status
+        run: |
+          echo "Can execute: ${{ steps.check.outputs.can_execute }}"
+          echo "Status: ${{ steps.check.outputs.status }}"
+          echo "Execution count: ${{ steps.check.outputs.execution_count }}/${{ steps.check.outputs.max_count }}"
+
+  # Job 2: Run smoke tests (only if limit check passes)
+  smoke-tests:
+    name: Production E2E Smoke Tests
+    needs: check-limits
+    if: needs.check-limits.outputs.can_execute == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    environment:
+      name: production
+      url: ${{ secrets.PRODUCTION_URL }}
+
+    outputs:
+      test_result: ${{ steps.test.outputs.result }}
+      failed_tests: ${{ steps.test.outputs.failed_tests }}
+      passed_tests: ${{ steps.test.outputs.passed_tests }}
+      total_tests: ${{ steps.test.outputs.total_tests }}
+      duration: ${{ steps.test.outputs.duration }}
+      error_details: ${{ steps.test.outputs.error_details }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm --filter web exec playwright install chromium
+
+      - name: Run production smoke tests
+        id: test
+        env:
+          PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
+          PRODUCTION_TEST_EMAIL: ${{ secrets.PRODUCTION_TEST_EMAIL }}
+          PRODUCTION_TEST_PASSWORD: ${{ secrets.PRODUCTION_TEST_PASSWORD }}
+          TEST_HEADLESS: true
+          TEST_TIMEOUT: 60000
+        run: |
+          cd apps/web
+
+          # Record start time
+          START_TIME=$(date +%s)
+
+          # Run tests and capture result
+          if npx playwright test e2e/smoke-tests/production.spec.ts \
+            --grep "@smoke" \
+            --reporter=json,html \
+            --retries=2 2>&1 | tee test-output.log; then
+            TEST_RESULT="success"
+          else
+            TEST_RESULT="failure"
+          fi
+
+          # Calculate duration
+          END_TIME=$(date +%s)
+          DURATION=$((END_TIME - START_TIME))
+
+          # Parse test results from JSON reporter output
+          if [ -f "test-results.json" ]; then
+            FAILED_COUNT=$(jq '.stats.unexpected' test-results.json 2>/dev/null || echo "0")
+            PASSED_COUNT=$(jq '.stats.expected' test-results.json 2>/dev/null || echo "0")
+            TOTAL_COUNT=$(jq '.stats.tests' test-results.json 2>/dev/null || echo "0")
+
+            # Extract failed test names
+            FAILED_TESTS=$(jq -r '.suites[].suites[]?.specs[]? | select(.ok == false) | .title' test-results.json 2>/dev/null | paste -sd "," - || echo "")
+
+            # Extract error details
+            ERROR_DETAILS=$(jq -r '.suites[].suites[]?.specs[]? | select(.ok == false) | "\(.title): \(.tests[0].results[0].error.message // "Unknown error")"' test-results.json 2>/dev/null | head -5 | paste -sd "\\n" - || echo "")
+          else
+            # Fallback to parsing log output
+            FAILED_COUNT=$(grep -c "✗" test-output.log || echo "0")
+            PASSED_COUNT=$(grep -c "✓" test-output.log || echo "0")
+            TOTAL_COUNT=$((FAILED_COUNT + PASSED_COUNT))
+            FAILED_TESTS=$(grep "✗" test-output.log | sed 's/.*✗ //' | paste -sd "," - || echo "")
+            ERROR_DETAILS=$(grep -A 2 "Error:" test-output.log | head -15 | paste -sd "\\n" - || echo "Test execution failed")
+          fi
+
+          # Set outputs
+          echo "result=${TEST_RESULT}" >> $GITHUB_OUTPUT
+          echo "failed_tests=${FAILED_TESTS}" >> $GITHUB_OUTPUT
+          echo "passed_tests=${PASSED_COUNT}" >> $GITHUB_OUTPUT
+          echo "total_tests=${TOTAL_COUNT}" >> $GITHUB_OUTPUT
+          echo "duration=${DURATION}s" >> $GITHUB_OUTPUT
+          echo "error_details=${ERROR_DETAILS}" >> $GITHUB_OUTPUT
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-smoke-${{ github.run_id }}
+          path: apps/web/playwright-report/
+          retention-days: 7
+
+      - name: Upload test videos on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-videos-smoke-${{ github.run_id }}
+          path: apps/web/test-results/
+          retention-days: 3
+
+  # Job 3: Analyze trends
+  analyze-trends:
+    name: Analyze Test Trends
+    needs: [check-limits, smoke-tests]
+    if: always()
+    runs-on: ubuntu-latest
+    outputs:
+      trend_data: ${{ steps.analyze.outputs.trend_data }}
+      failure_rate: ${{ steps.analyze.outputs.failure_rate }}
+      avg_duration: ${{ steps.analyze.outputs.avg_duration }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Analyze historical trends
+        id: analyze
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Query last 7 days of workflow runs
+          SEVEN_DAYS_AGO=$(date -u -d '7 days ago' '+%Y-%m-%dT%H:%M:%SZ')
+
+          # Get workflow runs data
+          RUNS_DATA=$(gh api \
+            "repos/${{ github.repository }}/actions/workflows/production-e2e-smoke-test.yml/runs" \
+            --jq ".workflow_runs[] | select(.created_at > \"${SEVEN_DAYS_AGO}\") | {conclusion, created_at, run_duration: .run_duration_ms}" \
+            2>/dev/null || echo "[]")
+
+          # Calculate statistics
+          TOTAL_RUNS=$(echo "${RUNS_DATA}" | jq -s 'length' 2>/dev/null || echo "0")
+          FAILED_RUNS=$(echo "${RUNS_DATA}" | jq -s '[.[] | select(.conclusion == "failure")] | length' 2>/dev/null || echo "0")
+          AVG_DURATION=$(echo "${RUNS_DATA}" | jq -s 'map(.run_duration) | add / length / 1000' 2>/dev/null || echo "0")
+
+          # Calculate failure rate
+          if [ "${TOTAL_RUNS}" -gt 0 ]; then
+            FAILURE_RATE=$(echo "scale=2; ${FAILED_RUNS} * 100 / ${TOTAL_RUNS}" | bc)
+          else
+            FAILURE_RATE="0"
+          fi
+
+          # Create trend summary
+          TREND_DATA=$(cat <<EOF
+          {
+            "total_runs": ${TOTAL_RUNS},
+            "failed_runs": ${FAILED_RUNS},
+            "failure_rate": "${FAILURE_RATE}%",
+            "avg_duration": "${AVG_DURATION}s",
+            "period": "last_7_days"
+          }
+          EOF
+          )
+
+          # Set outputs
+          echo "trend_data=${TREND_DATA}" >> $GITHUB_OUTPUT
+          echo "failure_rate=${FAILURE_RATE}" >> $GITHUB_OUTPUT
+          echo "avg_duration=${AVG_DURATION}" >> $GITHUB_OUTPUT
+
+  # Job 4: Multi-channel notifications
+  notify:
+    name: Multi-Channel Notifications
+    needs: [check-limits, smoke-tests, analyze-trends]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Determine notification priority
+        id: priority
+        run: |
+          # Get priority from input or determine based on status
+          INPUT_PRIORITY="${{ github.event.inputs.notification_priority }}"
+          TEST_RESULT="${{ needs.smoke-tests.outputs.test_result }}"
+          CAN_EXECUTE="${{ needs.check-limits.outputs.can_execute }}"
+
+          # Default priority
+          PRIORITY="${INPUT_PRIORITY:-normal}"
+
+          # Override priority for critical situations
+          if [[ "${TEST_RESULT}" == "failure" ]]; then
+            # Check if this is a repeated failure
+            FAILURE_RATE="${{ needs.analyze-trends.outputs.failure_rate }}"
+            if (( $(echo "${FAILURE_RATE} > 50" | bc -l) )); then
+              PRIORITY="critical"
+            elif [[ "${PRIORITY}" == "low" ]]; then
+              PRIORITY="high"
+            fi
+          fi
+
+          echo "priority=${PRIORITY}" >> $GITHUB_OUTPUT
+
+      - name: Prepare notification data
+        id: prepare
+        run: |
+          # Determine overall status
+          if [[ "${{ needs.check-limits.outputs.can_execute }}" != "true" ]]; then
+            STATUS="skipped"
+            EMOJI="⏸️"
+            COLOR="warning"
+            TITLE="Production E2E Smoke Tests Skipped"
+            MESSAGE="Tests skipped due to execution limit (${{ needs.check-limits.outputs.execution_count }}/${{ needs.check-limits.outputs.max_count }} daily limit)"
+          elif [[ "${{ needs.smoke-tests.outputs.test_result }}" == "success" ]]; then
+            STATUS="success"
+            EMOJI="✅"
+            COLOR="good"
+            TITLE="Production E2E Smoke Tests Passed"
+            MESSAGE="All smoke tests passed successfully (${{ needs.smoke-tests.outputs.passed_tests }}/${{ needs.smoke-tests.outputs.total_tests }} tests)"
+          else
+            STATUS="failure"
+            EMOJI="❌"
+            COLOR="danger"
+            TITLE="Production E2E Smoke Tests Failed"
+            MESSAGE="${{ needs.smoke-tests.outputs.failed_tests || 'Tests failed' }}"
+          fi
+
+          # Build detailed message
+          DETAILS=$(cat <<EOF
+          *Test Results:*
+          • Status: ${STATUS}
+          • Duration: ${{ needs.smoke-tests.outputs.duration || 'N/A' }}
+          • Tests: ${{ needs.smoke-tests.outputs.passed_tests || '0' }}/${{ needs.smoke-tests.outputs.total_tests || '0' }} passed
+
+          *7-Day Trends:*
+          • Failure Rate: ${{ needs.analyze-trends.outputs.failure_rate || '0' }}%
+          • Avg Duration: ${{ needs.analyze-trends.outputs.avg_duration || 'N/A' }}s
+
+          *Execution Limits:*
+          • Daily Usage: ${{ needs.check-limits.outputs.execution_count }}/${{ needs.check-limits.outputs.max_count }}
+          EOF
+          )
+
+          # Add error details if failed
+          if [[ "${STATUS}" == "failure" ]]; then
+            ERROR_DETAILS="${{ needs.smoke-tests.outputs.error_details }}"
+            if [[ -n "${ERROR_DETAILS}" ]]; then
+              DETAILS="${DETAILS}
+
+          *Error Details:*
+          ${ERROR_DETAILS}"
+            fi
+          fi
+
+          # Set outputs
+          echo "status=${STATUS}" >> $GITHUB_OUTPUT
+          echo "emoji=${EMOJI}" >> $GITHUB_OUTPUT
+          echo "color=${COLOR}" >> $GITHUB_OUTPUT
+          echo "title=${TITLE}" >> $GITHUB_OUTPUT
+          echo "message=${MESSAGE}" >> $GITHUB_OUTPUT
+          echo "details<<EOF" >> $GITHUB_OUTPUT
+          echo "${DETAILS}" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      # Primary notification: Slack (for normal, high, critical)
+      - name: Send Slack notification
+        if: |
+          steps.priority.outputs.priority != 'low' &&
+          vars.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          # Prepare Slack message with rich formatting
+          PAYLOAD=$(cat <<EOF
+          {
+            "text": "${{ steps.prepare.outputs.emoji }} ${{ steps.prepare.outputs.title }}",
+            "blocks": [
+              {
+                "type": "header",
+                "text": {
+                  "type": "plain_text",
+                  "text": "${{ steps.prepare.outputs.title }}",
+                  "emoji": true
+                }
+              },
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "${{ steps.prepare.outputs.message }}"
+                }
+              },
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "${{ steps.prepare.outputs.details }}"
+                }
+              },
+              {
+                "type": "actions",
+                "elements": [
+                  {
+                    "type": "button",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "View Workflow Run"
+                    },
+                    "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                  }
+                ]
+              },
+              {
+                "type": "context",
+                "elements": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "Priority: ${{ steps.priority.outputs.priority }} | Triggered by: ${{ github.actor }} | Run #${{ github.run_number }}"
+                  }
+                ]
+              }
+            ],
+            "attachments": [
+              {
+                "color": "${{ steps.prepare.outputs.color }}",
+                "fields": [
+                  {
+                    "title": "Repository",
+                    "value": "${{ github.repository }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Branch",
+                    "value": "${{ github.ref_name }}",
+                    "short": true
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
+          )
+
+          # Send to Slack with retry
+          for i in {1..3}; do
+            if curl -X POST "${SLACK_WEBHOOK_URL}" \
+              -H 'Content-Type: application/json' \
+              -d "${PAYLOAD}"; then
+              echo "✓ Slack notification sent successfully"
+              break
+            else
+              echo "✗ Slack notification attempt $i failed"
+              if [ $i -eq 3 ]; then
+                echo "::warning::Failed to send Slack notification after 3 attempts"
+              else
+                sleep 2
+              fi
+            fi
+          done
+
+      # Secondary notification: Email via GitHub (for high, critical)
+      - name: Send email notification
+        if: |
+          (steps.priority.outputs.priority == 'high' || steps.priority.outputs.priority == 'critical') &&
+          steps.prepare.outputs.status == 'failure'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: ${{ steps.prepare.outputs.emoji }} ${{ steps.prepare.outputs.title }}
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: GitHub Actions <actions@github.com>
+          html_body: |
+            <h2>${{ steps.prepare.outputs.title }}</h2>
+            <p><strong>${{ steps.prepare.outputs.message }}</strong></p>
+
+            <h3>Test Details:</h3>
+            <ul>
+              <li>Status: ${{ steps.prepare.outputs.status }}</li>
+              <li>Duration: ${{ needs.smoke-tests.outputs.duration || 'N/A' }}</li>
+              <li>Tests Passed: ${{ needs.smoke-tests.outputs.passed_tests || '0' }}/${{ needs.smoke-tests.outputs.total_tests || '0' }}</li>
+              <li>Priority: ${{ steps.priority.outputs.priority }}</li>
+            </ul>
+
+            <h3>7-Day Trends:</h3>
+            <ul>
+              <li>Failure Rate: ${{ needs.analyze-trends.outputs.failure_rate || '0' }}%</li>
+              <li>Average Duration: ${{ needs.analyze-trends.outputs.avg_duration || 'N/A' }}s</li>
+            </ul>
+
+            <p><a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">View Workflow Run</a></p>
+
+      # Tertiary notification: Create GitHub Issue (for critical failures)
+      - name: Create GitHub Issue for critical failure
+        if: |
+          steps.priority.outputs.priority == 'critical' &&
+          steps.prepare.outputs.status == 'failure'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check if an issue already exists for today
+          TODAY=$(date +%Y-%m-%d)
+          EXISTING_ISSUE=$(gh issue list \
+            --label "smoke-test-failure,production" \
+            --search "Production E2E Smoke Test Failure in:title created:>=${TODAY}" \
+            --json number \
+            --jq '.[0].number' || echo "")
+
+          if [ -n "${EXISTING_ISSUE}" ]; then
+            echo "Issue #${EXISTING_ISSUE} already exists for today, adding comment"
+
+            # Add comment to existing issue
+            gh issue comment "${EXISTING_ISSUE}" --body "## Additional Failure at $(date -u +%H:%M) UTC
+
+            **Failed Tests:** ${{ needs.smoke-tests.outputs.failed_tests || 'Unknown' }}
+            **Duration:** ${{ needs.smoke-tests.outputs.duration || 'N/A' }}
+
+            ### Error Details:
+            \`\`\`
+            ${{ needs.smoke-tests.outputs.error_details || 'No details available' }}
+            \`\`\`
+
+            [View Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          else
+            echo "Creating new issue for smoke test failure"
+
+            # Create new issue
+            gh issue create \
+              --title "🚨 Production E2E Smoke Test Failure - ${TODAY}" \
+              --label "bug,smoke-test-failure,production,priority:critical" \
+              --assignee "${{ github.actor }}" \
+              --body "## Production Smoke Test Critical Failure
+
+            **Date:** ${TODAY}
+            **Time:** $(date -u +%H:%M) UTC
+            **Triggered by:** ${{ github.actor }}
+            **Priority:** CRITICAL
+
+            ### Test Results:
+            - **Status:** ${{ steps.prepare.outputs.status }}
+            - **Failed Tests:** ${{ needs.smoke-tests.outputs.failed_tests || 'Unknown' }}
+            - **Passed:** ${{ needs.smoke-tests.outputs.passed_tests || '0' }}/${{ needs.smoke-tests.outputs.total_tests || '0' }}
+            - **Duration:** ${{ needs.smoke-tests.outputs.duration || 'N/A' }}
+
+            ### Error Details:
+            \`\`\`
+            ${{ needs.smoke-tests.outputs.error_details || 'No details available' }}
+            \`\`\`
+
+            ### 7-Day Trends:
+            - **Failure Rate:** ${{ needs.analyze-trends.outputs.failure_rate || '0' }}%
+            - **Average Duration:** ${{ needs.analyze-trends.outputs.avg_duration || 'N/A' }}s
+            - **Trend Data:**
+            \`\`\`json
+            ${{ needs.analyze-trends.outputs.trend_data }}
+            \`\`\`
+
+            ### Workflow Details:
+            - [View Workflow Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            - [Download Test Artifacts](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)
+
+            ### Action Items:
+            - [ ] Investigate root cause of failure
+            - [ ] Review error logs and screenshots
+            - [ ] Check production system health
+            - [ ] Verify test environment configuration
+            - [ ] Update tests if needed
+            - [ ] Document findings and resolution
+
+            ---
+            *This issue was automatically created due to critical smoke test failure. Please investigate immediately.*"
+          fi
+
+      # Fallback notification: GitHub Actions annotation
+      - name: Create workflow annotation (fallback)
+        if: always()
+        run: |
+          STATUS="${{ steps.prepare.outputs.status }}"
+          PRIORITY="${{ steps.priority.outputs.priority }}"
+
+          if [[ "${STATUS}" == "failure" ]]; then
+            echo "::error title=Production Smoke Test Failed::${{ steps.prepare.outputs.message }}"
+            echo "::error::Priority: ${PRIORITY} | Failed Tests: ${{ needs.smoke-tests.outputs.failed_tests }}"
+          elif [[ "${STATUS}" == "skipped" ]]; then
+            echo "::warning title=Production Smoke Test Skipped::${{ steps.prepare.outputs.message }}"
+          else
+            echo "::notice title=Production Smoke Test Passed::${{ steps.prepare.outputs.message }}"
+          fi
+
+          # Always show summary
+          echo "## ${{ steps.prepare.outputs.emoji }} Production E2E Smoke Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ steps.prepare.outputs.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Priority:** ${PRIORITY}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.prepare.outputs.details }}" >> $GITHUB_STEP_SUMMARY
