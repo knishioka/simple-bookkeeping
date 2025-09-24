@@ -73,10 +73,10 @@ jobs:
           # Check if we should skip the limit check
           if [[ "$SKIP_LIMIT" == "true" ]]; then
             echo "⚠️ Execution limit check skipped by user request"
-            echo "can_execute=true" >> $GITHUB_OUTPUT
-            echo "status=Limit check skipped" >> $GITHUB_OUTPUT
-            echo "execution_count=0" >> $GITHUB_OUTPUT
-            echo "max_count=5" >> $GITHUB_OUTPUT
+            echo "can_execute=true" >> "$GITHUB_OUTPUT"
+            echo "status=Limit check skipped" >> "$GITHUB_OUTPUT"
+            echo "execution_count=0" >> "$GITHUB_OUTPUT"
+            echo "max_count=5" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -141,7 +141,7 @@ jobs:
 
     environment:
       name: production
-      url: ${{ secrets.PRODUCTION_URL }}
+      url: ${{ vars.PRODUCTION_URL }}
 
     outputs:
       test_result: ${{ steps.test.outputs.result }}
@@ -221,12 +221,12 @@ jobs:
           fi
 
           # Set outputs
-          echo "result=${TEST_RESULT}" >> $GITHUB_OUTPUT
-          echo "failed_tests=${FAILED_TESTS}" >> $GITHUB_OUTPUT
-          echo "passed_tests=${PASSED_COUNT}" >> $GITHUB_OUTPUT
-          echo "total_tests=${TOTAL_COUNT}" >> $GITHUB_OUTPUT
-          echo "duration=${DURATION}s" >> $GITHUB_OUTPUT
-          echo "error_details=${ERROR_DETAILS}" >> $GITHUB_OUTPUT
+          echo "result=${TEST_RESULT}" >> "$GITHUB_OUTPUT"
+          echo "failed_tests=${FAILED_TESTS}" >> "$GITHUB_OUTPUT"
+          echo "passed_tests=${PASSED_COUNT}" >> "$GITHUB_OUTPUT"
+          echo "total_tests=${TOTAL_COUNT}" >> "$GITHUB_OUTPUT"
+          echo "duration=${DURATION}s" >> "$GITHUB_OUTPUT"
+          echo "error_details=${ERROR_DETAILS}" >> "$GITHUB_OUTPUT"
 
       - name: Upload test results
         if: always()
@@ -298,9 +298,9 @@ jobs:
           )
 
           # Set outputs
-          echo "trend_data=${TREND_DATA}" >> $GITHUB_OUTPUT
-          echo "failure_rate=${FAILURE_RATE}" >> $GITHUB_OUTPUT
-          echo "avg_duration=${AVG_DURATION}" >> $GITHUB_OUTPUT
+          echo "trend_data=${TREND_DATA}" >> "$GITHUB_OUTPUT"
+          echo "failure_rate=${FAILURE_RATE}" >> "$GITHUB_OUTPUT"
+          echo "avg_duration=${AVG_DURATION}" >> "$GITHUB_OUTPUT"
 
   # Job 4: Multi-channel notifications
   notify:
@@ -335,7 +335,7 @@ jobs:
             fi
           fi
 
-          echo "priority=${PRIORITY}" >> $GITHUB_OUTPUT
+          echo "priority=${PRIORITY}" >> "$GITHUB_OUTPUT"
 
       - name: Prepare notification data
         id: prepare
@@ -362,7 +362,7 @@ jobs:
           fi
 
           # Build detailed message
-          DETAILS=$(cat <<EOF
+          DETAILS="$(cat <<EOF
           *Test Results:*
           • Status: ${STATUS}
           • Duration: ${{ needs.smoke-tests.outputs.duration || 'N/A' }}
@@ -375,7 +375,7 @@ jobs:
           *Execution Limits:*
           • Daily Usage: ${{ needs.check-limits.outputs.execution_count }}/${{ needs.check-limits.outputs.max_count }}
           EOF
-          )
+          )"
 
           # Add error details if failed
           if [[ "${STATUS}" == "failure" ]]; then
@@ -389,25 +389,29 @@ jobs:
           fi
 
           # Set outputs
-          echo "status=${STATUS}" >> $GITHUB_OUTPUT
-          echo "emoji=${EMOJI}" >> $GITHUB_OUTPUT
-          echo "color=${COLOR}" >> $GITHUB_OUTPUT
-          echo "title=${TITLE}" >> $GITHUB_OUTPUT
-          echo "message=${MESSAGE}" >> $GITHUB_OUTPUT
-          echo "details<<EOF" >> $GITHUB_OUTPUT
-          echo "${DETAILS}" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "status=${STATUS}" >> "$GITHUB_OUTPUT"
+          echo "emoji=${EMOJI}" >> "$GITHUB_OUTPUT"
+          echo "color=${COLOR}" >> "$GITHUB_OUTPUT"
+          echo "title=${TITLE}" >> "$GITHUB_OUTPUT"
+          echo "message=${MESSAGE}" >> "$GITHUB_OUTPUT"
+          echo "details<<EOF" >> "$GITHUB_OUTPUT"
+          echo "${DETAILS}" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
 
       # Primary notification: Slack (for normal, high, critical)
       - name: Send Slack notification
-        if: |
-          steps.priority.outputs.priority != 'low' &&
-          vars.SLACK_WEBHOOK_URL != ''
+        if: steps.priority.outputs.priority != 'low'
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
+          # Check if Slack webhook URL is configured
+          if [ -z "${SLACK_WEBHOOK_URL}" ]; then
+            echo "::warning::Slack webhook URL not configured, skipping notification"
+            exit 0
+          fi
+
           # Prepare Slack message with rich formatting
-          PAYLOAD=$(cat <<EOF
+          PAYLOAD="$(cat <<EOF
           {
             "text": "${{ steps.prepare.outputs.emoji }} ${{ steps.prepare.outputs.title }}",
             "blocks": [
@@ -475,7 +479,7 @@ jobs:
             ]
           }
           EOF
-          )
+          )"
 
           # Send to Slack with retry
           for i in {1..3}; do
@@ -486,7 +490,7 @@ jobs:
               break
             else
               echo "✗ Slack notification attempt $i failed"
-              if [ $i -eq 3 ]; then
+              if [ "$i" -eq 3 ]; then
                 echo "::warning::Failed to send Slack notification after 3 attempts"
               else
                 sleep 2
@@ -627,9 +631,9 @@ jobs:
           fi
 
           # Always show summary
-          echo "## ${{ steps.prepare.outputs.emoji }} Production E2E Smoke Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Status:** ${{ steps.prepare.outputs.status }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Priority:** ${PRIORITY}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.prepare.outputs.details }}" >> $GITHUB_STEP_SUMMARY
+          echo "## ${{ steps.prepare.outputs.emoji }} Production E2E Smoke Test Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Status:** ${{ steps.prepare.outputs.status }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Priority:** ${PRIORITY}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "${{ steps.prepare.outputs.details }}" >> "$GITHUB_STEP_SUMMARY"
