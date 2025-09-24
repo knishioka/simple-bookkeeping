@@ -83,7 +83,7 @@ test.describe('Production E2Eテストカバレッジ - Phase 1 @smoke @producti
     });
   });
 
-  test.afterEach(async ({ page }, testInfo) => {
+  test.afterEach(async ({ page: _page }, testInfo) => {
     // パフォーマンスメトリクスの記録
     performanceMetrics.push({
       testName: testInfo.title,
