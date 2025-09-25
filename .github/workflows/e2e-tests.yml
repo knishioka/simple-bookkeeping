@@ -44,11 +44,11 @@ jobs:
       - name: Setup Docker Compose
         run: |
           docker --version
-          docker-compose --version
+          docker compose version || docker-compose --version
 
           # Pre-pull Docker images in parallel for faster startup
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] Pre-pulling Docker images..."
-          docker-compose -f docker-compose.supabase-test.yml pull --parallel --quiet || true
+          docker compose -f docker-compose.supabase-test.yml pull --parallel --quiet || docker-compose -f docker-compose.supabase-test.yml pull --parallel --quiet || true
 
       - name: Start Supabase services
         run: |
@@ -59,7 +59,7 @@ jobs:
           export SUPABASE_SERVICE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU"
 
           # Start only the necessary Supabase services (exclude web-test and playwright)
-          docker-compose -f docker-compose.supabase-test.yml up -d \
+          docker compose -f docker-compose.supabase-test.yml up -d \
             supabase-db \
             supabase-kong \
             supabase-auth \
@@ -80,10 +80,10 @@ jobs:
             local attempt=0
 
             while [ $attempt -lt $max_attempts ]; do
-              if docker-compose -f docker-compose.supabase-test.yml ps | grep -q "${service}.*healthy"; then
+              if docker compose -f docker-compose.supabase-test.yml ps | grep -q "${service}.*healthy"; then
                 echo "✓ ${service} is healthy"
                 return 0
-              elif docker-compose -f docker-compose.supabase-test.yml ps | grep -q "${service}.*Up"; then
+              elif docker compose -f docker-compose.supabase-test.yml ps | grep -q "${service}.*Up"; then
                 echo "✓ ${service} is running (no health check)"
                 return 0
               fi
@@ -127,7 +127,7 @@ jobs:
 
           # Show service status
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] Supabase services status:"
-          docker-compose -f docker-compose.supabase-test.yml ps
+          docker compose -f docker-compose.supabase-test.yml ps
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -254,15 +254,15 @@ jobs:
         run: |
           echo "=== Supabase Service Logs (on failure) ==="
           echo "=== Kong (API Gateway) Logs ==="
-          docker-compose -f docker-compose.supabase-test.yml logs --tail=50 supabase-kong || true
+          docker compose -f docker-compose.supabase-test.yml logs --tail=50 supabase-kong || true
           echo "=== Auth Service Logs ==="
-          docker-compose -f docker-compose.supabase-test.yml logs --tail=50 supabase-auth || true
+          docker compose -f docker-compose.supabase-test.yml logs --tail=50 supabase-auth || true
           echo "=== Database Logs ==="
-          docker-compose -f docker-compose.supabase-test.yml logs --tail=50 supabase-db || true
+          docker compose -f docker-compose.supabase-test.yml logs --tail=50 supabase-db || true
 
       - name: Stop Supabase services
         if: always()
         run: |
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] Stopping Supabase services..."
-          docker-compose -f docker-compose.supabase-test.yml down -v || true
+          docker compose -f docker-compose.supabase-test.yml down -v || true
           echo "✓ Supabase services stopped"
