@@ -22,3 +22,12 @@ ce953228ce38eff221a9a2d7da14c4ccbb38ea93:.env.local.example:jwt:23
 ce953228ce38eff221a9a2d7da14c4ccbb38ea93:.env.local.example:jwt:24
 81bee586cc71b64f09d53ccf0d371d0134763429:.env.local.example:jwt:23
 81bee586cc71b64f09d53ccf0d371d0134763429:.env.local.example:jwt:24
+
+# E2E test workflow test keys (hardcoded test tokens for CI environment)
+# These are test-only JWT tokens with predictable secret for Docker-based testing
+e410d1536ea0aa36df06fe6e2a48d744b9fc2439:.github/workflows/e2e-tests.yml:jwt:62
+e410d1536ea0aa36df06fe6e2a48d744b9fc2439:.github/workflows/e2e-tests.yml:jwt:65
+e410d1536ea0aa36df06fe6e2a48d744b9fc2439:.github/workflows/e2e-tests.yml:jwt:157
+e410d1536ea0aa36df06fe6e2a48d744b9fc2439:.github/workflows/e2e-tests.yml:jwt:158
+e410d1536ea0aa36df06fe6e2a48d744b9fc2439:.github/workflows/e2e-tests.yml:jwt:341
+e410d1536ea0aa36df06fe6e2a48d744b9fc2439:.github/workflows/e2e-tests.yml:jwt:342

@@ -13,7 +13,7 @@ import { waitForPageReady } from './helpers/wait-strategies';
 test.describe('基本的なページアクセス', () => {
   // CI環境での実行を考慮してタイムアウトを増やす
   test.use({ navigationTimeout: 30000 });
-  test.setTimeout(30000);
+  test.setTimeout(20000);
 
   test('トップページが正常に表示される', async ({ page }) => {
     // トップページにアクセス
@@ -118,7 +118,7 @@ test.describe('ユーザー認証フロー', () => {
 
     // トップページにアクセス
     await page.goto('/');
-    await waitForPageReady(page, { waitForSelector: 'h1' });
+    await waitForPageReady(page, { waitForSelector: 'h1', skipNetworkIdle: true });
 
     // 新規登録リンクを探してクリック
     const signupLink = page.locator('text=新規登録').first();
@@ -170,7 +170,7 @@ test.describe('レスポンシブデザイン', () => {
 
     // トップページにアクセス
     await page.goto('/');
-    await waitForPageReady(page, { waitForSelector: 'h1' });
+    await waitForPageReady(page, { waitForSelector: 'h1', skipNetworkIdle: true });
 
     // モバイルでもコンテンツが表示されることを確認
     await expect(page.locator('h1')).toBeVisible();
@@ -184,7 +184,7 @@ test.describe('レスポンシブデザイン', () => {
 
     // ログインページにアクセス
     await page.goto('/auth/login');
-    await waitForPageReady(page, { waitForSelector: '#email' });
+    await waitForPageReady(page, { waitForSelector: '#email', skipNetworkIdle: true });
 
     // タブレットでもフォームが適切に表示されることを確認
     await expect(page.locator('#email')).toBeVisible();

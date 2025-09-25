@@ -10,7 +10,7 @@ import { SupabaseAuth } from './helpers/supabase-auth';
 test.describe('Accounting Periods Management', () => {
   // CI環境での実行を考慮してタイムアウトを増やす
   test.use({ navigationTimeout: 30000 });
-  test.setTimeout(30000);
+  test.setTimeout(20000);
 
   test('should successfully authenticate and navigate to dashboard', async ({
     page,
@@ -162,7 +162,7 @@ test.describe('Accounting Periods Management', () => {
   });
 
   test('should edit an existing accounting period', async ({ page, context: _context }) => {
-    test.setTimeout(30000); // Increase test timeout for CI
+    test.setTimeout(20000); // Increase test timeout for CI
 
     // Server Actions用の初期データを設定
     const initialPeriods = [
@@ -217,7 +217,8 @@ test.describe('Accounting Periods Management', () => {
     await editButton.click();
 
     // Wait for dialog to open and update the name
-    await page.waitForTimeout(500); // Give dialog time to open
+    // Wait for dialog to open
+    await page.waitForSelector('[role="dialog"]', { timeout: 2000 });
     const editNameInput = page.locator('input[name="name"]').first();
     await editNameInput.waitFor({ state: 'visible', timeout: 10000 });
     await editNameInput.clear();
@@ -227,7 +228,8 @@ test.describe('Accounting Periods Management', () => {
     await page.click('button[type="submit"]:has-text("更新")');
 
     // Wait for dialog to close and data to update
-    await page.waitForTimeout(1000);
+    // Wait for form submission
+    await page.waitForLoadState('domcontentloaded');
 
     // Check if the period was updated - the mock should be updated
     // In a real test, we'd verify the Server Action was called with correct data
@@ -292,7 +294,8 @@ test.describe('Accounting Periods Management', () => {
     // After clicking, the button should disappear or the status should change
     // In a real test, we'd verify the Server Action was called
     // For now, just verify the button was clicked successfully
-    await page.waitForTimeout(500);
+    // Wait for UI update
+    await page.waitForLoadState('domcontentloaded');
   });
 
   test('should delete an inactive accounting period', async ({ page, context: _context }) => {
@@ -355,11 +358,12 @@ test.describe('Accounting Periods Management', () => {
 
     // After deletion, verify the action was taken
     // In a real test, we'd verify the Server Action was called
-    await page.waitForTimeout(500);
+    // Wait for UI update
+    await page.waitForLoadState('domcontentloaded');
   });
 
   test('should not allow deleting active period', async ({ page, context: _context }) => {
-    test.setTimeout(30000); // Increase test timeout for CI
+    test.setTimeout(20000); // Increase test timeout for CI
 
     // Server Actions用のモックをセットアップ
     await UnifiedMock.setupAll(_context, {
@@ -440,7 +444,8 @@ test.describe('Accounting Periods Management', () => {
     await createButton.click();
 
     // Wait for dialog to open
-    await page.waitForTimeout(500);
+    // Wait for UI update
+    await page.waitForLoadState('domcontentloaded');
     const nameInput = page.locator('input[name="name"]').first();
     await nameInput.waitFor({ state: 'visible', timeout: 10000 });
 
@@ -465,7 +470,7 @@ test.describe('Accounting Periods Management', () => {
   });
 
   test('should prevent overlapping periods', async ({ page, context: _context }) => {
-    test.setTimeout(30000); // Increase test timeout for CI
+    test.setTimeout(20000); // Increase test timeout for CI
 
     // Server Actions用のモックをセットアップ
     await UnifiedMock.setupAll(_context, {
@@ -503,7 +508,8 @@ test.describe('Accounting Periods Management', () => {
     await createButton.click();
 
     // Wait for dialog to open
-    await page.waitForTimeout(500);
+    // Wait for UI update
+    await page.waitForLoadState('domcontentloaded');
     const nameInput = page.locator('input[name="name"]').first();
     await nameInput.waitFor({ state: 'visible', timeout: 10000 });
     await nameInput.fill('重複期間');
@@ -516,7 +522,8 @@ test.describe('Accounting Periods Management', () => {
     await page.click('button[type="submit"]:has-text("作成")');
 
     // Wait for potential error response
-    await page.waitForTimeout(1000);
+    // Wait for form submission
+    await page.waitForLoadState('domcontentloaded');
 
     // Check if dialog is still open (indicating error) or error message appears
     const dialogStillOpen = await nameInput.isVisible();

@@ -19,7 +19,8 @@ test.describe('Accounting Periods Simple Test', () => {
     await page.goto('/dashboard/settings/accounting-periods');
 
     // Wait for the page to load
-    await page.waitForTimeout(2000);
+    // Wait for page to be ready
+    await page.waitForLoadState('domcontentloaded');
 
     // Take a screenshot for debugging
     await page.screenshot({ path: 'accounting-periods-debug.png' });
