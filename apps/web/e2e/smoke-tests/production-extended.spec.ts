@@ -171,7 +171,20 @@ test.describe('Production E2Eテストカバレッジ - Phase 1 @smoke @producti
       // ページロード完了待機
       // Wait for specific content instead of networkidle (more reliable)
       await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(1000); // Brief pause for dynamic content
+
+      // Wait for content to appear with retry logic
+      await page.waitForFunction(
+        () => {
+          const bodyText = document.body.innerText || '';
+          return (
+            bodyText.includes('仕訳') ||
+            bodyText.includes('Journal') ||
+            document.querySelector('table') !== null ||
+            document.querySelector('[role="table"]') !== null
+          );
+        },
+        { timeout: 10000 }
+      );
 
       // ページコンテンツの確認（柔軟な判定）
       const pageValidation = await page.evaluate(() => {
@@ -278,7 +291,19 @@ test.describe('Production E2Eテストカバレッジ - Phase 1 @smoke @producti
       await page.goto('/dashboard/journal-entries', { waitUntil: 'domcontentloaded' });
       // Wait for specific content instead of networkidle (more reliable)
       await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(1000); // Brief pause for dynamic content
+
+      // Wait for actual content to load
+      await page.waitForFunction(
+        () => {
+          const bodyText = document.body.innerText || '';
+          return (
+            bodyText.length > 100 || // Page has meaningful content
+            document.querySelector('table') !== null ||
+            document.querySelector('[role="table"]') !== null
+          );
+        },
+        { timeout: 10000 }
+      );
 
       // ページネーションコントロールの存在確認
       const hasPagination = await page.evaluate(() => {
@@ -306,6 +331,19 @@ test.describe('Production E2Eテストカバレッジ - Phase 1 @smoke @producti
       } else {
         console.log('No pagination controls found (may be single page of data)');
       }
+
+      // Wait for data to load before checking
+      await page.waitForFunction(
+        () => {
+          const bodyText = document.body.innerText || '';
+          return (
+            bodyText.includes('取引') ||
+            bodyText.includes('仕訳') ||
+            document.querySelector('table tbody tr') !== null
+          );
+        },
+        { timeout: 10000 }
+      );
 
       // データの存在確認
       const hasData = await page.evaluate(() => {
@@ -382,7 +420,19 @@ test.describe('Production E2Eテストカバレッジ - Phase 1 @smoke @producti
       await page.goto('/dashboard/journal-entries', { waitUntil: 'domcontentloaded' });
       // Wait for specific content instead of networkidle (more reliable)
       await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(1000); // Brief pause for dynamic content
+
+      // Wait for actual content to load
+      await page.waitForFunction(
+        () => {
+          const bodyText = document.body.innerText || '';
+          return (
+            bodyText.length > 100 || // Page has meaningful content
+            document.querySelector('table') !== null ||
+            document.querySelector('[role="table"]') !== null
+          );
+        },
+        { timeout: 10000 }
+      );
 
       // フィルタコントロールの存在確認
       const filterControls = await page.evaluate(() => {
@@ -537,7 +587,19 @@ test.describe('Production E2Eテストカバレッジ - Phase 1 @smoke @producti
 
       // Wait for specific content instead of networkidle (more reliable)
       await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(1000); // Brief pause for dynamic content
+
+      // Wait for actual content to load
+      await page.waitForFunction(
+        () => {
+          const bodyText = document.body.innerText || '';
+          return (
+            bodyText.length > 100 || // Page has meaningful content
+            document.querySelector('table') !== null ||
+            document.querySelector('[role="table"]') !== null
+          );
+        },
+        { timeout: 10000 }
+      );
 
       // ページコンテンツの確認
       const pageValidation = await page.evaluate(() => {
@@ -680,7 +742,19 @@ test.describe('Production E2Eテストカバレッジ - Phase 1 @smoke @producti
       await page.goto('/dashboard/accounts', { waitUntil: 'domcontentloaded' });
       // Wait for specific content instead of networkidle (more reliable)
       await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(1000); // Brief pause for dynamic content
+
+      // Wait for actual content to load
+      await page.waitForFunction(
+        () => {
+          const bodyText = document.body.innerText || '';
+          return (
+            bodyText.length > 100 || // Page has meaningful content
+            document.querySelector('table') !== null ||
+            document.querySelector('[role="table"]') !== null
+          );
+        },
+        { timeout: 10000 }
+      );
 
       // カテゴリ表示/フィルタの確認
       const categoryFeatures = await page.evaluate(() => {
@@ -781,7 +855,19 @@ test.describe('Production E2Eテストカバレッジ - Phase 1 @smoke @producti
       await page.goto('/dashboard/accounts', { waitUntil: 'domcontentloaded' });
       // Wait for specific content instead of networkidle (more reliable)
       await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(1000); // Brief pause for dynamic content
+
+      // Wait for actual content to load
+      await page.waitForFunction(
+        () => {
+          const bodyText = document.body.innerText || '';
+          return (
+            bodyText.length > 100 || // Page has meaningful content
+            document.querySelector('table') !== null ||
+            document.querySelector('[role="table"]') !== null
+          );
+        },
+        { timeout: 10000 }
+      );
 
       // 検索機能の確認
       const searchFeatures = await page.evaluate(() => {
@@ -926,7 +1012,19 @@ test.describe('Production E2Eテストカバレッジ - Phase 1 @smoke @producti
 
       // Wait for specific content instead of networkidle (more reliable)
       await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(1000); // Brief pause for dynamic content
+
+      // Wait for actual content to load
+      await page.waitForFunction(
+        () => {
+          const bodyText = document.body.innerText || '';
+          return (
+            bodyText.length > 100 || // Page has meaningful content
+            document.querySelector('table') !== null ||
+            document.querySelector('[role="table"]') !== null
+          );
+        },
+        { timeout: 10000 }
+      );
 
       // ダッシュボードコンテンツの確認
       const dashboardValidation = await page.evaluate(() => {
@@ -1042,7 +1140,19 @@ test.describe('Production E2Eテストカバレッジ - Phase 1 @smoke @producti
       await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
       // Wait for specific content instead of networkidle (more reliable)
       await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(1000); // Brief pause for dynamic content
+
+      // Wait for actual content to load
+      await page.waitForFunction(
+        () => {
+          const bodyText = document.body.innerText || '';
+          return (
+            bodyText.length > 100 || // Page has meaningful content
+            document.querySelector('table') !== null ||
+            document.querySelector('[role="table"]') !== null
+          );
+        },
+        { timeout: 10000 }
+      );
 
       // 残高情報の詳細確認
       const balanceInfo = await page.evaluate(() => {
@@ -1170,7 +1280,19 @@ test.describe('Production E2Eテストカバレッジ - Phase 1 @smoke @producti
       await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
       // Wait for specific content instead of networkidle (more reliable)
       await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(1000); // Brief pause for dynamic content
+
+      // Wait for actual content to load
+      await page.waitForFunction(
+        () => {
+          const bodyText = document.body.innerText || '';
+          return (
+            bodyText.length > 100 || // Page has meaningful content
+            document.querySelector('table') !== null ||
+            document.querySelector('[role="table"]') !== null
+          );
+        },
+        { timeout: 10000 }
+      );
 
       // 最近の取引情報の確認
       const transactionInfo = await page.evaluate(() => {
@@ -1258,7 +1380,19 @@ test.describe('Production E2Eテストカバレッジ - Phase 1 @smoke @producti
 
       // Wait for specific content instead of networkidle (more reliable)
       await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(1000); // Brief pause for dynamic content
+
+      // Wait for actual content to load
+      await page.waitForFunction(
+        () => {
+          const bodyText = document.body.innerText || '';
+          return (
+            bodyText.length > 100 || // Page has meaningful content
+            document.querySelector('table') !== null ||
+            document.querySelector('[role="table"]') !== null
+          );
+        },
+        { timeout: 10000 }
+      );
       metrics.loadComplete = Date.now();
 
       // Web Vitals の取得
