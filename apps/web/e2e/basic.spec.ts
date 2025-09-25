@@ -13,7 +13,7 @@ import { waitForPageReady } from './helpers/wait-strategies';
 test.describe('基本的なページアクセス', () => {
   // CI環境での実行を考慮してタイムアウトを増やす
   test.use({ navigationTimeout: 30000 });
-  test.setTimeout(30000);
+  test.setTimeout(20000);
 
   test('トップページが正常に表示される', async ({ page }) => {
     // トップページにアクセス

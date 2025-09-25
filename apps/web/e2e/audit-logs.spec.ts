@@ -8,7 +8,7 @@ import { waitForApiResponse, waitForSelectOpen } from './helpers/wait-strategies
 test.describe('Audit Logs', () => {
   // CI環境での実行を考慮してタイムアウトを増やす
   test.use({ navigationTimeout: 30000 });
-  test.setTimeout(30000);
+  test.setTimeout(20000);
 
   test.beforeEach(async ({ page, context }) => {
     // Server Actions用のモックをセットアップ

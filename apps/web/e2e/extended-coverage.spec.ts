@@ -10,7 +10,7 @@ import { SupabaseAuth } from './helpers/supabase-auth';
 test.describe('拡張テストカバレッジ', () => {
   // CI環境での実行を考慮してタイムアウトを増やす
   test.use({ navigationTimeout: 30000 });
-  test.setTimeout(30000);
+  test.setTimeout(20000);
 
   test.describe('認証が必要なページ', () => {
     test.beforeEach(async ({ context, page }) => {

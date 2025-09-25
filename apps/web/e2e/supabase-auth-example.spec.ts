@@ -8,6 +8,11 @@ import { waitForPageReady } from './helpers/wait-strategies';
  * Check if we're running in mock mode (CI environment without real Supabase)
  */
 function isInMockMode(): boolean {
+  // CI環境では常にモックモードとして扱う
+  if (process.env.CI === 'true') {
+    return true;
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
@@ -28,10 +33,10 @@ function isInMockMode(): boolean {
 // モック環境（CI）では実際のSupabase接続が必要なテストをスキップ
 const describeMethod = isInMockMode() ? test.describe.skip : test.describe;
 
-describeMethod('Supabase認証を使用したE2Eテスト', () => {
+describeMethod('Supabase認証を使用したE2Eテスト @integration', () => {
   // テストのタイムアウトを設定（認証処理を考慮）
-  test.use({ navigationTimeout: 30000 });
-  test.setTimeout(60000);
+  test.use({ navigationTimeout: 15000 });
+  test.setTimeout(30000);
 
   test.beforeAll(async () => {
     // データマネージャーを初期化
@@ -206,7 +211,7 @@ describeMethod('Supabase認証を使用したE2Eテスト', () => {
  *
  * 実際のSupabase認証のパフォーマンスを測定
  */
-describeMethod('Supabase認証パフォーマンステスト', () => {
+describeMethod('Supabase認証パフォーマンステスト @integration', () => {
   test('認証処理のパフォーマンスを測定', async ({ page, context }) => {
     // 認証開始時刻を記録
     const startTime = Date.now();

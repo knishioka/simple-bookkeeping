@@ -10,7 +10,7 @@ import { SupabaseAuth } from './helpers/supabase-auth';
 test.describe('Accounting Periods Management', () => {
   // CI環境での実行を考慮してタイムアウトを増やす
   test.use({ navigationTimeout: 30000 });
-  test.setTimeout(30000);
+  test.setTimeout(20000);
 
   test('should successfully authenticate and navigate to dashboard', async ({
     page,
@@ -162,7 +162,7 @@ test.describe('Accounting Periods Management', () => {
   });
 
   test('should edit an existing accounting period', async ({ page, context: _context }) => {
-    test.setTimeout(30000); // Increase test timeout for CI
+    test.setTimeout(20000); // Increase test timeout for CI
 
     // Server Actions用の初期データを設定
     const initialPeriods = [
@@ -359,7 +359,7 @@ test.describe('Accounting Periods Management', () => {
   });
 
   test('should not allow deleting active period', async ({ page, context: _context }) => {
-    test.setTimeout(30000); // Increase test timeout for CI
+    test.setTimeout(20000); // Increase test timeout for CI
 
     // Server Actions用のモックをセットアップ
     await UnifiedMock.setupAll(_context, {
@@ -465,7 +465,7 @@ test.describe('Accounting Periods Management', () => {
   });
 
   test('should prevent overlapping periods', async ({ page, context: _context }) => {
-    test.setTimeout(30000); // Increase test timeout for CI
+    test.setTimeout(20000); // Increase test timeout for CI
 
     // Server Actions用のモックをセットアップ
     await UnifiedMock.setupAll(_context, {

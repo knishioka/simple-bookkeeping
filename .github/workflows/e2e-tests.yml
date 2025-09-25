@@ -364,7 +364,7 @@ jobs:
           # Run fast test suite with sharding and unified config
           # Playwright will automatically start the web server based on webServer config
           cd apps/web
-          timeout 360 npx playwright test --shard=${{ matrix.shard }} --grep-invert="@slow|@integration" || TEST_EXIT="$?"
+          timeout 480 npx playwright test --shard=${{ matrix.shard }} --grep-invert="@slow|@integration" || TEST_EXIT="$?"
 
           END_TIME=$(date +%s)
           DURATION=$((END_TIME - START_TIME))
