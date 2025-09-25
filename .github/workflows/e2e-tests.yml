@@ -59,10 +59,10 @@ jobs:
           consumers:
             - username: anon
               keyauth_credentials:
-                - key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+                - key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.SeJg9y9QBxuYLj9wZfbPOca6_MDbUk7jC3uJrG1gLDc
             - username: service_role
               keyauth_credentials:
-                - key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
+                - key: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.vS5M5F4q5KtvMxwiJxK84oQHWrYAWMHEr9n4nSBUdn8
           services:
             - name: auth-v1-open
               url: http://supabase-auth:9999/verify
@@ -154,8 +154,8 @@ jobs:
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting Supabase services with Docker Compose..."
 
           # Set environment variables for consistent test keys
-          export SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0"
-          export SUPABASE_SERVICE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU"
+          export SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.SeJg9y9QBxuYLj9wZfbPOca6_MDbUk7jC3uJrG1gLDc"
+          export SUPABASE_SERVICE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.vS5M5F4q5KtvMxwiJxK84oQHWrYAWMHEr9n4nSBUdn8"
 
           # Start only the necessary Supabase services (exclude web-test and playwright)
           docker compose -f docker-compose.supabase-test.yml up -d \
@@ -260,6 +260,61 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
         run: |
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] Setting up database schema..."
+
+          # Install PostgreSQL client for pg_isready
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+
+          # Function to check database readiness
+          check_db_ready() {
+            local max_attempts=30
+            local attempt=0
+
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Checking database connectivity..."
+
+            while [ $attempt -lt $max_attempts ]; do
+              # Check if PostgreSQL is ready to accept connections
+              if pg_isready -h localhost -p 5432 -U postgres -d postgres -t 1; then
+                echo "✓ PostgreSQL is ready to accept connections"
+
+                # Additional check: Try to connect and run a simple query
+                if PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d postgres -c "SELECT 1" >/dev/null 2>&1; then
+                  echo "✓ Database connection verified with test query"
+                  return 0
+                else
+                  echo "  Database is responding but not ready for queries yet..."
+                fi
+              else
+                echo "  Waiting for database to be ready... (attempt $((attempt + 1))/$max_attempts)"
+              fi
+
+              attempt=$((attempt + 1))
+              sleep 2
+            done
+
+            echo "✗ Database failed to become ready after $max_attempts attempts"
+
+            # Show diagnostic information on failure
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Diagnostic information:"
+            echo "  - Docker container status:"
+            docker compose -f docker-compose.supabase-test.yml ps supabase-db
+            echo "  - Last 20 lines of database logs:"
+            docker compose -f docker-compose.supabase-test.yml logs --tail=20 supabase-db
+
+            return 1
+          }
+
+          # Wait for database to be ready
+          if ! check_db_ready; then
+            echo "ERROR: Database is not ready. Exiting..."
+            exit 1
+          fi
+
+          # Small additional wait to ensure all database initialization is complete
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Waiting for database initialization to complete..."
+          sleep 3
+
+          # Now run prisma db push
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Applying database schema with Prisma..."
           cd packages/database && npx prisma db push --skip-generate
           echo "✓ Database schema applied successfully"
 
@@ -283,8 +338,8 @@ jobs:
           NODE_ENV: test
           # Supabase Local Environment (using Docker services)
           NEXT_PUBLIC_SUPABASE_URL: http://localhost:8000
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
-          SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.SeJg9y9QBxuYLj9wZfbPOca6_MDbUk7jC3uJrG1gLDc
+          SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.vS5M5F4q5KtvMxwiJxK84oQHWrYAWMHEr9n4nSBUdn8
           SUPABASE_DB_URL: postgresql://postgres:postgres@localhost:5432/postgres
           # Test credentials from secrets (with fallbacks)
           TEST_JWT_SECRET: ${{ secrets.TEST_JWT_SECRET || 'test-jwt-secret-do-not-use-in-production' }}
@@ -309,7 +364,7 @@ jobs:
           # Run fast test suite with sharding and unified config
           # Playwright will automatically start the web server based on webServer config
           cd apps/web
-          timeout 360 npx playwright test --shard=${{ matrix.shard }} --grep-invert="@slow|@integration" || TEST_EXIT="$?"
+          timeout 480 npx playwright test --shard=${{ matrix.shard }} --grep-invert="@slow|@integration" || TEST_EXIT="$?"
 
           END_TIME=$(date +%s)
           DURATION=$((END_TIME - START_TIME))

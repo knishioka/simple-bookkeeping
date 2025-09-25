@@ -8,7 +8,7 @@ import { waitForApiResponse, waitForSelectOpen } from './helpers/wait-strategies
 test.describe('Audit Logs', () => {
   // CI環境での実行を考慮してタイムアウトを増やす
   test.use({ navigationTimeout: 30000 });
-  test.setTimeout(30000);
+  test.setTimeout(20000);
 
   test.beforeEach(async ({ page, context }) => {
     // Server Actions用のモックをセットアップ
@@ -36,10 +36,13 @@ test.describe('Audit Logs', () => {
 
   test('should display audit logs page for admin users', async ({ page }) => {
     // Navigate directly to audit logs page
-    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'networkidle' });
+    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'domcontentloaded' });
 
     // Wait for the page to load and run effects
-    await page.waitForTimeout(2000);
+    // Wait for audit logs to load
+    await page.waitForSelector('[data-testid="audit-log-table"], [data-testid="empty-state"]', {
+      timeout: 5000,
+    });
 
     // Check if we're on the audit logs page
     const currentUrl = page.url();
@@ -62,10 +65,13 @@ test.describe('Audit Logs', () => {
   });
 
   test('should filter audit logs by action type', async ({ page }) => {
-    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'networkidle' });
+    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'domcontentloaded' });
 
     // Wait for page to load
-    await page.waitForTimeout(2000);
+    // Wait for audit logs to load
+    await page.waitForSelector('[data-testid="audit-log-table"], [data-testid="empty-state"]', {
+      timeout: 5000,
+    });
 
     // Check if we have access to the page
     const hasAccess = await page
@@ -86,7 +92,8 @@ test.describe('Audit Logs', () => {
       await createOption.click();
 
       // Verify selection by checking the filter is applied
-      await page.waitForTimeout(500);
+      // Small delay for UI update
+      await page.waitForLoadState('domcontentloaded');
 
       // Just verify that the test completed successfully
       await expect(page.locator('[data-testid="audit-logs-table"]')).toBeVisible();
@@ -94,10 +101,13 @@ test.describe('Audit Logs', () => {
   });
 
   test('should filter audit logs by date range', async ({ page }) => {
-    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'networkidle' });
+    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'domcontentloaded' });
 
     // Wait for page to load
-    await page.waitForTimeout(2000);
+    // Wait for audit logs to load
+    await page.waitForSelector('[data-testid="audit-log-table"], [data-testid="empty-state"]', {
+      timeout: 5000,
+    });
 
     // Check if we have access to the page
     const hasAccess = await page
@@ -118,7 +128,8 @@ test.describe('Audit Logs', () => {
       await endDateInput.fill(today.toISOString().split('T')[0]);
 
       // Wait a bit for filter to apply
-      await page.waitForTimeout(500);
+      // Small delay for UI update
+      await page.waitForLoadState('domcontentloaded');
 
       // Check that the table is still visible
       await expect(page.locator('[data-testid="audit-logs-table"]')).toBeVisible();
@@ -126,10 +137,13 @@ test.describe('Audit Logs', () => {
   });
 
   test('should export audit logs as CSV', async ({ page }) => {
-    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'networkidle' });
+    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'domcontentloaded' });
 
     // Wait for page to load completely
-    await page.waitForTimeout(3000);
+    // Wait for audit logs to load
+    await page.waitForSelector('[data-testid="audit-log-table"], [data-testid="empty-state"]', {
+      timeout: 5000,
+    });
 
     // Wait for the table to be visible
     await expect(page.locator('[data-testid="audit-logs-table"]')).toBeVisible({ timeout: 10000 });
@@ -156,7 +170,8 @@ test.describe('Audit Logs', () => {
     await exportButton.click();
 
     // Wait for any response
-    await page.waitForTimeout(1000);
+    // Wait for navigation
+    await page.waitForLoadState('domcontentloaded');
 
     // Test passes if we get to this point without errors
     expect(true).toBeTruthy();
@@ -164,7 +179,7 @@ test.describe('Audit Logs', () => {
 
   test('should paginate through audit logs', async ({ page }) => {
     // Auth is already set up in beforeEach as admin
-    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'networkidle' });
+    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'domcontentloaded' });
 
     // Check if pagination controls exist
     const paginationSection = page.locator('text=/ページ.*\\//');
@@ -191,10 +206,13 @@ test.describe('Audit Logs', () => {
   });
 
   test('should show empty state when no logs exist', async ({ page }) => {
-    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'networkidle' });
+    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'domcontentloaded' });
 
     // Wait for page to load
-    await page.waitForTimeout(2000);
+    // Wait for audit logs to load
+    await page.waitForSelector('[data-testid="audit-log-table"], [data-testid="empty-state"]', {
+      timeout: 5000,
+    });
 
     // Check if we have access to the page
     const hasAccess = await page
@@ -211,7 +229,8 @@ test.describe('Audit Logs', () => {
       await startDateInput.fill(futureDate.toISOString().split('T')[0]);
 
       // Wait for filter to apply
-      await page.waitForTimeout(1000);
+      // Wait for navigation
+      await page.waitForLoadState('domcontentloaded');
 
       // Check for empty state message
       const emptyMessage = page.getByText('監査ログがありません');
@@ -224,10 +243,13 @@ test.describe('Audit Logs', () => {
   });
 
   test('should create audit log when performing actions', async ({ page }) => {
-    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'networkidle' });
+    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'domcontentloaded' });
 
     // Wait for page to load
-    await page.waitForTimeout(2000);
+    // Wait for audit logs to load
+    await page.waitForSelector('[data-testid="audit-log-table"], [data-testid="empty-state"]', {
+      timeout: 5000,
+    });
 
     // Check if we have access to the page
     const hasAccess = await page
@@ -257,10 +279,13 @@ test.describe('Audit Logs', () => {
     await SupabaseClientMock.injectMock(page);
 
     // Try to access audit logs directly
-    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'networkidle' });
+    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'domcontentloaded' });
 
     // Wait for page to load and run effects
-    await page.waitForTimeout(3000);
+    // Wait for audit logs to load
+    await page.waitForSelector('[data-testid="audit-log-table"], [data-testid="empty-state"]', {
+      timeout: 5000,
+    });
 
     // Should show access denied message
     await expect(page.locator('text=アクセス権限がありません')).toBeVisible({ timeout: 10000 });
@@ -268,10 +293,13 @@ test.describe('Audit Logs', () => {
   });
 
   test('should display user information in audit logs', async ({ page }) => {
-    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'networkidle' });
+    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'domcontentloaded' });
 
     // Wait for page to load completely
-    await page.waitForTimeout(3000);
+    // Wait for audit logs to load
+    await page.waitForSelector('[data-testid="audit-log-table"], [data-testid="empty-state"]', {
+      timeout: 5000,
+    });
 
     // Wait for the table to be visible
     await expect(page.locator('[data-testid="audit-logs-table"]')).toBeVisible({ timeout: 10000 });
@@ -286,7 +314,7 @@ test.describe('Audit Logs', () => {
   });
 
   test('should refresh audit logs', async ({ page }) => {
-    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'networkidle' });
+    await page.goto('/dashboard/settings/audit-logs', { waitUntil: 'domcontentloaded' });
 
     // Click refresh button
     const refreshButton = page

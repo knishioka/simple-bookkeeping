@@ -6,7 +6,7 @@ import { SupabaseAuth } from './helpers/supabase-auth';
 test.describe('Responsive Navigation', () => {
   // CI環境での実行を考慮してタイムアウトを増やす
   test.use({ navigationTimeout: 30000 });
-  test.setTimeout(30000);
+  test.setTimeout(20000);
 
   test.beforeEach(async ({ page, context }) => {
     // Server Actions用のモックをセットアップ
