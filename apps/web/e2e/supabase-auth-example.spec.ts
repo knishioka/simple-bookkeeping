@@ -66,7 +66,7 @@ describeMethod('Supabase認証を使用したE2Eテスト @integration', () => {
     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
 
     // ダッシュボードが正常に表示されることを確認
-    await waitForPageReady(page);
+    await waitForPageReady(page, { skipNetworkIdle: true });
     await expect(page.locator('h1')).toContainText('ダッシュボード');
 
     // Supabaseセッションが存在することを確認（モックまたは実際の認証）
@@ -90,7 +90,7 @@ describeMethod('Supabase認証を使用したE2Eテスト @integration', () => {
 
     // ダッシュボードに移動
     await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
-    await waitForPageReady(page);
+    await waitForPageReady(page, { skipNetworkIdle: true });
 
     // テスト用の組織を作成
     const dataManager = getTestDataManager();
@@ -111,7 +111,7 @@ describeMethod('Supabase認証を使用したE2Eテスト @integration', () => {
 
     // 勘定科目ページに移動して確認
     await page.goto('/accounts', { waitUntil: 'domcontentloaded' });
-    await waitForPageReady(page);
+    await waitForPageReady(page, { skipNetworkIdle: true });
 
     // 作成した勘定科目が表示されることを確認
     await expect(page.locator(`text=${testAccount.name}`)).toBeVisible();
@@ -124,7 +124,7 @@ describeMethod('Supabase認証を使用したE2Eテスト @integration', () => {
     // 新しいページを開いてもセッションが維持されることを確認
     const newPage = await context.newPage();
     await newPage.goto('/dashboard', { waitUntil: 'domcontentloaded' });
-    await waitForPageReady(newPage);
+    await waitForPageReady(newPage, { skipNetworkIdle: true });
 
     // 新しいページでも認証状態が維持されていることを確認
     await expect(newPage.locator('h1')).toContainText('ダッシュボード');
@@ -154,7 +154,7 @@ describeMethod('Supabase認証を使用したE2Eテスト @integration', () => {
 
     // 管理者ページにアクセスできることを確認
     await page.goto('/admin', { waitUntil: 'domcontentloaded' });
-    await waitForPageReady(page);
+    await waitForPageReady(page, { skipNetworkIdle: true });
     await expect(page.locator('h1')).toContainText('管理画面');
 
     // ログアウト
@@ -195,7 +195,7 @@ describeMethod('Supabase認証を使用したE2Eテスト @integration', () => {
 
     // データ取得ページにアクセス
     await page.goto('/journal-entries', { waitUntil: 'domcontentloaded' });
-    await waitForPageReady(page);
+    await waitForPageReady(page, { skipNetworkIdle: true });
 
     // データが正常に表示されることを確認（RLSにより自分のデータのみ）
     const entries = await page.locator('[data-testid="journal-entry"]').count();
