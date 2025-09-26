@@ -40,6 +40,10 @@ test-results/
 playwright-report/
 playwright/.cache/
 
+# E2E Authentication Storage States (Issue #338)
+e2e/.auth/
+apps/web/e2e/.auth/
+
 # IDE
 .vscode/
 .idea/

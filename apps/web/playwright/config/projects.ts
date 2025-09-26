@@ -11,7 +11,6 @@ import {
   VIEWPORTS,
   LOCALE_SETTINGS,
   TEST_PATTERNS,
-  OUTPUT_DIRS,
   TEST_MODES,
 } from '../constants';
 
@@ -134,7 +133,7 @@ const createApiAuthComprehensiveProject = (): Project => ({
   name: PROJECT_NAMES.API_AUTH_COMPREHENSIVE,
   use: {
     ...devices['Desktop Chrome'],
-    storageState: OUTPUT_DIRS.AUTH_STATE,
+    storageState: undefined,
   },
   testMatch: TEST_PATTERNS.AUTH_TESTS,
 });
@@ -196,7 +195,7 @@ const createAdditionalProjects = (): Project[] => {
     name: PROJECT_NAMES.API_AUTH,
     use: {
       ...devices['Desktop Chrome'],
-      storageState: OUTPUT_DIRS.AUTH_STATE,
+      storageState: undefined,
     },
     testMatch: TEST_PATTERNS.AUTH_SPEC,
     dependencies: [],

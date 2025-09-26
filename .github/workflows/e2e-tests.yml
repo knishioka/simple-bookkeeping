@@ -30,10 +30,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10 # Increased slightly to accommodate Supabase startup
 
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1/3, 2/3, 3/3] # Split tests into 3 shards for parallel execution
+    # Temporarily disable sharding to bypass shard 1 failure issue
+    # strategy:
+    #   fail-fast: false
+    #   matrix:
+    #     shard: [1/2, 2/2]
 
     steps:
       - uses: actions/checkout@v4
@@ -358,32 +359,30 @@ jobs:
           TEST_DEBUG_MODE: false
           TEST_SKIP_AUTH: false
         run: |
-          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting fast E2E test suite (shard ${{ matrix.shard }})"
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting fast E2E test suite"
           START_TIME=$(date +%s)
 
-          # Run fast test suite with sharding and unified config
+          # Run fast test suite without sharding (temporary fix)
           # Playwright will automatically start the web server based on webServer config
           cd apps/web
-          timeout 480 npx playwright test --shard=${{ matrix.shard }} --grep-invert="@slow|@integration" || TEST_EXIT="$?"
+          timeout 480 npx playwright test --grep-invert="@slow|@integration" || TEST_EXIT="$?"
 
           END_TIME=$(date +%s)
           DURATION=$((END_TIME - START_TIME))
-          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Fast E2E tests (shard ${{ matrix.shard }}) completed in ${DURATION}s" \
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Fast E2E tests completed in ${DURATION}s" \
             "with exit code ${TEST_EXIT:-0}"
-          echo "::notice title=E2E Performance (Shard ${{ matrix.shard }})::Tests completed in ${DURATION} seconds"
+          echo "::notice title=E2E Performance::Tests completed in ${DURATION} seconds"
 
-          # Save performance data with shard info
-          # Replace "/" in shard name to avoid file path issues
-          SHARD_NAME=$(echo "${{ matrix.shard }}" | sed 's/\//-/g')
-          echo "{\"duration\": ${DURATION}, \"shard\": \"${{ matrix.shard }}\", " \
-            "\"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > "performance-report-${SHARD_NAME}.json"
+          # Save performance data
+          echo "{\"duration\": ${DURATION}, " \
+            "\"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > "performance-report.json"
           exit "${TEST_EXIT:-0}"
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-shard-${{ strategy.job-index }}
+          name: playwright-report
           path: apps/web/playwright-report/
           retention-days: 7
 
@@ -391,7 +390,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-videos-shard-${{ strategy.job-index }}
+          name: playwright-videos
           path: apps/web/test-results/
           retention-days: 3
 
@@ -399,8 +398,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: performance-report-shard-${{ strategy.job-index }}
-          path: apps/web/performance-report-*.json
+          name: performance-report
+          path: apps/web/performance-report.json
           retention-days: 7
 
       - name: Show Supabase service logs on failure
