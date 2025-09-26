@@ -74,11 +74,31 @@ export const validateTestEnvironment = (): string[] => {
 
 /**
  * Get authentication state storage path
- * Returns absolute path for CI compatibility
+ * Returns absolute path for CI compatibility with sharding support
+ *
+ * Issue #466: Fix shard 1/3 failures by using consistent path resolution
+ * When running in sharded mode, we need to ensure all shards can find the auth state
  */
 export const getAuthStatePath = (role: string = 'admin'): string => {
-  const relativePath = process.env.AUTH_STATE_PATH || `apps/web/e2e/.auth/${role}.json`;
-  // Resolve relative to current working directory for CI compatibility
+  // In CI with sharding, we need to use a consistent base path
+  // Don't rely on process.cwd() which can vary between shards
+
+  if (process.env.CI === 'true') {
+    // In CI, use GitHub workspace root as the base
+    // This ensures consistency across all shards
+    const workspaceRoot =
+      process.env.GITHUB_WORKSPACE || '/home/runner/work/simple-bookkeeping/simple-bookkeeping';
+    return path.join(workspaceRoot, 'apps/web/e2e/.auth', `${role}.json`);
+  }
+
+  // For local development, check if AUTH_STATE_PATH is provided
+  if (process.env.AUTH_STATE_PATH) {
+    return path.resolve(process.env.AUTH_STATE_PATH);
+  }
+
+  // Default: resolve relative to current working directory
+  // This works for local development where cwd is consistent
+  const relativePath = `apps/web/e2e/.auth/${role}.json`;
   return path.resolve(process.cwd(), relativePath);
 };
 
