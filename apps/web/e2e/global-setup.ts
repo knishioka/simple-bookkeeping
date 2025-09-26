@@ -2,6 +2,7 @@
  * Playwright グローバルセットアップ
  * Issue #203対応: E2Eテスト環境の環境変数管理を統一
  * Issue #338対応: Storage State機能によるE2E高速化
+ * Issue #466対応: Shard 1/3の失敗を修正
  */
 
 import fs from 'fs';
@@ -13,6 +14,8 @@ import {
   validateTestEnvironment,
   getTestAdminCredentials,
   getAuthStatePath,
+  shouldPrepareAuthState,
+  isAuthStateValid,
   URLS,
   HEALTH_CHECK,
   ENV_KEYS,
@@ -23,7 +26,10 @@ import {
  * 全テスト実行前に一度だけ実行される
  */
 async function globalSetup(config: FullConfig) {
-  console.warn('🚀 Starting E2E test global setup...');
+  const shardInfo = getShardInfo();
+  console.warn(
+    `🚀 Starting E2E test global setup... [Shard ${shardInfo.current}/${shardInfo.total}]`
+  );
 
   const startTime = Date.now();
 
@@ -35,23 +41,40 @@ async function globalSetup(config: FullConfig) {
     await ensureAuthDirectory();
 
     // Storage State機能を使用した認証状態の準備
-    // Issue #338: 常に有効化してE2Eテストを高速化
-    await prepareAuthState(config);
+    // Issue #466: Shard間の競合を防ぐため、適切な順序で実行
+    await prepareAuthStateWithShardCoordination(config);
 
-    // データベースのセットアップ（CI環境のみ）
-    if (process.env[ENV_KEYS.CI]) {
+    // データベースのセットアップ（CI環境のみ、最初のシャードのみ）
+    if (process.env[ENV_KEYS.CI] && shardInfo.isFirst) {
       await setupTestDatabase();
     }
 
-    // ヘルスチェック
+    // ヘルスチェック（すべてのシャードで実行）
     await performHealthCheck();
 
     const duration = Date.now() - startTime;
-    console.warn(`✅ Global setup completed in ${duration}ms`);
+    console.warn(`✅ Global setup completed in ${duration}ms [Shard ${shardInfo.current}]`);
   } catch (error) {
-    console.error('❌ Global setup failed:', error);
+    console.error(`❌ Global setup failed [Shard ${shardInfo.current}]:`, error);
     throw error;
   }
+}
+
+/**
+ * シャード情報を取得
+ */
+function getShardInfo() {
+  const currentShard = process.env.TEST_PARALLEL_INDEX || '0';
+  const totalShards = process.env.TEST_PARALLEL_TOTAL || '1';
+  const isFirst = currentShard === '0';
+  const isSharded = totalShards !== '1';
+
+  return {
+    current: currentShard,
+    total: totalShards,
+    isFirst,
+    isSharded,
+  };
 }
 
 /**
@@ -75,24 +98,84 @@ function validateEnvironment() {
 /**
  * 認証ディレクトリの作成
  * Storage Stateファイルを保存するディレクトリを準備
- * すべてのロール用のディレクトリを作成
+ * Issue #466: シャード間で共有されるディレクトリ構造を作成
  */
 async function ensureAuthDirectory() {
   // adminロールのパスからディレクトリを取得
-  const authDir = path.dirname(getAuthStatePath('admin'));
+  const authPath = getAuthStatePath('admin');
+  const authDir = path.dirname(authPath);
+
   if (!fs.existsSync(authDir)) {
     console.warn(`📁 Creating auth directory: ${authDir}`);
     fs.mkdirSync(authDir, { recursive: true });
   }
+
+  // CI環境でシャード共有ディレクトリも作成
+  if (process.env.CI === 'true') {
+    const sharedDir = path.join(path.dirname(authDir), '.auth', 'shared');
+    if (!fs.existsSync(sharedDir)) {
+      console.warn(`📁 Creating shared auth directory: ${sharedDir}`);
+      fs.mkdirSync(sharedDir, { recursive: true });
+    }
+  }
+}
+
+/**
+ * 認証状態の準備（シャード対応版）
+ * Issue #466: シャード間の競合を防ぐための調整メカニズム
+ */
+async function prepareAuthStateWithShardCoordination(config: FullConfig) {
+  const shardInfo = getShardInfo();
+
+  // 認証状態の準備が必要かチェック
+  if (!shouldPrepareAuthState()) {
+    // 既存の認証状態を待機
+    await waitForAuthState(shardInfo);
+    return;
+  }
+
+  // 認証状態を準備
+  await prepareAuthState(config, shardInfo);
+}
+
+/**
+ * 既存の認証状態を待機
+ * Issue #466: 他のシャードが認証状態を作成するのを待つ
+ */
+async function waitForAuthState(shardInfo: ReturnType<typeof getShardInfo>) {
+  console.warn(
+    `⏳ [Shard ${shardInfo.current}] Waiting for auth state to be prepared by another shard...`
+  );
+
+  const maxWaitTime = 30000; // 30秒
+  const checkInterval = 500; // 500ms
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < maxWaitTime) {
+    if (isAuthStateValid('admin')) {
+      console.warn(`✅ [Shard ${shardInfo.current}] Auth state found and valid`);
+      return;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, checkInterval));
+  }
+
+  // タイムアウトした場合は、このシャードで認証状態を作成
+  console.warn(
+    `⚠️ [Shard ${shardInfo.current}] Timeout waiting for auth state, creating it now...`
+  );
+  const config = { projects: [{ use: { baseURL: 'http://localhost:3000' } }] } as FullConfig;
+  await prepareAuthState(config, shardInfo);
 }
 
 /**
  * 認証状態の準備
  * 各ロール（admin、accountant、viewer）の認証状態を事前に作成
  * Issue #338: Storage State機能で認証処理を高速化
+ * Issue #466: シャード対応の改善
  */
-async function prepareAuthState(config: FullConfig) {
-  console.warn('🔐 Preparing authentication states for all roles...');
+async function prepareAuthState(config: FullConfig, shardInfo: ReturnType<typeof getShardInfo>) {
+  console.warn(`🔐 [Shard ${shardInfo.current}] Preparing authentication states for all roles...`);
 
   const baseURL = config.projects[0]?.use?.baseURL || 'http://localhost:3000';
 
@@ -105,12 +188,22 @@ async function prepareAuthState(config: FullConfig) {
   ];
 
   for (const role of roles) {
+    // 既に有効な認証状態がある場合はスキップ
+    if (isAuthStateValid(role.name)) {
+      console.warn(
+        `  ✅ [Shard ${shardInfo.current}] ${role.name} auth state already exists and is valid`
+      );
+      continue;
+    }
+
     const browser = await chromium.launch();
     const context = await browser.newContext();
     const page = await context.newPage();
 
     try {
-      console.warn(`  📝 Preparing ${role.name} authentication state...`);
+      console.warn(
+        `  📝 [Shard ${shardInfo.current}] Preparing ${role.name} authentication state...`
+      );
 
       // ログインページにアクセス
       await page.goto(`${baseURL}${URLS.LOGIN_PATH}`);
@@ -126,7 +219,9 @@ async function prepareAuthState(config: FullConfig) {
         await page.waitForURL('**/dashboard/**', { timeout: 10000 });
         isAuthenticated = true;
       } catch {
-        console.warn(`  ⚠️ Real login failed, using mock authentication fallback`);
+        console.warn(
+          `  ⚠️ [Shard ${shardInfo.current}] Real login failed, using mock authentication fallback`
+        );
 
         // モック認証にフォールバック
         // localStorageとsessionStorageにモック認証データを設定
@@ -158,17 +253,53 @@ async function prepareAuthState(config: FullConfig) {
       if (isAuthenticated) {
         // 認証状態を保存（getAuthStatePathを使用して一貫性を保つ）
         const authPath = getAuthStatePath(role.name);
-        await context.storageState({ path: authPath });
-        console.warn(`  ✅ ${role.name} authentication state saved to ${authPath}`);
+
+        // ディレクトリが存在することを確認
+        const authDir = path.dirname(authPath);
+        if (!fs.existsSync(authDir)) {
+          fs.mkdirSync(authDir, { recursive: true });
+        }
+
+        // ファイルロックメカニズム（簡易版）
+        const lockPath = `${authPath}.lock`;
+        const maxRetries = 10;
+        let retries = 0;
+
+        while (fs.existsSync(lockPath) && retries < maxRetries) {
+          console.warn(
+            `  ⏳ [Shard ${shardInfo.current}] Waiting for lock release on ${role.name} auth state...`
+          );
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          retries++;
+        }
+
+        // ロックファイルを作成
+        fs.writeFileSync(lockPath, shardInfo.current);
+
+        try {
+          // 認証状態を保存
+          await context.storageState({ path: authPath });
+          console.warn(
+            `  ✅ [Shard ${shardInfo.current}] ${role.name} authentication state saved to ${authPath}`
+          );
+        } finally {
+          // ロックファイルを削除
+          if (fs.existsSync(lockPath)) {
+            fs.unlinkSync(lockPath);
+          }
+        }
       }
     } catch (error) {
-      console.warn(`  ❌ Failed to prepare ${role.name} auth state:`, error);
+      console.warn(
+        `  ❌ [Shard ${shardInfo.current}] Failed to prepare ${role.name} auth state:`,
+        error
+      );
     } finally {
       await browser.close();
     }
   }
 
-  console.warn('✅ All authentication states prepared');
+  console.warn(`✅ [Shard ${shardInfo.current}] All authentication states prepared`);
 }
 
 /**
@@ -197,7 +328,8 @@ async function setupTestDatabase() {
  * アプリケーションが起動していることを確認
  */
 async function performHealthCheck() {
-  console.warn('🏥 Performing health check...');
+  const shardInfo = getShardInfo();
+  console.warn(`🏥 [Shard ${shardInfo.current}] Performing health check...`);
 
   // Import unified test environment configuration
   const { getTestEnvironment } = await import('@simple-bookkeeping/config');
@@ -210,7 +342,7 @@ async function performHealthCheck() {
   // Only check the Next.js web server since Express.js API has been removed
   const urls = [{ url: webUrl, name: 'Web' }];
 
-  console.warn('ℹ️ Checking Next.js web server health (Express.js API has been removed)');
+  console.warn(`ℹ️ [Shard ${shardInfo.current}] Checking Next.js web server health`);
 
   // Add retry logic for CI environment
   const maxRetries = process.env[ENV_KEYS.CI]
@@ -229,24 +361,28 @@ async function performHealthCheck() {
         const response = await fetch(url, { method: 'HEAD' });
 
         if (response.ok) {
-          console.warn(`✅ ${name} service at ${url} is healthy`);
+          console.warn(`✅ [Shard ${shardInfo.current}] ${name} service at ${url} is healthy`);
           isHealthy = true;
         } else if (response.status === 404 && name === 'Web') {
           // For web service, 404 might be acceptable during startup
-          console.warn(`✅ ${name} service at ${url} is responding (404)`);
+          console.warn(
+            `✅ [Shard ${shardInfo.current}] ${name} service at ${url} is responding (404)`
+          );
           isHealthy = true;
         } else {
-          console.warn(`⚠️ ${name} service at ${url} returned status ${response.status}`);
+          console.warn(
+            `⚠️ [Shard ${shardInfo.current}] ${name} service at ${url} returned status ${response.status}`
+          );
         }
       } catch (error) {
         if (attempts < maxRetries) {
           console.warn(
-            `⚠️ Could not reach ${name} service at ${url}, retrying in ${retryDelay}ms... (${attempts}/${maxRetries})`
+            `⚠️ [Shard ${shardInfo.current}] Could not reach ${name} service at ${url}, retrying in ${retryDelay}ms... (${attempts}/${maxRetries})`
           );
           await new Promise((resolve) => setTimeout(resolve, retryDelay));
         } else {
           console.warn(
-            `⚠️ Could not reach ${name} service at ${url} after ${maxRetries} attempts:`,
+            `⚠️ [Shard ${shardInfo.current}] Could not reach ${name} service at ${url} after ${maxRetries} attempts:`,
             error
           );
         }
