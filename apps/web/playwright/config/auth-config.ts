@@ -4,6 +4,8 @@
  * Following Issue #416 Priority 2.3 - Enhanced security practices
  */
 
+import * as path from 'path';
+
 import { TEST_CREDENTIALS, ENV_KEYS } from '../constants';
 
 /**
@@ -72,9 +74,12 @@ export const validateTestEnvironment = (): string[] => {
 
 /**
  * Get authentication state storage path
+ * Returns absolute path for CI compatibility
  */
-export const getAuthStatePath = (): string => {
-  return process.env.AUTH_STATE_PATH || 'e2e/.auth/admin.json';
+export const getAuthStatePath = (role: string = 'admin'): string => {
+  const relativePath = process.env.AUTH_STATE_PATH || `apps/web/e2e/.auth/${role}.json`;
+  // Resolve relative to current working directory for CI compatibility
+  return path.resolve(process.cwd(), relativePath);
 };
 
 /**

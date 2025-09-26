@@ -154,8 +154,8 @@ async function prepareAuthState(config: FullConfig) {
       }
 
       if (isAuthenticated) {
-        // 認証状態を保存
-        const authPath = `e2e/.auth/${role.name}.json`;
+        // 認証状態を保存（絶対パスを使用）
+        const authPath = path.resolve(process.cwd(), `apps/web/e2e/.auth/${role.name}.json`);
         await context.storageState({ path: authPath });
         console.warn(`  ✅ ${role.name} authentication state saved to ${authPath}`);
       }
