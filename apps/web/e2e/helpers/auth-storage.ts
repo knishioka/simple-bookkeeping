@@ -12,9 +12,17 @@ import { test as base } from '@playwright/test';
 /**
  * Storage Stateファイルのパスを取得
  * CI環境でも正しく動作するよう絶対パスを使用
+ * auth-config.tsの実装と一致させる
  */
 const getAuthStatePath = (role: string = 'admin') => {
-  // プロジェクトルートからの相対パスを絶対パスに変換
+  // CI環境ではGitHub workspace rootを使用
+  if (process.env.CI === 'true') {
+    const workspaceRoot =
+      process.env.GITHUB_WORKSPACE || '/home/runner/work/simple-bookkeeping/simple-bookkeeping';
+    return path.join(workspaceRoot, 'apps/web/e2e/.auth', `${role}.json`);
+  }
+
+  // ローカル環境ではcwdを使用
   return path.resolve(process.cwd(), `apps/web/e2e/.auth/${role}.json`);
 };
 

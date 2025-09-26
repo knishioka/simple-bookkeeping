@@ -75,9 +75,11 @@ function validateEnvironment() {
 /**
  * 認証ディレクトリの作成
  * Storage Stateファイルを保存するディレクトリを準備
+ * すべてのロール用のディレクトリを作成
  */
 async function ensureAuthDirectory() {
-  const authDir = path.dirname(getAuthStatePath());
+  // adminロールのパスからディレクトリを取得
+  const authDir = path.dirname(getAuthStatePath('admin'));
   if (!fs.existsSync(authDir)) {
     console.warn(`📁 Creating auth directory: ${authDir}`);
     fs.mkdirSync(authDir, { recursive: true });
@@ -154,8 +156,8 @@ async function prepareAuthState(config: FullConfig) {
       }
 
       if (isAuthenticated) {
-        // 認証状態を保存（絶対パスを使用）
-        const authPath = path.resolve(process.cwd(), `apps/web/e2e/.auth/${role.name}.json`);
+        // 認証状態を保存（getAuthStatePathを使用して一貫性を保つ）
+        const authPath = getAuthStatePath(role.name);
         await context.storageState({ path: authPath });
         console.warn(`  ✅ ${role.name} authentication state saved to ${authPath}`);
       }
