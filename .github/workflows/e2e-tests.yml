@@ -33,7 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1/3, 2/3, 3/3] # Split tests into 3 shards for parallel execution
+        shard: [1/2, 2/2] # Reduced to 2 shards for better stability and simpler coordination
 
     steps:
       - uses: actions/checkout@v4
