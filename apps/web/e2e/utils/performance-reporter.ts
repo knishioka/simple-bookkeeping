@@ -114,6 +114,7 @@ export default class PerformanceReporter implements Reporter {
 ${this.generatePerformanceInsights()}
 `;
 
+          // eslint-disable-next-line security/detect-non-literal-fs-filename -- GitHub Actions path is controlled
           fs.appendFileSync(summaryFile, summary);
         }
       } catch (error) {
