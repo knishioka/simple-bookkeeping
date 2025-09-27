@@ -174,7 +174,7 @@ export default [
       'react-hooks/exhaustive-deps': 'warn',
 
       // Security rules
-      'security/detect-object-injection': 'warn',
+      'security/detect-object-injection': 'off', // Too many false positives in TypeScript code
       'security/detect-non-literal-fs-filename': 'error',
       'security/detect-non-literal-regexp': 'warn',
       'security/detect-unsafe-regex': 'error',
