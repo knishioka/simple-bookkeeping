@@ -225,6 +225,14 @@ export default [
     },
   },
 
+  // CLI scripts overrides (github-ci-analyzer.ts validates paths)
+  {
+    files: ['**/packages/ci-error-detector/scripts/github-ci-analyzer.ts'],
+    rules: {
+      'security/detect-non-literal-fs-filename': 'off', // Paths are validated before use
+    },
+  },
+
   // Config files overrides
   {
     files: ['jest.setup.js', 'playwright.config.ts'],

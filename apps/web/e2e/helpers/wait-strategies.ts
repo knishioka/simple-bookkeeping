@@ -275,8 +275,8 @@ export async function waitForTextChange(
       if (typeof text === 'string') {
         return actualText.includes(text);
       } else {
-        // 正規表現の場合は文字列として評価
-        return new RegExp(text.source, text.flags).test(actualText);
+        // 正規表現の場合はそのままtestメソッドを使用
+        return text.test(actualText);
       }
     },
     { sel: selector, text: expectedText },
