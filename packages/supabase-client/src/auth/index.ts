@@ -221,6 +221,7 @@ export const authUtils = {
     };
 
     const userRoleLevel = roleHierarchy[user.currentRole as keyof typeof roleHierarchy] || 0;
+    // eslint-disable-next-line security/detect-object-injection -- requiredRole is from a controlled enum
     const requiredRoleLevel = roleHierarchy[requiredRole] || 0;
 
     return userRoleLevel >= requiredRoleLevel;

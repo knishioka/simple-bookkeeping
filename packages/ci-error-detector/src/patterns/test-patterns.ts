@@ -12,7 +12,8 @@ export const testPatterns: ErrorPattern[] = [
     patterns: [
       /FAIL\s+(.+\.(?:test|spec)\.[jt]sx?)/,
       /✕\s+(.+)\s+\(\d+\s*ms\)/,
-      /expect\((.+?)\)\.(.+?)(?:\((.+?)\))?\s+(.+)/,
+      // eslint-disable-next-line security/detect-unsafe-regex -- bounded pattern for Jest expect format
+      /expect\(([^)]+)\)\.([^(]+)(?:\(([^)]+)\))?\s+(.+)/,
       /Expected:\s+(.+)\s+Received:\s+(.+)/,
       /Tests:\s+\d+\s+failed/,
     ],

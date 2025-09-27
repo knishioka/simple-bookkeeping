@@ -69,7 +69,7 @@ export const environmentPatterns: ErrorPattern[] = [
     category: ErrorCategory.DATABASE,
     severity: ErrorSeverity.CRITICAL,
     patterns: [
-      /(?:Connection|connection)\s+(?:to database\s+)?refused/,
+      /(?:Connection|connection)\s+(?:to database\s)?refused/,
       /ECONNREFUSED.*:(?:5432|3306|27017)/,
       /Cannot connect to (?:database|DB)/,
       /Database connection failed/,

@@ -252,6 +252,7 @@ export class InMemoryCacheManager implements CacheManager {
 
   async deletePattern(pattern: string): Promise<void> {
     const fullPattern = this.getKey(pattern);
+    // eslint-disable-next-line security/detect-non-literal-regexp -- pattern is from internal cache operations
     const regex = new RegExp(`^${fullPattern.replace(/\*/g, '.*')}$`);
     let deleted = 0;
 
