@@ -95,7 +95,8 @@ export const csvJournalEntrySchema = z.object({
   貸方勘定: z.string().min(1, 'Credit account is required'),
   金額: z
     .string()
-    .regex(/^\d+(\.\d{1,2})?$/, 'Invalid amount format')
+    // eslint-disable-next-line security/detect-unsafe-regex -- simple decimal pattern with bounded precision
+    .regex(/^\d+(?:\.\d{1,2})?$/, 'Invalid amount format')
     .transform(Number)
     .pipe(z.number().positive()),
   摘要: z.string().max(500).optional().default(''),

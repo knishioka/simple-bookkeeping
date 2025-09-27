@@ -91,7 +91,8 @@ export const syntaxPatterns: ErrorPattern[] = [
     category: ErrorCategory.LINT,
     severity: ErrorSeverity.MEDIUM,
     patterns: [
-      /\s+(\d+):(\d+)\s+error\s+(.+?)\s+(@?\w+(?:\/[\w-]+)*)/,
+      // eslint-disable-next-line security/detect-unsafe-regex -- bounded pattern for ESLint error format
+      /\s+(\d+):(\d+)\s+error\s+([^\s]+)\s+(@?\w+(?:\/[\w-]+)?)/,
       /ESLint:\s+(.+)/,
       /Parsing error:\s+(.+)/,
     ],

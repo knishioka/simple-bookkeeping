@@ -53,6 +53,7 @@ async function cleanupTempFiles() {
   for (const dir of tempDirs) {
     try {
       const dirPath = path.join(process.cwd(), dir);
+      // eslint-disable-next-line security/detect-non-literal-fs-filename -- test cleanup paths are controlled
       const stats = await fs.stat(dirPath).catch(() => null);
 
       if (stats && stats.isDirectory()) {
