@@ -117,5 +117,6 @@ export const REGEX_PATTERNS = {
   EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   DATE_ISO: /^\d{4}-\d{2}-\d{2}$/,
   ACCOUNT_CODE: /^[0-9]{1,10}$/,
-  AMOUNT: /^\d+(\.\d{1,2})?$/,
+  // eslint-disable-next-line security/detect-unsafe-regex -- simple decimal pattern with bounded precision
+  AMOUNT: /^\d+(?:\.\d{1,2})?$/,
 } as const;

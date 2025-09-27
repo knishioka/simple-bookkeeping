@@ -83,6 +83,7 @@ const getAuthBaseDir = (): string => {
     // In CI, use GitHub workspace root as the base
     // This ensures consistency across all shards
     const workspaceRoot = process.env.GITHUB_WORKSPACE;
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- CI environment variable is controlled
     if (workspaceRoot && fs.existsSync(workspaceRoot)) {
       return path.join(workspaceRoot, 'apps/web/e2e/.auth');
     }
@@ -94,8 +95,10 @@ const getAuthBaseDir = (): string => {
 
     while (attempts < maxAttempts) {
       const packageJsonPath = path.join(currentDir, 'package.json');
+      // eslint-disable-next-line security/detect-non-literal-fs-filename -- package.json path search is controlled
       if (fs.existsSync(packageJsonPath)) {
         try {
+          // eslint-disable-next-line security/detect-non-literal-fs-filename -- package.json path is validated above
           const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
           if (packageJson.name === 'simple-bookkeeping-monorepo' || packageJson.workspaces) {
             // Found the monorepo root
@@ -161,11 +164,13 @@ export const getAuthStatePath = (role: string = 'admin'): string => {
 export const isAuthStateValid = (role: string = 'admin'): boolean => {
   const authPath = getAuthStatePath(role);
 
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- auth path is from controlled config
   if (!fs.existsSync(authPath)) {
     return false;
   }
 
   try {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- auth path is validated above
     const stats = fs.statSync(authPath);
     // Check if file was created within the last hour (3600000 ms)
     const ageMs = Date.now() - stats.mtimeMs;

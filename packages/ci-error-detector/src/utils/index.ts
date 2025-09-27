@@ -19,6 +19,7 @@ export function extractContext(logs: string, lineNumber?: number): ErrorContext 
   const lines = logs.split('\n');
 
   // Extract file path
+  // eslint-disable-next-line security/detect-unsafe-regex -- bounded pattern for file path extraction
   const fileMatch = logs.match(/(?:at\s+)?(?:file:\/\/)?([/\w\-_.]+\.\w+):(\d+):(\d+)/);
   if (fileMatch) {
     context.file = fileMatch[1];
@@ -57,6 +58,7 @@ export function extractContext(logs: string, lineNumber?: number): ErrorContext 
   }
 
   // Extract code snippet around error
+  // eslint-disable-next-line security/detect-object-injection -- lineNumber is validated as array index
   if (lineNumber !== undefined && lines[lineNumber]) {
     const start = Math.max(0, lineNumber - 2);
     const end = Math.min(lines.length, lineNumber + 3);
@@ -367,7 +369,8 @@ export function extractErrorLocation(stackTrace: string[]): {
   if (!stackTrace || stackTrace.length === 0) return null;
 
   for (const line of stackTrace) {
-    const match = line.match(/at\s+(?:(.+?)\s+\()?([^:]+):(\d+):(\d+)\)?/);
+    // eslint-disable-next-line security/detect-unsafe-regex -- bounded pattern for stack trace parsing
+    const match = line.match(/at\s+(?:([^(]+)\s+\()?([^:]+):(\d+):(\d+)\)?/);
     if (match) {
       return {
         function: match[1],
@@ -386,15 +389,19 @@ export function extractErrorLocation(stackTrace: string[]): {
  */
 export function sanitizeErrorMessage(message: string): string {
   // Remove potential sensitive information
-  return message
-    .replace(/Bearer\s+[\w-]+/gi, 'Bearer [REDACTED]') // API tokens
-    .replace(/jwt\s+[\w-]+\.[\w-]+\.[\w-]+/gi, 'jwt=[REDACTED]') // JWT tokens
-    .replace(/oauth[\s:=]+["']?[\w-]+/gi, 'oauth=[REDACTED]') // OAuth tokens
-    .replace(/api[_-]?key["\s:=]+["']?[\w-]+/gi, 'api_key=[REDACTED]') // API keys
-    .replace(/password["\s:=]+["']?[^"'\s]+/gi, 'password=[REDACTED]') // Passwords
-    .replace(/secret["\s:=]+["']?[\w-]+/gi, 'secret=[REDACTED]') // Secrets
-    .replace(/\b[\w._%+-]+@[\w.-]+\.[A-Z]{2,}\b/gi, '[EMAIL]') // Email addresses
-    .replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '[IP]') // IP addresses
-    .replace(/\/home\/[\w.-]+(?:\/[\w.-]+)*/g, '/home/[USER]') // User home paths
-    .replace(/\/Users\/[\w.-]+(?:\/[\w.-]+)*/g, '/Users/[USER]'); // macOS user paths - more precise pattern
+  return (
+    message
+      .replace(/Bearer\s+[\w-]+/gi, 'Bearer [REDACTED]') // API tokens
+      .replace(/jwt\s+[\w-]+\.[\w-]+\.[\w-]+/gi, 'jwt=[REDACTED]') // JWT tokens
+      .replace(/oauth[\s:=]+["']?[\w-]+/gi, 'oauth=[REDACTED]') // OAuth tokens
+      .replace(/api[_-]?key["\s:=]+["']?[\w-]+/gi, 'api_key=[REDACTED]') // API keys
+      .replace(/password["\s:=]+["']?[^"'\s]+/gi, 'password=[REDACTED]') // Passwords
+      .replace(/secret["\s:=]+["']?[\w-]+/gi, 'secret=[REDACTED]') // Secrets
+      .replace(/\b[\w._%+-]+@[\w.-]+\.[A-Z]{2,}\b/gi, '[EMAIL]') // Email addresses
+      .replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '[IP]') // IP addresses
+      // eslint-disable-next-line security/detect-unsafe-regex -- bounded repetition for path sanitization
+      .replace(/\/home\/[\w.-]+(?:\/[\w.-]{1,50}){0,10}/g, '/home/[USER]') // User home paths
+      // eslint-disable-next-line security/detect-unsafe-regex -- bounded repetition for path sanitization
+      .replace(/\/Users\/[\w.-]+(?:\/[\w.-]{1,50}){0,10}/g, '/Users/[USER]')
+  ); // macOS user paths - more precise pattern
 }

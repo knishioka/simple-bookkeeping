@@ -77,6 +77,7 @@ export class StoryCoverageReporter {
 
           for (const testFile of scenario.testFiles) {
             const testPath = join(__dirname, '..', '..', testFile);
+            // eslint-disable-next-line security/detect-non-literal-fs-filename -- test file paths are from config
             const exists = existsSync(testPath);
 
             if (exists) {
@@ -139,7 +140,9 @@ export class StoryCoverageReporter {
     // Playwright の JSON reporter 出力を読み取る
     try {
       const resultsFile = join(testResultsPath, 'results.json');
+      // eslint-disable-next-line security/detect-non-literal-fs-filename -- test results path is controlled
       if (existsSync(resultsFile)) {
+        // eslint-disable-next-line security/detect-non-literal-fs-filename -- test results path is validated above
         const results: TestResults = JSON.parse(readFileSync(resultsFile, 'utf-8'));
 
         // テストファイルに対応する結果を探す

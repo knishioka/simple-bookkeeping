@@ -31,7 +31,9 @@ export async function captureDebugScreenshot(
 
   // ディレクトリが存在しない場合は作成
   const dir = path.dirname(screenshotPath);
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- test directory paths are controlled
   if (!fs.existsSync(dir)) {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- test directory paths are controlled
     fs.mkdirSync(dir, { recursive: true });
   }
 
@@ -65,11 +67,14 @@ export async function capturePageHTML(
 
   // ディレクトリが存在しない場合は作成
   const dir = path.dirname(htmlPath);
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- test directory paths are controlled
   if (!fs.existsSync(dir)) {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- test directory paths are controlled
     fs.mkdirSync(dir, { recursive: true });
   }
 
   const html = await page.content();
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- test output paths are controlled
   fs.writeFileSync(htmlPath, html);
 
   console.log(`📄 HTML saved: ${htmlPath}`);
