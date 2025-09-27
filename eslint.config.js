@@ -217,6 +217,14 @@ export default [
     },
   },
 
+  // E2E utils overrides (file-lock.ts has validated path operations)
+  {
+    files: ['**/e2e/utils/file-lock.ts'],
+    rules: {
+      'security/detect-non-literal-fs-filename': 'off', // Paths are validated with isPathSafe
+    },
+  },
+
   // Config files overrides
   {
     files: ['jest.setup.js', 'playwright.config.ts'],
