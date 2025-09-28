@@ -7,6 +7,7 @@
 import { test, expect } from '@playwright/test';
 
 import { UnifiedMock } from './helpers/server-actions-unified-mock';
+import { SupabaseAuth } from './helpers/supabase-auth';
 import { SupabaseClientMock } from './helpers/supabase-client-mock';
 import { waitForSelectOpen } from './helpers/wait-strategies';
 
@@ -37,8 +38,11 @@ test.describe('Audit Logs (Optimized)', () => {
     await page.goto('about:blank');
     await SupabaseClientMock.injectMock(page);
 
-    // Storage Stateによりログイン処理をスキップ
-    // 直接ホームページにナビゲート
+    // Supabase認証をセットアップ（管理者ユーザー）
+    // Storage Stateが無効の場合でも認証が機能するように
+    await SupabaseAuth.setup(context, page, { role: 'admin', skipCookies: false });
+
+    // ホームページにナビゲートしてコンテキストを確立
     await page.goto('/', { waitUntil: 'domcontentloaded' });
   });
 
