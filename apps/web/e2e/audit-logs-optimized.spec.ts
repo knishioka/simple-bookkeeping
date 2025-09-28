@@ -15,8 +15,16 @@ import { waitForSelectOpen } from './helpers/wait-strategies';
  * 監査ログテスト（最適化版）
  * Issue #338対応: Storage State機能を使用した高速化
  * Issue #469対応: スキップ解除
+ *
+ * 注意: このテストはStorage State有効時のみ実行
+ * CI環境では通常のaudit-logs.spec.tsで同じ機能をテスト
  */
 test.describe('Audit Logs (Optimized)', () => {
+  // CI環境でStorage Stateが無効の場合はスキップ
+  test.skip(
+    process.env.DISABLE_STORAGE_STATE === 'true',
+    'Skipped in CI where Storage State is disabled - covered by audit-logs.spec.ts'
+  );
   // CI環境での実行を考慮してタイムアウトを増やす
   test.use({ navigationTimeout: 30000 });
   test.setTimeout(30000); // Storage State無効時の手動ログインを考慮して増加
