@@ -4,7 +4,8 @@
  * Issue #469対応: Storage State有効/無効両対応
  */
 
-import { test, expect } from './helpers/auth-storage';
+import { test, expect } from '@playwright/test';
+
 import { UnifiedMock } from './helpers/server-actions-unified-mock';
 import { SupabaseClientMock } from './helpers/supabase-client-mock';
 import { waitForSelectOpen } from './helpers/wait-strategies';
