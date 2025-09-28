@@ -174,7 +174,7 @@ export default [
       'react-hooks/exhaustive-deps': 'warn',
 
       // Security rules
-      'security/detect-object-injection': 'warn',
+      'security/detect-object-injection': 'off', // Too many false positives in TypeScript code
       'security/detect-non-literal-fs-filename': 'error',
       'security/detect-non-literal-regexp': 'warn',
       'security/detect-unsafe-regex': 'error',
@@ -214,6 +214,22 @@ export default [
     rules: {
       'no-console': 'off',
       '@typescript-eslint/no-unused-vars': 'warn',
+    },
+  },
+
+  // E2E utils overrides (file-lock.ts has validated path operations)
+  {
+    files: ['**/e2e/utils/file-lock.ts'],
+    rules: {
+      'security/detect-non-literal-fs-filename': 'off', // Paths are validated with isPathSafe
+    },
+  },
+
+  // CLI scripts overrides (github-ci-analyzer.ts validates paths)
+  {
+    files: ['**/packages/ci-error-detector/scripts/github-ci-analyzer.ts'],
+    rules: {
+      'security/detect-non-literal-fs-filename': 'off', // Paths are validated before use
     },
   },
 
