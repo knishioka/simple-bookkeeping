@@ -13,6 +13,7 @@
 
 import { execSync, execFileSync } from 'child_process';
 import * as fs from 'fs';
+import * as path from 'path';
 
 import { CIErrorClassifier } from '../src/core/classifier';
 
@@ -367,15 +368,23 @@ class GitHubCIAnalyzer {
   ): Array<{ file?: string; line?: number; column?: number; message: string }> {
     const annotations: Array<{ file?: string; line?: number; column?: number; message: string }> =
       [];
-    const annotationPattern = /^::error\s+(file=([^,]+),)?(line=(\d+),)?(col=(\d+),)?(.*)$/gm;
+    // Split pattern to avoid unsafe regex - using simpler, non-nested pattern
+    const annotationPattern = /^::error\s+(.*)$/gm;
 
     let match;
     while ((match = annotationPattern.exec(logs)) !== null) {
+      const content = match[1];
+      // Parse the content manually to avoid complex regex
+      const fileMatch = content.match(/file=([^,]+)/);
+      const lineMatch = content.match(/line=(\d+)/);
+      const colMatch = content.match(/col=(\d+)/);
+      const messageMatch = content.match(/(?:,|^)([^=][^,]*?)$/);
+
       annotations.push({
-        file: match[2] || undefined,
-        line: match[4] ? parseInt(match[4]) : undefined,
-        column: match[6] ? parseInt(match[6]) : undefined,
-        message: match[7] || '',
+        file: fileMatch ? fileMatch[1] : undefined,
+        line: lineMatch ? parseInt(lineMatch[1]) : undefined,
+        column: colMatch ? parseInt(colMatch[1]) : undefined,
+        message: messageMatch ? messageMatch[1].trim() : content,
       });
     }
 
@@ -652,8 +661,18 @@ Examples:
       const output = analyzer.formatReport(report, options.format || 'console');
 
       if (options.output) {
-        fs.writeFileSync(options.output, output);
-        console.log(`✅ Report saved to ${options.output}`);
+        // Validate and resolve path to avoid security issues
+        const outputPath = path.resolve(options.output);
+        const cwd = process.cwd();
+
+        // Ensure the output path is within the current working directory
+        if (!outputPath.startsWith(cwd)) {
+          console.error('Error: Output path must be within the current working directory');
+          process.exit(1);
+        }
+
+        fs.writeFileSync(outputPath, output);
+        console.log(`✅ Report saved to ${outputPath}`);
       } else {
         console.log(output);
       }

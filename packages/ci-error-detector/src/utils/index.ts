@@ -58,7 +58,6 @@ export function extractContext(logs: string, lineNumber?: number): ErrorContext 
   }
 
   // Extract code snippet around error
-  // eslint-disable-next-line security/detect-object-injection -- lineNumber is validated as array index
   if (lineNumber !== undefined && lines[lineNumber]) {
     const start = Math.max(0, lineNumber - 2);
     const end = Math.min(lines.length, lineNumber + 3);
