@@ -10,6 +10,12 @@ import { fastNavigate, pageHasText, checkElementsVisible } from './utils/test-op
  * Focus on actual functionality rather than just page existence
  */
 test.describe('Optimized Extended Coverage', () => {
+  // Skip in CI until environment setup is complete
+  test.skip(
+    process.env.CI === 'true',
+    'Temporarily skipped in CI - POM pattern demonstration for local development'
+  );
+
   test.use({ navigationTimeout: 15000 }); // Reduced from 30000
   test.setTimeout(10000); // Reduced from 20000
 
