@@ -417,7 +417,7 @@ describe('Accounts Server Actions', () => {
     });
 
     it('should handle network errors', async () => {
-      mockCreateClient.mockImplementation(() => Promise.reject(new Error('Network error')));
+      mockCreateClient.mockRejectedValue(new Error('Network error'));
 
       const result = await getAccounts('org-123');
 
