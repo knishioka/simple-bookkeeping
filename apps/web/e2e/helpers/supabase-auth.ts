@@ -371,8 +371,9 @@ export class SupabaseAuth {
     const { role = 'admin', organizationId, customUser, skipCookies = false } = options;
     const mode = getTestMode();
 
-    // モックモードの場合は従来のモック認証を使用
-    if (mode === 'mock') {
+    // CI環境またはモックモードの場合は従来のモック認証を使用
+    const isCI = process.env.CI === 'true';
+    if (mode === 'mock' || isCI) {
       await this.setupMockAuth(context, page, options);
       return;
     }

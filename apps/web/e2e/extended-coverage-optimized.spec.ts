@@ -157,7 +157,7 @@ test.describe('Optimized Extended Coverage', () => {
       }
     });
 
-    test('User authentication and session management', async ({ page, context }) => {
+    test('User authentication and session management', async ({ page }) => {
       // Test logout functionality
       const logoutButton = page.locator('button:has-text("ログアウト"), button:has-text("Logout")');
       if (await logoutButton.isVisible({ timeout: 2000 })) {
