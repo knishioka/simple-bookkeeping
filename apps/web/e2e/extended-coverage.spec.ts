@@ -114,7 +114,7 @@ test.describe('拡張テストカバレッジ', () => {
       expect(pageHasContent).toBeTruthy();
     });
 
-    test('現金出納帳ページが表示される', async ({ page }) => {
+    test('現金出納帳ページが表示される', async ({ page, context }) => {
       // まず適当なページを開いてから認証設定
       await page.goto('/', { waitUntil: 'domcontentloaded' });
       await SupabaseAuth.setup(context, page, { role: 'admin' });
@@ -139,7 +139,7 @@ test.describe('拡張テストカバレッジ', () => {
       expect(pageHasContent).toBeTruthy();
     });
 
-    test('預金出納帳ページが表示される', async ({ page }) => {
+    test('預金出納帳ページが表示される', async ({ page, context }) => {
       // まず適当なページを開いてから認証設定
       await page.goto('/', { waitUntil: 'domcontentloaded' });
       await SupabaseAuth.setup(context, page, { role: 'admin' });
@@ -164,7 +164,7 @@ test.describe('拡張テストカバレッジ', () => {
       expect(pageHasContent).toBeTruthy();
     });
 
-    test('貸借対照表ページが表示される', async ({ page }) => {
+    test('貸借対照表ページが表示される', async ({ page, context }) => {
       // まず適当なページを開いてから認証設定
       await page.goto('/', { waitUntil: 'domcontentloaded' });
       await SupabaseAuth.setup(context, page, { role: 'admin' });
@@ -245,7 +245,7 @@ test.describe('拡張テストカバレッジ', () => {
       expect(pageHasContent).toBeTruthy();
     });
 
-    test('試算表ページが表示される', async ({ page }) => {
+    test('試算表ページが表示される', async ({ page, context }) => {
       // まず適当なページを開いてから認証設定
       await page.goto('/', { waitUntil: 'domcontentloaded' });
       await SupabaseAuth.setup(context, page, { role: 'admin' });
@@ -271,7 +271,7 @@ test.describe('拡張テストカバレッジ', () => {
       expect(pageHasContent).toBeTruthy();
     });
 
-    test('組織設定ページが表示される', async ({ page }) => {
+    test('組織設定ページが表示される', async ({ page, context }) => {
       // まず適当なページを開いてから認証設定
       await page.goto('/', { waitUntil: 'domcontentloaded' });
       await SupabaseAuth.setup(context, page, { role: 'admin' });
@@ -296,7 +296,7 @@ test.describe('拡張テストカバレッジ', () => {
       expect(pageHasContent).toBeTruthy();
     });
 
-    test('アカウント設定ページが表示される', async ({ page }) => {
+    test('アカウント設定ページが表示される', async ({ page, context }) => {
       // まず適当なページを開いてから認証設定
       await page.goto('/', { waitUntil: 'domcontentloaded' });
       await SupabaseAuth.setup(context, page, { role: 'admin' });
