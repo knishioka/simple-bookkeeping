@@ -1,6 +1,7 @@
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
+import { createSupabaseQueryMock, mockUser } from '@/test-utils/supabase-mocks';
 
 import { getAccounts, createAccount } from '../accounts';
 import { ERROR_CODES } from '../types';
@@ -20,38 +21,6 @@ const mockCreateClient = createClient as jest.MockedFunction<typeof createClient
 describe('Accounts Server Actions', () => {
   let mockSupabaseClient: any;
 
-  // Helper function to create a chainable query mock
-  const createQueryMock = (finalResult: any) => {
-    const query = {
-      select: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      neq: jest.fn().mockReturnThis(),
-      or: jest.fn().mockReturnThis(),
-      in: jest.fn().mockReturnThis(),
-      gte: jest.fn().mockReturnThis(),
-      lte: jest.fn().mockReturnThis(),
-      order: jest.fn().mockReturnThis(),
-      range: jest.fn().mockReturnValue(Promise.resolve(finalResult)),
-      single: jest.fn().mockResolvedValue(finalResult),
-      insert: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      delete: jest.fn().mockReturnValue(Promise.resolve(finalResult)),
-    };
-
-    // Make chainable methods return the query object
-    Object.keys(query).forEach((key) => {
-      if (key !== 'range' && key !== 'single' && key !== 'delete') {
-        const originalFn = query[key as keyof typeof query];
-        query[key as keyof typeof query] = jest.fn((...args) => {
-          originalFn(...args);
-          return query;
-        });
-      }
-    });
-
-    return query;
-  };
-
   beforeEach(() => {
     jest.clearAllMocks();
 
@@ -68,13 +37,13 @@ describe('Accounts Server Actions', () => {
   });
 
   describe('getAccounts', () => {
-    const mockUser = { id: 'user-123', email: 'test@example.com' };
+    const testUser = { id: 'user-123', email: 'test@example.com' };
     const mockOrganizationId = 'org-123';
 
     it('should successfully fetch accounts with default pagination', async () => {
       // Mock auth
       mockSupabaseClient.auth.getUser.mockResolvedValue({
-        data: { user: mockUser },
+        data: { user: testUser },
         error: null,
       });
 
@@ -95,17 +64,11 @@ describe('Accounts Server Actions', () => {
         { id: 'acc-2', code: '2110', name: '買掛金', account_type: 'liability' },
       ];
 
-      const accountsQuery = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        or: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        range: jest.fn().mockResolvedValue({
-          data: mockAccounts,
-          error: null,
-          count: 2,
-        }),
-      };
+      const accountsQuery = createSupabaseQueryMock({
+        data: mockAccounts,
+        error: null,
+        count: 2,
+      });
 
       mockSupabaseClient.from.mockReturnValueOnce(userOrgQuery).mockReturnValueOnce(accountsQuery);
 
@@ -143,7 +106,7 @@ describe('Accounts Server Actions', () => {
       });
 
       // Mock user organization check - no access
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: null,
         error: new Error('Not found'),
       });
@@ -164,13 +127,13 @@ describe('Accounts Server Actions', () => {
       });
 
       // Mock user organization check
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'viewer' },
         error: null,
       });
 
       // Mock accounts query
-      const accountsQueryMock = createQueryMock({
+      const accountsQueryMock = createSupabaseQueryMock({
         data: [],
         error: null,
         count: 0,
@@ -192,13 +155,13 @@ describe('Accounts Server Actions', () => {
       });
 
       // Mock user organization check
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'accountant' },
         error: null,
       });
 
       // Mock accounts query
-      const accountsQueryMock = createQueryMock({
+      const accountsQueryMock = createSupabaseQueryMock({
         data: [],
         error: null,
         count: 100,
@@ -245,7 +208,7 @@ describe('Accounts Server Actions', () => {
       });
 
       // Mock organization access check
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'admin' },
         error: null,
       });
@@ -291,7 +254,7 @@ describe('Accounts Server Actions', () => {
       });
 
       // Mock organization access check
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'admin' },
         error: null,
       });
@@ -320,7 +283,7 @@ describe('Accounts Server Actions', () => {
       });
 
       // Mock organization access check - viewer role
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'viewer' },
         error: null,
       });
@@ -341,7 +304,7 @@ describe('Accounts Server Actions', () => {
       });
 
       // Mock organization access check
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'admin' },
         error: null,
       });
@@ -377,7 +340,7 @@ describe('Accounts Server Actions', () => {
       };
 
       // Mock organization access check
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'admin' },
         error: null,
       });
@@ -434,13 +397,13 @@ describe('Accounts Server Actions', () => {
       });
 
       // Mock organization access check
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'admin' },
         error: null,
       });
 
       // Mock database error
-      const errorQuery = createQueryMock({
+      const errorQuery = createSupabaseQueryMock({
         data: null,
         error: { code: '23505', message: 'Unique constraint violation' },
       });
@@ -454,7 +417,7 @@ describe('Accounts Server Actions', () => {
     });
 
     it('should handle network errors', async () => {
-      mockCreateClient.mockImplementation(() => Promise.reject(new Error('Network error')));
+      mockCreateClient.mockRejectedValue(new Error('Network error'));
 
       const result = await getAccounts('org-123');
 

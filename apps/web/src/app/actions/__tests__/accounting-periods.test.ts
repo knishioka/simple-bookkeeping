@@ -1,6 +1,7 @@
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
+import { createSupabaseQueryMock } from '@/test-utils/supabase-mocks';
 
 import {
   getAccountingPeriods,
@@ -60,52 +61,6 @@ const mockExtractUserRole = typeGuards.extractUserRole as jest.MockedFunction<
 describe('Accounting Periods Server Actions', () => {
   let mockSupabaseClient: any;
 
-  // Helper function to create a chainable query mock
-  const createQueryMock = (finalResult: any) => {
-    const query = {
-      select: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      neq: jest.fn().mockReturnThis(),
-      or: jest.fn().mockReturnThis(),
-      in: jest.fn().mockReturnThis(),
-      gte: jest.fn().mockReturnThis(),
-      lte: jest.fn().mockReturnThis(),
-      lt: jest.fn().mockReturnThis(),
-      gt: jest.fn().mockReturnThis(),
-      ilike: jest.fn().mockReturnThis(),
-      order: jest.fn().mockReturnThis(),
-      range: jest.fn().mockReturnValue(Promise.resolve(finalResult)),
-      single: jest.fn().mockResolvedValue(finalResult),
-      insert: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      delete: jest.fn().mockReturnValue(Promise.resolve(finalResult)),
-      limit: jest.fn().mockReturnThis(),
-      then: (resolve: any) => Promise.resolve(finalResult).then(resolve),
-      catch: (reject: any) => Promise.resolve(finalResult).catch(reject),
-      finally: (onFinally: any) => Promise.resolve(finalResult).finally(onFinally),
-    };
-
-    // Make chainable methods return the query object
-    Object.keys(query).forEach((key) => {
-      if (
-        key !== 'range' &&
-        key !== 'single' &&
-        key !== 'delete' &&
-        key !== 'then' &&
-        key !== 'catch' &&
-        key !== 'finally'
-      ) {
-        const originalFn = query[key as keyof typeof query];
-        query[key as keyof typeof query] = jest.fn((...args) => {
-          originalFn(...args);
-          return query;
-        });
-      }
-    });
-
-    return query;
-  };
-
   beforeEach(() => {
     jest.clearAllMocks();
 
@@ -143,8 +98,8 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({ data: mockUserOrg, error: null });
-      const periodsQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({ data: mockUserOrg, error: null });
+      const periodsQuery = createSupabaseQueryMock({
         data: mockPeriods,
         error: null,
         count: 1,
@@ -157,7 +112,7 @@ describe('Accounting Periods Server Actions', () => {
         if (table === 'accounting_periods') {
           return periodsQuery;
         }
-        return createQueryMock({ data: null, error: null });
+        return createSupabaseQueryMock({ data: null, error: null });
       });
 
       const result = await getAccountingPeriods('550e8400-e29b-41d4-a716-446655440002', {
@@ -195,7 +150,7 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({ data: null, error: { message: 'Not found' } });
+      const userOrgQuery = createSupabaseQueryMock({ data: null, error: { message: 'Not found' } });
       mockSupabaseClient.from.mockReturnValue(userOrgQuery);
 
       const result = await getAccountingPeriods('550e8400-e29b-41d4-a716-446655440002');
@@ -213,8 +168,8 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({ data: mockUserOrg, error: null });
-      const periodsQuery = createQueryMock({ data: [], error: null, count: 0 });
+      const userOrgQuery = createSupabaseQueryMock({ data: mockUserOrg, error: null });
+      const periodsQuery = createSupabaseQueryMock({ data: [], error: null, count: 0 });
 
       mockSupabaseClient.from.mockImplementation((table: string) => {
         if (table === 'user_organizations') {
@@ -240,8 +195,8 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({ data: mockUserOrg, error: null });
-      const periodsQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({ data: mockUserOrg, error: null });
+      const periodsQuery = createSupabaseQueryMock({
         data: [],
         error: null,
         count: 0,
@@ -254,7 +209,7 @@ describe('Accounting Periods Server Actions', () => {
         if (table === 'accounting_periods') {
           return periodsQuery;
         }
-        return createQueryMock({ data: null, error: null });
+        return createSupabaseQueryMock({ data: null, error: null });
       });
 
       await getAccountingPeriods('550e8400-e29b-41d4-a716-446655440002', {
@@ -283,7 +238,7 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({ data: mockUserOrg, error: null });
+      const userOrgQuery = createSupabaseQueryMock({ data: mockUserOrg, error: null });
       let periodCallCount = 0;
 
       mockSupabaseClient.from.mockImplementation((table: string) => {
@@ -294,17 +249,17 @@ describe('Accounting Periods Server Actions', () => {
           periodCallCount++;
           // First call is overlap check
           if (periodCallCount === 1) {
-            return createQueryMock({ data: [], error: null });
+            return createSupabaseQueryMock({ data: [], error: null });
           }
           // Second call is insert
           return {
-            ...createQueryMock({ data: mockNewPeriod, error: null }),
+            ...createSupabaseQueryMock({ data: mockNewPeriod, error: null }),
             insert: jest.fn().mockReturnThis(),
             select: jest.fn().mockReturnThis(),
             single: jest.fn().mockResolvedValue({ data: mockNewPeriod, error: null }),
           };
         }
-        return createQueryMock({ data: null, error: null });
+        return createSupabaseQueryMock({ data: null, error: null });
       });
 
       const result = await createAccountingPeriod('550e8400-e29b-41d4-a716-446655440002', {
@@ -367,8 +322,8 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({ data: mockUserOrg, error: null });
-      const overlapQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({ data: mockUserOrg, error: null });
+      const overlapQuery = createSupabaseQueryMock({
         data: [{ id: '550e8400-e29b-41d4-a716-446655440099' }], // Has overlap
         error: null,
       });
@@ -380,7 +335,7 @@ describe('Accounting Periods Server Actions', () => {
         if (table === 'accounting_periods') {
           return overlapQuery;
         }
-        return createQueryMock({ data: null, error: null });
+        return createSupabaseQueryMock({ data: null, error: null });
       });
 
       const result = await createAccountingPeriod('550e8400-e29b-41d4-a716-446655440002', {
@@ -403,7 +358,7 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({ data: mockUserOrg, error: null });
+      const userOrgQuery = createSupabaseQueryMock({ data: mockUserOrg, error: null });
       mockSupabaseClient.from.mockReturnValue(userOrgQuery);
 
       const result = await createAccountingPeriod('550e8400-e29b-41d4-a716-446655440002', {
@@ -433,7 +388,7 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({ data: mockUserOrg, error: null });
+      const userOrgQuery = createSupabaseQueryMock({ data: mockUserOrg, error: null });
       let periodCallCount = 0;
 
       mockSupabaseClient.from.mockImplementation((table: string) => {
@@ -444,17 +399,17 @@ describe('Accounting Periods Server Actions', () => {
           periodCallCount++;
           // First call is overlap check
           if (periodCallCount === 1) {
-            return createQueryMock({ data: [], error: null });
+            return createSupabaseQueryMock({ data: [], error: null });
           }
           // Second call is insert
           return {
-            ...createQueryMock({ data: mockNewPeriod, error: null }),
+            ...createSupabaseQueryMock({ data: mockNewPeriod, error: null }),
             insert: jest.fn().mockReturnThis(),
             select: jest.fn().mockReturnThis(),
             single: jest.fn().mockResolvedValue({ data: mockNewPeriod, error: null }),
           };
         }
-        return createQueryMock({ data: null, error: null });
+        return createSupabaseQueryMock({ data: null, error: null });
       });
 
       const result = await createAccountingPeriod('550e8400-e29b-41d4-a716-446655440002', {
@@ -497,17 +452,17 @@ describe('Accounting Periods Server Actions', () => {
           callCount++;
           if (callCount === 1) {
             // First call is to fetch existing with user_organizations join
-            const query = createQueryMock({ data: mockExistingPeriod, error: null });
+            const query = createSupabaseQueryMock({ data: mockExistingPeriod, error: null });
             // Override single to ensure it returns the proper data
             query.single = jest.fn().mockResolvedValue({ data: mockExistingPeriod, error: null });
             return query;
           }
           // Second call is to update
-          const query = createQueryMock({ data: mockUpdatedPeriod, error: null });
+          const query = createSupabaseQueryMock({ data: mockUpdatedPeriod, error: null });
           query.single = jest.fn().mockResolvedValue({ data: mockUpdatedPeriod, error: null });
           return query;
         }
-        return createQueryMock({ data: null, error: null });
+        return createSupabaseQueryMock({ data: null, error: null });
       });
 
       const result = await updateAccountingPeriod('550e8400-e29b-41d4-a716-446655440001', {
@@ -540,13 +495,13 @@ describe('Accounting Periods Server Actions', () => {
       mockSupabaseClient.from.mockImplementation((table: string) => {
         if (table === 'accounting_periods') {
           return {
-            ...createQueryMock({ data: mockExistingPeriod, error: null }),
+            ...createSupabaseQueryMock({ data: mockExistingPeriod, error: null }),
             select: jest.fn().mockReturnThis(),
             eq: jest.fn().mockReturnThis(),
             single: jest.fn().mockResolvedValue({ data: mockExistingPeriod, error: null }),
           };
         }
-        return createQueryMock({ data: null, error: null });
+        return createSupabaseQueryMock({ data: null, error: null });
       });
 
       const result = await updateAccountingPeriod('550e8400-e29b-41d4-a716-446655440001', {
@@ -575,7 +530,7 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const fetchQuery = createQueryMock({ data: mockExistingPeriod, error: null });
+      const fetchQuery = createSupabaseQueryMock({ data: mockExistingPeriod, error: null });
       mockSupabaseClient.from.mockReturnValue(fetchQuery);
 
       const result = await updateAccountingPeriod('550e8400-e29b-41d4-a716-446655440001', {
@@ -639,21 +594,21 @@ describe('Accounting Periods Server Actions', () => {
           if (callCount === 1) {
             // Fetch existing period
             return {
-              ...createQueryMock({ data: mockExistingPeriod, error: null }),
+              ...createSupabaseQueryMock({ data: mockExistingPeriod, error: null }),
               select: jest.fn().mockReturnThis(),
               eq: jest.fn().mockReturnThis(),
               single: jest.fn().mockResolvedValue({ data: mockExistingPeriod, error: null }),
             };
           } else if (callCount === 2) {
             // Check for other periods
-            return createQueryMock({
+            return createSupabaseQueryMock({
               data: [{ id: '550e8400-e29b-41d4-a716-446655440092' }],
               error: null,
             });
           } else {
             // Delete period
             return {
-              ...createQueryMock({
+              ...createSupabaseQueryMock({
                 data: { id: '550e8400-e29b-41d4-a716-446655440001' },
                 error: null,
               }),
@@ -668,9 +623,9 @@ describe('Accounting Periods Server Actions', () => {
           }
         }
         if (table === 'journal_entries') {
-          return createQueryMock({ data: [], error: null });
+          return createSupabaseQueryMock({ data: [], error: null });
         }
-        return createQueryMock({ data: null, error: null });
+        return createSupabaseQueryMock({ data: null, error: null });
       });
 
       const result = await deleteAccountingPeriod('550e8400-e29b-41d4-a716-446655440001');
@@ -695,8 +650,8 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const fetchQuery = createQueryMock({ data: mockExistingPeriod, error: null });
-      const journalQuery = createQueryMock({
+      const fetchQuery = createSupabaseQueryMock({ data: mockExistingPeriod, error: null });
+      const journalQuery = createSupabaseQueryMock({
         data: [{ id: '550e8400-e29b-41d4-a716-446655440090' }], // Has journal entries
         error: null,
       });
@@ -708,7 +663,7 @@ describe('Accounting Periods Server Actions', () => {
         if (table === 'journal_entries') {
           return journalQuery;
         }
-        return createQueryMock({ data: null, error: null });
+        return createSupabaseQueryMock({ data: null, error: null });
       });
 
       const result = await deleteAccountingPeriod('550e8400-e29b-41d4-a716-446655440001');
@@ -733,9 +688,9 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const fetchQuery = createQueryMock({ data: mockExistingPeriod, error: null });
-      const journalQuery = createQueryMock({ data: [], error: null });
-      const otherPeriodsQuery = createQueryMock({ data: [], error: null }); // No other active periods
+      const fetchQuery = createSupabaseQueryMock({ data: mockExistingPeriod, error: null });
+      const journalQuery = createSupabaseQueryMock({ data: [], error: null });
+      const otherPeriodsQuery = createSupabaseQueryMock({ data: [], error: null }); // No other active periods
 
       let callCount = 0;
       mockSupabaseClient.from.mockImplementation((table: string) => {
@@ -750,7 +705,7 @@ describe('Accounting Periods Server Actions', () => {
         if (table === 'journal_entries') {
           return journalQuery;
         }
-        return createQueryMock({ data: null, error: null });
+        return createSupabaseQueryMock({ data: null, error: null });
       });
 
       const result = await deleteAccountingPeriod('550e8400-e29b-41d4-a716-446655440001');
@@ -774,7 +729,7 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const fetchQuery = createQueryMock({ data: mockExistingPeriod, error: null });
+      const fetchQuery = createSupabaseQueryMock({ data: mockExistingPeriod, error: null });
       mockSupabaseClient.from.mockReturnValue(fetchQuery);
 
       const result = await deleteAccountingPeriod('550e8400-e29b-41d4-a716-446655440001');
@@ -800,9 +755,9 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const fetchQuery = createQueryMock({ data: mockExistingPeriod, error: null });
-      const journalQuery = createQueryMock({ data: [], error: null }); // No pending entries
-      const updateQuery = createQueryMock({
+      const fetchQuery = createSupabaseQueryMock({ data: mockExistingPeriod, error: null });
+      const journalQuery = createSupabaseQueryMock({ data: [], error: null }); // No pending entries
+      const updateQuery = createSupabaseQueryMock({
         data: { ...mockExistingPeriod, is_closed: true },
         error: null,
       });
@@ -820,7 +775,7 @@ describe('Accounting Periods Server Actions', () => {
         if (table === 'journal_entries') {
           return journalQuery;
         }
-        return createQueryMock({ data: null, error: null });
+        return createSupabaseQueryMock({ data: null, error: null });
       });
 
       const result = await closeAccountingPeriod('550e8400-e29b-41d4-a716-446655440001');
@@ -844,8 +799,8 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const fetchQuery = createQueryMock({ data: mockExistingPeriod, error: null });
-      const journalQuery = createQueryMock({
+      const fetchQuery = createSupabaseQueryMock({ data: mockExistingPeriod, error: null });
+      const journalQuery = createSupabaseQueryMock({
         data: [{ id: '550e8400-e29b-41d4-a716-446655440091' }], // Has pending entries
         error: null,
       });
@@ -857,7 +812,7 @@ describe('Accounting Periods Server Actions', () => {
         if (table === 'journal_entries') {
           return journalQuery;
         }
-        return createQueryMock({ data: null, error: null });
+        return createSupabaseQueryMock({ data: null, error: null });
       });
 
       const result = await closeAccountingPeriod('550e8400-e29b-41d4-a716-446655440001');
@@ -887,8 +842,8 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({ data: mockUserOrg, error: null });
-      const periodQuery = createQueryMock({ data: mockActivePeriod, error: null });
+      const userOrgQuery = createSupabaseQueryMock({ data: mockUserOrg, error: null });
+      const periodQuery = createSupabaseQueryMock({ data: mockActivePeriod, error: null });
 
       mockSupabaseClient.from.mockImplementation((table: string) => {
         if (table === 'user_organizations') {
@@ -897,7 +852,7 @@ describe('Accounting Periods Server Actions', () => {
         if (table === 'accounting_periods') {
           return periodQuery;
         }
-        return createQueryMock({ data: null, error: null });
+        return createSupabaseQueryMock({ data: null, error: null });
       });
 
       const result = await getActiveAccountingPeriod('550e8400-e29b-41d4-a716-446655440002');
@@ -918,8 +873,8 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({ data: mockUserOrg, error: null });
-      const periodQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({ data: mockUserOrg, error: null });
+      const periodQuery = createSupabaseQueryMock({
         data: null,
         error: { code: 'PGRST116', message: 'Not found' },
       });
@@ -931,7 +886,7 @@ describe('Accounting Periods Server Actions', () => {
         if (table === 'accounting_periods') {
           return periodQuery;
         }
-        return createQueryMock({ data: null, error: null });
+        return createSupabaseQueryMock({ data: null, error: null });
       });
 
       const result = await getActiveAccountingPeriod('550e8400-e29b-41d4-a716-446655440002');
@@ -961,12 +916,12 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const fetchQuery = createQueryMock({
+      const fetchQuery = createSupabaseQueryMock({
         data: mockPeriod,
         error: null,
       });
 
-      const updateQuery = createQueryMock({
+      const updateQuery = createSupabaseQueryMock({
         data: {
           ...mockPeriod,
           is_closed: false,
@@ -983,7 +938,7 @@ describe('Accounting Periods Server Actions', () => {
           }
           return updateQuery;
         }
-        return createQueryMock({ data: null, error: null });
+        return createSupabaseQueryMock({ data: null, error: null });
       });
 
       mockExtractUserRole.mockReturnValue('admin');
@@ -1018,7 +973,7 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const fetchQuery = createQueryMock({
+      const fetchQuery = createSupabaseQueryMock({
         data: mockPeriod,
         error: null,
       });
@@ -1048,7 +1003,7 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const fetchQuery = createQueryMock({
+      const fetchQuery = createSupabaseQueryMock({
         data: mockPeriod,
         error: null,
       });
@@ -1071,7 +1026,7 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const errorQuery = createQueryMock({
+      const errorQuery = createSupabaseQueryMock({
         data: null,
         error: new Error('Database connection failed'),
       });
@@ -1108,12 +1063,12 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const fetchQuery = createQueryMock({
+      const fetchQuery = createSupabaseQueryMock({
         data: mockPeriod,
         error: null,
       });
 
-      const updateQuery = createQueryMock({
+      const updateQuery = createSupabaseQueryMock({
         data: {
           ...mockPeriod,
           is_closed: false,
@@ -1130,7 +1085,7 @@ describe('Accounting Periods Server Actions', () => {
           }
           return updateQuery;
         }
-        return createQueryMock({ data: null, error: null });
+        return createSupabaseQueryMock({ data: null, error: null });
       });
 
       mockExtractUserRole.mockReturnValue('accountant');
@@ -1166,7 +1121,7 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const fetchQuery = createQueryMock({
+      const fetchQuery = createSupabaseQueryMock({
         data: mockPeriod,
         error: null,
       });
@@ -1197,7 +1152,7 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const fetchQuery = createQueryMock({
+      const fetchQuery = createSupabaseQueryMock({
         data: mockPeriod,
         error: null,
       });
@@ -1241,12 +1196,12 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const fetchQuery = createQueryMock({
+      const fetchQuery = createSupabaseQueryMock({
         data: mockPeriod,
         error: null,
       });
 
-      const updateQuery = createQueryMock({
+      const updateQuery = createSupabaseQueryMock({
         data: null,
         error: { code: '23505', message: 'Unique constraint violation' },
       });
@@ -1276,17 +1231,17 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const orgQuery = createQueryMock({
+      const orgQuery = createSupabaseQueryMock({
         data: { role: 'admin' },
         error: null,
       });
 
-      const overlapQuery = createQueryMock({
+      const overlapQuery = createSupabaseQueryMock({
         data: [],
         error: null,
       });
 
-      const createQuery = createQueryMock({
+      const createQuery = createSupabaseQueryMock({
         data: {
           id: '990e8400-e29b-41d4-a716-446655440000',
           organization_id: '550e8400-e29b-41d4-a716-446655440002',
@@ -1310,7 +1265,7 @@ describe('Accounting Periods Server Actions', () => {
           }
           return createQuery;
         }
-        return createQueryMock({ data: null, error: null });
+        return createSupabaseQueryMock({ data: null, error: null });
       });
 
       const result = await createAccountingPeriod('550e8400-e29b-41d4-a716-446655440002', {
@@ -1331,17 +1286,17 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const orgQuery = createQueryMock({
+      const orgQuery = createSupabaseQueryMock({
         data: { role: 'admin' },
         error: null,
       });
 
-      const overlapQuery = createQueryMock({
+      const overlapQuery = createSupabaseQueryMock({
         data: [],
         error: null,
       });
 
-      const createQuery = createQueryMock({
+      const createQuery = createSupabaseQueryMock({
         data: {
           id: '990e8400-e29b-41d4-a716-446655440000',
           organization_id: '550e8400-e29b-41d4-a716-446655440002',
@@ -1365,7 +1320,7 @@ describe('Accounting Periods Server Actions', () => {
           }
           return createQuery;
         }
-        return createQueryMock({ data: null, error: null });
+        return createSupabaseQueryMock({ data: null, error: null });
       });
 
       const result = await createAccountingPeriod('550e8400-e29b-41d4-a716-446655440002', {
@@ -1394,13 +1349,13 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const orgQuery = createQueryMock({
+      const orgQuery = createSupabaseQueryMock({
         data: { role: 'viewer' },
         error: null,
       });
 
       const periodsQuery = {
-        ...createQueryMock({
+        ...createSupabaseQueryMock({
           data: mockPeriods.slice(40, 60),
           error: null,
           count: 100,
@@ -1422,7 +1377,7 @@ describe('Accounting Periods Server Actions', () => {
         if (table === 'accounting_periods') {
           return periodsQuery;
         }
-        return createQueryMock({ data: null, error: null });
+        return createSupabaseQueryMock({ data: null, error: null });
       });
 
       const result = await getAccountingPeriods('550e8400-e29b-41d4-a716-446655440002', {
@@ -1448,7 +1403,7 @@ describe('Accounting Periods Server Actions', () => {
         error: null,
       });
 
-      const query = createQueryMock({
+      const query = createSupabaseQueryMock({
         data: [],
         error: null,
         count: 0,
