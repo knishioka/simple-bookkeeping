@@ -1,7 +1,7 @@
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
-import { createSupabaseQueryMock } from '@/test-utils/supabase-mocks';
+import { createSupabaseQueryMock, mockUser } from '@/test-utils/supabase-mocks';
 
 import { getAccounts, createAccount } from '../accounts';
 import { ERROR_CODES } from '../types';
@@ -106,7 +106,7 @@ describe('Accounts Server Actions', () => {
       });
 
       // Mock user organization check - no access
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: null,
         error: new Error('Not found'),
       });
@@ -127,13 +127,13 @@ describe('Accounts Server Actions', () => {
       });
 
       // Mock user organization check
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'viewer' },
         error: null,
       });
 
       // Mock accounts query
-      const accountsQueryMock = createQueryMock({
+      const accountsQueryMock = createSupabaseQueryMock({
         data: [],
         error: null,
         count: 0,
@@ -155,13 +155,13 @@ describe('Accounts Server Actions', () => {
       });
 
       // Mock user organization check
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'accountant' },
         error: null,
       });
 
       // Mock accounts query
-      const accountsQueryMock = createQueryMock({
+      const accountsQueryMock = createSupabaseQueryMock({
         data: [],
         error: null,
         count: 100,
@@ -208,7 +208,7 @@ describe('Accounts Server Actions', () => {
       });
 
       // Mock organization access check
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'admin' },
         error: null,
       });
@@ -254,7 +254,7 @@ describe('Accounts Server Actions', () => {
       });
 
       // Mock organization access check
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'admin' },
         error: null,
       });
@@ -283,7 +283,7 @@ describe('Accounts Server Actions', () => {
       });
 
       // Mock organization access check - viewer role
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'viewer' },
         error: null,
       });
@@ -304,7 +304,7 @@ describe('Accounts Server Actions', () => {
       });
 
       // Mock organization access check
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'admin' },
         error: null,
       });
@@ -340,7 +340,7 @@ describe('Accounts Server Actions', () => {
       };
 
       // Mock organization access check
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'admin' },
         error: null,
       });
@@ -397,13 +397,13 @@ describe('Accounts Server Actions', () => {
       });
 
       // Mock organization access check
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'admin' },
         error: null,
       });
 
       // Mock database error
-      const errorQuery = createQueryMock({
+      const errorQuery = createSupabaseQueryMock({
         data: null,
         error: { code: '23505', message: 'Unique constraint violation' },
       });
