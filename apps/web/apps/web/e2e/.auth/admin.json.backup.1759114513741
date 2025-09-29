@@ -1,0 +1,25 @@
+{
+  "cookies": [
+    {
+      "name": "__next_hmr_refresh_hash__",
+      "value": "3ddedbbab82099fa5edf2143f2c608ef6d1d612df822d6ac",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "sb-localhost-auth-token",
+          "value": "{\"access_token\":\"mock-access-token\",\"refresh_token\":\"mock-refresh-token\",\"expires_at\":1759118113,\"user\":{\"id\":\"test-user-id\",\"email\":\"test@example.com\",\"user_metadata\":{\"name\":\"Test User\",\"organization_id\":\"test-org\",\"role\":\"admin\"}}}"
+        }
+      ]
+    }
+  ]
+}
