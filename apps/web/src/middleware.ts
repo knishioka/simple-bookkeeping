@@ -30,10 +30,12 @@ export async function middleware(request: NextRequest) {
   }
 
   // Skip authentication in test/development environment when Supabase is not configured
+  // or when explicitly using mock authentication in CI
   // CRITICAL SECURITY: Only allow test mode in non-production environments
   const isTestMode =
     process.env.NODE_ENV !== 'production' &&
-    (!process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    (process.env.E2E_USE_MOCK_AUTH === 'true' || // Explicit CI mock auth flag
+      !process.env.NEXT_PUBLIC_SUPABASE_URL ||
       process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://dummy.supabase.co' ||
       process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://placeholder.supabase.co');
 

@@ -354,6 +354,8 @@ jobs:
           TEST_VIEWER_PASSWORD: ${{ secrets.TEST_VIEWER_PASSWORD || 'ViewerE2E123!@#' }}
           TEST_VIEWER_NAME: ${{ secrets.TEST_VIEWER_NAME || 'E2E Test Viewer' }}
           TEST_ORGANIZATION_ID: ${{ secrets.TEST_ORGANIZATION_ID || 'test-org-e2e-001' }}
+          # CI Mock Authentication Flag
+          E2E_USE_MOCK_AUTH: true
           # Test configuration
           TEST_HEADLESS: true
           TEST_DEBUG_MODE: false
