@@ -358,6 +358,7 @@ jobs:
           TEST_HEADLESS: true
           TEST_DEBUG_MODE: false
           TEST_SKIP_AUTH: false
+          DISABLE_STORAGE_STATE: true # Disable Storage State to avoid race conditions in sharded tests
         run: |
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting fast E2E test suite"
           START_TIME=$(date +%s)

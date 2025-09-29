@@ -139,7 +139,8 @@ export const getAuthStatePath = (role: string = 'admin'): string => {
 
   // Create a shard-specific subdirectory to avoid conflicts
   const shardIndex = process.env.TEST_PARALLEL_INDEX || '0';
-  const isSharded = process.env.CI === 'true' && shardIndex !== '0';
+  // Fix: All shards in CI should use the same shared path, including shard 0
+  const isSharded = process.env.CI === 'true' && process.env.TEST_PARALLEL_INDEX !== undefined;
 
   if (isSharded) {
     // In sharded CI mode, use a shared auth directory
