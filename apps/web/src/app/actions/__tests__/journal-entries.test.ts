@@ -1,6 +1,7 @@
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
+import { createSupabaseQueryMock } from '@/test-utils/supabase-mocks';
 
 import {
   getJournalEntries,
@@ -24,36 +25,6 @@ const mockCreateClient = createClient as jest.MockedFunction<typeof createClient
 
 describe('Journal Entries Server Actions', () => {
   let mockSupabaseClient: any;
-
-  // Helper function to create chainable query mocks
-  const createQueryMock = (result: any) => {
-    const query: any = {};
-
-    // Setup chainable methods
-    const chainableMethods = [
-      'select',
-      'eq',
-      'neq',
-      'or',
-      'in',
-      'gte',
-      'lte',
-      'order',
-      'insert',
-      'update',
-      'delete',
-    ];
-
-    chainableMethods.forEach((method) => {
-      query[method] = jest.fn(() => query);
-    });
-
-    // Terminal methods that return promises
-    query.single = jest.fn().mockResolvedValue(result);
-    query.range = jest.fn().mockResolvedValue(result);
-
-    return query;
-  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -81,7 +52,7 @@ describe('Journal Entries Server Actions', () => {
       });
 
       // Mock user organization check
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'admin' },
         error: null,
       });
@@ -104,7 +75,7 @@ describe('Journal Entries Server Actions', () => {
         },
       ];
 
-      const entriesQuery = createQueryMock({
+      const entriesQuery = createSupabaseQueryMock({
         data: mockEntries,
         error: null,
         count: 2,
@@ -132,7 +103,7 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'viewer' },
         error: null,
       });
@@ -188,7 +159,7 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: null,
         error: new Error('Not found'),
       });
@@ -237,13 +208,13 @@ describe('Journal Entries Server Actions', () => {
       });
 
       // Mock organization access check
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'accountant' },
         error: null,
       });
 
       // Mock accounting period check
-      const periodQuery = createQueryMock({
+      const periodQuery = createSupabaseQueryMock({
         data: {
           id: 'period-123',
           start_date: '2024-01-01',
@@ -314,7 +285,7 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'admin' },
         error: null,
       });
@@ -347,7 +318,7 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'accountant' },
         error: null,
       });
@@ -390,7 +361,7 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'viewer' },
         error: null,
       });
@@ -413,7 +384,7 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'admin' },
         error: null,
       });
@@ -436,13 +407,13 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'accountant' },
         error: null,
       });
 
       // Accounting period not found
-      const periodQuery = createQueryMock({
+      const periodQuery = createSupabaseQueryMock({
         data: null,
         error: new Error('Not found'),
       });
@@ -465,13 +436,13 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'admin' },
         error: null,
       });
 
       // Closed accounting period
-      const periodQuery = createQueryMock({
+      const periodQuery = createSupabaseQueryMock({
         data: {
           id: 'period-123',
           start_date: '2024-01-01',
@@ -499,12 +470,12 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'accountant' },
         error: null,
       });
 
-      const periodQuery = createQueryMock({
+      const periodQuery = createSupabaseQueryMock({
         data: {
           id: 'period-123',
           start_date: '2024-01-01',
@@ -537,12 +508,12 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'admin' },
         error: null,
       });
 
-      const periodQuery = createQueryMock({
+      const periodQuery = createSupabaseQueryMock({
         data: {
           id: 'period-123',
           start_date: '2024-01-01',
@@ -583,12 +554,12 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'accountant' },
         error: null,
       });
 
-      const periodQuery = createQueryMock({
+      const periodQuery = createSupabaseQueryMock({
         data: {
           id: 'period-123',
           start_date: '2024-01-01',
@@ -645,12 +616,12 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'admin' },
         error: null,
       });
 
-      const periodQuery = createQueryMock({
+      const periodQuery = createSupabaseQueryMock({
         data: {
           id: 'period-123',
           start_date: '2024-01-01',
@@ -729,13 +700,13 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'accountant' },
         error: null,
       });
 
       // Existing entry
-      const entryQuery = createQueryMock({
+      const entryQuery = createSupabaseQueryMock({
         data: { id: entryId, status: 'draft' },
         error: null,
       });
@@ -787,12 +758,12 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'admin' },
         error: null,
       });
 
-      const entryQuery = createQueryMock({
+      const entryQuery = createSupabaseQueryMock({
         data: { id: entryId, status: 'approved' },
         error: null,
       });
@@ -814,12 +785,12 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'accountant' },
         error: null,
       });
 
-      const entryQuery = createQueryMock({
+      const entryQuery = createSupabaseQueryMock({
         data: { id: entryId, status: 'draft' },
         error: null,
       });
@@ -905,12 +876,12 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'admin' },
         error: null,
       });
 
-      const entryQuery = createQueryMock({
+      const entryQuery = createSupabaseQueryMock({
         data: { id: entryId, status: 'draft' },
         error: null,
       });
@@ -948,7 +919,7 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'viewer' },
         error: null,
       });
@@ -977,7 +948,7 @@ describe('Journal Entries Server Actions', () => {
       });
 
       // Only admin can delete
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'admin' },
         error: null,
       });
@@ -1035,7 +1006,7 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'accountant' },
         error: null,
       });
@@ -1055,7 +1026,7 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'admin' },
         error: null,
       });
@@ -1086,7 +1057,7 @@ describe('Journal Entries Server Actions', () => {
         error: null,
       });
 
-      const userOrgQuery = createQueryMock({
+      const userOrgQuery = createSupabaseQueryMock({
         data: { role: 'admin' },
         error: null,
       });

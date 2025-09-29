@@ -84,69 +84,32 @@ describe('AccountSearchCombobox', () => {
     });
   });
 
-  it('searches by account name in kanji', async () => {
-    render(<AccountSearchCombobox accounts={mockAccounts} onValueChange={mockOnValueChange} />);
+  // Parameterized test for different search input types
+  describe.each([
+    ['kanji', '現金', '現金を漢字で検索'],
+    ['katakana', 'ゲンキン', '現金をカタカナで検索'],
+    ['hiragana', 'げんきん', '現金をひらがなで検索'],
+  ])('searches by %s', (inputType, searchValue, _description) => {
+    it(`should find accounts when searching with ${inputType} (${searchValue})`, async () => {
+      render(<AccountSearchCombobox accounts={mockAccounts} onValueChange={mockOnValueChange} />);
 
-    const button = screen.getByRole('combobox');
-    fireEvent.click(button);
+      const button = screen.getByRole('combobox');
+      fireEvent.click(button);
 
-    await waitFor(() => {
-      expect(
-        screen.getByPlaceholderText('コード、名前、カナ、ローマ字で検索...')
-      ).toBeInTheDocument();
-    });
+      await waitFor(() => {
+        expect(
+          screen.getByPlaceholderText('コード、名前、カナ、ローマ字で検索...')
+        ).toBeInTheDocument();
+      });
 
-    const searchInput = screen.getByPlaceholderText('コード、名前、カナ、ローマ字で検索...');
-    fireEvent.change(searchInput, { target: { value: '現金' } });
+      const searchInput = screen.getByPlaceholderText('コード、名前、カナ、ローマ字で検索...');
+      fireEvent.change(searchInput, { target: { value: searchValue } });
 
-    await waitFor(() => {
-      expect(screen.getByText('現金')).toBeInTheDocument();
-      expect(screen.getByText('小口現金')).toBeInTheDocument();
-      expect(screen.queryByText('売上高')).not.toBeInTheDocument();
-    });
-  });
-
-  it('searches by katakana', async () => {
-    render(<AccountSearchCombobox accounts={mockAccounts} onValueChange={mockOnValueChange} />);
-
-    const button = screen.getByRole('combobox');
-    fireEvent.click(button);
-
-    await waitFor(() => {
-      expect(
-        screen.getByPlaceholderText('コード、名前、カナ、ローマ字で検索...')
-      ).toBeInTheDocument();
-    });
-
-    const searchInput = screen.getByPlaceholderText('コード、名前、カナ、ローマ字で検索...');
-    fireEvent.change(searchInput, { target: { value: 'ゲンキン' } });
-
-    await waitFor(() => {
-      expect(screen.getByText('現金')).toBeInTheDocument();
-      expect(screen.getByText('小口現金')).toBeInTheDocument();
-      expect(screen.queryByText('売上高')).not.toBeInTheDocument();
-    });
-  });
-
-  it('searches by hiragana', async () => {
-    render(<AccountSearchCombobox accounts={mockAccounts} onValueChange={mockOnValueChange} />);
-
-    const button = screen.getByRole('combobox');
-    fireEvent.click(button);
-
-    await waitFor(() => {
-      expect(
-        screen.getByPlaceholderText('コード、名前、カナ、ローマ字で検索...')
-      ).toBeInTheDocument();
-    });
-
-    const searchInput = screen.getByPlaceholderText('コード、名前、カナ、ローマ字で検索...');
-    fireEvent.change(searchInput, { target: { value: 'げんきん' } });
-
-    await waitFor(() => {
-      expect(screen.getByText('現金')).toBeInTheDocument();
-      expect(screen.getByText('小口現金')).toBeInTheDocument();
-      expect(screen.queryByText('売上高')).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('現金')).toBeInTheDocument();
+        expect(screen.getByText('小口現金')).toBeInTheDocument();
+        expect(screen.queryByText('売上高')).not.toBeInTheDocument();
+      });
     });
   });
 
