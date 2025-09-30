@@ -52,18 +52,25 @@ export async function loginTestUser(page: Page, user: TestUser = TEST_USERS.admi
  * Logout the current user
  */
 export async function logoutUser(page: Page): Promise<void> {
-  // Call logout API endpoint
-  await page.evaluate(async () => {
-    await fetch('/api/auth/logout', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-  });
+  // Navigate to dashboard or any authenticated page first
+  await page.goto('/dashboard');
 
-  // Navigate to login page
+  // Click the logout button if it exists, or clear cookies
+  // Note: This assumes there's a logout button in the UI
+  const logoutButton = page.locator('[data-testid="logout-button"], button:has-text("ログアウト")');
+
+  if (await logoutButton.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await logoutButton.click();
+  } else {
+    // If no logout button is visible, clear auth cookies as fallback
+    await page.context().clearCookies();
+  }
+
+  // Navigate to login page to ensure logout
   await page.goto('/auth/login');
+
+  // Wait for the page to be ready
+  await page.waitForLoadState('networkidle');
 }
 
 /**
@@ -91,17 +98,60 @@ export async function setupMockAuth(page: Page, user: TestUser = TEST_USERS.admi
  * Check if user is authenticated
  */
 export async function isAuthenticated(page: Page): Promise<boolean> {
-  const response = await page.request.get('/api/auth/me');
-  return response.ok();
+  // Check authentication by navigating to a protected page
+  // and seeing if we get redirected to login
+  const response = await page.goto('/dashboard', { waitUntil: 'networkidle' });
+
+  // If we're redirected to login page, we're not authenticated
+  const currentUrl = page.url();
+  return !currentUrl.includes('/auth/login') && response?.ok() === true;
 }
 
 /**
  * Get current user info
  */
 export async function getCurrentUser(page: Page): Promise<unknown> {
-  const response = await page.request.get('/api/auth/me');
-  if (response.ok()) {
-    return await response.json();
-  }
-  return null;
+  // For E2E tests, we'll check for user info in the page context
+  // This assumes the app renders user info somewhere in the DOM
+  // or stores it in localStorage/sessionStorage
+
+  // Try to get user info from localStorage or sessionStorage
+  const userInfo = await page.evaluate(() => {
+    // Check localStorage for Supabase session
+    const supabaseKey = Object.keys(localStorage).find(
+      (key) => key.startsWith('sb-') && key.includes('-auth-token')
+    );
+
+    if (supabaseKey) {
+      try {
+        const session = JSON.parse(localStorage.getItem(supabaseKey) || '{}');
+        if (session.user) {
+          return {
+            id: session.user.id,
+            email: session.user.email,
+            role: session.user.user_metadata?.role,
+          };
+        }
+      } catch {
+        // Ignore parse errors
+      }
+    }
+
+    // Fallback: check for test auth cookie (for mock environments)
+    const cookies = document.cookie.split(';');
+    const authCookie = cookies.find((c) => c.trim().startsWith('test-auth-user='));
+
+    if (authCookie) {
+      try {
+        const value = decodeURIComponent(authCookie.split('=')[1]);
+        return JSON.parse(value);
+      } catch {
+        // Ignore parse errors
+      }
+    }
+
+    return null;
+  });
+
+  return userInfo;
 }
