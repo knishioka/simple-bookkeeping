@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import { signUp } from '@/app/actions/auth';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,7 +27,7 @@ const signupSchema = z
     password: z.string().min(8, 'パスワードは8文字以上である必要があります'),
     confirmPassword: z.string(),
     organizationName: z.string().min(1, '組織名を入力してください'),
-    name: z.string().optional(),
+    name: z.string().min(1, 'お名前を入力してください'), // Server Actionの要件に合わせて必須に
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'パスワードが一致しません',
@@ -53,27 +54,23 @@ export default function SignupPage() {
     setError(null);
 
     try {
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: data.email,
-          password: data.password,
-          organizationName: data.organizationName,
-          name: data.name,
-        }),
+      // Server Actionを直接呼び出し
+      const result = await signUp({
+        email: data.email,
+        password: data.password,
+        name: data.name, // 氏名は必須フィールド
+        organizationName: data.organizationName,
       });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || '登録に失敗しました');
+      if (result.success && result.data) {
+        // 登録成功時の処理
+        setIsSuccess(true);
+      } else {
+        // エラーハンドリング
+        setError(result.error?.message || '登録に失敗しました');
       }
-
-      setIsSuccess(true);
     } catch (err) {
+      // 予期しないエラーのハンドリング
       setError(err instanceof Error ? err.message : '登録に失敗しました');
     } finally {
       setIsLoading(false);
@@ -135,7 +132,7 @@ export default function SignupPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="name">お名前（任意）</Label>
+              <Label htmlFor="name">お名前</Label>
               <Input
                 id="name"
                 type="text"
@@ -143,6 +140,7 @@ export default function SignupPage() {
                 {...register('name')}
                 disabled={isLoading}
               />
+              {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
             </div>
 
             <div className="space-y-2">
