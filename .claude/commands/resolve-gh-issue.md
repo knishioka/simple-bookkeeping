@@ -94,143 +94,54 @@ Claude Codeは、タスクの内容とサブエージェントの`description`�
 - [ ] フォローアップ確認（follow-up-creator）
 ```
 
-### 1. Issue分析と理解（構造化出力対応）
+### 1. Issue分析 & コードベース分析（並列実行）
 
-- **サブエージェント呼び出し**: `issue-analyzer` エージェントが自動的に実行されます
-  - GitHub Issueの詳細を取得・分析
-  - 要件と受け入れ条件を構造化
-  - 実装に必要な情報を抽出
+**⚡ パフォーマンス最適化**: `issue-analyzer` と `codebase-investigator` は独立しているため、並列実行します。
 
-#### 🔴 多層検証システム（SuperClaude式）
+**推奨実装**: 単一メッセージで両方のTaskツールを呼び出し、並列実行により50%高速化します。
 
-```bash
-# Layer 1: 形式検証
-validate_protocol_format() {
-  local response=$1
-
-  # プロトコルマーカーの確認
-  if ! echo "$response" | grep -q "===PROTOCOL_START==="; then
-    echo "ERROR: Invalid protocol format from subagent"
-    return 1
-  fi
-
-  # ステータス抽出と検証
-  local status=$(echo "$response" | sed -n '/^STATUS:/p' | awk '{print $2}')
-  if [ "$status" != "SUCCESS" ]; then
-    echo "WARNING: Subagent returned status: $status"
-    [ "$status" = "FAIL" ] && return 1
-  fi
-
-  return 0
-}
-
-# Layer 2: データ整合性検証
-validate_data_integrity() {
-  local response=$1
-
-  # DATAセクション抽出
-  local data=$(echo "$response" | sed -n '/===DATA_START===/,/===DATA_END===/p' | grep -v "===")
-
-  # JSON妥当性チェック
-  echo "$data" | jq empty 2>/dev/null
-  if [ $? -ne 0 ]; then
-    echo "ERROR: Invalid JSON in DATA section"
-    return 1
-  fi
-
-  # チェックサム検証（可能な場合）
-  local checksum=$(echo "$response" | grep "^CHECKSUM:" | awk '{print $2}')
-  if [ -n "$checksum" ]; then
-    local calculated=$(echo "$data" | sha256sum | awk '{print $1}')
-    if [ "$calculated" != "$checksum" ]; then
-      echo "ERROR: Checksum mismatch"
-      return 1
-    fi
-  fi
-
-  return 0
-}
-
-# Layer 3: 外部検証（ハルシネーション防止）
-validate_external_source() {
-  local issue_number=$1
-  local subagent_data=$2
-
-  # サブエージェントのデータから情報抽出
-  local subagent_title=$(echo "$subagent_data" | jq -r '.issue_data.title')
-
-  # 直接GitHub APIを呼び出して検証
-  local actual_data=$(gh issue view "$issue_number" --repo knishioka/simple-bookkeeping --json title,state 2>/dev/null)
-  if [ $? -ne 0 ]; then
-    echo "ERROR: Failed to verify with GitHub API"
-    return 1
-  fi
-
-  local actual_title=$(echo "$actual_data" | jq -r '.title')
-
-  # タイトル比較
-  if [ "$subagent_title" != "$actual_title" ]; then
-    echo "🔴 HALLUCINATION DETECTED!"
-    echo "  Subagent: $subagent_title"
-    echo "  Actual: $actual_title"
-    return 1
-  fi
-
-  echo "✅ External validation passed"
-  return 0
-}
-
-# 統合検証関数
-verify_subagent_response() {
-  local issue_number=$1
-  local response=$2
-
-  echo "=== Starting multi-layer validation ==="
-
-  # Layer 1
-  if ! validate_protocol_format "$response"; then
-    echo "❌ Layer 1 (Format) validation failed"
-    return 1
-  fi
-  echo "✅ Layer 1 (Format) validation passed"
-
-  # Layer 2
-  if ! validate_data_integrity "$response"; then
-    echo "❌ Layer 2 (Integrity) validation failed"
-    return 1
-  fi
-  echo "✅ Layer 2 (Integrity) validation passed"
-
-  # Layer 3
-  local data=$(echo "$response" | sed -n '/===DATA_START===/,/===DATA_END===/p' | grep -v "===")
-  if ! validate_external_source "$issue_number" "$data"; then
-    echo "❌ Layer 3 (External) validation failed"
-    return 1
-  fi
-  echo "✅ Layer 3 (External) validation passed"
-
-  echo "=== All validation layers passed ==="
-  return 0
-}
+```typescript
+// 並列実行例
+await Promise.all([
+  Task('Analyze GitHub Issue', `Issue #${ISSUE_NUMBER}を分析`, 'issue-analyzer'),
+  Task(
+    'Investigate codebase',
+    `Issue #${ISSUE_NUMBER}関連のコードベースを調査`,
+    'codebase-investigator'
+  ),
+]);
 ```
 
-**実行例**:
+**issue-analyzer（GitHub Issue分析）**:
+
+- GitHub Issueの詳細を取得・分析
+- 要件と受け入れ条件を構造化
+- 実装に必要な情報を抽出
+
+**GitHub APIで直接検証（シンプル）:**
 
 ```bash
-# サブエージェント呼び出しと検証
-RESPONSE=$(Task "Analyze issue" "Analyze issue #317" "issue-analyzer")
-if verify_subagent_response 317 "$RESPONSE"; then
-  # 検証成功 - データを使用
-  DATA=$(echo "$RESPONSE" | sed -n '/===DATA_START===/,/===DATA_END===/p' | grep -v "===")
-  ISSUE_TITLE=$(echo "$DATA" | jq -r '.issue_data.title')
-else
-  # 検証失敗 - 直接実行にフォールバック
-  echo "Falling back to direct API call..."
-  ISSUE_DATA=$(gh issue view 317 --repo knishioka/simple-bookkeeping --json title,body,labels)
+# GitHub APIで直接Issue情報を取得
+ISSUE_DATA=$(gh issue view ${ISSUE_NUMBER} \
+  --repo knishioka/simple-bookkeeping \
+  --json title,body,labels,state)
+
+if [ $? -ne 0 ]; then
+  echo "❌ Failed to fetch issue data from GitHub API"
+  exit 1
 fi
+
+echo "✅ Issue data verified from GitHub API"
 ```
 
-- TodoWriteのステータスを「completed」に更新
+**codebase-investigator（コードベース分析）**:
+
+- 現在の実装を理解するためコードベースを検索
+- 関連するファイル、モジュール、コンポーネントを特定
+- 既存のパターンと規約をレビュー
+- 変更の影響範囲を特定
+
+- TodoWriteのステータスを両方「completed」に更新
 
 ### 2. Issue妥当性検証
 
@@ -283,18 +194,7 @@ fi
 - **🟡 イエロー（軽微な問題/不明瞭な点）**: 警告を表示し、ユーザーに確認を求める
 - **🔴 レッド（重大な問題）**: 実装を停止し、問題を報告し、代替案を提案
 
-### 3. コードベース分析
-
-- **サブエージェント呼び出し**: `codebase-investigator` エージェントが自動的に実行されます
-  - 現在の実装を理解するためコードベースを検索
-  - 関連するファイル、モジュール、コンポーネントを特定
-  - 既存のパターンと規約をレビュー
-  - ドキュメントと関連コードを分析
-  - 変更の影響範囲を特定
-
-  **注意**: `codebase-investigator`エージェントは`.claude/agents/codebase-investigator.md`に定義されています。
-
-### 4. テスト駆動開発計画
+### 3. テスト駆動開発計画
 
 **Simple Bookkeepingのテスト戦略：**
 
@@ -308,7 +208,7 @@ fi
   - Playwright for E2E Tests
 - カバレッジ目標: Unit 80%以上
 
-### 5. 開発計画【重要：TodoWrite必須】
+### 4. 開発計画【重要：TodoWrite必須】
 
 - **必須**: TodoWriteツールを使用して構造化された開発計画を作成
 - 複雑なタスクを管理可能なステップに分解
@@ -331,7 +231,7 @@ fi
 
 **注意**: TodoWriteを使用せずに進めるとワークフローが適切に実行されません
 
-### 6. ブランチ作成とセットアップ
+### 5. ブランチ作成とセットアップ
 
 - 規約に従って適切な名前のブランチを作成:
   - `feature/<issue-num>-<short-description>` 新機能用
@@ -343,7 +243,7 @@ fi
 - 最新のmainブランチから開始することを確認
 - アップストリーム追跡でブランチをリモートにプッシュ
 
-### 7. 実装
+### 6. 実装
 
 - **サブエージェント呼び出し**: `code-implementer` エージェントが自動的に実行されます
   - 既存のコードパターンと規約に従う（CLAUDE.mdを参照）
@@ -377,22 +277,44 @@ fi
 
 これらは後でフォローアップIssue作成時に参照される。
 
-### 8. 品質保証チェック
+### 7. 品質保証チェック（並列実行）
 
-必要なすべての品質チェックを順番に実行:
+**⚡ パフォーマンス最適化**: テスト実行とコードレビューは独立しているため、並列実行します。
+
+**推奨実装**: 単一メッセージで両方のTaskツールを呼び出し、並列実行により50%高速化します。
+
+```typescript
+// 並列実行例
+await Promise.all([
+  Task('Run all tests', `Run unit tests and E2E tests`, 'test-runner'),
+  Task('Review code quality', `Review implemented code for best practices`, 'code-reviewer'),
+]);
+```
+
+**test-runner（テスト実行）**:
+
+- Unit Testの作成と実行 (`pnpm test`)
+- E2Eテストの実行（該当する場合）(`pnpm --filter web test:e2e`)
+- テストカバレッジの確認
+- 失敗時の自動修正提案
+
+**code-reviewer（コードレビュー）**:
+
+- セキュリティチェック（OWASP Top 10）
+- パフォーマンス最適化の提案
+- アクセシビリティチェック（WCAG 2.1）
+- ベストプラクティスの確認
+
+**並列実行後の最終チェック**:
 
 - `pnpm lint` - ESLintとPrettierチェック
 - `pnpm typecheck` - TypeScriptの型チェック
-- `pnpm test` - すべてのUnit Testを実行
-- `pnpm --filter web test:e2e` - E2Eテストを実行（該当する場合）
-  - 失敗時: `npx playwright show-trace` でトレース確認
 - `pnpm build` - ビルドが成功することを確認
-  - `pnpm build:web` - Vercel用ビルド確認
 - データベース変更がある場合:
   - `pnpm --filter database prisma:generate`
   - `pnpm db:migrate` でマイグレーション確認
 
-### 9. コミット作成
+### 8. コミット作成
 
 - 明確で説明的なメッセージでアトミックなコミットを作成
 - 既存のコミットメッセージ規約に従う:
@@ -406,7 +328,7 @@ fi
 - コミットメッセージでIssue番号を参照
 - pre-commitフックをバイパスするために `--no-verify` を使用しない
 
-### 10. ドラフトPR作成
+### 9. ドラフトPR作成
 
 - `gh pr create --draft --repo knishioka/simple-bookkeeping` を使用してドラフトPRを作成
 - 適切なタイトル形式を使用:
@@ -419,7 +341,7 @@ fi
   - テスト計画と検証手順
   - 破壊的変更や考慮事項
 
-### 11. CIモニタリングと解決
+### 10. CIモニタリングと解決
 
 **Simple BookkeepingのCI環境：**
 
@@ -464,7 +386,7 @@ sleep 180 && gh pr checks --repo knishioka/simple-bookkeeping
   - ユーザーが明示的に続行を確認
 - **必ずPR URLを最後に表示**: 最終出力としてPRリンクを表示
 
-### 12. フォローアップIssueの作成（条件付き必須）
+### 11. フォローアップIssueの作成（条件付き必須）
 
 Issue解決中に発見された問題や後回しにした課題がある場合:
 
@@ -528,7 +450,7 @@ PR #<PR番号> での Issue #<元のIssue番号> の実装中に発見された�
 - 実装PR: #<PR番号>
 ```
 
-### 13. 最終検証とフォローアップ確認【必須】
+### 12. 最終検証とフォローアップ確認【必須】
 
 - 元のIssueのすべての受け入れ条件が満たされていることを確認
 - すべてのテストがローカルとCIで通過することを確認
