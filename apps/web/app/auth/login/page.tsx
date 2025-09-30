@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import { signIn } from '@/app/actions/auth';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -46,27 +47,26 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
+      // Server Actionを直接呼び出し
+      const result = await signIn({
+        email: data.email,
+        password: data.password,
       });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'ログインに失敗しました');
-      }
-
-      // Redirect to dashboard or organization selection
-      if (result.user?.organizations?.length === 0) {
-        router.push('/auth/select-organization');
+      if (result.success && result.data) {
+        // ログイン成功時のリダイレクト
+        // 組織情報がない場合は組織選択画面へ
+        if (!result.data.organizationId) {
+          router.push('/auth/select-organization');
+        } else {
+          router.push('/dashboard');
+        }
       } else {
-        router.push('/dashboard');
+        // エラーハンドリング
+        setError(result.error?.message || 'ログインに失敗しました');
       }
     } catch (err) {
+      // 予期しないエラーのハンドリング
       setError(err instanceof Error ? err.message : 'ログインに失敗しました');
     } finally {
       setIsLoading(false);
