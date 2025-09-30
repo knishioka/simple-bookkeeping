@@ -21,7 +21,7 @@ export default [
           alwaysTryTypes: true,
         },
         node: {
-          paths: ['src'],
+          paths: ['.'],
           extensions: ['.js', '.jsx', '.ts', '.tsx'],
         },
       },
