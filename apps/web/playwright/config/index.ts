@@ -4,8 +4,8 @@
  */
 
 // Export from modes (except getGlobalTimeout which conflicts with timeouts)
+export type { ModeConfig } from './modes';
 export {
-  ModeConfig,
   isCI,
   isDebug,
   getTestMode,

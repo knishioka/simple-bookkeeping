@@ -8,15 +8,20 @@ const customJestConfig = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testEnvironment: 'jest-environment-jsdom',
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
+    '^@/(.*)$': '<rootDir>/$1',
   },
   testMatch: ['**/__tests__/**/*.(ts|tsx)', '**/*.(test|spec).(ts|tsx)'],
   testPathIgnorePatterns: ['/node_modules/', '/e2e/', 'test-helpers\\.ts$'],
   collectCoverageFrom: [
-    'src/**/*.{js,jsx,ts,tsx}',
-    '!src/**/*.d.ts',
-    '!src/**/*.stories.{js,jsx,ts,tsx}',
-    '!src/**/index.ts',
+    '**/*.{js,jsx,ts,tsx}',
+    '!**/*.d.ts',
+    '!**/*.stories.{js,jsx,ts,tsx}',
+    '!**/index.ts',
+    '!node_modules/**',
+    '!.next/**',
+    '!coverage/**',
+    '!jest.config.js',
+    '!next.config.js',
   ],
   coverageThreshold: {
     global: {
