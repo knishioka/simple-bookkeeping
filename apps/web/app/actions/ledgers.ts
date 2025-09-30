@@ -273,82 +273,76 @@ export async function getBankBook(
       );
     }
 
-    // 期間内の仕訳明細を取得
-    const { data: journalLines, error: linesError } = await supabase
-      .from('journal_entry_lines')
+    // 期間内の仕訳を取得（明細を含む）
+    const { data: journalEntries, error: entriesError } = await supabase
+      .from('journal_entries')
       .select(
         `
         id,
-        journal_entry_id,
-        debit_amount,
-        credit_amount,
+        entry_number,
+        entry_date,
         description,
-        journal_entries!inner(
-          entry_number,
-          entry_date,
-          description,
-          organization_id,
-          status
-        ),
-        accounts!inner(
+        journal_entry_lines!inner(
           id,
-          name
+          account_id,
+          debit_amount,
+          credit_amount,
+          description,
+          accounts!inner(
+            id,
+            name
+          )
         )
       `
       )
-      .in('account_id', bankAccountIds)
-      .eq('journal_entries.organization_id', userOrg.organization_id)
-      .eq('journal_entries.status', 'approved')
-      .gte('journal_entries.entry_date', validStartDate)
-      .lte('journal_entries.entry_date', validEndDate)
-      .order('journal_entries.entry_date', { ascending: true });
+      .eq('organization_id', userOrg.organization_id)
+      .eq('status', 'approved')
+      .gte('entry_date', validStartDate)
+      .lte('entry_date', validEndDate)
+      .order('entry_date', { ascending: true });
 
-    if (linesError) {
-      console.error('Failed to fetch journal lines:', linesError);
-      return { success: false, error: '仕訳明細の取得に失敗しました' };
+    if (entriesError) {
+      console.error('Failed to fetch journal entries:', entriesError);
+      return { success: false, error: '仕訳データの取得に失敗しました' };
     }
 
-    // 相手勘定を取得して、エントリーを構築
+    // エントリーを構築
     let runningBalance = openingBalance;
     const entries: LedgerEntry[] = [];
 
-    for (const line of journalLines || []) {
-      const journalEntry = line.journal_entries as unknown as {
-        entry_date: string;
-        entry_number: string;
-        description: string;
-      };
+    for (const journalEntry of journalEntries || []) {
+      const lines = journalEntry.journal_entry_lines as unknown as Array<{
+        id: string;
+        account_id: string;
+        debit_amount: number;
+        credit_amount: number;
+        description: string | null;
+        accounts: { id: string; name: string };
+      }>;
 
-      // この仕訳の他の明細行から相手勘定を取得
-      const { data: counterLines } = await supabase
-        .from('journal_entry_lines')
-        .select(
-          `
-          accounts!inner(
-            name
-          )
-        `
-        )
-        .eq('journal_entry_id', line.journal_entry_id)
-        .not('account_id', 'in', `(${bankAccountIds.join(',')})`)
-        .limit(1)
-        .single();
+      // 預金勘定の明細を找す
+      const bankLines = lines.filter((line) => bankAccountIds.includes(line.account_id));
+      if (bankLines.length === 0) continue;
 
-      const counterAccountName = (counterLines?.accounts as { name?: string })?.name || '不明';
+      for (const bankLine of bankLines) {
+        // 相手勘定を找す（預金勘定以外の最初の明細）
+        const counterLine = lines.find((line) => !bankAccountIds.includes(line.account_id));
+        const counterAccountName = counterLine?.accounts?.name || '不明';
 
-      // 残高を計算
-      runningBalance += (line.debit_amount || 0) - (line.credit_amount || 0);
+        // 残高を計算
+        runningBalance += (bankLine.debit_amount || 0) - (bankLine.credit_amount || 0);
 
-      entries.push({
-        id: line.id,
-        date: journalEntry.entry_date,
-        entryNumber: journalEntry.entry_number,
-        description: line.description || journalEntry.description,
-        debitAmount: line.debit_amount || 0,
-        creditAmount: line.credit_amount || 0,
-        balance: runningBalance,
-        counterAccountName,
-      });
+        entries.push({
+          id: bankLine.id,
+          date: journalEntry.entry_date,
+          entryNumber: journalEntry.entry_number,
+          description: bankLine.description || journalEntry.description,
+          debitAmount: bankLine.debit_amount || 0,
+          creditAmount: bankLine.credit_amount || 0,
+          balance: runningBalance,
+          counterAccountName,
+        });
+      }
     }
 
     const closingBalance = runningBalance;
@@ -444,87 +438,85 @@ export async function getAccountsReceivable(
       );
     }
 
-    // 期間内の仕訳明細を取得
-    const { data: journalLines, error: linesError } = await supabase
-      .from('journal_entry_lines')
+    // 期間内の仕訳を取得（明細を含む）
+    const { data: journalEntries, error: entriesError } = await supabase
+      .from('journal_entries')
       .select(
         `
         id,
-        journal_entry_id,
-        debit_amount,
-        credit_amount,
+        entry_number,
+        entry_date,
         description,
-        partner_id,
-        journal_entries!inner(
-          entry_number,
-          entry_date,
-          description,
-          organization_id,
-          status
-        ),
-        accounts!inner(
+        journal_entry_lines!inner(
           id,
-          name
-        ),
-        partners(
-          name
+          account_id,
+          debit_amount,
+          credit_amount,
+          description,
+          partner_id,
+          accounts!inner(
+            id,
+            name
+          ),
+          partners(
+            name
+          )
         )
       `
       )
-      .in('account_id', receivableAccountIds)
-      .eq('journal_entries.organization_id', userOrg.organization_id)
-      .eq('journal_entries.status', 'approved')
-      .gte('journal_entries.entry_date', validStartDate)
-      .lte('journal_entries.entry_date', validEndDate)
-      .order('journal_entries.entry_date', { ascending: true });
+      .eq('organization_id', userOrg.organization_id)
+      .eq('status', 'approved')
+      .gte('entry_date', validStartDate)
+      .lte('entry_date', validEndDate)
+      .order('entry_date', { ascending: true });
 
-    if (linesError) {
-      console.error('Failed to fetch journal lines:', linesError);
-      return { success: false, error: '仕訳明細の取得に失敗しました' };
+    if (entriesError) {
+      console.error('Failed to fetch journal entries:', entriesError);
+      return { success: false, error: '仕訳データの取得に失敗しました' };
     }
 
-    // 相手勘定を取得して、エントリーを構築
+    // エントリーを構築
     let runningBalance = openingBalance;
     const entries: LedgerEntry[] = [];
 
-    for (const line of journalLines || []) {
-      const journalEntry = line.journal_entries as unknown as {
-        entry_date: string;
-        entry_number: string;
-        description: string;
-      };
+    for (const journalEntry of journalEntries || []) {
+      const lines = journalEntry.journal_entry_lines as unknown as Array<{
+        id: string;
+        account_id: string;
+        debit_amount: number;
+        credit_amount: number;
+        description: string | null;
+        partner_id: string | null;
+        accounts: { id: string; name: string };
+        partners: { name: string } | null;
+      }>;
 
-      // この仕訳の他の明細行から相手勘定を取得
-      const { data: counterLines } = await supabase
-        .from('journal_entry_lines')
-        .select(
-          `
-          accounts!inner(
-            name
-          )
-        `
-        )
-        .eq('journal_entry_id', line.journal_entry_id)
-        .not('account_id', 'in', `(${receivableAccountIds.join(',')})`)
-        .limit(1)
-        .single();
+      // 売掛金勘定の明細を找す
+      const receivableLines = lines.filter((line) =>
+        receivableAccountIds.includes(line.account_id)
+      );
+      if (receivableLines.length === 0) continue;
 
-      const counterAccountName = (counterLines?.accounts as { name?: string })?.name || '不明';
-      const partnerName = (line.partners as { name?: string })?.name || '';
+      for (const receivableLine of receivableLines) {
+        // 相手勘定を找す（売掛金勘定以外の最初の明細）
+        const counterLine = lines.find((line) => !receivableAccountIds.includes(line.account_id));
+        const counterAccountName = counterLine?.accounts?.name || '不明';
+        const partnerName = receivableLine.partners?.name || '';
 
-      // 残高を計算
-      runningBalance += (line.debit_amount || 0) - (line.credit_amount || 0);
+        // 残高を計算
+        runningBalance += (receivableLine.debit_amount || 0) - (receivableLine.credit_amount || 0);
 
-      entries.push({
-        id: line.id,
-        date: journalEntry.entry_date,
-        entryNumber: journalEntry.entry_number,
-        description: `${line.description || journalEntry.description}${partnerName ? ` (取引先: ${partnerName})` : ''}`,
-        debitAmount: line.debit_amount || 0,
-        creditAmount: line.credit_amount || 0,
-        balance: runningBalance,
-        counterAccountName,
-      });
+        entries.push({
+          id: receivableLine.id,
+          date: journalEntry.entry_date,
+          entryNumber: journalEntry.entry_number,
+          description: `${receivableLine.description || journalEntry.description}${partnerName ? ` (取引先: ${partnerName})` : ''}`,
+          debitAmount: receivableLine.debit_amount || 0,
+          creditAmount: receivableLine.credit_amount || 0,
+          balance: runningBalance,
+          counterAccountName,
+        });
+      }
     }
 
     const closingBalance = runningBalance;
@@ -621,87 +613,83 @@ export async function getAccountsPayable(
       );
     }
 
-    // 期間内の仕訳明細を取得
-    const { data: journalLines, error: linesError } = await supabase
-      .from('journal_entry_lines')
+    // 期間内の仕訳を取得（明細を含む）
+    const { data: journalEntries, error: entriesError } = await supabase
+      .from('journal_entries')
       .select(
         `
         id,
-        journal_entry_id,
-        debit_amount,
-        credit_amount,
+        entry_number,
+        entry_date,
         description,
-        partner_id,
-        journal_entries!inner(
-          entry_number,
-          entry_date,
-          description,
-          organization_id,
-          status
-        ),
-        accounts!inner(
+        journal_entry_lines!inner(
           id,
-          name
-        ),
-        partners(
-          name
+          account_id,
+          debit_amount,
+          credit_amount,
+          description,
+          partner_id,
+          accounts!inner(
+            id,
+            name
+          ),
+          partners(
+            name
+          )
         )
       `
       )
-      .in('account_id', payableAccountIds)
-      .eq('journal_entries.organization_id', userOrg.organization_id)
-      .eq('journal_entries.status', 'approved')
-      .gte('journal_entries.entry_date', validStartDate)
-      .lte('journal_entries.entry_date', validEndDate)
-      .order('journal_entries.entry_date', { ascending: true });
+      .eq('organization_id', userOrg.organization_id)
+      .eq('status', 'approved')
+      .gte('entry_date', validStartDate)
+      .lte('entry_date', validEndDate)
+      .order('entry_date', { ascending: true });
 
-    if (linesError) {
-      console.error('Failed to fetch journal lines:', linesError);
-      return { success: false, error: '仕訳明細の取得に失敗しました' };
+    if (entriesError) {
+      console.error('Failed to fetch journal entries:', entriesError);
+      return { success: false, error: '仕訳データの取得に失敗しました' };
     }
 
-    // 相手勘定を取得して、エントリーを構築
+    // エントリーを構築
     let runningBalance = openingBalance;
     const entries: LedgerEntry[] = [];
 
-    for (const line of journalLines || []) {
-      const journalEntry = line.journal_entries as unknown as {
-        entry_date: string;
-        entry_number: string;
-        description: string;
-      };
+    for (const journalEntry of journalEntries || []) {
+      const lines = journalEntry.journal_entry_lines as unknown as Array<{
+        id: string;
+        account_id: string;
+        debit_amount: number;
+        credit_amount: number;
+        description: string | null;
+        partner_id: string | null;
+        accounts: { id: string; name: string };
+        partners: { name: string } | null;
+      }>;
 
-      // この仕訳の他の明細行から相手勘定を取得
-      const { data: counterLines } = await supabase
-        .from('journal_entry_lines')
-        .select(
-          `
-          accounts!inner(
-            name
-          )
-        `
-        )
-        .eq('journal_entry_id', line.journal_entry_id)
-        .not('account_id', 'in', `(${payableAccountIds.join(',')})`)
-        .limit(1)
-        .single();
+      // 買掛金勘定の明細を找す
+      const payableLines = lines.filter((line) => payableAccountIds.includes(line.account_id));
+      if (payableLines.length === 0) continue;
 
-      const counterAccountName = (counterLines?.accounts as { name?: string })?.name || '不明';
-      const partnerName = (line.partners as { name?: string })?.name || '';
+      for (const payableLine of payableLines) {
+        // 相手勘定を找す（買掛金勘定以外の最初の明細）
+        const counterLine = lines.find((line) => !payableAccountIds.includes(line.account_id));
+        const counterAccountName = counterLine?.accounts?.name || '不明';
+        const partnerName = payableLine.partners?.name || '';
 
-      // 残高を計算（買掛金は負債なので、貸方 - 借方）
-      runningBalance += (line.credit_amount || 0) - (line.debit_amount || 0);
+        // 残高を計算（買掛金は負債なので、貸方 - 借方）
+        runningBalance += (payableLine.credit_amount || 0) - (payableLine.debit_amount || 0);
 
-      entries.push({
-        id: line.id,
-        date: journalEntry.entry_date,
-        entryNumber: journalEntry.entry_number,
-        description: `${line.description || journalEntry.description}${partnerName ? ` (取引先: ${partnerName})` : ''}`,
-        debitAmount: line.debit_amount || 0,
-        creditAmount: line.credit_amount || 0,
-        balance: runningBalance,
-        counterAccountName,
-      });
+        entries.push({
+          id: payableLine.id,
+          date: journalEntry.entry_date,
+          entryNumber: journalEntry.entry_number,
+          description: `${payableLine.description || journalEntry.description}${partnerName ? ` (取引先: ${partnerName})` : ''}`,
+          debitAmount: payableLine.debit_amount || 0,
+          creditAmount: payableLine.credit_amount || 0,
+          balance: runningBalance,
+          counterAccountName,
+        });
+      }
     }
 
     const closingBalance = runningBalance;
