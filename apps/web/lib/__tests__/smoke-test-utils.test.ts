@@ -15,7 +15,7 @@ import {
   getExecutionLimitStatus,
   formatExecutionLimitStatus,
   defaultConfig,
-} from '../../../e2e/smoke-test-utils';
+} from '../../e2e/smoke-test-utils';
 
 // Mock child_process
 jest.mock('child_process', () => ({
