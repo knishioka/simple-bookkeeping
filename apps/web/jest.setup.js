@@ -1,6 +1,13 @@
 import '@testing-library/jest-dom';
 import { TextEncoder, TextDecoder } from 'util';
 
+// Set up test environment variables BEFORE any imports that might validate them
+process.env.NODE_ENV = 'test';
+process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co';
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key-for-jest';
+process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key-for-jest';
+process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
+
 // Add TextEncoder/TextDecoder polyfills for Node.js environment
 // Required for Next.js Server Actions which use these APIs
 if (typeof global.TextEncoder === 'undefined') {

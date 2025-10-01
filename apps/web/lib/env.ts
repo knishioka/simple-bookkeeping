@@ -69,7 +69,7 @@ const envSchema = z.object({
  * @returns Validated and typed environment variables
  * @throws {ZodError} If validation fails
  */
-function validateEnv(env: NodeJS.ProcessEnv): Env {
+export function validateEnv(env: NodeJS.ProcessEnv = process.env): Env {
   try {
     // Separate client and server validation for better error messages
     const isServer = typeof window === 'undefined';
@@ -83,19 +83,31 @@ function validateEnv(env: NodeJS.ProcessEnv): Env {
     }
   } catch (error) {
     if (error instanceof z.ZodError) {
+      // Get the first error for simpler error messages
+      const firstError = error.errors[0];
+      if (firstError) {
+        const fieldName = firstError.path.join('.');
+
+        // Check for specific error types
+        if (firstError.code === 'invalid_type' && firstError.received === 'undefined') {
+          throw new Error(`Missing required environment variable: ${fieldName}`);
+        }
+
+        if (firstError.code === 'invalid_string' && firstError.validation === 'url') {
+          throw new Error(`Invalid Supabase URL format`);
+        }
+
+        // Generic error message
+        throw new Error(`Invalid environment variable ${fieldName}: ${firstError.message}`);
+      }
+
+      // Fallback error message
       const errorMessage = `❌ Environment variable validation failed:\n${error.errors
         .map((e) => `  - ${e.path.join('.')}: ${e.message}`)
         .join('\n')}`;
 
       console.error(errorMessage);
-
-      // In development, throw to fail fast
-      if (process.env.NODE_ENV === 'development') {
-        throw new Error(errorMessage);
-      }
-
-      // In production, log but continue with fallbacks
-      console.warn('⚠️ Using fallback values for invalid environment variables');
+      throw new Error(errorMessage);
     }
 
     throw error;
@@ -113,16 +125,36 @@ export const env = validateEnv(process.env);
  * Handles local development and production environments
  */
 export function getSupabaseUrl(): string {
-  if (env.NEXT_PUBLIC_SUPABASE_URL) {
-    return env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+
+  if (!url) {
+    throw new Error('Missing required environment variable: NEXT_PUBLIC_SUPABASE_URL');
   }
 
-  // Fallback for local development
-  if (env.NODE_ENV === 'development') {
-    return 'http://localhost:54321';
+  // Validate URL format
+  try {
+    const urlObj = new URL(url);
+    if (!['http:', 'https:'].includes(urlObj.protocol)) {
+      throw new Error('Invalid Supabase URL format');
+    }
+  } catch {
+    throw new Error('Invalid Supabase URL format');
   }
 
-  throw new Error('NEXT_PUBLIC_SUPABASE_URL is not configured');
+  return url;
+}
+
+/**
+ * Helper to get Supabase Anon Key
+ */
+export function getSupabaseAnonKey(): string {
+  const key = env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+
+  if (!key) {
+    throw new Error('Missing required environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY');
+  }
+
+  return key;
 }
 
 /**

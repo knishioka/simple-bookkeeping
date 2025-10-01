@@ -1,4 +1,4 @@
-import { sanitizeHtml } from '../sanitize';
+import { sanitizeHtml, sanitizeMarkdown } from '../sanitize';
 
 describe('sanitizeHtml', () => {
   describe('XSS Protection', () => {
@@ -116,15 +116,15 @@ describe('sanitizeHtml', () => {
       expect(output).toBe(input);
     });
 
-    it('should preserve tables', () => {
+    it('should preserve tables (with markdown config)', () => {
       const input = '<table><tr><td>Cell 1</td><td>Cell 2</td></tr></table>';
-      const output = sanitizeHtml(input);
+      const output = sanitizeMarkdown(input);
       expect(output).toBe(input);
     });
 
-    it('should preserve images with safe src', () => {
+    it('should preserve images with safe src (with markdown config)', () => {
       const input = '<img src="/safe-image.jpg" alt="Description">';
-      const output = sanitizeHtml(input);
+      const output = sanitizeMarkdown(input);
       expect(output).toContain('src="/safe-image.jpg"');
       expect(output).toContain('alt="Description"');
     });
