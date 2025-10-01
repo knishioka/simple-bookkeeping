@@ -3,11 +3,12 @@
  * Handles user profile and authentication-related database operations
  */
 
+import type { DALResult } from './base';
 import type { Database } from '@simple-bookkeeping/database';
 
 import { validatePasswordStrength } from '@/lib/password-strength';
 
-import { BaseDAL, type DALResult } from './base';
+import { BaseDAL } from './base';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
