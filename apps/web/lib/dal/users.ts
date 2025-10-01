@@ -6,9 +6,9 @@
 import type { DALResult } from './base';
 import type { Database } from '@simple-bookkeeping/database';
 
-import { validatePasswordStrength } from '@/lib/password-strength';
-
 import { BaseDAL } from './base';
+
+import { validatePasswordStrength } from '@/lib/password-strength';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];

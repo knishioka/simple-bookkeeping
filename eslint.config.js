@@ -147,6 +147,14 @@ export default [
             'index',
             'object',
           ],
+          pathGroups: [
+            {
+              pattern: '@/**',
+              group: 'sibling',
+              position: 'after',
+            },
+          ],
+          pathGroupsExcludedImportTypes: ['type'],
           'newlines-between': 'always',
           alphabetize: {
             order: 'asc',

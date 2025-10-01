@@ -1,7 +1,7 @@
+import { BaseDAL } from '../base';
+
 import { getSecureErrorMessage } from '@/lib/error-messages';
 import { createClient } from '@/lib/supabase/server';
-
-import { BaseDAL } from '../base';
 
 // Mock Supabase client
 jest.mock('@/lib/supabase/server', () => ({

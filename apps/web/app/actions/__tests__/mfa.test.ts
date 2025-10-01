@@ -1,8 +1,8 @@
 import { revalidatePath } from 'next/cache';
 
-import { createClient } from '@/lib/supabase/server';
-
 import { enrollMFA, verifyMFA, disableMFA, getMFAStatus } from '../mfa';
+
+import { createClient } from '@/lib/supabase/server';
 
 // Mock dependencies
 jest.mock('@/lib/supabase/server', () => ({

@@ -4,8 +4,6 @@ import type { Database } from '@/lib/supabase/database.types';
 
 import { revalidatePath } from 'next/cache';
 
-import { createClient } from '@/lib/supabase/server';
-
 import {
   ActionResult,
   QueryParams,
@@ -18,6 +16,8 @@ import {
   handleSupabaseError,
   ERROR_CODES,
 } from './types';
+
+import { createClient } from '@/lib/supabase/server';
 
 type JournalEntry = Database['public']['Tables']['journal_entries']['Row'];
 type JournalEntryInsert = Database['public']['Tables']['journal_entries']['Insert'];

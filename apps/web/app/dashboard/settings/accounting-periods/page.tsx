@@ -5,6 +5,8 @@ import type { Database } from '@/lib/supabase/database.types';
 import { Plus, Calendar, Check, Edit, Trash2 } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 
+import { AccountingPeriodFormDialog } from './accounting-period-form-dialog';
+
 import {
   getAccountingPeriods,
   activateAccountingPeriod,
@@ -33,8 +35,6 @@ import {
 } from '@/components/ui/table';
 import { useOrganization } from '@/hooks/use-organization';
 import { useToast } from '@/hooks/use-toast';
-
-import { AccountingPeriodFormDialog } from './accounting-period-form-dialog';
 
 type AccountingPeriod = Database['public']['Tables']['accounting_periods']['Row'];
 

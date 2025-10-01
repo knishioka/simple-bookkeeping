@@ -1,8 +1,5 @@
 import { revalidatePath } from 'next/cache';
 
-import { createClient } from '@/lib/supabase/server';
-import { createSupabaseQueryMock } from '@/test-utils/supabase-mocks';
-
 import {
   getJournalEntries,
   createJournalEntry,
@@ -10,6 +7,9 @@ import {
   deleteJournalEntry,
 } from '../journal-entries';
 import { ERROR_CODES } from '../types';
+
+import { createClient } from '@/lib/supabase/server';
+import { createSupabaseQueryMock } from '@/test-utils/supabase-mocks';
 
 // Mock dependencies
 jest.mock('next/cache', () => ({
