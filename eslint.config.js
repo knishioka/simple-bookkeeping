@@ -162,7 +162,7 @@ export default [
           },
         },
       ],
-      'import/no-unresolved': 'error',
+      'import/no-unresolved': 'off', // TypeScript handles module resolution
       'import/no-cycle': 'error',
 
       // General rules
