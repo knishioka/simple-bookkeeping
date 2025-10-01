@@ -1,8 +1,8 @@
+import type { SignOptions } from 'jsonwebtoken';
+
 import * as jwt from 'jsonwebtoken';
 
 import { TEST_CREDENTIALS, TEST_JWT_CONFIG } from '../test-config';
-
-import type { SignOptions } from 'jsonwebtoken';
 
 /**
  * Generate a test JWT token

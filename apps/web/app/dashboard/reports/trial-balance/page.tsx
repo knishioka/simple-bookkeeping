@@ -1,5 +1,7 @@
 'use client';
 
+import type { TrialBalanceItem } from '@/app/actions/reports';
+
 import { Calendar, Download, Printer } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -18,8 +20,6 @@ import {
 } from '@/components/ui/table';
 import { useOrganization } from '@/hooks/use-organization';
 import { useServerAction } from '@/hooks/useServerAction';
-
-import type { TrialBalanceItem } from '@/app/actions/reports';
 
 interface TrialBalanceEntry {
   accountId: string;

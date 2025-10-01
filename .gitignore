@@ -112,11 +112,15 @@ yarn.lock
 # Secrets
 *secret*
 *token*
-*password*
 *credential*
 *.jwt
+*.password
+password.txt
+passwords.*
 !*secret*.example
 !*token*.example
+!**/*.ts  # TypeScript source files should not be ignored
+!**/*.tsx # React TypeScript files should not be ignored
 
 # Railway
 .env.railway

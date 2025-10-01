@@ -1,8 +1,5 @@
 import { revalidatePath } from 'next/cache';
 
-import { createClient } from '@/lib/supabase/server';
-import { createSupabaseQueryMock } from '@/test-utils/supabase-mocks';
-
 import {
   getAccountingPeriods,
   createAccountingPeriod,
@@ -17,6 +14,9 @@ import { auditEntityChange } from '../audit-logs';
 import { ERROR_CODES } from '../types';
 import { rateLimitMiddleware, RATE_LIMIT_CONFIGS } from '../utils/rate-limiter';
 import * as typeGuards from '../utils/type-guards';
+
+import { createClient } from '@/lib/supabase/server';
+import { createSupabaseQueryMock } from '@/test-utils/supabase-mocks';
 
 // Mock dependencies
 jest.mock('next/cache', () => ({

@@ -1,5 +1,7 @@
 'use client';
 
+import type { Database } from '@/lib/supabase/database.types';
+
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -33,8 +35,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useOrganization } from '@/hooks/use-organization';
-
-import type { Database } from '@/lib/supabase/database.types';
 
 type Partner = Database['public']['Tables']['partners']['Row'];
 

@@ -4,11 +4,11 @@
  * This script migrates existing data from the current database to Supabase
  */
 
+import type { Database, Json } from '../src/types/database.types';
+
 import { PrismaClient } from '@simple-bookkeeping/database';
 import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
-
-import type { Database, Json } from '../src/types/database.types';
 
 // Load environment variables
 dotenv.config();

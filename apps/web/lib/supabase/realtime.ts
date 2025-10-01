@@ -1,7 +1,7 @@
-import { createClient } from './client';
-
 import type { SupabaseClient } from './client';
 import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+
+import { createClient } from './client';
 
 export type RealtimeEvent = 'INSERT' | 'UPDATE' | 'DELETE' | '*';
 

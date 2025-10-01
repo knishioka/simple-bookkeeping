@@ -3,6 +3,9 @@
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
+import { SimpleEntryForm } from './simple-entry-form';
+import { TransactionTypeSelector } from './transaction-type-selector';
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,9 +18,6 @@ import {
 import { SimpleEntryConverter } from '@/lib/simple-entry-converter';
 import { CreateJournalEntryDto } from '@/types/journal';
 import { SimpleEntryInput, TransactionType } from '@/types/simple-entry';
-
-import { SimpleEntryForm } from './simple-entry-form';
-import { TransactionTypeSelector } from './transaction-type-selector';
 
 interface SimpleEntryDialogProps {
   open: boolean;

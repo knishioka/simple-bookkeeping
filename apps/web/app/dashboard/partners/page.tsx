@@ -1,5 +1,7 @@
 'use client';
 
+import type { Database } from '@/lib/supabase/database.types';
+
 import { Plus, Search } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -25,8 +27,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useOrganization } from '@/hooks/use-organization';
-
-import type { Database } from '@/lib/supabase/database.types';
 
 type Partner = Database['public']['Tables']['partners']['Row'];
 

@@ -1,7 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
-
 import type { Database } from '../lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
+
+import { createClient } from '@supabase/supabase-js';
 
 // Re-export auth types
 export type { User, Session };

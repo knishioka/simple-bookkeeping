@@ -1,7 +1,7 @@
+import type { Database } from '../types/database.types';
+
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-
-import type { Database } from '../types/database.types';
 
 // Create Supabase client for middleware
 export async function updateSession(request: NextRequest) {

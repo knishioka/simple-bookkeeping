@@ -138,6 +138,7 @@ export default [
         'error',
         {
           groups: [
+            'type',
             'builtin',
             'external',
             'internal',
@@ -145,8 +146,15 @@ export default [
             'sibling',
             'index',
             'object',
-            'type',
           ],
+          pathGroups: [
+            {
+              pattern: '@/**',
+              group: 'sibling',
+              position: 'after',
+            },
+          ],
+          pathGroupsExcludedImportTypes: ['type'],
           'newlines-between': 'always',
           alphabetize: {
             order: 'asc',
@@ -154,7 +162,7 @@ export default [
           },
         },
       ],
-      'import/no-unresolved': 'error',
+      'import/no-unresolved': 'off', // TypeScript handles module resolution
       'import/no-cycle': 'error',
 
       // General rules

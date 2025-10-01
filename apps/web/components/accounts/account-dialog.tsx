@@ -1,5 +1,7 @@
 'use client';
 
+import type { Database } from '@/lib/supabase/database.types';
+
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
@@ -33,8 +35,6 @@ import {
 import { useOrganization } from '@/hooks/use-organization';
 import { useServerAction } from '@/hooks/useServerAction';
 import { createAccountSchema, CreateAccountInput } from '@/types/schemas';
-
-import type { Database } from '@/lib/supabase/database.types';
 
 // Temporary type mappings
 type Account = Database['public']['Tables']['accounts']['Row'] & {

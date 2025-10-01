@@ -13,11 +13,11 @@
  * - Data consistency across operations
  */
 
-import { createClient } from '@/lib/supabase/server';
-
 import { createAccount, deleteAccount, getAccounts } from '../../accounts';
 import { createJournalEntry, getJournalEntries } from '../../journal-entries';
 import { generateTrialBalance, generateBalanceSheet, generateIncomeStatement } from '../../reports';
+
+import { createClient } from '@/lib/supabase/server';
 
 // Mock Supabase client
 jest.mock('@/lib/supabase/server');

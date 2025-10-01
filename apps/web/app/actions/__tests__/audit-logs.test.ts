@@ -1,7 +1,5 @@
 import { headers } from 'next/headers';
 
-import { createClient } from '@/lib/supabase/server';
-
 import {
   getAuditLogs,
   createAuditLog,
@@ -12,6 +10,8 @@ import {
   auditEntityChange,
 } from '../audit-logs';
 import { ERROR_CODES } from '../types';
+
+import { createClient } from '@/lib/supabase/server';
 
 // Mock dependencies
 jest.mock('next/headers', () => ({

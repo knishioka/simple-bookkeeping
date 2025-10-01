@@ -1,5 +1,7 @@
 'use client';
 
+import type { Account } from '@/types/account';
+
 import { Minus, Plus } from 'lucide-react';
 import { FieldArrayWithId, UseFieldArrayRemove, UseFormReturn } from 'react-hook-form';
 
@@ -21,8 +23,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-
-import type { Account } from '@/types/account';
 
 interface JournalEntryFormData {
   entryDate: Date;

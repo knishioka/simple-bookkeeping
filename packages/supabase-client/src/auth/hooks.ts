@@ -1,10 +1,10 @@
+import type { AuthUser, UserOrganization } from './index';
+import type { Database } from '../lib/supabase';
+
 import { createClient } from '@supabase/supabase-js';
 import { useEffect, useState, useCallback } from 'react';
 
 import { authUtils } from './index';
-
-import type { AuthUser, UserOrganization } from './index';
-import type { Database } from '../lib/supabase';
 
 /**
  * Hook to get current authenticated user
