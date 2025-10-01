@@ -188,9 +188,17 @@ export class UsersDAL extends BaseDAL<Profile> {
       const user = await this.getCurrentUser();
       const supabase = await this.getSupabase();
 
+      if (!user.email) {
+        return {
+          data: false,
+          error: new Error('User email is required'),
+          success: false,
+        };
+      }
+
       // Validate current password
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: user.email!,
+        email: user.email,
         password: currentPassword,
       });
 
@@ -251,9 +259,17 @@ export class UsersDAL extends BaseDAL<Profile> {
       const user = await this.getCurrentUser();
       const supabase = await this.getSupabase();
 
+      if (!user.email) {
+        return {
+          data: false,
+          error: new Error('User email is required'),
+          success: false,
+        };
+      }
+
       // Verify password
       const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user.email!,
+        email: user.email,
         password,
       });
 

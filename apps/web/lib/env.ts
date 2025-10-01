@@ -240,6 +240,7 @@ export { envSchema, clientEnvSchema, serverEnvSchema };
 export function initializeEnv(): void {
   try {
     validateEnv(process.env);
+    // eslint-disable-next-line no-console
     console.log('✅ Environment variables validated successfully');
   } catch (error) {
     console.error('❌ Environment validation failed:', error);

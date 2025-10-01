@@ -11,6 +11,21 @@ import { getSecureErrorMessage, Language, logErrorSecurely } from '@/lib/error-m
 import { createServerClient } from '@/lib/supabase';
 
 /**
+ * Get Supabase configuration from environment variables
+ * @throws Error if environment variables are not set
+ */
+function getSupabaseConfig(): { url: string; anonKey: string } {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !anonKey) {
+    throw new Error('Supabase configuration is missing');
+  }
+
+  return { url, anonKey };
+}
+
+/**
  * MFA configuration
  */
 const MFA_CONFIG = {
@@ -113,8 +128,8 @@ export async function enrollMFA(formData: FormData): Promise<MFAEnrollmentRespon
     }
 
     const cookieStore = await cookies();
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabaseUrl = getSupabaseConfig().url;
+    const supabaseAnonKey = getSupabaseConfig().anonKey;
 
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
@@ -143,8 +158,15 @@ export async function enrollMFA(formData: FormData): Promise<MFAEnrollmentRespon
     }
 
     // Verify password
+    if (!user.email) {
+      return {
+        success: false,
+        error: 'User email is required',
+      };
+    }
+
     const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: user.email!,
+      email: user.email,
       password: validation.data.password,
     });
 
@@ -176,8 +198,16 @@ export async function enrollMFA(formData: FormData): Promise<MFAEnrollmentRespon
       length: 32,
     });
 
+    // Check if otpauth_url is available
+    if (!secret.otpauth_url) {
+      return {
+        success: false,
+        error: 'Failed to generate MFA secret',
+      };
+    }
+
     // Generate QR code
-    const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url!);
+    const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url);
 
     // Generate backup codes
     const backupCodes = generateBackupCodes();
@@ -243,8 +273,8 @@ export async function verifyMFA(formData: FormData): Promise<MFAVerificationResp
     }
 
     const cookieStore = await cookies();
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabaseUrl = getSupabaseConfig().url;
+    const supabaseAnonKey = getSupabaseConfig().anonKey;
 
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
@@ -380,8 +410,7 @@ export async function disableMFA(formData: FormData): Promise<MFAVerificationRes
     }
 
     const cookieStore = await cookies();
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const { url: supabaseUrl, anonKey: supabaseAnonKey } = getSupabaseConfig();
 
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
@@ -411,8 +440,16 @@ export async function disableMFA(formData: FormData): Promise<MFAVerificationRes
     }
 
     // Verify password
+    if (!user.email) {
+      return {
+        success: false,
+        verified: false,
+        error: 'User email is required',
+      };
+    }
+
     const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: user.email!,
+      email: user.email,
       password: validation.data.password,
     });
 
@@ -477,8 +514,7 @@ export async function disableMFA(formData: FormData): Promise<MFAVerificationRes
 export async function getMFAStatus(): Promise<MFAStatusResponse> {
   try {
     const cookieStore = await cookies();
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const { url: supabaseUrl, anonKey: supabaseAnonKey } = getSupabaseConfig();
 
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
@@ -564,8 +600,8 @@ export async function regenerateBackupCodes(formData: FormData): Promise<MFAEnro
     }
 
     const cookieStore = await cookies();
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const supabaseUrl = getSupabaseConfig().url;
+    const supabaseAnonKey = getSupabaseConfig().anonKey;
 
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
@@ -593,9 +629,17 @@ export async function regenerateBackupCodes(formData: FormData): Promise<MFAEnro
       };
     }
 
+    // Check email availability
+    if (!user.email) {
+      return {
+        success: false,
+        error: 'User email is required',
+      };
+    }
+
     // Verify password
     const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: user.email!,
+      email: user.email,
       password: validation.data.password,
     });
 

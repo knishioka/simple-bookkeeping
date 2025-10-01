@@ -84,7 +84,7 @@ function getRateLimiter(pathname: string): Ratelimit | null {
 
   // Check exact match
   if (rateLimiters.has(pathname)) {
-    return rateLimiters.get(pathname)!;
+    return rateLimiters.get(pathname) || null;
   }
 
   // Check prefix matches
