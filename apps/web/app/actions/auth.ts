@@ -2,8 +2,6 @@
 
 import { revalidatePath } from 'next/cache';
 
-import { createClient } from '@/lib/supabase/server';
-
 import {
   ActionResult,
   createSuccessResult,
@@ -12,6 +10,8 @@ import {
   handleSupabaseError,
   ERROR_CODES,
 } from './types';
+
+import { createClient } from '@/lib/supabase/server';
 
 interface SignUpInput {
   email: string;

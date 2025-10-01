@@ -1,11 +1,11 @@
 'use client';
 
+import type { RealtimeSubscription, RealtimeEvent } from '@/lib/supabase/realtime';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+
 import { useEffect, useRef } from 'react';
 
 import { realtimeService } from '@/lib/supabase/realtime';
-
-import type { RealtimeSubscription, RealtimeEvent } from '@/lib/supabase/realtime';
-import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface UseRealtimeOptions<T extends Record<string, any> = Record<string, any>> {

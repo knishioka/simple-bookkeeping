@@ -1,5 +1,7 @@
 'use client';
 
+import type { IncomeStatementItem } from '@/app/actions/reports';
+
 import { Calendar, Download, Printer } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -11,8 +13,6 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { useOrganization } from '@/hooks/use-organization';
 import { useServerAction } from '@/hooks/useServerAction';
-
-import type { IncomeStatementItem } from '@/app/actions/reports';
 
 interface AccountBalance {
   accountId: string;

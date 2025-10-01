@@ -1,7 +1,9 @@
-import { createServerClient } from '@supabase/ssr';
-import { NextResponse } from 'next/server';
-
 import type { NextRequest } from 'next/server';
+
+import { createServerClient } from '@supabase/ssr';
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
+import { NextResponse } from 'next/server';
 
 // Define public routes that don't require authentication
 const publicRoutes = [
@@ -21,12 +23,145 @@ const publicPatterns = [
   /^\/favicon\.ico/,
 ];
 
+/**
+ * Rate limit configuration for different endpoints
+ */
+const RATE_LIMIT_CONFIG = {
+  // Authentication endpoints - strict limits
+  '/auth/login': { limit: 5, window: '15m' },
+  '/auth/signup': { limit: 3, window: '1h' },
+  '/auth/reset-password': { limit: 3, window: '1h' },
+  '/api/auth/signin': { limit: 5, window: '15m' },
+  '/api/auth/signup': { limit: 3, window: '1h' },
+  '/api/mfa/verify': { limit: 5, window: '5m' },
+  '/api/mfa/enroll': { limit: 3, window: '1h' },
+
+  // API endpoints - moderate limits
+  '/api': { limit: 100, window: '1m' },
+
+  // Default for all other routes
+  default: { limit: 200, window: '1m' },
+};
+
+/**
+ * Initialize Redis client for rate limiting
+ */
+const redis =
+  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+    ? new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+      })
+    : null;
+
+/**
+ * Create rate limiter instances
+ */
+const rateLimiters = new Map<string, Ratelimit>();
+
+if (redis) {
+  Object.entries(RATE_LIMIT_CONFIG).forEach(([path, config]) => {
+    rateLimiters.set(
+      path,
+      new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(
+          config.limit,
+          config.window as `${number}${'ms' | 's' | 'm' | 'h' | 'd'}`
+        ),
+        analytics: true,
+        prefix: `ratelimit:${path}`,
+      })
+    );
+  });
+}
+
+/**
+ * Get rate limiter for a path
+ */
+function getRateLimiter(pathname: string): Ratelimit | null {
+  if (!redis) return null;
+
+  // Check exact match
+  if (rateLimiters.has(pathname)) {
+    return rateLimiters.get(pathname) || null;
+  }
+
+  // Check prefix matches
+  const entries = Array.from(rateLimiters.entries());
+  for (const [path, limiter] of entries) {
+    if (pathname.startsWith(path) && path !== 'default') {
+      return limiter;
+    }
+  }
+
+  return rateLimiters.get('default') || null;
+}
+
+/**
+ * Get client identifier for rate limiting
+ */
+function getClientIdentifier(request: NextRequest): string {
+  const forwarded = request.headers.get('x-forwarded-for');
+  const realIp = request.headers.get('x-real-ip');
+  const ip = forwarded ? forwarded.split(',')[0].trim() : realIp || '127.0.0.1';
+  return `ip:${ip}`;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const response = NextResponse.next();
+
+  // Skip rate limiting for static assets
+  if (
+    pathname.startsWith('/_next/static') ||
+    pathname.startsWith('/_next/image') ||
+    pathname.match(/\.(ico|png|jpg|jpeg|svg|css|js|woff|woff2)$/)
+  ) {
+    return response;
+  }
+
+  // Apply rate limiting if Redis is configured
+  const rateLimiter = getRateLimiter(pathname);
+  if (rateLimiter) {
+    const identifier = getClientIdentifier(request);
+
+    try {
+      const { success, limit, reset, remaining } = await rateLimiter.limit(identifier);
+
+      // Add rate limit headers
+      response.headers.set('X-RateLimit-Limit', limit.toString());
+      response.headers.set('X-RateLimit-Remaining', remaining.toString());
+      response.headers.set('X-RateLimit-Reset', new Date(reset).toISOString());
+
+      if (!success) {
+        // Rate limit exceeded
+        return new NextResponse(
+          JSON.stringify({
+            error: 'リクエストが多すぎます。しばらくしてからお試しください。',
+            retryAfter: Math.ceil((reset - Date.now()) / 1000),
+          }),
+          {
+            status: 429,
+            headers: {
+              'Content-Type': 'application/json',
+              'Retry-After': Math.ceil((reset - Date.now()) / 1000).toString(),
+              'X-RateLimit-Limit': limit.toString(),
+              'X-RateLimit-Remaining': '0',
+              'X-RateLimit-Reset': new Date(reset).toISOString(),
+            },
+          }
+        );
+      }
+    } catch (error) {
+      // Log error but don't block the request if rate limiting fails
+      console.error('Rate limiting error:', error);
+    }
+  }
 
   // Allow public routes
   if (publicRoutes.includes(pathname) || publicPatterns.some((pattern) => pattern.test(pathname))) {
-    return NextResponse.next();
+    return response;
   }
 
   // Skip authentication in test/development environment when Supabase is not configured
@@ -41,7 +176,6 @@ export async function middleware(request: NextRequest) {
 
   if (isTestMode) {
     // In test environment, allow all routes without authentication
-    const response = NextResponse.next();
 
     // Set dummy user context for API routes
     if (pathname.startsWith('/api/')) {
@@ -53,8 +187,6 @@ export async function middleware(request: NextRequest) {
   }
 
   // Create Supabase client
-  const response = NextResponse.next();
-
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 

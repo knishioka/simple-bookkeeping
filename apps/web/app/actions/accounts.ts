@@ -1,8 +1,8 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import type { Database } from '@/lib/supabase/database.types';
 
-import { createClient } from '@/lib/supabase/server';
+import { revalidatePath } from 'next/cache';
 
 import {
   ActionResult,
@@ -17,7 +17,7 @@ import {
   ERROR_CODES,
 } from './types';
 
-import type { Database } from '@/lib/supabase/database.types';
+import { createClient } from '@/lib/supabase/server';
 
 type Account = Database['public']['Tables']['accounts']['Row'];
 type AccountInsert = Database['public']['Tables']['accounts']['Insert'];

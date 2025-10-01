@@ -1,9 +1,9 @@
 'use client';
 
+import type { ActionResult } from '@/app/actions/types';
+
 import { useCallback, useState, useTransition } from 'react';
 import { toast } from 'react-hot-toast';
-
-import type { ActionResult } from '@/app/actions/types';
 
 interface UseServerFileImportOptions {
   importAction: (

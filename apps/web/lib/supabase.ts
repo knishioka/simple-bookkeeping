@@ -1,5 +1,7 @@
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient as createSupabaseServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+
+export { createSupabaseServerClient as createServerClient };
 
 export async function createClient() {
   const cookieStore = await cookies();
@@ -11,7 +13,7 @@ export async function createClient() {
     throw new Error('Missing Supabase environment variables');
   }
 
-  return createServerClient(supabaseUrl, supabaseAnonKey, {
+  return createSupabaseServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       get(name: string) {
         return cookieStore.get(name)?.value;

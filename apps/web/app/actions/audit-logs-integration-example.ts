@@ -7,8 +7,6 @@
 
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
-
 import { auditEntityChange } from './audit-logs';
 import {
   ActionResult,
@@ -16,6 +14,8 @@ import {
   createUnauthorizedResult,
   handleSupabaseError,
 } from './types';
+
+import { createClient } from '@/lib/supabase/server';
 
 /**
  * 勘定科目作成の例（監査ログ付き）

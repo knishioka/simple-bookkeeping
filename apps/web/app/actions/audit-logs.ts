@@ -2,8 +2,6 @@
 
 import { headers } from 'next/headers';
 
-import { createClient } from '@/lib/supabase/server';
-
 import {
   ActionResult,
   createSuccessResult,
@@ -16,6 +14,8 @@ import {
   PaginatedResponse,
   PaginationInfo,
 } from './types';
+
+import { createClient } from '@/lib/supabase/server';
 
 /**
  * 監査ログのアクション種別

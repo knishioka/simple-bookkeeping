@@ -13,9 +13,9 @@
  * - Protected route access
  */
 
-import { createClient } from '@/lib/supabase/server';
-
 import { signIn, signOut, signUp, getCurrentUser } from '../../auth';
+
+import { createClient } from '@/lib/supabase/server';
 
 // Mock Supabase client
 jest.mock('@/lib/supabase/server');

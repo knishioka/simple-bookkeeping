@@ -1,5 +1,7 @@
 'use client';
 
+import type { Database } from '@/lib/supabase/database.types';
+
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -28,8 +30,6 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { useOrganization } from '@/hooks/use-organization';
 import { useToast } from '@/hooks/use-toast';
-
-import type { Database } from '@/lib/supabase/database.types';
 
 type AccountingPeriod = Database['public']['Tables']['accounting_periods']['Row'];
 

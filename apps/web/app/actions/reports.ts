@@ -1,7 +1,5 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
-
 import {
   ActionResult,
   createSuccessResult,
@@ -11,6 +9,8 @@ import {
   ERROR_CODES,
   createValidationErrorResult,
 } from './types';
+
+import { createClient } from '@/lib/supabase/server';
 
 // Types for report data
 export interface AccountBalance {
