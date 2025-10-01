@@ -33,17 +33,48 @@ const serverEnvSchema = z.object({
 });
 
 /**
+ * Custom URL validator that only allows HTTP(S) protocols
+ * and rejects XSS/SSRF attempts
+ */
+const httpUrlValidator = z
+  .string()
+  .trim()
+  .min(1, { message: 'URL cannot be empty' })
+  .refine(
+    (val) => {
+      // Treat whitespace-only strings as invalid
+      if (!val || val.trim().length === 0) {
+        return false;
+      }
+
+      try {
+        const url = new URL(val.trim());
+        // Only allow http: and https: protocols
+        return url.protocol === 'http:' || url.protocol === 'https:';
+      } catch {
+        return false;
+      }
+    },
+    { message: 'Invalid Supabase URL format' }
+  );
+
+/**
+ * Custom string validator that treats empty/whitespace as invalid
+ */
+const nonEmptyString = z
+  .string()
+  .trim()
+  .min(1, { message: 'Value cannot be empty' })
+  .refine((val) => val && val.trim().length > 0, { message: 'Value cannot be whitespace only' });
+
+/**
  * Client-side environment variables schema
  * These variables are exposed to the browser (prefixed with NEXT_PUBLIC_)
  */
 const clientEnvSchema = z.object({
   // Supabase (Client-side)
-  NEXT_PUBLIC_SUPABASE_URL: z.string().url({
-    message: 'NEXT_PUBLIC_SUPABASE_URL must be a valid URL',
-  }),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, {
-    message: 'NEXT_PUBLIC_SUPABASE_ANON_KEY is required',
-  }),
+  NEXT_PUBLIC_SUPABASE_URL: httpUrlValidator,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: nonEmptyString,
 
   // Site configuration
   NEXT_PUBLIC_SITE_URL: z.string().url().optional().or(z.literal('')),
@@ -93,6 +124,20 @@ export function validateEnv(env: NodeJS.ProcessEnv = process.env): Env {
           throw new Error(`Missing required environment variable: ${fieldName}`);
         }
 
+        // Check for empty/whitespace strings (treated as missing)
+        if (
+          firstError.code === 'too_small' ||
+          firstError.message.includes('empty') ||
+          firstError.message.includes('whitespace')
+        ) {
+          throw new Error(`Missing required environment variable: ${fieldName}`);
+        }
+
+        // Check for custom validation failures (URL format, etc.)
+        if (firstError.code === 'custom' || firstError.message.includes('Invalid Supabase URL')) {
+          throw new Error(`Invalid Supabase URL format`);
+        }
+
         if (firstError.code === 'invalid_string' && firstError.validation === 'url') {
           throw new Error(`Invalid Supabase URL format`);
         }
@@ -123,11 +168,12 @@ export const env = validateEnv(process.env);
 /**
  * Helper to get Supabase URL with fallback
  * Handles local development and production environments
+ * Reads from process.env for test compatibility
  */
 export function getSupabaseUrl(): string {
-  const url = env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
 
-  if (!url) {
+  if (!url || url.length === 0) {
     throw new Error('Missing required environment variable: NEXT_PUBLIC_SUPABASE_URL');
   }
 
@@ -146,11 +192,12 @@ export function getSupabaseUrl(): string {
 
 /**
  * Helper to get Supabase Anon Key
+ * Reads from process.env for test compatibility
  */
 export function getSupabaseAnonKey(): string {
-  const key = env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
 
-  if (!key) {
+  if (!key || key.length === 0) {
     throw new Error('Missing required environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY');
   }
 

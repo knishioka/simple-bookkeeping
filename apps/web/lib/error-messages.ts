@@ -184,70 +184,87 @@ export function getSecureErrorMessage(
 
 /**
  * Determine error type from an Error object
+ * Order matters: check more specific patterns before generic ones
  */
 function determineErrorType(error: Error): ErrorType {
   const message = error.message.toLowerCase();
   const name = error.name.toLowerCase();
 
-  // Check for authentication errors
-  if (
-    message.includes('auth') ||
-    message.includes('login') ||
-    message.includes('password') ||
-    message.includes('credentials') ||
-    name.includes('auth')
-  ) {
-    return ErrorType.AUTHENTICATION;
+  // Check for rate limit errors (check early as they're very specific)
+  if (message.includes('rate') || message.includes('limit') || message.includes('too many')) {
+    return ErrorType.RATE_LIMIT;
   }
 
-  // Check for authorization errors
+  // Check for authorization errors FIRST (before authentication)
+  // This prevents "User ... permission" from matching authentication
   if (
     message.includes('permission') ||
     message.includes('forbidden') ||
     message.includes('unauthorized') ||
+    message.includes('access denied') ||
+    message.includes('insufficient privileges') ||
     name.includes('forbidden')
   ) {
     return ErrorType.AUTHORIZATION;
   }
 
-  // Check for validation errors
+  // Check for authentication errors (after authorization to avoid false positives)
   if (
-    message.includes('validation') ||
-    message.includes('invalid') ||
-    message.includes('required') ||
-    name.includes('validation')
+    message.includes('auth') ||
+    message.includes('login') ||
+    message.includes('password') ||
+    message.includes('credentials') ||
+    message.includes('user not found') ||
+    message.includes('account does not exist') ||
+    message.includes('invalid email or password') ||
+    name.includes('auth')
   ) {
-    return ErrorType.VALIDATION;
+    return ErrorType.AUTHENTICATION;
   }
 
-  // Check for not found errors
-  if (message.includes('not found') || message.includes('404') || name.includes('notfound')) {
-    return ErrorType.NOT_FOUND;
-  }
-
-  // Check for rate limit errors
-  if (message.includes('rate') || message.includes('limit') || message.includes('too many')) {
-    return ErrorType.RATE_LIMIT;
+  // Check for database errors (before network, as some DB errors mention connection)
+  if (
+    message.includes('database') ||
+    message.includes('sql') ||
+    message.includes('query') ||
+    message.includes('postgresql') ||
+    message.includes('mysql') ||
+    message.includes('econnrefused') ||
+    (message.includes('connection') && (message.includes('5432') || message.includes('db'))) ||
+    name.includes('database')
+  ) {
+    return ErrorType.DATABASE;
   }
 
   // Check for network errors
   if (
     message.includes('network') ||
     message.includes('fetch') ||
-    message.includes('connection') ||
+    message.includes('enotfound') ||
+    message.includes('connection refused') ||
+    (message.includes('connection') && !message.includes('database')) ||
     name.includes('network')
   ) {
     return ErrorType.NETWORK;
   }
 
-  // Check for database errors
+  // Check for validation errors (after auth/authz to avoid false positives)
   if (
-    message.includes('database') ||
-    message.includes('sql') ||
-    message.includes('query') ||
-    name.includes('database')
+    message.includes('validation') ||
+    message.includes('invalid input') ||
+    message.includes('field is required') ||
+    name.includes('validation')
   ) {
-    return ErrorType.DATABASE;
+    return ErrorType.VALIDATION;
+  }
+
+  // Check for not found errors (check late to avoid matching auth errors)
+  if (
+    (message.includes('not found') && !message.includes('user not found')) ||
+    message.includes('404') ||
+    name.includes('notfound')
+  ) {
+    return ErrorType.NOT_FOUND;
   }
 
   // Default to server error
