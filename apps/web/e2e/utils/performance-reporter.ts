@@ -1,6 +1,6 @@
-import fs from 'fs';
-
 import type { Reporter, TestCase, TestResult, FullResult } from '@playwright/test/reporter';
+
+import fs from 'fs';
 
 interface PerformanceData {
   testName: string;

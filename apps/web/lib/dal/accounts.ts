@@ -3,9 +3,9 @@
  * Handles all account-related database operations
  */
 
-import { BaseDAL, type DALResult, type DALListResult, type QueryOptions } from './base';
-
 import type { Database } from '@simple-bookkeeping/database';
+
+import { BaseDAL, type DALResult, type DALListResult, type QueryOptions } from './base';
 
 type Account = Database['public']['Tables']['accounts']['Row'];
 type AccountInsert = Database['public']['Tables']['accounts']['Insert'];

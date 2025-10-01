@@ -138,6 +138,7 @@ export default [
         'error',
         {
           groups: [
+            'type',
             'builtin',
             'external',
             'internal',
@@ -145,7 +146,6 @@ export default [
             'sibling',
             'index',
             'object',
-            'type',
           ],
           'newlines-between': 'always',
           alphabetize: {

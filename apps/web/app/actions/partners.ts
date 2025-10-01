@@ -1,5 +1,7 @@
 'use server';
 
+import type { Database } from '@/lib/supabase/database.types';
+
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
@@ -17,8 +19,6 @@ import {
   ERROR_CODES,
 } from './types';
 import { createPartnerSchema, updatePartnerSchema } from './validation/partners';
-
-import type { Database } from '@/lib/supabase/database.types';
 
 type Partner = Database['public']['Tables']['partners']['Row'];
 type PartnerInsert = Database['public']['Tables']['partners']['Insert'];

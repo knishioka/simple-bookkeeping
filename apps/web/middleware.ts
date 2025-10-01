@@ -1,9 +1,9 @@
+import type { NextRequest } from 'next/server';
+
 import { createServerClient } from '@supabase/ssr';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 import { NextResponse } from 'next/server';
-
-import type { NextRequest } from 'next/server';
 
 // Define public routes that don't require authentication
 const publicRoutes = [

@@ -1,6 +1,6 @@
-import { createClient } from './client';
-
 import type { SupabaseClient } from './client';
+
+import { createClient } from './client';
 
 /**
  * Supabase Storageサービス

@@ -3,11 +3,11 @@
  * Provides common functionality for all DAL classes
  */
 
-import { logErrorSecurely } from '@/lib/error-messages';
-import { createClient } from '@/lib/supabase';
-
 import type { Database } from '@simple-bookkeeping/database';
 import type { SupabaseClient } from '@supabase/supabase-js';
+
+import { logErrorSecurely } from '@/lib/error-messages';
+import { createClient } from '@/lib/supabase';
 
 /**
  * Base DAL configuration

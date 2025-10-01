@@ -1,7 +1,7 @@
+import type { Database } from './database.types';
+
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-
-import type { Database } from './database.types';
 
 /**
  * Supabaseクライアント（サーバー用）

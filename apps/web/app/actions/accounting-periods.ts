@@ -1,5 +1,7 @@
 'use server';
 
+import type { Database } from '@/lib/supabase/database.types';
+
 import { revalidatePath } from 'next/cache';
 
 import { createClient } from '@/lib/supabase/server';
@@ -25,8 +27,6 @@ import {
   updateAccountingPeriodSchema,
   accountingPeriodIdSchema,
 } from './validation/accounting-periods';
-
-import type { Database } from '@/lib/supabase/database.types';
 
 type AccountingPeriod = Database['public']['Tables']['accounting_periods']['Row'];
 type AccountingPeriodInsert = Database['public']['Tables']['accounting_periods']['Insert'];

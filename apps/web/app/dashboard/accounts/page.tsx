@@ -1,5 +1,7 @@
 'use client';
 
+import type { Database } from '@/lib/supabase/database.types';
+
 import { Plus, Search, Upload } from 'lucide-react';
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 
@@ -24,8 +26,6 @@ import {
 } from '@/components/ui/table';
 import { useOrganization } from '@/hooks/use-organization';
 import { useServerAction } from '@/hooks/useServerAction';
-
-import type { Database } from '@/lib/supabase/database.types';
 
 // Lazy load the account dialog
 const AccountDialog = lazy(() =>
