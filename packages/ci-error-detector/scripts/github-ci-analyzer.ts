@@ -11,13 +11,13 @@
  *   pnpm --filter @simple-bookkeeping/ci-error-detector analyze:github 436 --job "Lint" --verbose
  */
 
+import type { CIErrorReport } from '../src/types';
+
 import { execSync, execFileSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
 import { CIErrorClassifier } from '../src/core/classifier';
-
-import type { CIErrorReport } from '../src/types';
 
 interface GitHubWorkflowRun {
   id: number;

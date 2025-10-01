@@ -1,6 +1,6 @@
-import { TEST_CREDENTIALS, TEST_API_CONFIG } from '../test-config';
-
 import type { Page, Locator, BrowserContext, Response } from '@playwright/test';
+
+import { TEST_CREDENTIALS, TEST_API_CONFIG } from '../test-config';
 
 /**
  * Interface for Playwright Page-like object
