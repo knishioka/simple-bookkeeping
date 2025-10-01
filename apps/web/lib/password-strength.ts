@@ -354,8 +354,161 @@ export function validateExistingPassword(password: string): { isValid: boolean; 
   };
 }
 
+/**
+ * Simple password validation for testing
+ * Returns validation result with English error messages
+ */
+export interface PasswordValidationResult {
+  isValid: boolean;
+  errors: string[];
+}
+
+/**
+ * Validate password against basic requirements
+ * Used for simple validation without strength scoring
+ *
+ * @param password - The password to validate
+ * @returns Validation result with errors array
+ */
+export function validatePassword(password: unknown): PasswordValidationResult {
+  const errors: string[] = [];
+
+  // Handle null/undefined/non-string inputs
+  if (!password || typeof password !== 'string') {
+    errors.push('Password must be at least 12 characters long');
+    errors.push('Password must contain at least one uppercase letter');
+    errors.push('Password must contain at least one lowercase letter');
+    errors.push('Password must contain at least one number');
+    errors.push('Password must contain at least one special character');
+    return { isValid: false, errors };
+  }
+
+  // Length validation
+  if (password.length < PASSWORD_REQUIREMENTS.MIN_LENGTH) {
+    errors.push('Password must be at least 12 characters long');
+  }
+
+  // Uppercase letter check
+  if (!/[A-Z]/.test(password)) {
+    errors.push('Password must contain at least one uppercase letter');
+  }
+
+  // Lowercase letter check
+  if (!/[a-z]/.test(password)) {
+    errors.push('Password must contain at least one lowercase letter');
+  }
+
+  // Number check
+  if (!/\d/.test(password)) {
+    errors.push('Password must contain at least one number');
+  }
+
+  // Special character check
+  if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
+    errors.push('Password must contain at least one special character');
+  }
+
+  // Check for common weak passwords
+  if (COMMON_WEAK_PASSWORDS.has(password)) {
+    errors.push('This password is too common. Please choose a more unique password');
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
+ * Password strength analysis result
+ */
+export interface PasswordStrengthAnalysis {
+  score: number; // 0-100
+  level: 'very-weak' | 'weak' | 'moderate' | 'strong' | 'very-strong';
+  feedback: string[];
+}
+
+/**
+ * Get detailed password strength analysis
+ * Uses zxcvbn for entropy-based scoring
+ *
+ * @param password - The password to analyze
+ * @returns Strength analysis with score and feedback
+ */
+export function getPasswordStrength(password: string): PasswordStrengthAnalysis {
+  if (!password || password.length === 0) {
+    return {
+      score: 0,
+      level: 'very-weak',
+      feedback: [
+        'Make it at least 12 characters',
+        'Add uppercase letters',
+        'Add lowercase letters',
+        'Add numbers',
+        'Add special characters',
+      ],
+    };
+  }
+
+  // Use zxcvbn for strength analysis
+  const result = zxcvbn(password);
+
+  // Convert zxcvbn score (0-4) to 0-100
+  const score = Math.round((result.score / 4) * 100);
+
+  // Determine strength level
+  let level: 'very-weak' | 'weak' | 'moderate' | 'strong' | 'very-strong';
+  if (score < 25) {
+    level = 'very-weak';
+  } else if (score < 50) {
+    level = 'weak';
+  } else if (score < 70) {
+    level = 'moderate';
+  } else if (score < 90) {
+    level = 'strong';
+  } else {
+    level = 'very-strong';
+  }
+
+  // Build feedback array
+  const feedback: string[] = [];
+
+  // Check basic requirements
+  if (password.length < 12) {
+    feedback.push('Make it at least 12 characters');
+  }
+  if (!/[A-Z]/.test(password)) {
+    feedback.push('Add uppercase letters');
+  }
+  if (!/[a-z]/.test(password)) {
+    feedback.push('Add lowercase letters');
+  }
+  if (!/\d/.test(password)) {
+    feedback.push('Add numbers');
+  }
+  if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
+    feedback.push('Add special characters');
+  }
+
+  // Add zxcvbn suggestions
+  if (result.feedback.warning) {
+    feedback.push(result.feedback.warning);
+  }
+  if (result.feedback.suggestions) {
+    feedback.push(...result.feedback.suggestions);
+  }
+
+  return {
+    score,
+    level,
+    feedback,
+  };
+}
+
 export default {
   validatePasswordStrength,
+  validatePassword,
+  getPasswordStrength,
   getStrengthLabel,
   getStrengthColor,
   generateSecurePassword,

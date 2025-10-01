@@ -38,6 +38,7 @@ function getSanitizer() {
 /**
  * Default configuration for DOMPurify
  * Allows basic formatting tags but removes dangerous elements
+ * Includes mXSS (mutation XSS) protection
  */
 const DEFAULT_CONFIG: DOMPurifyConfig = {
   ALLOWED_TAGS: [
@@ -69,8 +70,12 @@ const DEFAULT_CONFIG: DOMPurifyConfig = {
   ALLOWED_ATTR: ['href', 'title', 'target', 'rel', 'class'],
   ALLOW_DATA_ATTR: false,
   KEEP_CONTENT: true,
-  FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form'],
+  FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed', 'form', 'noscript'],
   FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover'],
+  // mXSS protection
+  SANITIZE_DOM: true,
+  SAFE_FOR_TEMPLATES: false,
+  WHOLE_DOCUMENT: false,
 };
 
 /**
