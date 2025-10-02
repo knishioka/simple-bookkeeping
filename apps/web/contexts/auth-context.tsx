@@ -1,17 +1,20 @@
 'use client';
 
+import type { ActionResult } from '@/app/actions/types';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
+
 import { useRouter } from 'next/navigation';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 
-// TODO: Migrate to Supabase auth - Issue #355
-// import { apiClient } from '@/lib/api-client';
+import { signIn, signOut, getCurrentUser } from '@/app/actions/auth';
+import { createClient } from '@/lib/supabase/client';
 
 interface Organization {
   id: string;
   name: string;
   code: string;
-  role: 'ADMIN' | 'ACCOUNTANT' | 'VIEWER';
+  role: 'admin' | 'accountant' | 'viewer';
   isDefault: boolean;
 }
 
@@ -23,14 +26,25 @@ interface User {
   currentOrganization?: Organization;
 }
 
+interface AuthUser {
+  id: string;
+  email: string;
+  name?: string;
+  organizationId?: string;
+  role?: string;
+}
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  isAuthenticated: boolean;
+  currentOrganization: Organization | null;
+  signIn: (email: string, password: string) => Promise<ActionResult<AuthUser>>;
+  signOut: () => Promise<ActionResult<{ success: boolean }>>;
+  // Backward compatibility aliases
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  isAuthenticated: boolean;
   switchOrganization: (organizationId: string) => Promise<void>;
-  currentOrganization: Organization | null;
   refreshUser: () => Promise<void>;
 }
 
@@ -54,387 +68,330 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
 
-  useEffect(() => {
-    // TODO: Migrate to Supabase auth - Issue #355
-    // This auth check is temporarily disabled during migration to Supabase
-    // The application should use Supabase's auth.getUser() instead
+  // Function to fetch and set user data
+  const fetchUserData = useCallback(async (supabaseUser: SupabaseUser) => {
+    try {
+      const supabase = createClient();
 
-    // For E2E tests, check if test user data is available
-    const checkTestUser = () => {
-      // CRITICAL SECURITY: Only allow test authentication in non-production environments
-      if (process.env.NODE_ENV === 'production') {
-        return false;
+      // Define the type for the user organization with relations
+      interface UserOrgWithRelations {
+        id: string;
+        role: 'admin' | 'accountant' | 'viewer';
+        is_default: boolean;
+        organization: {
+          id: string;
+          name: string;
+          code: string;
+        } | null;
       }
 
-      if (typeof window === 'undefined') {
-        return false;
-      }
+      // Get user's organizations
+      const { data: userOrgs } = await supabase
+        .from('user_organizations')
+        .select(
+          `
+          id,
+          role,
+          is_default,
+          organization:organizations (
+            id,
+            name,
+            code
+          )
+        `
+        )
+        .eq('user_id', supabaseUser.id)
+        .returns<UserOrgWithRelations[]>();
 
-      // Check window.__testUser first
-      const windowTestUser = (window as Window & { __testUser?: Record<string, unknown> })
-        .__testUser;
+      // Get user's profile data
+      const { data: userData } = await supabase
+        .from('users')
+        .select('name')
+        .eq('id', supabaseUser.id)
+        .single();
 
-      // Also check localStorage for Supabase test auth (persists across navigations)
-      let testUser:
-        | {
-            id?: string;
-            email?: string;
-            user_metadata?: { name?: string; organization_id?: string; role?: string };
-          }
-        | undefined = windowTestUser as
-        | {
-            id?: string;
-            email?: string;
-            user_metadata?: { name?: string; organization_id?: string; role?: string };
-          }
-        | undefined;
+      const organizations: Organization[] =
+        userOrgs
+          ?.filter((userOrg) => userOrg.organization !== null)
+          .map((userOrg) => {
+            // We've filtered out null organizations above, so this is safe
+            const org = userOrg.organization;
+            if (!org) return null; // Type guard, will never happen
+            return {
+              id: org.id,
+              name: org.name,
+              code: org.code,
+              role: userOrg.role,
+              isDefault: userOrg.is_default,
+            };
+          })
+          .filter((org): org is Organization => org !== null) || [];
 
-      if (!testUser) {
-        try {
-          const supabaseAuth = localStorage.getItem('supabase.auth.token');
-          if (supabaseAuth) {
-            const authData = JSON.parse(supabaseAuth);
-            if (authData?.user) {
-              testUser = authData.user;
-            }
-          }
-        } catch {
-          // Ignore parsing errors
-        }
-      }
+      // Find default organization or use first one
+      const defaultOrg = organizations.find((org) => org.isDefault) || organizations[0];
 
-      if (testUser) {
-        const mockUser: User = {
-          id: testUser.id || 'test-user-id',
-          email: testUser.email || 'test@example.com',
-          name: testUser.user_metadata?.name || 'Test User',
-          organizations: [
-            {
-              id: testUser.user_metadata?.organization_id || 'test-org-1',
-              name: 'Test Organization',
-              code: 'TEST001',
-              role: (testUser.user_metadata?.role?.toUpperCase() || 'ADMIN') as
-                | 'ADMIN'
-                | 'ACCOUNTANT'
-                | 'VIEWER',
-              isDefault: true,
-            },
-          ],
-        };
-        mockUser.currentOrganization = mockUser.organizations[0];
-        setUser(mockUser);
-        setCurrentOrganization(mockUser.organizations[0]);
-        return true;
-      }
-      return false;
-    };
-
-    // Check immediately
-    const hasTestUser = checkTestUser();
-
-    // If no test user found immediately, poll for test user data
-    // This handles the case where SupabaseAuth.setup() runs after component mount
-    // especially in production builds where timing is different
-    if (!hasTestUser) {
-      let attempts = 0;
-      const maxAttempts = 20; // Poll for up to 2 seconds (20 * 100ms)
-
-      const intervalId = setInterval(() => {
-        attempts++;
-        const found = checkTestUser();
-
-        if (found || attempts >= maxAttempts) {
-          clearInterval(intervalId);
-          setLoading(false);
-        }
-      }, 100); // Check every 100ms
-
-      return () => {
-        clearInterval(intervalId);
+      const userInfo: User = {
+        id: supabaseUser.id,
+        email: supabaseUser.email || '',
+        name: userData?.name || supabaseUser.user_metadata?.name || 'Unknown User',
+        organizations,
+        currentOrganization: defaultOrg,
       };
-    } else {
-      setLoading(false);
+
+      setUser(userInfo);
+      setCurrentOrganization(defaultOrg || null);
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      // Even if fetching additional data fails, set basic user info
+      const basicUser: User = {
+        id: supabaseUser.id,
+        email: supabaseUser.email || '',
+        name: supabaseUser.user_metadata?.name || 'Unknown User',
+        organizations: [],
+      };
+      setUser(basicUser);
+      setCurrentOrganization(null);
     }
+  }, []);
 
-    // Original auth check code commented out:
-    /*
-    const checkAuth = async () => {
-      // Skip auth check for demo pages to avoid 401 errors
-      if (typeof window !== 'undefined' && window.location.pathname.startsWith('/demo')) {
-        setLoading(false);
-        return;
-      }
+  // Initialize auth state and listen for changes
+  useEffect(() => {
+    let mounted = true;
 
+    const initAuth = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const refreshToken = localStorage.getItem('refreshToken');
+        const supabase = createClient();
 
-        if (token && refreshToken) {
-          // Set tokens in API client
-          apiClient.setToken(token, refreshToken);
+        // Get initial session to check if user is logged in
+        // Note: We use getSession() here just to check if a session exists
+        // The actual user validation will be done by onAuthStateChange
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
-          // Try to restore user from localStorage first (fast recovery)
-          const cachedUser = localStorage.getItem('user');
-          if (cachedUser) {
-            try {
-              const parsedUser = JSON.parse(cachedUser) as User;
-              setUser(parsedUser);
-              setCurrentOrganization(parsedUser.currentOrganization || null);
+        if (session?.user && mounted) {
+          // Validate the session by calling getUser()
+          const {
+            data: { user: validatedUser },
+            error,
+          } = await supabase.auth.getUser();
 
-              // Set organization ID if available
-              if (parsedUser.currentOrganization?.id) {
-                apiClient.setOrganizationId(parsedUser.currentOrganization.id);
-              }
-            } catch {
-              // Failed to parse cached user data
-              localStorage.removeItem('user');
-            }
-          }
-
-          // Then validate the token by fetching fresh user info
-          try {
-            const response = await apiClient.get<{ user: User }>('/auth/me');
-            if (response.data?.user) {
-              const freshUser = response.data.user;
-              setUser(freshUser);
-              setCurrentOrganization(freshUser.currentOrganization || null);
-
-              // Update cached user data
-              localStorage.setItem('user', JSON.stringify(freshUser));
-
-              // Set organization ID if available
-              if (freshUser.currentOrganization?.id) {
-                apiClient.setOrganizationId(freshUser.currentOrganization.id);
-              }
-            }
-          } catch {
-            // Token might be expired or invalid, clearing auth state
-            apiClient.clearTokens();
-            apiClient.clearOrganizationId();
-            localStorage.removeItem('user');
+          if (validatedUser && !error) {
+            await fetchUserData(validatedUser);
+          } else {
+            // Session is invalid, clear state
             setUser(null);
             setCurrentOrganization(null);
           }
+        } else if (mounted) {
+          setUser(null);
+          setCurrentOrganization(null);
         }
-      } catch {
-        // Auth check failed
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        // On error, set user to null to avoid blocking
+        if (mounted) {
+          setUser(null);
+          setCurrentOrganization(null);
+        }
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
-    checkAuth();
-    */
-  }, []);
+    // Set up auth state change listener
+    const supabase = createClient();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
 
-  const login = async (_email: string, _password: string) => {
-    // TODO: Migrate to Supabase auth - Issue #355
-    // Use signIn Server Action from app/actions/auth.ts instead
-    toast.error('ログイン機能は現在メンテナンス中です');
-    setLoading(false);
+      switch (event) {
+        case 'SIGNED_IN':
+        case 'TOKEN_REFRESHED':
+          if (session?.user) {
+            await fetchUserData(session.user);
+          }
+          break;
+        case 'SIGNED_OUT':
+          setUser(null);
+          setCurrentOrganization(null);
+          break;
+        case 'USER_UPDATED':
+          if (session?.user) {
+            await fetchUserData(session.user);
+          }
+          break;
+        default:
+          break;
+      }
+    });
 
-    // Original login code commented out:
-    /*
+    // Initialize auth state
+    initAuth();
+
+    // Cleanup
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [fetchUserData]);
+
+  // Sign in function - delegates to Server Action
+  const handleSignIn = async (email: string, password: string): Promise<ActionResult<AuthUser>> => {
     setLoading(true);
     try {
-      const response = await apiClient.post<{
-        token: string;
-        refreshToken: string;
-        user: {
-          id: string;
-          email: string;
-          name: string;
-          role: string;
-          organizationId?: string;
-          organization?: {
-            id: string;
-            name: string;
-            code: string;
-          };
-        };
-      }>('/auth/login', { email, password });
+      const result = await signIn({ email, password });
 
-      if (response.data) {
-        apiClient.setToken(response.data.token, response.data.refreshToken);
-
-        // Set organization ID if available
-        if (response.data.user.organizationId) {
-          apiClient.setOrganizationId(response.data.user.organizationId);
-        }
-
-        // Create organization object from response
-        const organization: Organization | undefined = response.data.user.organization
-          ? {
-              id: response.data.user.organization.id,
-              name: response.data.user.organization.name,
-              code: response.data.user.organization.code,
-              role: response.data.user.role as 'ADMIN' | 'ACCOUNTANT' | 'VIEWER',
-              isDefault: true,
-            }
-          : undefined;
-
-        const fullUser: User = {
-          id: response.data.user.id,
-          email: response.data.user.email,
-          name: response.data.user.name,
-          organizations: organization ? [organization] : [],
-          currentOrganization: organization,
-        };
-
-        setUser(fullUser);
-        setCurrentOrganization(organization || null);
-
-        // Save user data to localStorage for fast recovery
-        localStorage.setItem('user', JSON.stringify(fullUser));
-
+      if (result.success && result.data) {
+        // The auth state change listener will handle updating the user state
+        // DO NOT navigate here - let the calling component handle navigation
+        // to avoid race conditions with middleware auth checks
         toast.success('ログインしました');
-        router.push('/dashboard');
+      } else if (!result.success) {
+        toast.error(result.error?.message || 'ログインに失敗しました');
       }
+
+      return result;
     } catch (error) {
-      // Login failed
-      if (error instanceof Error) {
-        toast.error(`ログインエラー: ${error.message}`);
-      } else {
-        toast.error('ログインに失敗しました');
-      }
+      const errorMessage = error instanceof Error ? error.message : 'ログインに失敗しました';
+      toast.error(errorMessage);
+      return {
+        success: false,
+        error: {
+          code: 'LOGIN_ERROR',
+          message: errorMessage,
+        },
+      };
     } finally {
       setLoading(false);
     }
-    */
   };
 
-  const logout = async () => {
-    // TODO: Migrate to Supabase auth - Issue #355
-    // Use signOut Server Action from app/actions/auth.ts instead
-    localStorage.removeItem('user');
-    setUser(null);
-    setCurrentOrganization(null);
-    toast.success('ログアウトしました');
-    router.push('/auth/login');
-
-    // Original logout code commented out:
-    /*
+  // Sign out function - delegates to Server Action
+  const handleSignOut = async (): Promise<ActionResult<{ success: boolean }>> => {
     try {
-      await apiClient.post('/auth/logout');
-      apiClient.clearTokens();
-      apiClient.clearOrganizationId();
-      localStorage.removeItem('user');
-      setUser(null);
-      setCurrentOrganization(null);
-      toast.success('ログアウトしました');
-      router.push('/auth/login');
-    } catch {
-      // Logout failed
-      // Even if logout fails, clear local state
-      apiClient.clearTokens();
-      apiClient.clearOrganizationId();
-      localStorage.removeItem('user');
-      setUser(null);
-      setCurrentOrganization(null);
-      router.push('/auth/login');
+      const result = await signOut();
+
+      if (result.success) {
+        // The auth state change listener will handle clearing the user state
+        toast.success('ログアウトしました');
+        router.push('/auth/login');
+      } else {
+        toast.error(result.error?.message || 'ログアウトに失敗しました');
+      }
+
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'ログアウトに失敗しました';
+      toast.error(errorMessage);
+      return {
+        success: false,
+        error: {
+          code: 'LOGOUT_ERROR',
+          message: errorMessage,
+        },
+      };
     }
-    */
   };
 
-  const switchOrganization = async (_organizationId: string) => {
-    // TODO: Migrate to Supabase auth - Issue #355
-    // Need to implement organization switching with Supabase
-    toast.error('組織切り替え機能は現在メンテナンス中です');
-
-    // Original switchOrganization code commented out:
-    /*
+  // Switch organization
+  const switchOrganization = async (organizationId: string) => {
     if (!user) return;
 
+    const newOrg = user.organizations.find((org) => org.id === organizationId);
+    if (!newOrg) {
+      toast.error('組織が見つかりません');
+      return;
+    }
+
     try {
-      // Call the new switch organization endpoint
-      const response = await apiClient.post<{
-        token: string;
-        refreshToken: string;
-        user: {
-          id: string;
-          email: string;
-          name: string;
-          role: string;
-          organizationId: string;
-          organization: {
-            id: string;
-            name: string;
-            code: string;
-          };
-        };
-      }>('/auth/switch-organization', { organizationId });
+      const supabase = createClient();
 
-      if (response.data) {
-        // Update tokens with new organization context
-        apiClient.setToken(response.data.token, response.data.refreshToken);
-        apiClient.setOrganizationId(organizationId);
+      // Update default organization in database
+      await supabase
+        .from('user_organizations')
+        .update({ is_default: false })
+        .eq('user_id', user.id);
 
-        // Create organization object from response
-        const organization: Organization = {
-          id: response.data.user.organization.id,
-          name: response.data.user.organization.name,
-          code: response.data.user.organization.code,
-          role: response.data.user.role as 'ADMIN' | 'ACCOUNTANT' | 'VIEWER',
-          isDefault: false, // Not necessarily the default after switching
-        };
+      await supabase
+        .from('user_organizations')
+        .update({ is_default: true })
+        .eq('user_id', user.id)
+        .eq('organization_id', organizationId);
 
-        const updatedUser = {
-          ...user,
-          currentOrganization: organization,
-        };
+      // Update local state
+      const updatedOrganizations = user.organizations.map((org) => ({
+        ...org,
+        isDefault: org.id === organizationId,
+      }));
 
-        setCurrentOrganization(organization);
-        setUser(updatedUser);
+      const updatedUser = {
+        ...user,
+        organizations: updatedOrganizations,
+        currentOrganization: newOrg,
+      };
 
-        // Update cached user data
-        localStorage.setItem('user', JSON.stringify(updatedUser));
+      setUser(updatedUser);
+      setCurrentOrganization(newOrg);
 
-        toast.success(`${organization.name} に切り替えました`);
+      toast.success(`${newOrg.name} に切り替えました`);
 
-        // Refresh the current page to reload data
-        router.refresh();
-      }
-    } catch {
-      // Failed to switch organization
+      // Refresh the page to reload data with new organization context
+      router.refresh();
+    } catch (error) {
+      console.error('Failed to switch organization:', error);
       toast.error('組織の切り替えに失敗しました');
     }
-    */
   };
 
+  // Refresh user data from server
   const refreshUser = async () => {
-    // TODO: Migrate to Supabase auth - Issue #355
-    // Use getCurrentUser Server Action from app/actions/auth.ts instead
-    // Original refreshUser code commented out:
-    /*
     try {
-      const response = await apiClient.get<{ user: User }>('/auth/me');
-      if (response.data?.user) {
-        const freshUser = response.data.user;
-        setUser(freshUser);
-        setCurrentOrganization(freshUser.currentOrganization || null);
+      const result = await getCurrentUser();
 
-        // Update cached user data
-        localStorage.setItem('user', JSON.stringify(freshUser));
+      if (result.success && result.data) {
+        const supabase = createClient();
+        const {
+          data: { user: supabaseUser },
+        } = await supabase.auth.getUser();
 
-        // Set organization ID if available
-        if (freshUser.currentOrganization?.id) {
-          apiClient.setOrganizationId(freshUser.currentOrganization.id);
+        if (supabaseUser) {
+          await fetchUserData(supabaseUser);
         }
+      } else {
+        // User is not authenticated
+        setUser(null);
+        setCurrentOrganization(null);
       }
-    } catch {
-      // Failed to refresh user data
+    } catch (error) {
+      console.error('Failed to refresh user:', error);
     }
-    */
+  };
+
+  // Backward compatibility wrapper for login
+  const login = async (email: string, password: string): Promise<void> => {
+    await handleSignIn(email, password);
+  };
+
+  // Backward compatibility wrapper for logout
+  const logout = async (): Promise<void> => {
+    await handleSignOut();
   };
 
   const value: AuthContextType = {
     user,
     loading,
+    isAuthenticated: !!user,
+    currentOrganization,
+    signIn: handleSignIn,
+    signOut: handleSignOut,
+    // Backward compatibility
     login,
     logout,
-    isAuthenticated: !!user,
     switchOrganization,
-    currentOrganization,
     refreshUser,
   };
 

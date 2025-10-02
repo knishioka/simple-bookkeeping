@@ -133,7 +133,7 @@ export default function OrganizationSettingsPage() {
 
   // Check if current user is admin
   const currentUserRole = user?.currentOrganization?.role;
-  const isAdmin = currentUserRole === 'ADMIN';
+  const isAdmin = currentUserRole === 'admin';
 
   if (isFetching) {
     return (
