@@ -10,7 +10,7 @@ CREATE TYPE partner_type AS ENUM ('customer', 'supplier', 'both');
 
 -- Organizations table
 CREATE TABLE organizations (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     code VARCHAR(50) NOT NULL UNIQUE,
     fiscal_year_start INTEGER DEFAULT 4 CHECK (fiscal_year_start BETWEEN 1 AND 12),
@@ -51,7 +51,7 @@ CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
 
 -- User organizations relationship (for multi-org support)
 CREATE TABLE user_organizations (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     role user_role NOT NULL DEFAULT 'viewer',
@@ -65,7 +65,7 @@ CREATE INDEX idx_user_organizations_org ON user_organizations(organization_id);
 
 -- Accounting periods table
 CREATE TABLE accounting_periods (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     fiscal_year INTEGER NOT NULL,
     name VARCHAR(255) NOT NULL,
@@ -88,7 +88,7 @@ CREATE TRIGGER update_accounting_periods_updated_at BEFORE UPDATE ON accounting_
 
 -- Accounts table (Chart of Accounts)
 CREATE TABLE accounts (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     code VARCHAR(50) NOT NULL,
     name VARCHAR(255) NOT NULL,
@@ -111,7 +111,7 @@ CREATE TRIGGER update_accounts_updated_at BEFORE UPDATE ON accounts
 
 -- Partners (Customers and Suppliers)
 CREATE TABLE partners (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     code VARCHAR(50) NOT NULL,
     name VARCHAR(255) NOT NULL,
@@ -138,7 +138,7 @@ CREATE TRIGGER update_partners_updated_at BEFORE UPDATE ON partners
 
 -- Journal entries table
 CREATE TABLE journal_entries (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     accounting_period_id UUID NOT NULL REFERENCES accounting_periods(id) ON DELETE RESTRICT,
     entry_number VARCHAR(50) NOT NULL,
@@ -167,7 +167,7 @@ CREATE TRIGGER update_journal_entries_updated_at BEFORE UPDATE ON journal_entrie
 
 -- Journal entry lines table
 CREATE TABLE journal_entry_lines (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     journal_entry_id UUID NOT NULL REFERENCES journal_entries(id) ON DELETE CASCADE,
     account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
     debit_amount DECIMAL(15,2) DEFAULT 0 CHECK (debit_amount >= 0),
@@ -189,7 +189,7 @@ CREATE INDEX idx_journal_entry_lines_partner ON journal_entry_lines(partner_id);
 
 -- Audit logs table
 CREATE TABLE audit_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     entity_type VARCHAR(100) NOT NULL,

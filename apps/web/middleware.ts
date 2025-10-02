@@ -211,10 +211,10 @@ export async function middleware(request: NextRequest) {
 
   // Check if user is authenticated
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!session) {
+  if (!user) {
     // Redirect to login if not authenticated
     const redirectUrl = new URL('/auth/login', request.url);
     redirectUrl.searchParams.set('redirectTo', pathname);
@@ -222,7 +222,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check organization context
-  const userMetadata = session.user.app_metadata;
+  const userMetadata = user.app_metadata;
   const currentOrganizationId = userMetadata?.current_organization_id;
 
   if (!currentOrganizationId) {
@@ -234,7 +234,7 @@ export async function middleware(request: NextRequest) {
 
   // Add user context to headers for API routes
   if (pathname.startsWith('/api/')) {
-    response.headers.set('x-user-id', session.user.id);
+    response.headers.set('x-user-id', user.id);
     response.headers.set('x-organization-id', currentOrganizationId);
     response.headers.set('x-user-role', userMetadata?.current_role || 'viewer');
   }

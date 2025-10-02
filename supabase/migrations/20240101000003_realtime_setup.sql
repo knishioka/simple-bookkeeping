@@ -13,12 +13,51 @@ END
 $$;
 
 -- リアルタイム更新を有効にするテーブルを追加
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS journal_entries;
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS journal_entry_lines;
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS accounts;
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS accounting_periods;
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS organizations;
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS file_metadata;
+DO $$
+BEGIN
+    -- Check and add each table to the publication
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'journal_entries'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE journal_entries;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'journal_entry_lines'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE journal_entry_lines;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'accounts'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE accounts;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'accounting_periods'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE accounting_periods;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'organizations'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE organizations;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'file_metadata'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE file_metadata;
+    END IF;
+END $$;
 
 -- 通知用のトリガー関数
 CREATE OR REPLACE FUNCTION notify_journal_entry_changes()
@@ -48,17 +87,17 @@ SELECT
   je.organization_id,
   DATE_TRUNC('month', je.entry_date) as month,
   COUNT(DISTINCT je.id) as transaction_count,
-  SUM(CASE 
-    WHEN a.account_type = 'revenue' THEN jel.credit_amount - jel.debit_amount
+  SUM(CASE
+    WHEN a.account_type = 'REVENUE' THEN jel.credit_amount - jel.debit_amount
     ELSE 0
   END) as total_revenue,
-  SUM(CASE 
-    WHEN a.account_type = 'expense' THEN jel.debit_amount - jel.credit_amount
+  SUM(CASE
+    WHEN a.account_type = 'EXPENSES' THEN jel.debit_amount - jel.credit_amount
     ELSE 0
   END) as total_expenses,
-  SUM(CASE 
-    WHEN a.account_type = 'revenue' THEN jel.credit_amount - jel.debit_amount
-    WHEN a.account_type = 'expense' THEN -(jel.debit_amount - jel.credit_amount)
+  SUM(CASE
+    WHEN a.account_type = 'REVENUE' THEN jel.credit_amount - jel.debit_amount
+    WHEN a.account_type = 'EXPENSES' THEN -(jel.debit_amount - jel.credit_amount)
     ELSE 0
   END) as net_income
 FROM journal_entries je
