@@ -114,7 +114,7 @@ export default function OrganizationMembersPage() {
   });
 
   const currentUserRole = user?.currentOrganization?.role;
-  const isAdmin = currentUserRole === 'ADMIN';
+  const isAdmin = currentUserRole === 'admin';
 
   useEffect(() => {
     const fetchMembers = async () => {
