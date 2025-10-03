@@ -77,6 +77,7 @@ const getWebServerConfig = () => {
     stderr: 'pipe' as const,
     env: {
       ...SERVER_CONFIG.ENV,
+      NODE_ENV: 'test',
       [ENV_KEYS.PORT]: String(PORTS.WEB),
       DATABASE_URL:
         process.env.DATABASE_URL || 'postgresql://test:test@localhost:5432/bookkeeping_test',
@@ -85,6 +86,8 @@ const getWebServerConfig = () => {
       // Supabase environment variables are already set by setSupabaseEnvVars()
       NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321',
       NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'test-anon-key',
+      // Enable mock authentication for E2E tests to prevent redirect loops
+      E2E_USE_MOCK_AUTH: 'true',
     },
   };
 };
