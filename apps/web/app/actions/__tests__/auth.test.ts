@@ -413,8 +413,8 @@ describe('Auth Server Actions', () => {
 
   describe('signOut', () => {
     it('should successfully sign out authenticated user', async () => {
-      mockSupabaseClient.auth.getSession.mockResolvedValue({
-        data: { session: { user: { id: 'user-123' } } },
+      mockSupabaseClient.auth.getUser.mockResolvedValue({
+        data: { user: { id: 'user-123', email: 'test@example.com' } },
         error: null,
       });
 
@@ -431,8 +431,8 @@ describe('Auth Server Actions', () => {
     });
 
     it('should handle sign out when no session exists', async () => {
-      mockSupabaseClient.auth.getSession.mockResolvedValue({
-        data: { session: null },
+      mockSupabaseClient.auth.getUser.mockResolvedValue({
+        data: { user: null },
         error: null,
       });
 
@@ -444,8 +444,8 @@ describe('Auth Server Actions', () => {
     });
 
     it('should handle sign out error', async () => {
-      mockSupabaseClient.auth.getSession.mockResolvedValue({
-        data: { session: { user: { id: 'user-123' } } },
+      mockSupabaseClient.auth.getUser.mockResolvedValue({
+        data: { user: { id: 'user-123', email: 'test@example.com' } },
         error: null,
       });
 
