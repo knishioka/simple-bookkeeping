@@ -239,12 +239,14 @@ export async function signOut(): Promise<ActionResult<{ success: boolean }>> {
   try {
     const supabase = await createClient();
 
-    // 現在のセッションを確認
+    // getUser()を使用してサーバー側で認証を検証（getSession()はクライアント側のCookieから直接取得するため安全でない）
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
-    if (!session) {
+    if (authError || !user) {
+      // ユーザーが認証されていない場合も成功として扱う（冪等性を保つため）
       return createSuccessResult({ success: true });
     }
 
