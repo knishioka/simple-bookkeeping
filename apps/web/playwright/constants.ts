@@ -310,5 +310,7 @@ export const SERVER_CONFIG = {
     : 'pnpm --filter @simple-bookkeeping/web dev',
   ENV: {
     NODE_ENV: 'test',
+    // Enable mock authentication for E2E tests to prevent redirect loops
+    E2E_USE_MOCK_AUTH: 'true',
   },
 } as const;
