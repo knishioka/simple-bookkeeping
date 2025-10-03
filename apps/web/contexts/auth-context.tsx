@@ -162,28 +162,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       try {
         const supabase = createClient();
 
-        // Get initial session to check if user is logged in
-        // Note: We use getSession() here just to check if a session exists
-        // The actual user validation will be done by onAuthStateChange
+        // getUser()を使用してサーバー側で認証を検証（getSession()はクライアント側のCookieから直接取得するため安全でない）
         const {
-          data: { session },
-        } = await supabase.auth.getSession();
+          data: { user: validatedUser },
+          error,
+        } = await supabase.auth.getUser();
 
-        if (session?.user && mounted) {
-          // Validate the session by calling getUser()
-          const {
-            data: { user: validatedUser },
-            error,
-          } = await supabase.auth.getUser();
-
-          if (validatedUser && !error) {
-            await fetchUserData(validatedUser);
-          } else {
-            // Session is invalid, clear state
-            setUser(null);
-            setCurrentOrganization(null);
-          }
+        if (validatedUser && !error && mounted) {
+          await fetchUserData(validatedUser);
         } else if (mounted) {
+          // ユーザーが認証されていない、またはエラーが発生した場合
           setUser(null);
           setCurrentOrganization(null);
         }
