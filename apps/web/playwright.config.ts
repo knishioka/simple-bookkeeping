@@ -66,13 +66,14 @@ const getWebServerConfig = () => {
     return undefined;
   }
 
-  // Always use Playwright's native web server management in CI
-  // In local development, reuse existing server if running
+  // Always restart server for E2E tests to ensure environment variables are loaded
+  // This fixes Issue #514 where E2E_USE_MOCK_AUTH wasn't recognized by middleware
+  // when added to .env.local after server startup
   return {
     command: SERVER_CONFIG.COMMAND,
     port: PORTS.WEB,
     timeout: timeouts.webServer,
-    reuseExistingServer: !isCI(),
+    reuseExistingServer: false,
     stdout: (process.env[ENV_KEYS.DEBUG] === 'true' ? 'pipe' : 'ignore') as 'pipe' | 'ignore',
     stderr: 'pipe' as const,
     env: {

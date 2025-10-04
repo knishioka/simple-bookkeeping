@@ -513,6 +513,16 @@ export class SupabaseAuth {
           secure: false,
           sameSite: 'Lax',
         },
+        // Issue #514: Add mockAuth cookie for middleware detection
+        {
+          name: 'mockAuth',
+          value: 'true',
+          url: 'http://localhost:3000',
+          path: '/',
+          httpOnly: false,
+          secure: false,
+          sameSite: 'Lax' as const,
+        },
       ]);
     }
   }

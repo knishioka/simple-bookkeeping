@@ -167,9 +167,12 @@ export async function middleware(request: NextRequest) {
   // Skip authentication in test/development environment when Supabase is not configured
   // or when explicitly using mock authentication in CI
   // CRITICAL SECURITY: Only allow test mode in non-production environments
+  // Issue #514: Also check cookie for E2E_USE_MOCK_AUTH for better test reliability
+  const mockAuthCookie = request.cookies.get('mockAuth')?.value === 'true';
   const isTestMode =
     process.env.NODE_ENV !== 'production' &&
     (process.env.E2E_USE_MOCK_AUTH === 'true' || // Explicit CI mock auth flag
+      mockAuthCookie || // Cookie-based mock auth (for E2E tests)
       !process.env.NEXT_PUBLIC_SUPABASE_URL ||
       process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://dummy.supabase.co' ||
       process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://placeholder.supabase.co');
