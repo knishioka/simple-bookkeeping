@@ -85,9 +85,11 @@ const getWebServerConfig = () => {
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'test-nextauth-secret',
       NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
       // Use placeholder URL to trigger test mode in middleware (Issue #514)
-      // Middleware checks for 'https://placeholder.supabase.co' to enable mock auth
-      NEXT_PUBLIC_SUPABASE_URL: 'https://placeholder.supabase.co',
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: 'test-anon-key',
+      // In CI: uses actual Supabase URL from environment
+      // In local: uses placeholder URL to trigger mock auth
+      NEXT_PUBLIC_SUPABASE_URL:
+        process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'test-anon-key',
       // Enable mock authentication for E2E tests to prevent redirect loops
       E2E_USE_MOCK_AUTH: 'true',
     },
