@@ -66,14 +66,14 @@ const getWebServerConfig = () => {
     return undefined;
   }
 
-  // Always restart server for E2E tests to ensure environment variables are loaded
-  // This fixes Issue #514 where E2E_USE_MOCK_AUTH wasn't recognized by middleware
-  // when added to .env.local after server startup
+  // Server reuse strategy:
+  // - CI: reuse existing server (env vars are pre-configured, avoids port conflicts in sharded tests)
+  // - Local: restart server (fixes Issue #514 - ensures .env.local changes are loaded)
   return {
     command: SERVER_CONFIG.COMMAND,
     port: PORTS.WEB,
     timeout: timeouts.webServer,
-    reuseExistingServer: false,
+    reuseExistingServer: isCI(),
     stdout: (process.env[ENV_KEYS.DEBUG] === 'true' ? 'pipe' : 'ignore') as 'pipe' | 'ignore',
     stderr: 'pipe' as const,
     env: {
