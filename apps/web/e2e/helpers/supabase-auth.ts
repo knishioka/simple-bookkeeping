@@ -301,7 +301,7 @@ export class SupabaseAuth {
         path: '/',
         httpOnly: true,
         secure: false, // テスト環境ではHTTPを使用
-        sameSite: 'Lax',
+        sameSite: 'Lax' as const,
         expires: session.expires_at,
       },
     ];
@@ -506,12 +506,20 @@ export class SupabaseAuth {
         {
           name: 'sb-auth-token',
           value: mockSession.access_token,
-          domain: 'localhost',
-          path: '/',
+          url: 'http://localhost:3000',
           expires: mockSession.expires_at,
           httpOnly: false,
           secure: false,
-          sameSite: 'Lax',
+          sameSite: 'Lax' as const,
+        },
+        // Issue #514: Add mockAuth cookie for middleware detection
+        {
+          name: 'mockAuth',
+          value: 'true',
+          url: 'http://localhost:3000',
+          httpOnly: false,
+          secure: false,
+          sameSite: 'Lax' as const,
         },
       ]);
     }
