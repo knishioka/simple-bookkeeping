@@ -66,8 +66,10 @@ const getWebServerConfig = () => {
     return undefined;
   }
 
-  // Always use Playwright's native web server management in CI
-  // In local development, reuse existing server if running
+  // Server reuse strategy (same as main branch):
+  // - CI: restart server to ensure clean environment per test run
+  // - Local: reuse existing server for faster feedback
+  // Note: Issue #514 is solved by cookie-based auth detection in middleware, not server restart
   return {
     command: SERVER_CONFIG.COMMAND,
     port: PORTS.WEB,
@@ -83,8 +85,11 @@ const getWebServerConfig = () => {
         process.env.DATABASE_URL || 'postgresql://test:test@localhost:5432/bookkeeping_test',
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'test-nextauth-secret',
       NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
-      // Supabase environment variables are already set by setSupabaseEnvVars()
-      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321',
+      // Use placeholder URL to trigger test mode in middleware (Issue #514)
+      // In CI: uses actual Supabase URL from environment
+      // In local: uses placeholder URL to trigger mock auth
+      NEXT_PUBLIC_SUPABASE_URL:
+        process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
       NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'test-anon-key',
       // Enable mock authentication for E2E tests to prevent redirect loops
       E2E_USE_MOCK_AUTH: 'true',
