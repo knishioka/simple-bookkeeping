@@ -506,7 +506,7 @@ export class SupabaseAuth {
         {
           name: 'sb-auth-token',
           value: mockSession.access_token,
-          domain: 'localhost',
+          url: 'http://localhost:3000',
           path: '/',
           expires: mockSession.expires_at,
           httpOnly: false,
