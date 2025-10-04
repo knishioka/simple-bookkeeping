@@ -206,7 +206,7 @@ export function AccountingPeriodFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px]" data-testid="accounting-period-form-dialog">
         <DialogHeader>
           <DialogTitle>{isEdit ? '会計期間を編集' : '新規会計期間を作成'}</DialogTitle>
           <DialogDescription>会計期間の情報を入力してください。</DialogDescription>
@@ -221,10 +221,15 @@ export function AccountingPeriodFormDialog({
                 <FormItem>
                   <FormLabel>期間名</FormLabel>
                   <FormControl>
-                    <Input placeholder="例: 2024年度" {...field} disabled={loading} />
+                    <Input
+                      placeholder="例: 2024年度"
+                      {...field}
+                      disabled={loading}
+                      data-testid="period-name-input"
+                    />
                   </FormControl>
                   <FormDescription>会計期間を識別するための名前を入力してください</FormDescription>
-                  <FormMessage />
+                  <FormMessage data-testid="period-name-error" />
                 </FormItem>
               )}
             />
@@ -236,9 +241,14 @@ export function AccountingPeriodFormDialog({
                 <FormItem>
                   <FormLabel>開始日</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} disabled={loading} />
+                    <Input
+                      type="date"
+                      {...field}
+                      disabled={loading}
+                      data-testid="start-date-input"
+                    />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage data-testid="start-date-error" />
                 </FormItem>
               )}
             />
@@ -250,9 +260,9 @@ export function AccountingPeriodFormDialog({
                 <FormItem>
                   <FormLabel>終了日</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} disabled={loading} />
+                    <Input type="date" {...field} disabled={loading} data-testid="end-date-input" />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage data-testid="end-date-error" />
                 </FormItem>
               )}
             />
@@ -283,10 +293,11 @@ export function AccountingPeriodFormDialog({
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 disabled={loading}
+                data-testid="cancel-form-button"
               >
                 キャンセル
               </Button>
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading} data-testid="submit-button">
                 {loading ? '処理中...' : isEdit ? '更新' : '作成'}
               </Button>
             </DialogFooter>
