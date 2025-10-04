@@ -66,14 +66,15 @@ const getWebServerConfig = () => {
     return undefined;
   }
 
-  // Server reuse strategy:
-  // - CI: reuse existing server (env vars are pre-configured, avoids port conflicts in sharded tests)
-  // - Local: restart server (fixes Issue #514 - ensures .env.local changes are loaded)
+  // Server reuse strategy (same as main branch):
+  // - CI: restart server to ensure clean environment per test run
+  // - Local: reuse existing server for faster feedback
+  // Note: Issue #514 is solved by cookie-based auth detection in middleware, not server restart
   return {
     command: SERVER_CONFIG.COMMAND,
     port: PORTS.WEB,
     timeout: timeouts.webServer,
-    reuseExistingServer: isCI(),
+    reuseExistingServer: !isCI(),
     stdout: (process.env[ENV_KEYS.DEBUG] === 'true' ? 'pipe' : 'ignore') as 'pipe' | 'ignore',
     stderr: 'pipe' as const,
     env: {
