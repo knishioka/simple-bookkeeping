@@ -29,32 +29,6 @@ test.describe('Accounting Periods - Comprehensive Tests', () => {
     navigationTimeout: 30000,
   });
 
-  // Default mock data for most tests
-  const defaultMockData = [
-    {
-      id: 'period-1',
-      name: '2024年度',
-      start_date: '2024-04-01',
-      end_date: '2025-03-31',
-      is_active: false,
-      is_closed: false,
-      organization_id: 'test-org-1',
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z',
-    },
-    {
-      id: 'period-2',
-      name: '2023年度',
-      start_date: '2023-04-01',
-      end_date: '2024-03-31',
-      is_active: false,
-      is_closed: true,
-      organization_id: 'test-org-1',
-      created_at: '2023-04-01T00:00:00Z',
-      updated_at: '2023-04-01T00:00:00Z',
-    },
-  ];
-
   // Note: Mock setup moved to authenticatedPage fixture to avoid page creation conflicts
   // beforeEach runs BEFORE fixtures, creating a separate page that breaks authentication
   // Instead, the fixture handles both mocks and auth in the correct order
