@@ -81,14 +81,8 @@ test.describe('Accounting Periods - Comprehensive Tests', () => {
    * Verifies that the accounting periods page loads correctly with proper content
    */
   test('should load accounting periods page with correct content', async ({ page }) => {
-    // Navigate to the accounting periods page
-    await page.goto('/dashboard/settings/accounting-periods', {
-      waitUntil: 'domcontentloaded',
-      timeout: 15000,
-    });
-
-    // Wait for page to stabilize
-    await page.waitForLoadState('networkidle', { timeout: 15000 });
+    // Navigate and wait for page to load
+    await navigateToAccountingPeriodsPage(page);
 
     // Verify URL is correct (not redirected to login)
     await expect(page).toHaveURL(/accounting-periods/, { timeout: 10000 });
@@ -111,12 +105,8 @@ test.describe('Accounting Periods - Comprehensive Tests', () => {
    * Verifies that the accounting periods table has correct headers and structure
    */
   test('should display table with correct headers', async ({ page }) => {
-    await page.goto('/dashboard/settings/accounting-periods', {
-      waitUntil: 'domcontentloaded',
-    });
-
-    // Wait for page to stabilize
-    await page.waitForLoadState('networkidle', { timeout: 15000 });
+    // Navigate and wait for page to load
+    await navigateToAccountingPeriodsPage(page);
 
     // Wait for table to be visible
     const table = page.getByTestId('accounting-periods-table');
@@ -137,15 +127,8 @@ test.describe('Accounting Periods - Comprehensive Tests', () => {
    * Verifies that accounting period data is correctly displayed in the table
    */
   test('should display accounting periods data correctly', async ({ page }) => {
-    await page.goto('/dashboard/settings/accounting-periods', {
-      waitUntil: 'domcontentloaded',
-    });
-
-    // Wait for page to stabilize
-    await page.waitForLoadState('networkidle', { timeout: 15000 });
-
-    // Wait for table to load
-    await page.waitForSelector('[data-testid="accounting-periods-table"]', { timeout: 15000 });
+    // Navigate and wait for page to load
+    await navigateToAccountingPeriodsPage(page);
 
     // Verify at least one period row is present
     const periodRows = page.getByTestId('accounting-period-row');
