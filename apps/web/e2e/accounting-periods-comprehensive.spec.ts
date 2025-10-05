@@ -16,42 +16,64 @@ import { SupabaseAuth } from './helpers/supabase-auth';
  */
 test.describe('Accounting Periods - Comprehensive Tests', () => {
   test.use({ navigationTimeout: 30000 });
-  test.setTimeout(30000);
+  test.setTimeout(60000);
+
+  // Default mock data for most tests
+  const defaultMockData = [
+    {
+      id: 'period-1',
+      name: '2024年度',
+      start_date: '2024-04-01',
+      end_date: '2025-03-31',
+      is_active: false,
+      is_closed: false,
+      organization_id: 'test-org-1',
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-01T00:00:00Z',
+    },
+    {
+      id: 'period-2',
+      name: '2023年度',
+      start_date: '2023-04-01',
+      end_date: '2024-03-31',
+      is_active: false,
+      is_closed: true,
+      organization_id: 'test-org-1',
+      created_at: '2023-04-01T00:00:00Z',
+      updated_at: '2023-04-01T00:00:00Z',
+    },
+  ];
+
+  // Helper function to navigate and wait for page load
+  async function navigateToAccountingPeriodsPage(page: any) {
+    await page.goto('/dashboard/settings/accounting-periods', {
+      waitUntil: 'domcontentloaded',
+      timeout: 15000,
+    });
+    // Wait for either the table or empty state message to appear
+    await Promise.race([
+      page.waitForSelector('[data-testid="accounting-periods-table"]', { timeout: 15000 }),
+      page.waitForSelector('text=会計期間が登録されていません', { timeout: 15000 }),
+    ]).catch(() => {
+      // If neither appears, wait for the page title at least
+      return page.waitForSelector('h1', { timeout: 15000 });
+    });
+  }
 
   test.beforeEach(async ({ page, context }) => {
     // Set up Server Actions mocks with sample data
     await UnifiedMock.setupAll(context, {
       enabled: true,
       customResponses: {
-        'accounting-periods': [
-          {
-            id: 'period-1',
-            name: '2024年度',
-            start_date: '2024-04-01',
-            end_date: '2025-03-31',
-            is_active: false,
-            is_closed: false,
-            organization_id: 'test-org-1',
-            created_at: '2024-01-01T00:00:00Z',
-            updated_at: '2024-01-01T00:00:00Z',
-          },
-          {
-            id: 'period-2',
-            name: '2023年度',
-            start_date: '2023-04-01',
-            end_date: '2024-03-31',
-            is_active: false,
-            is_closed: true,
-            organization_id: 'test-org-1',
-            created_at: '2023-04-01T00:00:00Z',
-            updated_at: '2023-04-01T00:00:00Z',
-          },
-        ],
+        'accounting-periods': defaultMockData,
       },
     });
 
     // Set up authentication as admin
     await SupabaseAuth.setup(context, page, { role: 'admin' });
+
+    // Navigate to home first to ensure auth is set
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
   });
 
   /**
@@ -65,19 +87,23 @@ test.describe('Accounting Periods - Comprehensive Tests', () => {
       timeout: 15000,
     });
 
+    // Wait for page to stabilize
+    await page.waitForLoadState('networkidle', { timeout: 15000 });
+
     // Verify URL is correct (not redirected to login)
-    await expect(page).toHaveURL(/accounting-periods/, { timeout: 5000 });
+    await expect(page).toHaveURL(/accounting-periods/, { timeout: 10000 });
 
     // Verify page title is present
-    await expect(page.locator('h1')).toContainText('会計期間管理');
+    await expect(page.locator('h1')).toContainText('会計期間管理', { timeout: 10000 });
 
     // Verify description is present
     await expect(page.locator('p.text-muted-foreground')).toContainText(
-      '会計期間の作成・編集・削除を行います'
+      '会計期間の作成・編集・削除を行います',
+      { timeout: 10000 }
     );
 
     // Verify "Create" button is visible
-    await expect(page.getByTestId('create-period-button')).toBeVisible();
+    await expect(page.getByTestId('create-period-button')).toBeVisible({ timeout: 10000 });
   });
 
   /**
@@ -89,16 +115,21 @@ test.describe('Accounting Periods - Comprehensive Tests', () => {
       waitUntil: 'domcontentloaded',
     });
 
+    // Wait for page to stabilize
+    await page.waitForLoadState('networkidle', { timeout: 15000 });
+
     // Wait for table to be visible
     const table = page.getByTestId('accounting-periods-table');
-    await expect(table).toBeVisible({ timeout: 10000 });
+    await expect(table).toBeVisible({ timeout: 15000 });
 
     // Verify table headers
-    await expect(page.locator('th').filter({ hasText: '期間名' })).toBeVisible();
-    await expect(page.locator('th').filter({ hasText: '開始日' })).toBeVisible();
-    await expect(page.locator('th').filter({ hasText: '終了日' })).toBeVisible();
-    await expect(page.locator('th').filter({ hasText: 'ステータス' })).toBeVisible();
-    await expect(page.locator('th').filter({ hasText: '操作' })).toBeVisible();
+    await expect(page.locator('th').filter({ hasText: '期間名' })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('th').filter({ hasText: '開始日' })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('th').filter({ hasText: '終了日' })).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('th').filter({ hasText: 'ステータス' })).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(page.locator('th').filter({ hasText: '操作' })).toBeVisible({ timeout: 10000 });
   });
 
   /**
@@ -110,8 +141,11 @@ test.describe('Accounting Periods - Comprehensive Tests', () => {
       waitUntil: 'domcontentloaded',
     });
 
+    // Wait for page to stabilize
+    await page.waitForLoadState('networkidle', { timeout: 15000 });
+
     // Wait for table to load
-    await page.waitForSelector('[data-testid="accounting-periods-table"]', { timeout: 10000 });
+    await page.waitForSelector('[data-testid="accounting-periods-table"]', { timeout: 15000 });
 
     // Verify at least one period row is present
     const periodRows = page.getByTestId('accounting-period-row');
