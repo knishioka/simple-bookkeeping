@@ -59,14 +59,17 @@ test.describe('Accounting Periods - Comprehensive Tests', () => {
     // Navigate to home first (required for auth setup)
     await page.goto('/');
 
+    // Wait for network to stabilize before setting up auth
+    await page.waitForLoadState('networkidle', { timeout: 10000 });
+
     // Setup authentication
     await SupabaseAuth.setup(context, page, { role: 'admin' });
 
     // Navigate to accounting periods page
     await page.goto('/dashboard/settings/accounting-periods');
 
-    // Wait for page to be ready
-    await page.waitForLoadState('domcontentloaded');
+    // Wait for page to be ready with network idle
+    await page.waitForLoadState('networkidle', { timeout: 10000 });
 
     // Debug: Check current URL and page content
     const currentUrl = page.url();
