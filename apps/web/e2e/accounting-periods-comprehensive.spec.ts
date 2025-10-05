@@ -13,8 +13,12 @@ import { SupabaseAuth } from './helpers/supabase-auth';
  * - CRUD operations (Create, Read, Update, Delete)
  * - Form validation and error handling
  * - Authentication and authorization
+ *
+ * Auth pattern: Each test individually sets up auth
+ * Pattern: goto('/') → setup auth → goto protected page
+ * Note: Using serial() to disable sharding for this test suite
  */
-test.describe('Accounting Periods - Comprehensive Tests', () => {
+test.describe.serial('Accounting Periods - Comprehensive Tests', () => {
   test.use({ navigationTimeout: 30000 });
   test.setTimeout(60000);
 
@@ -44,37 +48,52 @@ test.describe('Accounting Periods - Comprehensive Tests', () => {
     },
   ];
 
-  // Use beforeEach for test isolation (Playwright best practice for sharding)
-  test.beforeEach(async ({ page, context }) => {
-    // Setup mocks
-    await UnifiedMock.setupAll(context, {
-      enabled: true,
-      customResponses: {
-        'accounting-periods': defaultMockData,
-      },
-    });
+  /**
+   * Helper to set up authentication for each test
+   * Must be called at the start of each test to avoid sharding issues
+   * Pattern matches working accounting-periods-simple.spec.ts
+   */
+  async function setupAuthAndNavigate(page: any, context: any, mockData = defaultMockData) {
+    // Setup mocks (exactly like simple test)
+    await UnifiedMock.setupAll(context, { enabled: true });
 
-    // Navigate to home first
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    // Navigate to home first (required for auth setup)
+    await page.goto('/');
 
-    // Setup auth after home page loads
+    // Setup authentication
     await SupabaseAuth.setup(context, page, { role: 'admin' });
 
-    // Now navigate to accounting periods page
-    await page.goto('/dashboard/settings/accounting-periods', {
-      waitUntil: 'domcontentloaded',
-      timeout: 15000,
-    });
+    // Navigate to accounting periods page
+    await page.goto('/dashboard/settings/accounting-periods');
 
     // Wait for page to be ready
     await page.waitForLoadState('domcontentloaded');
-  });
+
+    // Debug: Check current URL and page content
+    const currentUrl = page.url();
+    const bodyText = await page.locator('body').textContent();
+    console.log('=== DEBUG: setupAuthAndNavigate ===');
+    console.log('Current URL:', currentUrl);
+    console.log('Body contains ログイン:', bodyText?.includes('ログイン'));
+    console.log('Body first 200 chars:', bodyText?.substring(0, 200));
+
+    // Verify we're not on login page
+    if (
+      currentUrl.includes('login') ||
+      currentUrl.includes('auth') ||
+      bodyText?.includes('ログイン')
+    ) {
+      throw new Error(`Authentication failed - on login page. URL: ${currentUrl}`);
+    }
+  }
 
   /**
    * Test 1: Page Load and Content Display
    * Verifies that the accounting periods page loads correctly with proper content
    */
-  test('should load accounting periods page with correct content', async ({ page }) => {
+  test('should load accounting periods page with correct content', async ({ page, context }) => {
+    await setupAuthAndNavigate(page, context);
+
     // Verify URL is correct (not redirected to login)
     await expect(page).toHaveURL(/accounting-periods/, { timeout: 10000 });
 
@@ -95,7 +114,9 @@ test.describe('Accounting Periods - Comprehensive Tests', () => {
    * Test 2: Table Structure Verification
    * Verifies that the accounting periods table has correct headers and structure
    */
-  test('should display table with correct headers', async ({ page }) => {
+  test('should display table with correct headers', async ({ page, context }) => {
+    await setupAuthAndNavigate(page, context);
+
     // Wait for table to be visible
     const table = page.getByTestId('accounting-periods-table');
     await expect(table).toBeVisible({ timeout: 15000 });
@@ -114,7 +135,9 @@ test.describe('Accounting Periods - Comprehensive Tests', () => {
    * Test 3: Data Display Verification
    * Verifies that accounting period data is correctly displayed in the table
    */
-  test('should display accounting periods data correctly', async ({ page }) => {
+  test('should display accounting periods data correctly', async ({ page, context }) => {
+    await setupAuthAndNavigate(page, context);
+
     // Verify at least one period row is present
     const periodRows = page.getByTestId('accounting-period-row');
     await expect(periodRows.first()).toBeVisible({ timeout: 5000 });
@@ -139,7 +162,9 @@ test.describe('Accounting Periods - Comprehensive Tests', () => {
    * Test 4: Create New Accounting Period
    * Tests the full flow of creating a new accounting period
    */
-  test('should create a new accounting period', async ({ page }) => {
+  test('should create a new accounting period', async ({ page, context }) => {
+    await setupAuthAndNavigate(page, context);
+
     // Click create button
     await page.getByTestId('create-period-button').click();
 
@@ -166,7 +191,9 @@ test.describe('Accounting Periods - Comprehensive Tests', () => {
    * Test 5: Form Validation
    * Tests form validation for required fields and date range validation
    */
-  test('should validate form inputs correctly', async ({ page }) => {
+  test('should validate form inputs correctly', async ({ page, context }) => {
+    await setupAuthAndNavigate(page, context);
+
     // Open create form
     await page.getByTestId('create-period-button').click();
     await expect(page.getByTestId('accounting-period-form-dialog')).toBeVisible();
@@ -193,7 +220,9 @@ test.describe('Accounting Periods - Comprehensive Tests', () => {
    * Test 6: Edit Accounting Period
    * Tests editing an existing accounting period
    */
-  test('should edit an existing accounting period', async ({ page }) => {
+  test('should edit an existing accounting period', async ({ page, context }) => {
+    await setupAuthAndNavigate(page, context);
+
     // Wait for table to load
     await page.waitForSelector('[data-testid="accounting-periods-table"]', { timeout: 10000 });
 
@@ -226,7 +255,9 @@ test.describe('Accounting Periods - Comprehensive Tests', () => {
    * Test 7: Delete Accounting Period
    * Tests deleting an accounting period with confirmation dialog
    */
-  test('should delete an accounting period with confirmation', async ({ page }) => {
+  test('should delete an accounting period with confirmation', async ({ page, context }) => {
+    await setupAuthAndNavigate(page, context);
+
     // Wait for table to load
     await page.waitForSelector('[data-testid="accounting-periods-table"]', { timeout: 10000 });
 
@@ -260,7 +291,9 @@ test.describe('Accounting Periods - Comprehensive Tests', () => {
    * Test 8: Activate Accounting Period
    * Tests activating an inactive accounting period
    */
-  test('should activate an inactive accounting period', async ({ page }) => {
+  test('should activate an inactive accounting period', async ({ page, context }) => {
+    await setupAuthAndNavigate(page, context);
+
     // Wait for table to load
     await page.waitForSelector('[data-testid="accounting-periods-table"]', { timeout: 10000 });
 
@@ -309,25 +342,8 @@ test.describe('Accounting Periods - Comprehensive Tests', () => {
    * Tests the empty state when no accounting periods exist
    */
   test('should display empty state when no periods exist', async ({ page, context }) => {
-    // Override beforeEach setup with empty data
-    await UnifiedMock.setupAll(context, {
-      enabled: true,
-      customResponses: {
-        'accounting-periods': [],
-      },
-    });
-
-    // Navigate to home first
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
-
-    // Setup auth after home page loads
-    await SupabaseAuth.setup(context, page, { role: 'admin' });
-
-    // Now navigate to accounting periods page
-    await page.goto('/dashboard/settings/accounting-periods', {
-      waitUntil: 'domcontentloaded',
-      timeout: 15000,
-    });
+    // Use helper with empty data
+    await setupAuthAndNavigate(page, context, []);
 
     // Wait for table to load
     await page.waitForSelector('[data-testid="accounting-periods-table"]', { timeout: 10000 });
@@ -343,7 +359,9 @@ test.describe('Accounting Periods - Comprehensive Tests', () => {
    * Test 11: Status Badge Display
    * Verifies that active and inactive status badges are displayed correctly
    */
-  test('should display correct status badges', async ({ page }) => {
+  test('should display correct status badges', async ({ page, context }) => {
+    await setupAuthAndNavigate(page, context);
+
     // Wait for table to load
     await page.waitForSelector('[data-testid="accounting-periods-table"]', { timeout: 10000 });
 
@@ -360,7 +378,9 @@ test.describe('Accounting Periods - Comprehensive Tests', () => {
    * Test 12: Multiple Periods Display
    * Verifies that multiple accounting periods are displayed correctly
    */
-  test('should display multiple accounting periods', async ({ page }) => {
+  test('should display multiple accounting periods', async ({ page, context }) => {
+    await setupAuthAndNavigate(page, context);
+
     // Wait for table to load
     await page.waitForSelector('[data-testid="accounting-periods-table"]', { timeout: 10000 });
 
