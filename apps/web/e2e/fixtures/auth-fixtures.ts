@@ -20,7 +20,7 @@ import path from 'path';
 
 import { test as base, Page, BrowserContext } from '@playwright/test';
 
-import { UserRole, SupabaseUser, SupabaseSession } from '../helpers/supabase-auth';
+import { UserRole, SupabaseUser, SupabaseSession, SupabaseAuth } from '../helpers/supabase-auth';
 
 /**
  * Authentication state interface for fixtures
@@ -261,13 +261,15 @@ export const test = base.extend<AuthFixtures, WorkerFixtures>({
    */
   authenticatedPage: async ({ authenticatedContext }, use) => {
     // Create a new page from the authenticated context
-    // This ensures the storage state (cookies + localStorage) is properly loaded
     const page = await authenticatedContext.newPage();
 
-    // Storage state includes:
-    // - cookies: mockAuth=true (for middleware bypass)
-    // - localStorage: sb-placeholder-auth-token, mockAuth
-    //
+    // CRITICAL: Call SupabaseAuth.setup() to properly configure authentication
+    // This sets up:
+    // - Supabase auth cookies (with correct httpOnly and secure flags)
+    // - localStorage with auth tokens
+    // - Mock auth fallback when E2E_USE_MOCK_AUTH=true
+    await SupabaseAuth.setup(authenticatedContext, page, { role: 'admin' });
+
     // Do NOT navigate here - let tests control their own navigation
     // This prevents double-navigation issues and timeout errors in sharded execution
 
