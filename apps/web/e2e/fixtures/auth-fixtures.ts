@@ -165,7 +165,18 @@ export const test = base.extend<AuthFixtures, WorkerFixtures>({
 
       // Create storage state with authentication data
       const storageState = {
-        cookies: [],
+        cookies: [
+          {
+            name: 'mockAuth',
+            value: 'true',
+            domain: 'localhost',
+            path: '/',
+            expires: -1,
+            httpOnly: false,
+            secure: false,
+            sameSite: 'Lax' as const,
+          },
+        ],
         origins: [
           {
             origin: process.env.NEXTAUTH_URL || 'http://localhost:3000',
@@ -220,8 +231,25 @@ export const test = base.extend<AuthFixtures, WorkerFixtures>({
    * Authenticated context fixture
    * Provides a browser context with authentication already set up
    */
-  authenticatedContext: async ({ context }, use) => {
+  authenticatedContext: async ({ context, workerAuth }, use) => {
     // Context already has storage state from worker setup
+
+    // CRITICAL: Explicitly add mockAuth cookie to bypass middleware redirect
+    // This ensures the cookie is present regardless of storage state loading
+    if (workerAuth) {
+      await context.addCookies([
+        {
+          name: 'mockAuth',
+          value: 'true',
+          domain: 'localhost',
+          path: '/',
+          httpOnly: false,
+          secure: false,
+          sameSite: 'Lax',
+        },
+      ]);
+    }
+
     // Mocks should be set up in beforeEach hooks by tests themselves
     await use(context);
   },
@@ -231,33 +259,22 @@ export const test = base.extend<AuthFixtures, WorkerFixtures>({
    * Provides a page with authentication already set up
    * Note: Navigation is intentionally left to individual tests to avoid race conditions
    */
-  authenticatedPage: async ({ page, workerAuth }, use) => {
-    // Storage state is already loaded from worker fixture, which includes:
+  authenticatedPage: async ({ authenticatedContext }, use) => {
+    // Create a new page from the authenticated context
+    // This ensures the storage state (cookies + localStorage) is properly loaded
+    const page = await authenticatedContext.newPage();
+
+    // Storage state includes:
+    // - cookies: mockAuth=true (for middleware bypass)
     // - localStorage: sb-placeholder-auth-token, mockAuth
     //
     // Do NOT navigate here - let tests control their own navigation
     // This prevents double-navigation issues and timeout errors in sharded execution
-    //
-    // However, we need to set sessionStorage after navigation occurs
-    // Use page.on('load') to set auth markers whenever page loads
-
-    if (workerAuth) {
-      page.on('load', async () => {
-        await page
-          .evaluate((authData) => {
-            if (!sessionStorage.getItem('isAuthenticated')) {
-              sessionStorage.setItem('isAuthenticated', 'true');
-              sessionStorage.setItem('authRole', authData.role);
-              sessionStorage.setItem('authTimestamp', Date.now().toString());
-            }
-          }, workerAuth)
-          .catch(() => {
-            // Ignore errors if page is navigating away
-          });
-      });
-    }
 
     await use(page);
+
+    // Close the page after the test
+    await page.close();
   },
 
   /**
