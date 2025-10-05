@@ -53,7 +53,7 @@ test.describe.serial('Accounting Periods - Comprehensive Tests', () => {
    * Must be called at the start of each test to avoid sharding issues
    * Pattern matches working accounting-periods-simple.spec.ts
    */
-  async function setupAuthAndNavigate(page: any, context: any, mockData = defaultMockData) {
+  async function setupAuthAndNavigate(page: any, context: any, _mockData = defaultMockData) {
     // Setup mocks (exactly like simple test)
     await UnifiedMock.setupAll(context, { enabled: true });
 
