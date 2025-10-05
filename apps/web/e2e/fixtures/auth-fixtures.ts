@@ -231,15 +231,31 @@ export const test = base.extend<AuthFixtures, WorkerFixtures>({
    * Provides a page with authentication already set up
    * Note: Navigation is intentionally left to individual tests to avoid race conditions
    */
-  authenticatedPage: async ({ page }, use) => {
+  authenticatedPage: async ({ page, workerAuth }, use) => {
     // Storage state is already loaded from worker fixture, which includes:
     // - localStorage: sb-placeholder-auth-token, mockAuth
     //
     // Do NOT navigate here - let tests control their own navigation
     // This prevents double-navigation issues and timeout errors in sharded execution
     //
-    // Tests should call page.goto() themselves, and sessionStorage will be
-    // set automatically by the storage state loaded from the worker fixture
+    // However, we need to set sessionStorage after navigation occurs
+    // Use page.on('load') to set auth markers whenever page loads
+
+    if (workerAuth) {
+      page.on('load', async () => {
+        await page
+          .evaluate((authData) => {
+            if (!sessionStorage.getItem('isAuthenticated')) {
+              sessionStorage.setItem('isAuthenticated', 'true');
+              sessionStorage.setItem('authRole', authData.role);
+              sessionStorage.setItem('authTimestamp', Date.now().toString());
+            }
+          }, workerAuth)
+          .catch(() => {
+            // Ignore errors if page is navigating away
+          });
+      });
+    }
 
     await use(page);
   },
