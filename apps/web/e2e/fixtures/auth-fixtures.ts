@@ -263,15 +263,16 @@ export const test = base.extend<AuthFixtures, WorkerFixtures>({
     // Create a new page from the authenticated context
     const page = await authenticatedContext.newPage();
 
-    // CRITICAL: Call SupabaseAuth.setup() to properly configure authentication
-    // This sets up:
-    // - Supabase auth cookies (with correct httpOnly and secure flags)
-    // - localStorage with auth tokens
-    // - Mock auth fallback when E2E_USE_MOCK_AUTH=true
-    await SupabaseAuth.setup(authenticatedContext, page, { role: 'admin' });
+    // CRITICAL: Navigate to home page FIRST, then setup auth
+    // This prevents SupabaseAuth.setup() from doing its own navigation
+    // Pattern from accounting-periods-simple.spec.ts (which works reliably):
+    //   1. goto('/') first
+    //   2. SupabaseAuth.setup() (skips navigation since page.url() is not 'about:blank')
+    //   3. Test navigates to target page
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
 
-    // Do NOT navigate here - let tests control their own navigation
-    // This prevents double-navigation issues and timeout errors in sharded execution
+    // Now setup authentication without triggering another navigation
+    await SupabaseAuth.setup(authenticatedContext, page, { role: 'admin' });
 
     await use(page);
 
