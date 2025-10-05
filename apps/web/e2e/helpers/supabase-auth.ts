@@ -362,6 +362,8 @@ export class SupabaseAuth {
    *
    * 実際のSupabase認証を使用してテスト環境をセットアップします。
    * 環境に応じて実際のSupabaseまたはモック認証を使用します。
+   *
+   * Issue #520: Optimized for single-step authentication without multiple navigations
    */
   static async setup(
     context: BrowserContext,
@@ -375,7 +377,7 @@ export class SupabaseAuth {
     // Use E2E_USE_MOCK_AUTH flag to match middleware behavior
     const useMockAuth = process.env.E2E_USE_MOCK_AUTH === 'true' || process.env.CI === 'true';
     if (mode === 'mock' || useMockAuth) {
-      await this.setupMockAuth(context, page, options);
+      await this.setupMockAuthSingleStep(context, page, options);
       return;
     }
 
@@ -399,19 +401,20 @@ export class SupabaseAuth {
       // 実際のSupabase認証でログイン
       const session = await this.authenticateUser(role);
 
-      // ページが読み込まれていない場合は読み込む
+      // Single-step authentication: Only navigate once if needed
       const currentUrl = page.url();
       if (currentUrl === 'about:blank' || !currentUrl.startsWith('http')) {
+        // Issue #520: Single navigation to reduce race conditions
         await page.goto('/', { waitUntil: 'domcontentloaded' });
       }
 
-      // クッキーを設定（必要な場合）
-      if (!skipCookies) {
-        await this.setSupabaseCookies(context, session);
-      }
-
-      // ローカルストレージに認証情報を設定
-      await this.setSupabaseLocalStorage(page, session);
+      // Set all authentication data in parallel for efficiency
+      await Promise.all([
+        // クッキーを設定（必要な場合）
+        !skipCookies ? this.setSupabaseCookies(context, session) : Promise.resolve(),
+        // ローカルストレージに認証情報を設定
+        this.setSupabaseLocalStorage(page, session),
+      ]);
 
       // デバッグ用のグローバル変数を設定（テスト環境のみ）
       if (process.env.TEST_DEBUG_MODE === 'true') {
@@ -442,8 +445,9 @@ export class SupabaseAuth {
 
   /**
    * モック認証のセットアップ（Supabaseが利用できない場合のフォールバック）
+   * Issue #520: Optimized for single-step authentication
    */
-  private static async setupMockAuth(
+  private static async setupMockAuthSingleStep(
     context: BrowserContext,
     page: Page,
     options: SupabaseAuthOptions = {}
@@ -469,60 +473,84 @@ export class SupabaseAuth {
       user: mockUser,
     };
 
-    // ページが読み込まれていない場合は読み込む
+    // Issue #520: Single navigation only if needed
     const currentUrl = page.url();
     if (currentUrl === 'about:blank' || !currentUrl.startsWith('http')) {
       await page.goto('/', { waitUntil: 'domcontentloaded' });
     }
 
-    // ローカルストレージとセッションストレージに設定
-    await page.evaluate(
-      ({ sessionData }) => {
-        // Mock Supabase session
-        const storageKey = 'sb-placeholder-auth-token';
-        const sessionInfo = {
-          currentSession: {
-            access_token: sessionData.access_token,
-            refresh_token: sessionData.refresh_token,
-            expires_at: sessionData.expires_at,
-            expires_in: 3600,
-            token_type: 'bearer',
-            user: sessionData.user,
-          },
-          expiresAt: sessionData.expires_at,
-        };
+    // Issue #520: Set all auth data in parallel for efficiency
+    const authSetupPromises: Promise<void>[] = [];
 
-        localStorage.setItem(storageKey, JSON.stringify(sessionInfo));
-        localStorage.setItem('mockAuth', 'true');
-        sessionStorage.setItem('isAuthenticated', 'true');
-        sessionStorage.setItem('authRole', sessionData.user.user_metadata.role);
-      },
-      { sessionData: mockSession }
+    // Set storage state
+    authSetupPromises.push(
+      page.evaluate(
+        ({ sessionData }) => {
+          // Mock Supabase session
+          const storageKey = 'sb-placeholder-auth-token';
+          const sessionInfo = {
+            currentSession: {
+              access_token: sessionData.access_token,
+              refresh_token: sessionData.refresh_token,
+              expires_at: sessionData.expires_at,
+              expires_in: 3600,
+              token_type: 'bearer',
+              user: sessionData.user,
+            },
+            expiresAt: sessionData.expires_at,
+          };
+
+          localStorage.setItem(storageKey, JSON.stringify(sessionInfo));
+          localStorage.setItem('mockAuth', 'true');
+          sessionStorage.setItem('isAuthenticated', 'true');
+          sessionStorage.setItem('authRole', sessionData.user.user_metadata.role);
+          // Add timestamp for auth freshness checks
+          sessionStorage.setItem('authTimestamp', Date.now().toString());
+        },
+        { sessionData: mockSession }
+      )
     );
 
     // Cookie設定（必要な場合）
     if (!skipCookies) {
-      await context.addCookies([
-        {
-          name: 'sb-auth-token',
-          value: mockSession.access_token,
-          url: 'http://localhost:3000',
-          expires: mockSession.expires_at,
-          httpOnly: false,
-          secure: false,
-          sameSite: 'Lax' as const,
-        },
-        // Issue #514: Add mockAuth cookie for middleware detection
-        {
-          name: 'mockAuth',
-          value: 'true',
-          url: 'http://localhost:3000',
-          httpOnly: false,
-          secure: false,
-          sameSite: 'Lax' as const,
-        },
-      ]);
+      authSetupPromises.push(
+        context.addCookies([
+          {
+            name: 'sb-auth-token',
+            value: mockSession.access_token,
+            url: 'http://localhost:3000',
+            expires: mockSession.expires_at,
+            httpOnly: false,
+            secure: false,
+            sameSite: 'Lax' as const,
+          },
+          // Issue #514: Add mockAuth cookie for middleware detection
+          {
+            name: 'mockAuth',
+            value: 'true',
+            url: 'http://localhost:3000',
+            httpOnly: false,
+            secure: false,
+            sameSite: 'Lax' as const,
+          },
+        ])
+      );
     }
+
+    // Execute all auth setup operations in parallel
+    await Promise.all(authSetupPromises);
+  }
+
+  /**
+   * モック認証のセットアップ（後方互換性のため維持）
+   * @deprecated Use setupMockAuthSingleStep instead
+   */
+  private static async setupMockAuth(
+    context: BrowserContext,
+    page: Page,
+    options: SupabaseAuthOptions = {}
+  ): Promise<void> {
+    return this.setupMockAuthSingleStep(context, page, options);
   }
 
   /**
