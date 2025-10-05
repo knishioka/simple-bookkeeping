@@ -20,6 +20,7 @@ import path from 'path';
 
 import { test as base, Page, BrowserContext } from '@playwright/test';
 
+import { UnifiedMock } from '../helpers/server-actions-unified-mock';
 import { UserRole, SupabaseUser, SupabaseSession, SupabaseAuth } from '../helpers/supabase-auth';
 
 /**
@@ -257,42 +258,30 @@ export const test = base.extend<AuthFixtures, WorkerFixtures>({
   /**
    * Authenticated page fixture
    * Provides a page with authentication already set up
-   * Note: Navigation is intentionally left to individual tests to avoid race conditions
+   * Follows the exact pattern from accounting-periods-simple.spec.ts (which works):
+   * 1. UnifiedMock.setupAll() - creates/gets page and injects mocks
+   * 2. page.goto('/') - navigate to trigger auth setup
+   * 3. SupabaseAuth.setup() - configure authentication
    */
   authenticatedPage: async ({ authenticatedContext }, use) => {
-    // CRITICAL: Check if a page already exists (created by beforeEach hooks)
-    // beforeEach runs BEFORE this fixture, so UnifiedMock.setupAll may have created a page
-    // Reuse existing page to preserve mock setup
+    // Step 1: Setup mocks (creates page if needed)
+    await UnifiedMock.setupAll(authenticatedContext, { enabled: true });
+
+    // Step 2: Get the page (created by UnifiedMock or create new)
     let page = authenticatedContext.pages()[0];
-    let pageCreatedByFixture = false;
-
     if (!page) {
-      // No existing page, create a new one
       page = await authenticatedContext.newPage();
-      pageCreatedByFixture = true;
     }
 
-    // Navigate to home page FIRST, then setup auth
-    // This prevents SupabaseAuth.setup() from doing its own navigation
-    // Pattern from accounting-periods-simple.spec.ts (which works reliably):
-    //   1. goto('/') first
-    //   2. SupabaseAuth.setup() (skips navigation since page.url() is not 'about:blank')
-    //   3. Test navigates to target page
-    const currentUrl = page.url();
-    if (currentUrl === 'about:blank' || !currentUrl.startsWith('http')) {
-      await page.goto('/', { waitUntil: 'domcontentloaded' });
-    }
+    // Step 3: Navigate to home page
+    await page.goto('/');
 
-    // Now setup authentication without triggering another navigation
+    // Step 4: Setup authentication (matching accounting-periods-simple.spec.ts pattern)
     await SupabaseAuth.setup(authenticatedContext, page, { role: 'admin' });
 
     await use(page);
 
-    // Only close the page if this fixture created it
-    // Don't close pages created by beforeEach hooks
-    if (pageCreatedByFixture) {
-      await page.close();
-    }
+    await page.close();
   },
 
   /**
