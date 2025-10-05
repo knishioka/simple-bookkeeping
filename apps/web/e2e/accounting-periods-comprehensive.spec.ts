@@ -16,9 +16,8 @@ import { SupabaseAuth } from './helpers/supabase-auth';
  *
  * Auth pattern: Each test individually sets up auth
  * Pattern: goto('/') → setup auth → goto protected page
- * Note: Using serial() to disable sharding for this test suite
  */
-test.describe.serial('Accounting Periods - Comprehensive Tests', () => {
+test.describe('Accounting Periods - Comprehensive Tests', () => {
   test.use({ navigationTimeout: 30000 });
   test.setTimeout(60000);
 
