@@ -260,24 +260,39 @@ export const test = base.extend<AuthFixtures, WorkerFixtures>({
    * Note: Navigation is intentionally left to individual tests to avoid race conditions
    */
   authenticatedPage: async ({ authenticatedContext }, use) => {
-    // Create a new page from the authenticated context
-    const page = await authenticatedContext.newPage();
+    // CRITICAL: Check if a page already exists (created by beforeEach hooks)
+    // beforeEach runs BEFORE this fixture, so UnifiedMock.setupAll may have created a page
+    // Reuse existing page to preserve mock setup
+    let page = authenticatedContext.pages()[0];
+    let pageCreatedByFixture = false;
 
-    // CRITICAL: Navigate to home page FIRST, then setup auth
+    if (!page) {
+      // No existing page, create a new one
+      page = await authenticatedContext.newPage();
+      pageCreatedByFixture = true;
+    }
+
+    // Navigate to home page FIRST, then setup auth
     // This prevents SupabaseAuth.setup() from doing its own navigation
     // Pattern from accounting-periods-simple.spec.ts (which works reliably):
     //   1. goto('/') first
     //   2. SupabaseAuth.setup() (skips navigation since page.url() is not 'about:blank')
     //   3. Test navigates to target page
-    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    const currentUrl = page.url();
+    if (currentUrl === 'about:blank' || !currentUrl.startsWith('http')) {
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+    }
 
     // Now setup authentication without triggering another navigation
     await SupabaseAuth.setup(authenticatedContext, page, { role: 'admin' });
 
     await use(page);
 
-    // Close the page after the test
-    await page.close();
+    // Only close the page if this fixture created it
+    // Don't close pages created by beforeEach hooks
+    if (pageCreatedByFixture) {
+      await page.close();
+    }
   },
 
   /**
