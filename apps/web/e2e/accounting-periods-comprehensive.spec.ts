@@ -69,11 +69,11 @@ test.describe('Accounting Periods - Comprehensive Tests', () => {
       },
     });
 
-    // Set up authentication as admin
-    await SupabaseAuth.setup(context, page, { role: 'admin' });
-
-    // Navigate to home first to ensure auth is set
+    // Navigate to home page first (before auth setup)
     await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+    // Set up authentication as admin (after navigation)
+    await SupabaseAuth.setup(context, page, { role: 'admin' });
   });
 
   /**
@@ -352,11 +352,12 @@ test.describe('Accounting Periods - Comprehensive Tests', () => {
       },
     });
 
+    // Navigate to home first, then setup auth
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await SupabaseAuth.setup(context, page, { role: 'admin' });
 
-    await page.goto('/dashboard/settings/accounting-periods', {
-      waitUntil: 'domcontentloaded',
-    });
+    // Now navigate to accounting periods page
+    await navigateToAccountingPeriodsPage(page);
 
     // Wait for table to load
     await page.waitForSelector('[data-testid="accounting-periods-table"]', { timeout: 10000 });
