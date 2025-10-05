@@ -65,13 +65,13 @@ test.describe('Accounting Periods - Comprehensive Tests', () => {
    */
   test('should load accounting periods page with correct content', async ({
     authenticatedPage,
-    authenticatedContext,
   }) => {
-    // Setup mocks for this test (moved from beforeEach to avoid fixture conflicts)
-    await UnifiedMock.setupAll(authenticatedContext, {
-      enabled: true,
-      accountingPeriods: defaultMockData,
-    });
+    // TODO: Re-enable mocks after fixing the conflict
+    // UnifiedMock.setupAll() may be interfering with authentication
+    // await UnifiedMock.setupAll(authenticatedContext, {
+    //   enabled: true,
+    //   accountingPeriods: defaultMockData,
+    // });
 
     // Navigate directly to the accounting periods page
     await authenticatedPage.goto('/dashboard/settings/accounting-periods');
