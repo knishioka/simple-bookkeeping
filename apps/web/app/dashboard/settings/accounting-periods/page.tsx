@@ -207,14 +207,14 @@ export default function AccountingPeriodsPage() {
           <h1 className="text-2xl font-bold">会計期間管理</h1>
           <p className="text-muted-foreground mt-1">会計期間の作成・編集・削除を行います</p>
         </div>
-        <Button onClick={handleCreate}>
+        <Button onClick={handleCreate} data-testid="create-period-button">
           <Plus className="mr-2 h-4 w-4" />
           新規作成
         </Button>
       </div>
 
       <div className="rounded-md border">
-        <Table>
+        <Table data-testid="accounting-periods-table">
           <TableHeader>
             <TableRow>
               <TableHead>期間名</TableHead>
@@ -240,11 +240,15 @@ export default function AccountingPeriodsPage() {
               </TableRow>
             ) : (
               periods.map((period) => (
-                <TableRow key={period.id}>
-                  <TableCell className="font-medium">{period.name}</TableCell>
-                  <TableCell>{formatDate(period.startDate)}</TableCell>
-                  <TableCell>{formatDate(period.endDate)}</TableCell>
-                  <TableCell className="text-center">
+                <TableRow key={period.id} data-testid="accounting-period-row">
+                  <TableCell className="font-medium" data-testid="period-name">
+                    {period.name}
+                  </TableCell>
+                  <TableCell data-testid="period-start-date">
+                    {formatDate(period.startDate)}
+                  </TableCell>
+                  <TableCell data-testid="period-end-date">{formatDate(period.endDate)}</TableCell>
+                  <TableCell className="text-center" data-testid="period-status">
                     {period.isActive ? (
                       <Badge className="bg-green-100 text-green-800">
                         <Check className="mr-1 h-3 w-3" />
@@ -261,17 +265,23 @@ export default function AccountingPeriodsPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => handleActivate(period.id)}
+                          data-testid="activate-period-button"
                         >
                           有効化
                         </Button>
                       )}
-                      <Button variant="ghost" size="sm" onClick={() => handleEdit(period)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(period)}
+                        data-testid="edit-period-button"
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
                       {!period.isActive && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="sm" data-testid="delete-period-button">
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </AlertDialogTrigger>
@@ -284,10 +294,13 @@ export default function AccountingPeriodsPage() {
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                              <AlertDialogCancel data-testid="cancel-delete-button">
+                                キャンセル
+                              </AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => handleDelete(period.id)}
                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                data-testid="confirm-delete-button"
                               >
                                 削除
                               </AlertDialogAction>
