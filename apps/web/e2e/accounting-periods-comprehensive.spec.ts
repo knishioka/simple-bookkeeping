@@ -16,8 +16,11 @@ import { SupabaseAuth } from './helpers/supabase-auth';
  *
  * Auth pattern: Each test individually sets up auth
  * Pattern: goto('/') → setup auth → goto protected page
+ *
+ * Note: Marked as @slow to run separately from fast E2E tests
+ * This avoids sharding issues with complex authentication setup
  */
-test.describe('Accounting Periods - Comprehensive Tests', () => {
+test.describe('Accounting Periods - Comprehensive Tests @slow', () => {
   test.use({ navigationTimeout: 30000 });
   test.setTimeout(60000);
 
