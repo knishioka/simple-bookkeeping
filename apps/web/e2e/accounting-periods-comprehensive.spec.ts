@@ -55,14 +55,9 @@ test.describe('Accounting Periods - Comprehensive Tests', () => {
     },
   ];
 
-  // Setup mocks before each test
-  test.beforeEach(async ({ authenticatedContext }) => {
-    // Setup mocks using the authenticated context
-    await UnifiedMock.setupAll(authenticatedContext, {
-      enabled: true,
-      accountingPeriods: defaultMockData,
-    });
-  });
+  // Note: Mock setup moved to authenticatedPage fixture to avoid page creation conflicts
+  // beforeEach runs BEFORE fixtures, creating a separate page that breaks authentication
+  // Instead, the fixture handles both mocks and auth in the correct order
 
   /**
    * Test 1: Page Load and Content Display
@@ -70,7 +65,14 @@ test.describe('Accounting Periods - Comprehensive Tests', () => {
    */
   test('should load accounting periods page with correct content', async ({
     authenticatedPage,
+    authenticatedContext,
   }) => {
+    // Setup mocks for this test (moved from beforeEach to avoid fixture conflicts)
+    await UnifiedMock.setupAll(authenticatedContext, {
+      enabled: true,
+      accountingPeriods: defaultMockData,
+    });
+
     // Navigate directly to the accounting periods page
     await authenticatedPage.goto('/dashboard/settings/accounting-periods');
     await authenticatedPage.waitForLoadState('networkidle', { timeout: 10000 });
