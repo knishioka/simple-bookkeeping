@@ -229,27 +229,17 @@ export const test = base.extend<AuthFixtures, WorkerFixtures>({
   /**
    * Authenticated page fixture
    * Provides a page with authentication already set up
+   * Note: Navigation is intentionally left to individual tests to avoid race conditions
    */
-  authenticatedPage: async ({ page, workerAuth }, use) => {
-    // Single-step authentication - no multiple navigations
-    // The storage state is already loaded, so we just need to navigate
-
-    // For initial page load, ensure we're not on about:blank
-    const currentUrl = page.url();
-    if (currentUrl === 'about:blank' || !currentUrl.startsWith('http')) {
-      // Single navigation to home page
-      await page.goto('/', { waitUntil: 'domcontentloaded' });
-    }
-
-    // Add additional auth markers if needed for middleware detection
-    await page.evaluate((authData) => {
-      if (authData) {
-        // Set session storage flags for middleware detection
-        sessionStorage.setItem('isAuthenticated', 'true');
-        sessionStorage.setItem('authRole', authData.role);
-        sessionStorage.setItem('authTimestamp', Date.now().toString());
-      }
-    }, workerAuth);
+  authenticatedPage: async ({ page }, use) => {
+    // Storage state is already loaded from worker fixture, which includes:
+    // - localStorage: sb-placeholder-auth-token, mockAuth
+    //
+    // Do NOT navigate here - let tests control their own navigation
+    // This prevents double-navigation issues and timeout errors in sharded execution
+    //
+    // Tests should call page.goto() themselves, and sessionStorage will be
+    // set automatically by the storage state loaded from the worker fixture
 
     await use(page);
   },
