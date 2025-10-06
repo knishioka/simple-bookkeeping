@@ -142,7 +142,7 @@ jobs:
           const fs = require('fs');
           const path = require('path');
 
-          const AUTH_STATE_PATH = path.join(__dirname, 'apps/web/e2e/.auth/authenticated.json');
+          const AUTH_STATE_PATH = path.join(process.cwd(), 'e2e/.auth/authenticated.json');
           const mockAuthData = {
             currentSession: {
               access_token: 'mock-access-token-' + Date.now(),
