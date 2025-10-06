@@ -197,8 +197,26 @@ export const test = base.extend<AuthFixtures, WorkerFixtures>({
                 }),
               },
               {
+                name: 'supabase.auth.token',
+                value: JSON.stringify({
+                  currentSession: {
+                    access_token: workerAuth.session.access_token,
+                    refresh_token: workerAuth.session.refresh_token,
+                    expires_at: workerAuth.session.expires_at,
+                    expires_in: 3600,
+                    token_type: 'bearer',
+                    user: workerAuth.session.user,
+                  },
+                  expiresAt: workerAuth.session.expires_at,
+                }),
+              },
+              {
                 name: 'mockAuth',
                 value: 'true',
+              },
+              {
+                name: 'selectedOrganizationId',
+                value: workerAuth.user.user_metadata.organization_id,
               },
             ],
           },
