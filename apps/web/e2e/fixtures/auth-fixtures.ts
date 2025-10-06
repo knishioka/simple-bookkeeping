@@ -262,12 +262,15 @@ export const test = base.extend<AuthFixtures, WorkerFixtures>({
    * 1. UnifiedMock.setupAll() - creates/gets page and injects mocks
    * 2. page.goto('/') - navigate to trigger auth setup
    * 3. SupabaseAuth.setup() - configure authentication
+   *
+   * CRITICAL: Creates page from authenticatedContext to ensure storage state is applied
    */
   authenticatedPage: async ({ authenticatedContext }, use) => {
-    // Step 1: Setup mocks (creates page if needed)
+    // Step 1: Setup mocks using authenticated context
     await UnifiedMock.setupAll(authenticatedContext, { enabled: true });
 
-    // Step 2: Get the page (created by UnifiedMock or create new)
+    // Step 2: Get or create page from authenticated context
+    // This ensures the page has the authentication cookies from worker storage state
     let page = authenticatedContext.pages()[0];
     if (!page) {
       page = await authenticatedContext.newPage();
@@ -279,8 +282,10 @@ export const test = base.extend<AuthFixtures, WorkerFixtures>({
     // Step 4: Setup authentication (matching accounting-periods-simple.spec.ts pattern)
     await SupabaseAuth.setup(authenticatedContext, page, { role: 'admin' });
 
+    // Step 5: Provide the authenticated page to the test
     await use(page);
 
+    // Step 6: Close the page
     await page.close();
   },
 
