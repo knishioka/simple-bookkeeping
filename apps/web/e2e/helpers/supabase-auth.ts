@@ -501,7 +501,14 @@ export class SupabaseAuth {
           };
 
           localStorage.setItem(storageKey, JSON.stringify(sessionInfo));
+          // CRITICAL: Also set supabase.auth.token for ProtectedRoute compatibility
+          localStorage.setItem('supabase.auth.token', JSON.stringify(sessionInfo));
           localStorage.setItem('mockAuth', 'true');
+          // CRITICAL: Set selectedOrganizationId for useOrganization hook
+          localStorage.setItem(
+            'selectedOrganizationId',
+            sessionData.user.user_metadata.organization_id
+          );
           sessionStorage.setItem('isAuthenticated', 'true');
           sessionStorage.setItem('authRole', sessionData.user.user_metadata.role);
           // Add timestamp for auth freshness checks

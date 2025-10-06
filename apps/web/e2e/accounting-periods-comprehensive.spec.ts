@@ -54,14 +54,15 @@ test.describe('Accounting Periods - Comprehensive Tests', () => {
     // Verify URL is correct (not redirected to login)
     await expect(authenticatedPage).toHaveURL(/accounting-periods/, { timeout: 10000 });
 
-    // Verify page title is present
-    await expect(authenticatedPage.locator('h1')).toContainText('会計期間管理', { timeout: 10000 });
+    // Verify page title is present (specific h1 within content area)
+    await expect(
+      authenticatedPage.getByRole('heading', { name: '会計期間管理', level: 1 })
+    ).toBeVisible({ timeout: 10000 });
 
     // Verify description is present
-    await expect(authenticatedPage.locator('p.text-muted-foreground')).toContainText(
-      '会計期間の作成・編集・削除を行います',
-      { timeout: 10000 }
-    );
+    await expect(
+      authenticatedPage.locator('.container p.text-muted-foreground').first()
+    ).toContainText('会計期間の作成・編集・削除を行います', { timeout: 10000 });
 
     // Verify "Create" button is visible
     await expect(authenticatedPage.getByTestId('create-period-button')).toBeVisible({
