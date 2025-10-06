@@ -51,39 +51,59 @@ async function globalSetupSimple(config: FullConfig) {
 }
 
 /**
- * Storage Stateの有効性チェック
+ * Storage Stateの有効性チェック（Shard対応）
+ * 他のShardがStorage Stateを作成中の場合は待機する
  */
 async function isStorageStateValid(): Promise<boolean> {
-  try {
-    if (!fs.existsSync(AUTH_STATE_PATH)) {
-      return false;
+  const MAX_WAIT_TIME = 30000; // 30秒
+  const CHECK_INTERVAL = 500; // 500ms
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < MAX_WAIT_TIME) {
+    try {
+      if (!fs.existsSync(AUTH_STATE_PATH)) {
+        // ファイルが存在しない場合、少し待機して再チェック
+        // 他のShardが作成中の可能性がある
+        await new Promise((resolve) => setTimeout(resolve, CHECK_INTERVAL));
+        continue;
+      }
+
+      const content = fs.readFileSync(AUTH_STATE_PATH, 'utf-8');
+      const data = JSON.parse(content);
+
+      // 必須フィールドの確認
+      if (!data.cookies || !Array.isArray(data.cookies)) {
+        console.warn('⚠️ Storage State is invalid (missing cookies), waiting...');
+        await new Promise((resolve) => setTimeout(resolve, CHECK_INTERVAL));
+        continue;
+      }
+
+      if (!data.origins || !Array.isArray(data.origins)) {
+        console.warn('⚠️ Storage State is invalid (missing origins), waiting...');
+        await new Promise((resolve) => setTimeout(resolve, CHECK_INTERVAL));
+        continue;
+      }
+
+      // ファイルの新鮮性チェック（1時間以内）
+      const stats = fs.statSync(AUTH_STATE_PATH);
+      const age = Date.now() - stats.mtimeMs;
+      if (age > 3600000) {
+        console.log('⚠️ Storage State is stale (>1 hour old), recreating...');
+        return false;
+      }
+
+      console.log('✅ Valid Storage State found');
+      return true;
+    } catch (error) {
+      // JSONパースエラーなど - ファイルが作成中の可能性
+      console.warn('⚠️ Storage State validation failed, retrying...:', error);
+      await new Promise((resolve) => setTimeout(resolve, CHECK_INTERVAL));
     }
-
-    const content = fs.readFileSync(AUTH_STATE_PATH, 'utf-8');
-    const data = JSON.parse(content);
-
-    // 必須フィールドの確認
-    if (!data.cookies || !Array.isArray(data.cookies)) {
-      return false;
-    }
-
-    if (!data.origins || !Array.isArray(data.origins)) {
-      return false;
-    }
-
-    // ファイルの新鮮性チェック（1時間以内）
-    const stats = fs.statSync(AUTH_STATE_PATH);
-    const age = Date.now() - stats.mtimeMs;
-    if (age > 3600000) {
-      console.log('⚠️ Storage State is stale (>1 hour old), recreating...');
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.warn('⚠️ Storage State validation failed:', error);
-    return false;
   }
+
+  // タイムアウト: ファイルが見つからないか無効
+  console.warn(`⚠️ Storage State validation timeout after ${MAX_WAIT_TIME}ms`);
+  return false;
 }
 
 /**
