@@ -131,10 +131,11 @@ export default defineConfig({
   outputDir: OUTPUT_DIRS.TEST_RESULTS,
 
   // Global setup/teardown
+  // Issue #520: Use simplified global setup for stable authentication
   globalSetup:
     process.env[ENV_KEYS.USE_GLOBAL_SETUP] === 'false'
       ? undefined
-      : require.resolve('./e2e/global-setup'),
+      : require.resolve('./e2e/global-setup-simple'),
   globalTeardown: undefined,
 
   // Shared settings
