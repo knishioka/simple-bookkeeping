@@ -381,8 +381,8 @@ jobs:
           TEST_DEBUG_MODE: false
           TEST_SKIP_AUTH: false
           # Issue #520: Storage State created in setup job and shared via artifact
-          # Disable global setup since Storage State is pre-created
-          USE_GLOBAL_SETUP: false
+          # Global setup is still enabled to perform any necessary initialization
+          # Storage State file is already present from artifact download
         run: |
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting fast E2E test suite"
           START_TIME=$(date +%s)
