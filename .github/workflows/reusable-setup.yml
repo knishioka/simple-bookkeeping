@@ -133,73 +133,18 @@ jobs:
       - name: Create Storage State for E2E tests
         if: ${{ inputs.install-playwright }}
         run: |
-          cd apps/web
-          # Create .auth directory
-          mkdir -p e2e/.auth
-
-          # Create Storage State using Node.js script
-          node -e "
-          const fs = require('fs');
-          const path = require('path');
-
-          const AUTH_STATE_PATH = path.join(process.cwd(), 'e2e/.auth/authenticated.json');
-          const mockAuthData = {
-            currentSession: {
-              access_token: 'mock-access-token-' + Date.now(),
-              refresh_token: 'mock-refresh-token-' + Date.now(),
-              expires_at: Math.floor(Date.now() / 1000) + 3600,
-              expires_in: 3600,
-              token_type: 'bearer',
-              user: {
-                id: 'test-user-id',
-                email: 'admin.e2e@test.localhost',
-                user_metadata: {
-                  name: 'E2E Test Admin',
-                  organization_id: 'test-org-e2e-001',
-                  role: 'admin',
-                  permissions: ['*']
-                }
-              }
-            },
-            expiresAt: Math.floor(Date.now() / 1000) + 3600
-          };
-
-          const storageState = {
-            cookies: [{
-              name: 'mockAuth',
-              value: 'true',
-              domain: 'localhost',
-              path: '/',
-              expires: -1,
-              httpOnly: false,
-              secure: false,
-              sameSite: 'Lax'
-            }],
-            origins: [{
-              origin: 'http://localhost:3000',
-              localStorage: [
-                { name: 'sb-placeholder-auth-token', value: JSON.stringify(mockAuthData) },
-                { name: 'supabase.auth.token', value: JSON.stringify(mockAuthData) },
-                { name: 'mockAuth', value: 'true' },
-                { name: 'selectedOrganizationId', value: 'test-org-e2e-001' }
-              ]
-            }]
-          };
-
-          fs.writeFileSync(AUTH_STATE_PATH, JSON.stringify(storageState, null, 2));
-          console.log('✅ Storage State created at:', AUTH_STATE_PATH);
-          "
+          node apps/web/scripts/create-storage-state.mjs
 
           echo "✅ Storage State file created for E2E tests"
-          ls -la e2e/.auth/
-          cat e2e/.auth/authenticated.json | head -n 20
+          ls -la apps/web/e2e/.auth/
+          cat apps/web/e2e/.auth/authenticated.json | head -n 20
 
       - name: Upload Storage State artifact
         if: ${{ inputs.install-playwright }}
         uses: actions/upload-artifact@v4
         with:
           name: playwright-storage-state
-          path: apps/web/e2e/.auth/authenticated.json
+          path: apps/web/e2e/.auth/
           retention-days: 1
 
       - name: Output cache keys
