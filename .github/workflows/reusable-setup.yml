@@ -146,6 +146,7 @@ jobs:
           name: playwright-storage-state
           path: apps/web/e2e/.auth/
           retention-days: 1
+          include-hidden-files: true
 
       - name: Output cache keys
         id: cache
