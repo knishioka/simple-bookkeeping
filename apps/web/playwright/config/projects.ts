@@ -3,6 +3,8 @@
  * Defines test projects for different browsers and configurations
  */
 
+import path from 'path';
+
 import { devices, Project } from '@playwright/test';
 
 import {
@@ -15,6 +17,12 @@ import {
 } from '../constants';
 
 import { getTestMode, getCurrentModeConfig, isCI } from './modes';
+
+/**
+ * Issue #520: Shared storage state path for authenticated sessions
+ * All projects use this storage state except for API auth tests
+ */
+const STORAGE_STATE_PATH = path.join(__dirname, '../../e2e/.auth/authenticated.json');
 
 /**
  * Get Chrome browser arguments based on test mode
@@ -45,6 +53,7 @@ const createChromiumProject = (): Project => {
     name: PROJECT_NAMES.CHROMIUM,
     use: {
       ...devices['Desktop Chrome'],
+      storageState: STORAGE_STATE_PATH,
       launchOptions: {
         args: getChromeArgs(),
         slowMo: config.slowMo,
@@ -63,6 +72,7 @@ const createChromiumDesktopProject = (): Project => {
     name: PROJECT_NAMES.CHROMIUM_DESKTOP,
     use: {
       ...devices['Desktop Chrome'],
+      storageState: STORAGE_STATE_PATH,
       viewport: VIEWPORTS.DEFAULT,
       locale: mode === TEST_MODES.LOCAL ? LOCALE_SETTINGS.LOCAL_MODE.LOCALE : undefined,
       timezoneId: mode === TEST_MODES.LOCAL ? LOCALE_SETTINGS.LOCAL_MODE.TIMEZONE : undefined,
@@ -82,6 +92,7 @@ const createChromiumProdProject = (): Project => ({
   name: PROJECT_NAMES.CHROMIUM_PROD,
   use: {
     ...devices['Desktop Chrome'],
+    storageState: STORAGE_STATE_PATH,
     viewport: VIEWPORTS.PROD,
   },
 });
@@ -95,6 +106,7 @@ const createChromiumComprehensiveProject = (): Project => {
     name: PROJECT_NAMES.CHROMIUM_COMPREHENSIVE,
     use: {
       ...devices['Desktop Chrome'],
+      storageState: STORAGE_STATE_PATH,
       launchOptions: {
         args: getChromeArgs(),
         slowMo: config.slowMo,
@@ -111,6 +123,7 @@ const createFirefoxComprehensiveProject = (): Project => ({
   name: PROJECT_NAMES.FIREFOX_COMPREHENSIVE,
   use: {
     ...devices['Desktop Firefox'],
+    storageState: STORAGE_STATE_PATH,
   },
   testMatch: TEST_PATTERNS.BASIC_TESTS,
 });
@@ -122,6 +135,7 @@ const createMobileComprehensiveProject = (): Project => ({
   name: PROJECT_NAMES.MOBILE_COMPREHENSIVE,
   use: {
     ...devices['Pixel 5'],
+    storageState: STORAGE_STATE_PATH,
   },
   testMatch: TEST_PATTERNS.RESPONSIVE_TESTS,
 });
@@ -150,6 +164,7 @@ const createAdditionalProjects = (): Project[] => {
       name: PROJECT_NAMES.FIREFOX,
       use: {
         ...devices['Desktop Firefox'],
+        storageState: STORAGE_STATE_PATH,
       },
       testMatch: TEST_PATTERNS.CROSS_BROWSER,
     },
@@ -157,6 +172,7 @@ const createAdditionalProjects = (): Project[] => {
       name: PROJECT_NAMES.WEBKIT,
       use: {
         ...devices['Desktop Safari'],
+        storageState: STORAGE_STATE_PATH,
       },
       testMatch: TEST_PATTERNS.CROSS_BROWSER,
     }
@@ -167,6 +183,7 @@ const createAdditionalProjects = (): Project[] => {
     name: PROJECT_NAMES.MOBILE_CHROME,
     use: {
       ...devices['Pixel 5'],
+      storageState: STORAGE_STATE_PATH,
     },
     testMatch: TEST_PATTERNS.MOBILE,
   });
@@ -177,6 +194,7 @@ const createAdditionalProjects = (): Project[] => {
       name: PROJECT_NAMES.CHROMIUM_DESKTOP_WIDE,
       use: {
         ...devices['Desktop Chrome'],
+        storageState: STORAGE_STATE_PATH,
         viewport: VIEWPORTS.DESKTOP_WIDE,
       },
       testMatch: TEST_PATTERNS.DESKTOP_ONLY,
@@ -185,12 +203,13 @@ const createAdditionalProjects = (): Project[] => {
       name: PROJECT_NAMES.CHROMIUM_TABLET,
       use: {
         ...devices['iPad Pro'],
+        storageState: STORAGE_STATE_PATH,
       },
       testMatch: TEST_PATTERNS.TABLET,
     }
   );
 
-  // API authentication testing
+  // API authentication testing (no storage state - tests auth flow)
   projects.push({
     name: PROJECT_NAMES.API_AUTH,
     use: {
