@@ -130,6 +130,24 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-build-
 
+      - name: Create Storage State for E2E tests
+        if: ${{ inputs.install-playwright }}
+        run: |
+          node apps/web/scripts/create-storage-state.mjs
+
+          echo "✅ Storage State file created for E2E tests"
+          ls -la apps/web/e2e/.auth/
+          cat apps/web/e2e/.auth/authenticated.json | head -n 20
+
+      - name: Upload Storage State artifact
+        if: ${{ inputs.install-playwright }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-storage-state
+          path: apps/web/e2e/.auth/
+          retention-days: 1
+          include-hidden-files: true
+
       - name: Output cache keys
         id: cache
         run: |

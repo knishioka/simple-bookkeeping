@@ -168,6 +168,7 @@ export async function middleware(request: NextRequest) {
   // or when explicitly using mock authentication in CI
   // CRITICAL SECURITY: Only allow test mode in non-production environments
   // Issue #514: Also check cookie for E2E_USE_MOCK_AUTH for better test reliability
+  // Issue #520: Add localhost:8000 (Docker Compose Supabase) to trigger mock auth in E2E tests
   const mockAuthCookie = request.cookies.get('mockAuth')?.value === 'true';
   const isTestMode =
     process.env.NODE_ENV !== 'production' &&
@@ -175,7 +176,8 @@ export async function middleware(request: NextRequest) {
       mockAuthCookie || // Cookie-based mock auth (for E2E tests)
       !process.env.NEXT_PUBLIC_SUPABASE_URL ||
       process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://dummy.supabase.co' ||
-      process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://placeholder.supabase.co');
+      process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://placeholder.supabase.co' ||
+      process.env.NEXT_PUBLIC_SUPABASE_URL === 'http://localhost:8000');
 
   if (isTestMode) {
     // In test environment, allow all routes without authentication

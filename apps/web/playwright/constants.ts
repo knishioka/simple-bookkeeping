@@ -304,10 +304,9 @@ export const HEALTH_CHECK = {
 // Server Configuration
 // ============================================
 export const SERVER_CONFIG = {
-  // Use production build in CI for performance
-  COMMAND: process.env.CI
-    ? 'pnpm --filter @simple-bookkeeping/web start'
-    : 'pnpm --filter @simple-bookkeeping/web dev',
+  // Issue #520: Use dev server even in CI to ensure NODE_ENV='test' for mock auth
+  // Production builds always set NODE_ENV='production' internally, breaking middleware test mode detection
+  COMMAND: 'pnpm --filter @simple-bookkeeping/web dev',
   ENV: {
     NODE_ENV: 'test',
     // Enable mock authentication for E2E tests to prevent redirect loops

@@ -28,7 +28,7 @@ jobs:
   e2e-tests:
     needs: setup
     runs-on: ubuntu-latest
-    timeout-minutes: 10 # Increased slightly to accommodate Supabase startup
+    timeout-minutes: 5 # Issue #520: Reduced timeout with Storage State optimization
 
     # Re-enable sharding for parallel test execution
     strategy:
@@ -326,6 +326,26 @@ jobs:
           key: ${{ runner.os }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}-chromium
           fail-on-cache-miss: true
 
+      - name: Download Storage State artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: playwright-storage-state
+          path: apps/web/e2e/.auth/
+
+      - name: Verify Storage State
+        run: |
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Verifying Storage State artifact..."
+          ls -la apps/web/e2e/.auth/
+          if [ -f apps/web/e2e/.auth/authenticated.json ]; then
+            echo "✅ Storage State file exists"
+            echo "File size: $(wc -c < apps/web/e2e/.auth/authenticated.json) bytes"
+            echo "First 10 lines:"
+            head -n 10 apps/web/e2e/.auth/authenticated.json
+          else
+            echo "❌ Storage State file not found!"
+            exit 1
+          fi
+
       - name: Run E2E tests with performance tracking
         env:
           # Database connection for local Supabase
@@ -360,21 +380,28 @@ jobs:
           TEST_HEADLESS: true
           TEST_DEBUG_MODE: false
           TEST_SKIP_AUTH: false
-          DISABLE_STORAGE_STATE: true # Disable Storage State to avoid race conditions in sharded tests
+          # Issue #520: Storage State created in setup job and shared via artifact
+          # Global setup is still enabled to perform any necessary initialization
+          # Storage State file is already present from artifact download
         run: |
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting fast E2E test suite"
           START_TIME=$(date +%s)
 
-          # Note: Storage State is intentionally disabled to avoid race conditions between shards
-          # Each test handles its own authentication independently for stability
+          # Issue #520: Storage State created once in setup job and shared via artifact
+          # - Authentication state created in setup job (runs once)
+          # - Uploaded as artifact and downloaded by each shard
+          # - All tests share the exact same authenticated state
+          # - Eliminates race conditions from parallel shard execution
+          # - Fully compatible with GitHub Actions matrix strategy
 
           # Run fast test suite with sharding for parallel execution
           # Playwright will automatically start the web server based on webServer config
           cd apps/web
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running shard ${{ matrix.shard }}"
           echo "  - Parallel mode: fullyParallel is enabled"
-          echo "  - Storage State: Disabled (each test authenticates independently)"
-          timeout 480 npx playwright test --shard=${{ matrix.shard }} --grep-invert="@slow|@integration" || TEST_EXIT="$?"
+          echo "  - Storage State: Pre-created in setup job (shared via artifact)"
+          echo "  - Global setup: Disabled (USE_GLOBAL_SETUP=false)"
+          timeout 300 npx playwright test --shard=${{ matrix.shard }} --grep-invert="@slow|@integration" || TEST_EXIT="$?"
 
           END_TIME=$(date +%s)
           DURATION=$((END_TIME - START_TIME))
