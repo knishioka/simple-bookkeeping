@@ -13,16 +13,16 @@ test.describe('会計期間ページ', () => {
     // Storage Stateにより既に認証済み - 直接ページに移動
     await page.goto('/dashboard/settings/accounting-periods');
 
-    // ページの主要コンテンツ(h1)が表示されるまで待つ
+    // ページの主要コンテンツが表示されるまで待つ
     // useOrganizationフックの読み込み完了を待つため10秒のタイムアウトを設定
-    await page.waitForSelector('h1', { timeout: 10000 });
+    await page.waitForSelector('h1:has-text("会計期間管理")', { timeout: 10000 });
 
     // ページが正常に表示されることを確認
     // (ログインページにリダイレクトされない)
     expect(page.url()).toContain('accounting-periods');
 
-    // h1タイトルが正しく表示されることを確認
-    const heading = await page.locator('h1').textContent();
+    // ページタイトルが正しく表示されることを確認
+    const heading = await page.locator('h1:has-text("会計期間管理")').textContent();
     expect(heading).toBe('会計期間管理');
   });
 
