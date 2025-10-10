@@ -140,16 +140,21 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
     }
 
     // users テーブルにもユーザー情報を保存（互換性のため）
-    const { error: userError } = await supabase.from('users').insert({
-      id: authData.user.id,
-      email,
-      name,
-      password_hash: 'supabase_auth', // Supabase Authを使用していることを示す
-      is_active: true,
-    });
+    // NOTE: usersテーブルへの保存は organization_id が必須の場合のみ行う
+    if (organizationId) {
+      const { error: userError } = await supabase.from('users').insert({
+        id: authData.user.id,
+        email,
+        name,
+        organization_id: organizationId,
+        role: 'admin',
+        password_hash: 'supabase_auth', // Supabase Authを使用していることを示す
+        is_active: true,
+      });
 
-    if (userError) {
-      console.error('User table insert failed:', userError);
+      if (userError) {
+        console.error('User table insert failed:', userError);
+      }
     }
 
     return createSuccessResult({
