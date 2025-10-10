@@ -4,6 +4,10 @@
       "type": "stdio",
       "command": "codex",
       "args": ["mcp"]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest", "--headless"]
     }
   }
 }
