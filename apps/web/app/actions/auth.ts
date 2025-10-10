@@ -108,7 +108,7 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
         .insert({
           name: organizationName,
           code: `ORG-${Date.now()}`, // 仮のコード（後で変更可能）
-          is_active: true,
+          // is_active: true, // Temporarily commented out due to schema cache issue
         })
         .select()
         .single();
@@ -149,7 +149,7 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
         organization_id: organizationId,
         role: 'admin',
         password_hash: 'supabase_auth', // Supabase Authを使用していることを示す
-        is_active: true,
+        // is_active: true, // Temporarily commented out due to schema cache issue
       });
 
       if (userError) {
