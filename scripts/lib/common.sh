@@ -108,14 +108,16 @@ require_command() {
 }
 
 # Run command with error handling
+# Usage: run_command "command_string" "error_message"
+# Example: run_command "pnpm build" "Build failed!"
 run_command() {
-    local error_msg="${2:-Command failed: $1}"
-    shift 1  # Remove error_msg from arguments
+    local cmd="$1"
+    local error_msg="${2:-Command failed: $cmd}"
 
-    print_debug "Running: $*"
+    print_debug "Running: $cmd"
 
-    # Use "$@" to safely pass arguments without eval
-    if ! "$@"; then
+    # Execute command using eval to handle shell commands with arguments
+    if ! eval "$cmd"; then
         die "$error_msg"
     fi
 }
@@ -459,8 +461,8 @@ run_pnpm() {
         die "pnpm is not installed. Please install it first: npm install -g pnpm"
     fi
 
-    # Pass all arguments directly to pnpm
-    run_command "pnpm command failed: $*" pnpm "$@"
+    # Execute pnpm command with error handling
+    run_command "pnpm $*" "pnpm command failed: pnpm $*"
 }
 
 # ============================================================================
