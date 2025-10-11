@@ -46,14 +46,14 @@ interface AuthUser {
  * ユーザー登録
  */
 export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>> {
-  console.log('[SignUp] Starting signup process for:', { email: input.email });
+  console.warn('[SignUp] Starting signup process for:', { email: input.email });
 
   try {
     const { email, password, name, organizationName } = input;
 
     // バリデーション
     if (!email || !password || !name) {
-      console.log('[SignUp] Validation failed: missing required fields');
+      console.warn('[SignUp] Validation failed: missing required fields');
       return createValidationErrorResult('必須項目が入力されていません。', {
         email: !email ? 'メールアドレスは必須です' : undefined,
         password: !password ? 'パスワードは必須です' : undefined,
@@ -64,20 +64,20 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
     // メールアドレスの形式チェック
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      console.log('[SignUp] Validation failed: invalid email format');
+      console.warn('[SignUp] Validation failed: invalid email format');
       return createValidationErrorResult('メールアドレスの形式が正しくありません。');
     }
 
     // パスワードの強度チェック
     if (password.length < 8) {
-      console.log('[SignUp] Validation failed: password too short');
+      console.warn('[SignUp] Validation failed: password too short');
       return createValidationErrorResult('パスワードは8文字以上で入力してください。');
     }
 
     const supabase = await createClient();
 
     // Step 1: Supabase Authでユーザーを作成
-    console.log('[SignUp] Step 1: Creating auth user');
+    console.warn('[SignUp] Step 1: Creating auth user');
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -90,7 +90,7 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
     });
 
     if (authError) {
-      console.log('[SignUp] Auth creation failed:', authError.message);
+      console.warn('[SignUp] Auth creation failed:', authError.message);
       if (authError.message.includes('already registered')) {
         return createErrorResult(
           ERROR_CODES.ALREADY_EXISTS,
@@ -101,11 +101,11 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
     }
 
     if (!authData.user) {
-      console.log('[SignUp] Auth creation failed: no user returned');
+      console.warn('[SignUp] Auth creation failed: no user returned');
       return createErrorResult(ERROR_CODES.INTERNAL_ERROR, 'ユーザーの作成に失敗しました。');
     }
 
-    console.log('[SignUp] Auth user created successfully:', authData.user.id);
+    console.warn('[SignUp] Auth user created successfully:', authData.user.id);
 
     // 組織を作成する場合（デフォルトで常に作成する）
     let organizationId: string | undefined;
@@ -113,11 +113,11 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
 
     // 組織名がない場合はデフォルト名を使用
     const finalOrgName = organizationName || `${name}の組織`;
-    console.log('[SignUp] Creating organization with name:', finalOrgName);
+    console.warn('[SignUp] Creating organization with name:', finalOrgName);
 
     try {
       // Step 2: 組織を作成
-      console.log('[SignUp] Step 2: Creating organization');
+      console.warn('[SignUp] Step 2: Creating organization');
       const { data: newOrg, error: orgError } = await supabase
         .from('organizations')
         .insert({
@@ -129,11 +129,11 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
         .single();
 
       if (orgError || !newOrg) {
-        console.log('[SignUp] Organization creation failed:', orgError);
+        console.warn('[SignUp] Organization creation failed:', orgError);
         // Authユーザーは作成済みなので、削除を試みる
         const serviceClient = await createServiceClient();
         await serviceClient.auth.admin.deleteUser(authData.user.id).catch((err) => {
-          console.log('[SignUp] Failed to rollback auth user:', err);
+          console.warn('[SignUp] Failed to rollback auth user:', err);
         });
         return createErrorResult(
           ERROR_CODES.INTERNAL_ERROR,
@@ -142,10 +142,10 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
       }
 
       organizationId = newOrg.id;
-      console.log('[SignUp] Organization created successfully:', organizationId);
+      console.warn('[SignUp] Organization created successfully:', organizationId);
 
       // Step 3: users テーブルにユーザー情報を保存
-      console.log('[SignUp] Step 3: Creating user record');
+      console.warn('[SignUp] Step 3: Creating user record');
       const { error: userError } = await supabase.from('users').insert({
         id: authData.user.id,
         email,
@@ -157,17 +157,17 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
       });
 
       if (userError) {
-        console.log('[SignUp] User table insert failed:', userError);
+        console.warn('[SignUp] User table insert failed:', userError);
         // 重要なエラーなので処理を続行しない
         return createErrorResult(
           ERROR_CODES.INTERNAL_ERROR,
           'ユーザー情報の保存に失敗しました。管理者にお問い合わせください。'
         );
       }
-      console.log('[SignUp] User record created successfully');
+      console.warn('[SignUp] User record created successfully');
 
       // Step 4: ユーザーを組織に関連付け（管理者として）
-      console.log('[SignUp] Step 4: Creating user-organization association');
+      console.warn('[SignUp] Step 4: Creating user-organization association');
       const { error: userOrgError } = await supabase.from('user_organizations').insert({
         user_id: authData.user.id,
         organization_id: organizationId,
@@ -176,17 +176,17 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
       });
 
       if (userOrgError) {
-        console.log('[SignUp] User-organization association failed:', userOrgError);
+        console.warn('[SignUp] User-organization association failed:', userOrgError);
         // 重要なエラーなので処理を続行しない
         return createErrorResult(
           ERROR_CODES.INTERNAL_ERROR,
           '組織への関連付けに失敗しました。管理者にお問い合わせください。'
         );
       }
-      console.log('[SignUp] User-organization association created successfully');
+      console.warn('[SignUp] User-organization association created successfully');
 
       // Step 5: CRITICAL - Update user's app_metadata with organization info
-      console.log('[SignUp] Step 5: Updating user app_metadata');
+      console.warn('[SignUp] Step 5: Updating user app_metadata');
 
       // Use service client for admin operations
       const serviceClient = await createServiceClient();
@@ -201,16 +201,16 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
       );
 
       if (updateError) {
-        console.log('[SignUp] WARNING: Failed to update app_metadata:', updateError);
+        console.warn('[SignUp] WARNING: Failed to update app_metadata:', updateError);
         // app_metadataの更新に失敗しても、ログイン時に修正を試みるので続行
         // ただし、警告はログに残す
-        console.log('[SignUp] Will attempt to fix app_metadata on next login');
+        console.warn('[SignUp] Will attempt to fix app_metadata on next login');
       } else {
-        console.log('[SignUp] User app_metadata updated successfully');
+        console.warn('[SignUp] User app_metadata updated successfully');
       }
 
       // 成功レスポンス
-      console.log('[SignUp] Signup completed successfully');
+      console.warn('[SignUp] Signup completed successfully');
       return createSuccessResult({
         id: authData.user.id,
         email: authData.user.email || '',
@@ -219,11 +219,11 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
         role: userRole,
       });
     } catch (dbError) {
-      console.log('[SignUp] Database operation failed:', dbError);
+      console.warn('[SignUp] Database operation failed:', dbError);
       // Authユーザーは作成済みなので、削除を試みる（ベストエフォート）
       const serviceClient = await createServiceClient();
       await serviceClient.auth.admin.deleteUser(authData.user.id).catch((err) => {
-        console.log('[SignUp] Failed to rollback auth user:', err);
+        console.warn('[SignUp] Failed to rollback auth user:', err);
       });
       return createErrorResult(
         ERROR_CODES.INTERNAL_ERROR,
@@ -231,7 +231,7 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
       );
     }
   } catch (error) {
-    console.log('[SignUp] Unexpected error:', error);
+    console.warn('[SignUp] Unexpected error:', error);
     return handleSupabaseError(error);
   }
 }
@@ -240,14 +240,14 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
  * ログイン
  */
 export async function signIn(input: SignInInput): Promise<ActionResult<AuthUser>> {
-  console.log('[SignIn] Starting sign in process for:', { email: input.email });
+  console.warn('[SignIn] Starting sign in process for:', { email: input.email });
 
   try {
     const { email, password } = input;
 
     // バリデーション
     if (!email || !password) {
-      console.log('[SignIn] Validation failed: missing credentials');
+      console.warn('[SignIn] Validation failed: missing credentials');
       return createValidationErrorResult('必須項目が入力されていません。', {
         email: !email ? 'メールアドレスは必須です' : undefined,
         password: !password ? 'パスワードは必須です' : undefined,
@@ -257,14 +257,14 @@ export async function signIn(input: SignInInput): Promise<ActionResult<AuthUser>
     const supabase = await createClient();
 
     // Supabase Authでログイン
-    console.log('[SignIn] Authenticating with Supabase Auth');
+    console.warn('[SignIn] Authenticating with Supabase Auth');
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (authError) {
-      console.log('[SignIn] Authentication failed:', authError.message);
+      console.warn('[SignIn] Authentication failed:', authError.message);
       if (authError.message.includes('Invalid login credentials')) {
         return createErrorResult(
           ERROR_CODES.UNAUTHORIZED,
@@ -275,15 +275,15 @@ export async function signIn(input: SignInInput): Promise<ActionResult<AuthUser>
     }
 
     if (!authData.user) {
-      console.log('[SignIn] Authentication failed: no user returned');
+      console.warn('[SignIn] Authentication failed: no user returned');
       return createErrorResult(ERROR_CODES.INTERNAL_ERROR, 'ログインに失敗しました。');
     }
 
-    console.log('[SignIn] Authentication successful for user:', authData.user.id);
-    console.log('[SignIn] Current app_metadata:', authData.user.app_metadata);
+    console.warn('[SignIn] Authentication successful for user:', authData.user.id);
+    console.warn('[SignIn] Current app_metadata:', authData.user.app_metadata);
 
     // ユーザーの組織情報を取得
-    console.log('[SignIn] Fetching user organization');
+    console.warn('[SignIn] Fetching user organization');
     const { data: userOrgs } = await supabase
       .from('user_organizations')
       .select('organization_id, role')
@@ -292,7 +292,7 @@ export async function signIn(input: SignInInput): Promise<ActionResult<AuthUser>
       .single();
 
     // ユーザー情報を取得
-    console.log('[SignIn] Fetching user data');
+    console.warn('[SignIn] Fetching user data');
     const { data: userData } = await supabase
       .from('users')
       .select('name')
@@ -307,9 +307,12 @@ export async function signIn(input: SignInInput): Promise<ActionResult<AuthUser>
         currentAppMetadata.current_organization_id !== userOrgs.organization_id);
 
     if (needsMetadataUpdate) {
-      console.log('[SignIn] FIXING: app_metadata is missing or incorrect, updating now');
-      console.log('[SignIn] Expected org:', userOrgs.organization_id);
-      console.log('[SignIn] Current org in metadata:', currentAppMetadata?.current_organization_id);
+      console.warn('[SignIn] FIXING: app_metadata is missing or incorrect, updating now');
+      console.warn('[SignIn] Expected org:', userOrgs.organization_id);
+      console.warn(
+        '[SignIn] Current org in metadata:',
+        currentAppMetadata?.current_organization_id
+      );
 
       // Use service client for admin operations
       const serviceClient = await createServiceClient();
@@ -324,22 +327,22 @@ export async function signIn(input: SignInInput): Promise<ActionResult<AuthUser>
       );
 
       if (updateError) {
-        console.log('[SignIn] WARNING: Failed to fix app_metadata:', updateError);
+        console.warn('[SignIn] WARNING: Failed to fix app_metadata:', updateError);
         // Continue anyway - the user can still use the app
       } else {
-        console.log('[SignIn] Successfully fixed app_metadata');
+        console.warn('[SignIn] Successfully fixed app_metadata');
       }
     } else if (userOrgs?.organization_id) {
-      console.log('[SignIn] app_metadata is correctly set');
+      console.warn('[SignIn] app_metadata is correctly set');
     } else {
-      console.log('[SignIn] No organization found for user');
+      console.warn('[SignIn] No organization found for user');
     }
 
     // キャッシュを再検証
     revalidatePath('/dashboard');
     revalidatePath('/');
 
-    console.log('[SignIn] Sign in completed successfully');
+    console.warn('[SignIn] Sign in completed successfully');
     return createSuccessResult({
       id: authData.user.id,
       email: authData.user.email || '',
@@ -348,7 +351,7 @@ export async function signIn(input: SignInInput): Promise<ActionResult<AuthUser>
       role: userOrgs?.role,
     });
   } catch (error) {
-    console.log('[SignIn] Unexpected error:', error);
+    console.warn('[SignIn] Unexpected error:', error);
     return handleSupabaseError(error);
   }
 }

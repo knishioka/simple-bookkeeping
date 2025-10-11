@@ -220,11 +220,11 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  console.log(`[Middleware] Path: ${pathname}, User: ${user?.id || 'none'}`);
+  console.warn(`[Middleware] Path: ${pathname}, User: ${user?.id || 'none'}`);
 
   if (!user) {
     // Redirect to login if not authenticated
-    console.log('[Middleware] No user found, redirecting to login');
+    console.warn('[Middleware] No user found, redirecting to login');
     const redirectUrl = new URL('/auth/login', request.url);
     redirectUrl.searchParams.set('redirectTo', pathname);
     return NextResponse.redirect(redirectUrl);
@@ -234,15 +234,15 @@ export async function middleware(request: NextRequest) {
   const userMetadata = user.app_metadata;
   const currentOrganizationId = userMetadata?.current_organization_id;
 
-  console.log(`[Middleware] User ${user.id} app_metadata:`, userMetadata);
-  console.log(`[Middleware] Current organization: ${currentOrganizationId || 'NONE'}`);
+  console.warn(`[Middleware] User ${user.id} app_metadata:`, userMetadata);
+  console.warn(`[Middleware] Current organization: ${currentOrganizationId || 'NONE'}`);
 
   // Redirect loop detection
   const redirectCount = parseInt(request.headers.get('x-redirect-count') || '0');
-  console.log(`[Middleware] Redirect count: ${redirectCount}`);
+  console.warn(`[Middleware] Redirect count: ${redirectCount}`);
 
   if (redirectCount > 5) {
-    console.log('[Middleware] ERROR: Redirect loop detected! Breaking loop.');
+    console.warn('[Middleware] ERROR: Redirect loop detected! Breaking loop.');
     // Break the loop by allowing access to dashboard even without organization
     // This will help us debug the issue
     if (pathname !== '/dashboard') {
@@ -255,11 +255,11 @@ export async function middleware(request: NextRequest) {
   if (!currentOrganizationId) {
     // Special handling for organization selection page to prevent loops
     if (pathname === '/auth/select-organization') {
-      console.log('[Middleware] Already on select-organization page, allowing access');
+      console.warn('[Middleware] Already on select-organization page, allowing access');
       return response;
     }
 
-    console.log('[Middleware] No organization ID found in app_metadata, checking database');
+    console.warn('[Middleware] No organization ID found in app_metadata, checking database');
 
     // Try to fetch organization from database as fallback
     const { data: userOrg } = await supabase
@@ -270,8 +270,8 @@ export async function middleware(request: NextRequest) {
       .single();
 
     if (userOrg?.organization_id) {
-      console.log('[Middleware] Found organization in database:', userOrg.organization_id);
-      console.log('[Middleware] Attempting to fix app_metadata');
+      console.warn('[Middleware] Found organization in database:', userOrg.organization_id);
+      console.warn('[Middleware] Attempting to fix app_metadata');
 
       // Try to update app_metadata (this might fail if we don't have service role key)
       // But we should still allow the user to continue
@@ -282,12 +282,12 @@ export async function middleware(request: NextRequest) {
       // Add a header to indicate metadata needs fixing
       response.headers.set('x-fix-metadata', 'true');
 
-      console.log('[Middleware] Allowing access with organization from database');
+      console.warn('[Middleware] Allowing access with organization from database');
       return response;
     }
 
     // Redirect to organization selection if no organization is found anywhere
-    console.log('[Middleware] No organization found, redirecting to select-organization');
+    console.warn('[Middleware] No organization found, redirecting to select-organization');
     const redirectUrl = new URL('/auth/select-organization', request.url);
     redirectUrl.searchParams.set('redirectTo', pathname);
 
