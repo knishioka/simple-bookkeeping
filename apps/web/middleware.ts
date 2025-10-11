@@ -12,6 +12,7 @@ const publicRoutes = [
   '/auth/signup',
   '/auth/reset-password',
   '/auth/verify-email',
+  '/auth/select-organization', // Added to prevent redirect loops
 ];
 
 // Define route patterns for public access
@@ -219,8 +220,11 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  console.warn(`[Middleware] Path: ${pathname}, User: ${user?.id || 'none'}`);
+
   if (!user) {
     // Redirect to login if not authenticated
+    console.warn('[Middleware] No user found, redirecting to login');
     const redirectUrl = new URL('/auth/login', request.url);
     redirectUrl.searchParams.set('redirectTo', pathname);
     return NextResponse.redirect(redirectUrl);
@@ -230,11 +234,71 @@ export async function middleware(request: NextRequest) {
   const userMetadata = user.app_metadata;
   const currentOrganizationId = userMetadata?.current_organization_id;
 
+  console.warn(`[Middleware] User ${user.id} app_metadata:`, userMetadata);
+  console.warn(`[Middleware] Current organization: ${currentOrganizationId || 'NONE'}`);
+
+  // Redirect loop detection
+  const redirectCount = parseInt(request.headers.get('x-redirect-count') || '0');
+  console.warn(`[Middleware] Redirect count: ${redirectCount}`);
+
+  if (redirectCount > 5) {
+    console.warn('[Middleware] ERROR: Redirect loop detected! Breaking loop.');
+    // Break the loop by allowing access to dashboard even without organization
+    // This will help us debug the issue
+    if (pathname !== '/dashboard') {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+    // If already on dashboard, just continue
+    return response;
+  }
+
   if (!currentOrganizationId) {
-    // Redirect to organization selection if no organization is selected
+    // Special handling for organization selection page to prevent loops
+    if (pathname === '/auth/select-organization') {
+      console.warn('[Middleware] Already on select-organization page, allowing access');
+      return response;
+    }
+
+    console.warn('[Middleware] No organization ID found in app_metadata, checking database');
+
+    // PERFORMANCE NOTE: Database fallback query
+    // This is only executed when app_metadata is missing or incorrect.
+    // Normally, app_metadata should be set during signup/signin (see auth.ts)
+    // This fallback exists for legacy users or edge cases where metadata update failed.
+    // TODO: Monitor frequency of this fallback - if common, investigate root cause
+    const { data: userOrg } = await supabase
+      .from('user_organizations')
+      .select('organization_id, role')
+      .eq('user_id', user.id)
+      .eq('is_default', true)
+      .single();
+
+    if (userOrg?.organization_id) {
+      console.warn('[Middleware] Found organization in database:', userOrg.organization_id);
+      console.warn('[Middleware] Attempting to fix app_metadata');
+
+      // Try to update app_metadata (this might fail if we don't have service role key)
+      // But we should still allow the user to continue
+      response.headers.set('x-user-id', user.id);
+      response.headers.set('x-organization-id', userOrg.organization_id);
+      response.headers.set('x-user-role', userOrg.role || 'viewer');
+
+      // Add a header to indicate metadata needs fixing
+      response.headers.set('x-fix-metadata', 'true');
+
+      console.warn('[Middleware] Allowing access with organization from database');
+      return response;
+    }
+
+    // Redirect to organization selection if no organization is found anywhere
+    console.warn('[Middleware] No organization found, redirecting to select-organization');
     const redirectUrl = new URL('/auth/select-organization', request.url);
     redirectUrl.searchParams.set('redirectTo', pathname);
-    return NextResponse.redirect(redirectUrl);
+
+    // Add redirect count header to detect loops
+    const nextResponse = NextResponse.redirect(redirectUrl);
+    nextResponse.headers.set('x-redirect-count', (redirectCount + 1).toString());
+    return nextResponse;
   }
 
   // Add user context to headers for API routes

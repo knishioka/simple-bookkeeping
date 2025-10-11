@@ -11,7 +11,7 @@ import {
 } from '../auth';
 import { ERROR_CODES } from '../types';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 // Mock dependencies
 jest.mock('next/cache', () => ({
@@ -24,13 +24,18 @@ jest.mock('next/navigation', () => ({
 
 jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn(),
+  createServiceClient: jest.fn(),
 }));
 
 const mockRevalidatePath = revalidatePath as jest.MockedFunction<typeof revalidatePath>;
 const mockCreateClient = createClient as jest.MockedFunction<typeof createClient>;
+const mockCreateServiceClient = createServiceClient as jest.MockedFunction<
+  typeof createServiceClient
+>;
 
 describe('Auth Server Actions', () => {
   let mockSupabaseClient: any;
+  let mockServiceSupabaseClient: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -50,8 +55,21 @@ describe('Auth Server Actions', () => {
       from: jest.fn(),
     };
 
+    // Create mock Service Supabase client
+    mockServiceSupabaseClient = {
+      auth: {
+        admin: {
+          updateUserById: jest.fn().mockResolvedValue({ error: null }),
+          deleteUser: jest.fn().mockResolvedValue({ error: null }),
+        },
+      },
+    };
+
     // Mock createClient to return a Promise that resolves to the mock client
     mockCreateClient.mockImplementation(() => Promise.resolve(mockSupabaseClient));
+
+    // Mock createServiceClient to return a Promise that resolves to the service mock client
+    mockCreateServiceClient.mockImplementation(() => Promise.resolve(mockServiceSupabaseClient));
   });
 
   describe('signUp', () => {
@@ -80,14 +98,14 @@ describe('Auth Server Actions', () => {
         }),
       };
 
-      const userOrgInsertQuery = {
+      const userInsertQuery = {
         insert: jest.fn().mockReturnThis(),
         single: jest.fn().mockResolvedValue({
           error: null,
         }),
       };
 
-      const userInsertQuery = {
+      const userOrgInsertQuery = {
         insert: jest.fn().mockReturnThis(),
         single: jest.fn().mockResolvedValue({
           error: null,
@@ -97,8 +115,8 @@ describe('Auth Server Actions', () => {
       // Mock from() to return different queries for each table
       mockSupabaseClient.from
         .mockReturnValueOnce(orgInsertQuery) // organizations table
-        .mockReturnValueOnce(userOrgInsertQuery) // user_organizations table
-        .mockReturnValueOnce(userInsertQuery); // users table
+        .mockReturnValueOnce(userInsertQuery) // users table
+        .mockReturnValueOnce(userOrgInsertQuery); // user_organizations table
 
       const result = await signUp(validInput);
 
@@ -137,7 +155,16 @@ describe('Auth Server Actions', () => {
         error: null,
       });
 
-      // Mock user table insert
+      // Now a default organization is always created
+      const orgInsertQuery = {
+        insert: jest.fn().mockReturnThis(),
+        select: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: { id: 'org-default-123', name: '山田太郎の組織' },
+          error: null,
+        }),
+      };
+
       const userInsertQuery = {
         insert: jest.fn().mockReturnThis(),
         single: jest.fn().mockResolvedValue({
@@ -145,7 +172,18 @@ describe('Auth Server Actions', () => {
         }),
       };
 
-      mockSupabaseClient.from.mockReturnValueOnce(userInsertQuery);
+      const userOrgInsertQuery = {
+        insert: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          error: null,
+        }),
+      };
+
+      // Mock from() to return different queries for each table
+      mockSupabaseClient.from
+        .mockReturnValueOnce(orgInsertQuery) // organizations table
+        .mockReturnValueOnce(userInsertQuery) // users table
+        .mockReturnValueOnce(userOrgInsertQuery); // user_organizations table
 
       const result = await signUp(inputWithoutOrg);
 
@@ -154,9 +192,16 @@ describe('Auth Server Actions', () => {
         id: mockUser.id,
         email: mockUser.email,
         name: inputWithoutOrg.name,
-        organizationId: undefined,
-        role: undefined,
+        organizationId: 'org-default-123',
+        role: 'admin',
       });
+
+      // Verify a default organization was created with the user's name
+      expect(orgInsertQuery.insert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: '山田太郎の組織',
+        })
+      );
     });
 
     it('should validate required fields', async () => {
@@ -241,9 +286,10 @@ describe('Auth Server Actions', () => {
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.INTERNAL_ERROR);
-      expect(result.error?.message).toContain(
-        'ユーザーは作成されましたが、組織の作成に失敗しました'
-      );
+      expect(result.error?.message).toContain('組織の作成に失敗しました');
+
+      // Verify that the service client was called to delete the user (cleanup)
+      expect(mockServiceSupabaseClient.auth.admin.deleteUser).toHaveBeenCalledWith(mockUser.id);
     });
   });
 
@@ -254,7 +300,14 @@ describe('Auth Server Actions', () => {
     };
 
     it('should successfully sign in with valid credentials', async () => {
-      const mockUser = { id: 'user-123', email: validCredentials.email };
+      const mockUser = {
+        id: 'user-123',
+        email: validCredentials.email,
+        app_metadata: {
+          current_organization_id: 'org-123',
+          current_role: 'admin',
+        },
+      };
 
       mockSupabaseClient.auth.signInWithPassword.mockResolvedValue({
         data: { user: mockUser },
@@ -298,6 +351,9 @@ describe('Auth Server Actions', () => {
 
       expect(mockRevalidatePath).toHaveBeenCalledWith('/dashboard');
       expect(mockRevalidatePath).toHaveBeenCalledWith('/');
+
+      // Since app_metadata is already set correctly, updateUserById should NOT be called
+      expect(mockServiceSupabaseClient.auth.admin.updateUserById).not.toHaveBeenCalled();
     });
 
     it('should validate required fields', async () => {
@@ -368,6 +424,63 @@ describe('Auth Server Actions', () => {
         organizationId: undefined,
         role: undefined,
       });
+    });
+
+    it('should fix missing app_metadata during sign in', async () => {
+      const mockUser = {
+        id: 'user-123',
+        email: validCredentials.email,
+        app_metadata: {}, // Missing metadata
+      };
+
+      mockSupabaseClient.auth.signInWithPassword.mockResolvedValue({
+        data: { user: mockUser },
+        error: null,
+      });
+
+      // Mock user organization query
+      const userOrgQuery = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: { organization_id: 'org-456', role: 'viewer' },
+          error: null,
+        }),
+      };
+
+      // Mock user data query
+      const userQuery = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: { name: '田中花子' },
+          error: null,
+        }),
+      };
+
+      mockSupabaseClient.from.mockReturnValueOnce(userOrgQuery).mockReturnValueOnce(userQuery);
+
+      const result = await signIn(validCredentials);
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({
+        id: mockUser.id,
+        email: mockUser.email,
+        name: '田中花子',
+        organizationId: 'org-456',
+        role: 'viewer',
+      });
+
+      // Verify that updateUserById was called to fix the metadata
+      expect(mockServiceSupabaseClient.auth.admin.updateUserById).toHaveBeenCalledWith(
+        mockUser.id,
+        {
+          app_metadata: {
+            current_organization_id: 'org-456',
+            current_role: 'viewer',
+          },
+        }
+      );
     });
 
     it('should use user metadata when user table data not available', async () => {
