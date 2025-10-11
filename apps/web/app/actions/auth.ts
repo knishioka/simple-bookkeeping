@@ -13,6 +13,12 @@ import {
 
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 
+// SECURITY NOTE: createServiceClient() should ONLY be used on the server side for admin operations.
+// This module has 'use server' directive, ensuring all functions run only on the server.
+// DO NOT import or call createServiceClient() in any client-side code, as this would expose
+// the SUPABASE_SERVICE_ROLE_KEY environment variable.
+// The service client grants admin access to bypass RLS and perform privileged operations.
+
 interface SignUpInput {
   email: string;
   password: string;
@@ -131,10 +137,14 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
       if (orgError || !newOrg) {
         console.warn('[SignUp] Organization creation failed:', orgError);
         // Authユーザーは作成済みなので、削除を試みる
-        const serviceClient = await createServiceClient();
-        await serviceClient.auth.admin.deleteUser(authData.user.id).catch((err) => {
-          console.warn('[SignUp] Failed to rollback auth user:', err);
-        });
+        try {
+          const serviceClient = await createServiceClient();
+          await serviceClient.auth.admin.deleteUser(authData.user.id);
+          console.warn('[SignUp] Successfully rolled back auth user');
+        } catch (rollbackError) {
+          console.warn('[SignUp] Failed to rollback auth user:', rollbackError);
+          // Rollback failure is logged but doesn't affect the error response
+        }
         return createErrorResult(
           ERROR_CODES.INTERNAL_ERROR,
           '組織の作成に失敗しました。もう一度お試しください。'
@@ -221,10 +231,14 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
     } catch (dbError) {
       console.warn('[SignUp] Database operation failed:', dbError);
       // Authユーザーは作成済みなので、削除を試みる（ベストエフォート）
-      const serviceClient = await createServiceClient();
-      await serviceClient.auth.admin.deleteUser(authData.user.id).catch((err) => {
-        console.warn('[SignUp] Failed to rollback auth user:', err);
-      });
+      try {
+        const serviceClient = await createServiceClient();
+        await serviceClient.auth.admin.deleteUser(authData.user.id);
+        console.warn('[SignUp] Successfully rolled back auth user after DB error');
+      } catch (rollbackError) {
+        console.warn('[SignUp] Failed to rollback auth user:', rollbackError);
+        // Continue to return the main error
+      }
       return createErrorResult(
         ERROR_CODES.INTERNAL_ERROR,
         'データベースエラーが発生しました。もう一度お試しください。'

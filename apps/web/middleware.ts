@@ -261,7 +261,11 @@ export async function middleware(request: NextRequest) {
 
     console.warn('[Middleware] No organization ID found in app_metadata, checking database');
 
-    // Try to fetch organization from database as fallback
+    // PERFORMANCE NOTE: Database fallback query
+    // This is only executed when app_metadata is missing or incorrect.
+    // Normally, app_metadata should be set during signup/signin (see auth.ts)
+    // This fallback exists for legacy users or edge cases where metadata update failed.
+    // TODO: Monitor frequency of this fallback - if common, investigate root cause
     const { data: userOrg } = await supabase
       .from('user_organizations')
       .select('organization_id, role')
