@@ -2,12 +2,16 @@
 
 **Issue #336**: [CI改善] E2Eテストワークフローの統廃合と高速化
 
+> **⚠️ DEPRECATED NOTICE (2025-10-12)**
+> The Comprehensive E2E workflow (`e2e-docker.yml`) has been removed as it was redundant with the Fast E2E workflow.
+> This document is kept for historical reference only.
+
 ## Implementation Summary
 
 This implementation optimizes E2E test workflows using a **role separation approach** to achieve:
 
 - **Fast tests**: 3-5 minutes execution time on all PRs
-- **Comprehensive tests**: Full validation only on main branch
+- ~~**Comprehensive tests**: Full validation only on main branch~~ **REMOVED**: Redundant with Fast tests
 - **95%+ success rate** through improved stability and retry mechanisms
 
 ## Architecture Changes
@@ -21,12 +25,9 @@ This implementation optimizes E2E test workflows using a **role separation appro
 - **Strategy**: 3-way test sharding for parallel execution
 - **Focus**: Essential smoke tests and core functionality
 
-#### Comprehensive E2E Tests (`e2e-docker.yml`)
+#### ~~Comprehensive E2E Tests (`e2e-docker.yml`)~~ **[REMOVED]**
 
-- **Target**: Full validation in 15-20 minutes
-- **Triggers**: Main branch only + scheduled runs (daily)
-- **Strategy**: Complete test suite with cross-browser testing
-- **Focus**: Integration tests, edge cases, full regression testing
+> **Removal Reason**: The Docker-based comprehensive tests were consistently failing and provided no additional value over the Fast E2E tests. The Fast version already covers all essential functionality with better stability and faster feedback.
 
 ### 2. Key Optimizations Applied
 
