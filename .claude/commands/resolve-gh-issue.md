@@ -314,6 +314,128 @@ await Promise.all([
   - `pnpm --filter database prisma:generate`
   - `pnpm db:migrate` でマイグレーション確認
 
+### 7.5. 厳格なコードレビュー（Push前最終チェック）
+
+実装が完了し、基本的な品質チェックが通過した後、**Push前に最終的な厳格レビュー**を実施します。
+
+**目的**:
+
+- Base branchとの差分を確認し、不要な変更を検出
+- Issue要件との対応関係を厳密に検証
+- スコープクリープ（過剰実装）を防止
+- Issue要件の妥当性を実装の観点から再検証
+- 最終PRに不要なファイルが含まれないことを保証
+
+**実施内容**:
+
+#### 1. Base branchとの差分取得
+
+```bash
+# tmp/ディレクトリが存在しない場合は作成
+mkdir -p tmp/review-artifacts
+
+# 差分の取得
+git diff main...HEAD > tmp/review-artifacts/diff.patch
+git diff --stat main...HEAD > tmp/review-artifacts/diff-summary.txt
+git diff --name-only main...HEAD > tmp/review-artifacts/changed-files.txt
+
+# 変更量の確認
+echo "変更ファイル数: $(wc -l < tmp/review-artifacts/changed-files.txt)"
+echo "差分行数: $(wc -l < tmp/review-artifacts/diff.patch)"
+```
+
+#### 2. Issue要件の再確認
+
+```bash
+# Issue要件を取得（必要に応じて）
+gh issue view $ISSUE_NUMBER \
+  --repo knishioka/simple-bookkeeping \
+  --json title,body \
+  --jq '.body' > tmp/review-artifacts/issue-requirements.md
+```
+
+#### 3. code-reviewerエージェントによる厳格レビュー
+
+**⚡ 重要**: このレビューはPre-Pushモードで実行します。
+
+```typescript
+// code-reviewerエージェントを呼び出し
+Task(
+  'Strict pre-push code review',
+  `
+Perform strict pre-push review for Issue #${ISSUE_NUMBER}:
+
+1. Review the diff between main and current branch
+2. Verify all changes align with Issue requirements
+3. Detect scope creep (changes not in Issue requirements)
+4. Identify unnecessary files (docs, scripts, debug code)
+5. Check for over-engineering (future-proofing, excessive abstraction)
+6. Validate minimum viable implementation
+
+Review artifacts are in tmp/review-artifacts/:
+- diff.patch: Full diff
+- diff-summary.txt: Diff summary
+- changed-files.txt: List of changed files
+- issue-requirements.md: Issue requirements
+
+Focus on:
+- Unnecessary documentation or scripts in repo root
+- Temporary/debug files not in tmp/
+- Features not mentioned in Issue requirements
+- Over-complicated implementations
+
+Generate a report with:
+- 🟢 Approved, 🟡 Conditional approval, or 🔴 Requires fixes
+- Specific files/changes to remove or simplify
+- Justification for each concern
+`,
+  'code-reviewer'
+);
+```
+
+#### 4. レビュー結果の確認と対応
+
+レビュー結果に基づいて対応を判断：
+
+- **🟢 承認（問題なし）**:
+  - 次のステップ（コミット作成）へ進む
+  - 一時ファイルは維持（後でクリーンアップ）
+
+- **🟡 条件付き承認（軽微な問題）**:
+  - レビュー結果をユーザーに提示
+  - ユーザーに修正するか確認
+  - 修正する場合: 修正後にStep 7.5を再実行
+  - 修正しない場合: ユーザー判断で次のステップへ
+
+- **🔴 修正必須（重大な問題）**:
+  - レビュー結果をユーザーに詳細報告
+  - 修正が必要な項目をリストアップ
+  - 修正完了後にStep 7.5から再実行
+  - 絶対にPush前に修正すること
+
+#### 5. 一時ファイルの管理
+
+**原則**: 不要なら作らない
+
+**作成する一時ファイル**:
+
+- `tmp/review-artifacts/diff.patch` - 差分の詳細
+- `tmp/review-artifacts/diff-summary.txt` - 差分のサマリー
+- `tmp/review-artifacts/changed-files.txt` - 変更ファイル一覧
+- `tmp/review-artifacts/issue-requirements.md` - Issue要件（必要時のみ）
+
+**管理方針**:
+
+- レビュー完了後、必要に応じて削除可能
+- 最終PRには含めない（`.gitignore` で自動除外）
+- `tmp/` ディレクトリ全体が gitignore対象
+
+**スキップオプション**:
+
+- `--skip-review` フラグを使用すると、このステップをスキップできます
+- **非推奨**: スコープクリープや不要なファイルの混入を防げなくなります
+- 緊急時や修正が軽微な場合のみ使用してください
+
 ### 8. コミット作成
 
 - 明確で説明的なメッセージでアトミックなコミットを作成
