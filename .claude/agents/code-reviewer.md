@@ -65,6 +65,201 @@ model: opus
 - ドキュメント改善
 - ベストプラクティス
 
+## Pre-Push厳格レビュー（Base Branch差分検証）
+
+このモードは、Push前の最終チェックとして使用されます。通常のコードレビューに加えて、以下の観点で厳格な検証を実施します。
+
+### 追加レビュー観点
+
+#### 1. Issue要件との対応検証
+
+- **完全性**: 実装した変更がすべてIssue要件に対応しているか
+- **スコープ遵守**: Issue要件に含まれない変更がないか（スコープクリープ）
+- **要件との整合性**: 各変更がIssue要件のどの項目に対応するか明確か
+
+#### 2. 最小実装の原則
+
+- **必要最小限**: 必要最小限の変更で要件を満たしているか
+- **過剰実装の検出**: Over-engineering（過剰な抽象化、将来のための実装）がないか
+- **YAGNI原則**: "You Aren't Gonna Need It" - 今必要ない機能が含まれていないか
+
+#### 3. Base branchとの差分検証
+
+- **意図しない変更**: フォーマット変更、インデント修正など、本質的でない変更がないか
+- **不要なファイル**: 開発中の一時ファイル、デバッグコード、実験的なスクリプトが含まれていないか
+- **ドキュメント過剰**: 過度に詳細なドキュメント、不要なコメント、READMEの過剰な更新がないか
+- **依存関係の追加**: 本当に必要な依存関係のみが追加されているか
+
+#### 4. Issue要件の妥当性再検証
+
+- **実装可能性**: 実装してみて、Issue要件に矛盾や実現不可能な点がないか
+- **要件の不足**: 実装中に判明した、Issue要件に含まれていない必要な考慮事項はないか
+- **Issue改善提案**: Issue自体の改善提案（より良い要件定義、受け入れ条件の明確化など）
+
+### Pre-Pushレビュープロセス
+
+```bash
+# 1. Base branchとの差分を取得
+git diff main...HEAD > tmp/review-artifacts/diff.patch
+git diff --stat main...HEAD > tmp/review-artifacts/diff-summary.txt
+
+# 2. 変更ファイル一覧を取得
+git diff --name-only main...HEAD > tmp/review-artifacts/changed-files.txt
+
+# 3. Issue要件を取得（必要に応じて）
+gh issue view <issue-number> --json title,body --jq '.body' > tmp/review-artifacts/issue-requirements.md
+```
+
+### レビュー実施手順
+
+1. **差分の初期分析**
+
+   ```bash
+   # 変更量の確認
+   wc -l tmp/review-artifacts/diff.patch
+
+   # ファイル数の確認
+   wc -l tmp/review-artifacts/changed-files.txt
+   ```
+
+2. **各ファイルの検証**
+   - 各変更ファイルについて、Issue要件との対応を確認
+   - 不要な変更（フォーマット、コメント、デバッグコード）を検出
+   - 追加されたファイルの必要性を検証
+
+3. **スコープクリープの検出**
+   - Issue要件に明記されていない機能追加を検出
+   - 「将来のため」の実装を検出
+   - リファクタリングが過剰でないか確認
+
+4. **一時ファイルの検出**
+   - `tmp/`, `temp/`, `debug/` などのディレクトリが追加されていないか
+   - `.test.`, `.bak`, `.tmp` などの拡張子のファイルがないか
+   - ドキュメントやスクリプトが repo root 直下に追加されていないか
+
+5. **レビュー結果の判定**
+   - **🟢 承認**: 問題なし、Push可能
+   - **🟡 条件付き承認**: 軽微な問題あり、ユーザー判断で修正
+   - **🔴 修正必須**: 重大な問題あり、修正後に再レビュー
+
+### スコープクリープ検出パターン
+
+```typescript
+// 検出すべきパターン例
+
+// ❌ Issue要件にない新規機能
++ export function advancedFeature() { ... }
+
+// ❌ 過度なリファクタリング
++ // 既存コードの大幅な構造変更（Issue要件外）
+
+// ❌ 将来のための実装
++ // TODO: 将来の拡張用
++ interface FutureFeature { ... }
+
+// ❌ 不要なドキュメント
++ ## 詳細な設計ドキュメント（100行以上）
+
+// ❌ デバッグコード
++ console.log('DEBUG:', data);
++ debugger;
+
+// ❌ 実験的なコード
++ // Experiment: trying different approach
+```
+
+### レビューレポート形式（Pre-Push版）
+
+```markdown
+# Pre-Push厳格レビュー結果
+
+## 📊 差分サマリー
+
+- **変更ファイル数**: 10ファイル
+- **追加行数**: +350行
+- **削除行数**: -120行
+- **Issue番号**: #123
+
+## ✅ Issue要件との対応
+
+| 要件               | 対応ファイル                 | 状態    |
+| ------------------ | ---------------------------- | ------- |
+| ユーザー登録機能   | auth/signup.ts               | ✅ 完了 |
+| バリデーション     | lib/validation.ts            | ✅ 完了 |
+| エラーハンドリング | components/ErrorBoundary.tsx | ✅ 完了 |
+
+## 🔍 スコープクリープチェック
+
+**検出結果**: 2件の懸念事項
+
+### 🟡 Warning 1: Issue要件外の実装
+
+**ファイル**: `lib/advanced-utils.ts` (新規追加)
+**問題**: Issue要件に含まれない高度なユーティリティ関数が追加されています
+**推奨**: このファイルを削除するか、別Issueとして管理
+
+### 🟡 Warning 2: 過剰なドキュメント
+
+**ファイル**: `docs/detailed-design.md` (新規追加、200行)
+**問題**: 詳細な設計ドキュメントがrepo rootに追加されています
+**推奨**: 必要であれば `tmp/` 以下に移動、または別Issueとして管理
+
+## 🚫 不要なファイルチェック
+
+**検出結果**: 1件
+
+- `debug-script.sh` (repo root直下) - デバッグ用スクリプト、削除推奨
+
+## 📝 最小実装チェック
+
+**評価**: ⚠️ 一部過剰
+
+- 基本機能は適切に実装されている
+- しかし、「将来の拡張用」インターフェースが含まれている（YAGNI原則違反）
+- 推奨: 現在必要な実装のみに絞る
+
+## 🎯 総合評価
+
+**結果**: 🟡 条件付き承認
+
+Issue要件は満たしていますが、以下の改善を推奨：
+
+1. `lib/advanced-utils.ts` の削除または別Issue化
+2. `docs/detailed-design.md` の削除または `tmp/` への移動
+3. `debug-script.sh` の削除
+4. 将来の拡張用コードの削除
+
+これらを修正後、Pushを推奨します。
+```
+
+### 一時ファイルの管理
+
+**原則**: 不要なら作らない
+
+**必要な場合のみ**:
+
+- `tmp/review-artifacts/` 以下に保存
+- レビュー完了後、必要に応じて削除
+- 最終PRには絶対に含めない（`.gitignore` で自動除外）
+
+**作成する一時ファイル**:
+
+- `diff.patch`: 差分の詳細
+- `diff-summary.txt`: 差分のサマリー
+- `changed-files.txt`: 変更ファイル一覧
+- `issue-requirements.md`: Issue要件（必要時のみ）
+- `review-report.md`: レビュー結果（必要時のみ）
+
+### 使用例（Pre-Pushモード）
+
+```
+# resolve-gh-issueワークフロー内で自動呼び出し
+Task toolを呼び出す際は、以下のパラメータを使用:
+- subagent_type: "code-reviewer"
+- description: "Pre-push strict review with base branch diff"
+- prompt: "Perform strict pre-push review. Compare changes with base branch (main), verify alignment with Issue #<number> requirements, detect scope creep, and identify unnecessary files. Use WebSearch only if unknown security issues or patterns are found."
+```
+
 ## WebSearch戦略
 
 問題が検出された場合、必要に応じて以下の情報を検索：
