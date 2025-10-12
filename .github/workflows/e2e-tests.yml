@@ -327,7 +327,7 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Download Storage State artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: playwright-storage-state
           path: apps/web/e2e/.auth/
