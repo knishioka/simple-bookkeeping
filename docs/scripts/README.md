@@ -184,8 +184,6 @@ SQLファイルが整理されています：
 | `test:e2e`        | `e2e-test.sh`          | E2Eテスト          |
 | `env:validate`    | `validate-env.ts`      | 環境変数検証       |
 | `deploy:check`    | `check-deployments.sh` | デプロイ状況確認   |
-| `render:status`   | `render-api-status.sh` | Render状態確認     |
-| `render:logs`     | `render-logs.sh`       | Renderログ取得     |
 | `vercel:status`   | `vercel-api-status.sh` | Vercel状態確認     |
 | `vercel:logs`     | `vercel-logs.sh`       | Vercelログ取得     |
 | `precommit:check` | `check-build.sh`       | コミット前チェック |

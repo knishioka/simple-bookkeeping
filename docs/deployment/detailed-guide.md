@@ -1,6 +1,6 @@
 # Deployment Guide - Simple Bookkeeping
 
-This guide documents the deployment process for the Simple Bookkeeping monorepo application, including lessons learned from deploying to Vercel (frontend) and Render (backend).
+This guide documents the deployment process for the Simple Bookkeeping monorepo application, including lessons learned from deploying to Vercel (full-stack Next.js with Server Actions) and Supabase (database and authentication).
 
 ## Overview
 
@@ -401,7 +401,7 @@ This guide documents the deployment process for the Simple Bookkeeping monorepo 
 
 2. **Preview Deployments**:
    - Use Vercel preview deployments for PRs
-   - Set up Render preview environments
+   - Automatically deployed for every pull request
 
 ### 3. Monitoring and Logging
 
@@ -479,17 +479,7 @@ This guide documents the deployment process for the Simple Bookkeeping monorepo 
 - Export types in package.json
 - Build shared packages before apps
 
-### 3. Render Build Timeouts
-
-**Challenge**: Initial builds on Render's free tier would timeout
-
-**Solution**:
-
-- Optimize build process by caching dependencies
-- Split build and start commands
-- Consider upgrading to paid tier for longer timeouts
-
-### 4. Database Connection Pool Exhaustion
+### 3. Database Connection Pool Exhaustion
 
 **Challenge**: Too many connections to Supabase from serverless functions
 
@@ -507,7 +497,7 @@ const pool = new Pool({
 });
 ```
 
-### 5. Server Action Authentication
+### 4. Server Action Authentication
 
 **Challenge**: Ensuring Server Actions are properly authenticated
 

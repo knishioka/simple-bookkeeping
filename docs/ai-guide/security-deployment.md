@@ -497,13 +497,6 @@ pnpm vercel:logs runtime    # ランタイムログ
 
 ### デプロイメントステータスの意味
 
-**Render:**
-
-- `live`: 稼働中（成功）
-- `build_in_progress` / `update_in_progress`: ビルド・更新中
-- `build_failed`: ビルド失敗
-- `deploy_failed`: デプロイ失敗
-
 **Vercel:**
 
 - 🟢 Ready (Production)

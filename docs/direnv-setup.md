@@ -102,11 +102,6 @@ vercel:logs
 deploy:check
 ```
 
-#### ヘルパー関数
-
-- `render_service_id()` - Render サービスID を取得
-- `render_db_id()` - Render データベースID を取得
-
 ### 4. 環境確認
 
 direnv が正しく設定されていると、ディレクトリに入った際に以下のような表示が出ます：
@@ -115,7 +110,6 @@ direnv が正しく設定されていると、ディレクトリに入った際�
 ✅ direnv: Loaded environment for simple-bookkeeping
    Node.js: v18.17.0
    pnpm: 8.6.0
-   Render API: configured ✓
    Vercel API: not configured (set VERCEL_TOKEN)
 ```
 
