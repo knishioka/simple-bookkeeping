@@ -163,6 +163,5 @@ pnpm supabase:start
 
 - [デプロイメントガイド](./deployment-guide.md)
 - [クイックデプロイガイド](./quick-deploy-guide.md)
-- [Render移行ガイド](./render-migration-guide.md)
 
 4. データベースのバックアップ設定

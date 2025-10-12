@@ -49,7 +49,6 @@
 - `LOCAL_DB_URL`: ローカル開発用PostgreSQL接続文字列
 - `PROD_DB_URL`: 本番DB接続文字列（psql/pgAdmin用）
 - `VERCEL_TOKEN`: Vercel API Token（オプション）
-- `RENDER_API_KEY`: Render API Key（オプション）
 
 **作成方法**:
 
