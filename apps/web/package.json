@@ -82,7 +82,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",
     "@next/bundle-analyzer": "^15.5.2",
-    "@playwright/test": "^1.55.1",
+    "@playwright/test": "^1.54.2",
     "@radix-ui/react-progress": "^1.1.7",
     "@simple-bookkeeping/typescript-config": "workspace:*",
     "@size-limit/preset-app": "^11.2.0",
