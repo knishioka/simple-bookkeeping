@@ -70,6 +70,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // Function to fetch and set user data
   const fetchUserData = useCallback(async (supabaseUser: SupabaseUser) => {
+    // eslint-disable-next-line no-console
+    console.info('[AuthContext] fetchUserData called for user:', supabaseUser.id);
     try {
       const supabase = createClient();
 
@@ -86,7 +88,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
 
       // Get user's organizations
-      const { data: userOrgs } = await supabase
+      // eslint-disable-next-line no-console
+      console.info('[AuthContext] Fetching user organizations');
+      const { data: userOrgs, error: orgsError } = await supabase
         .from('user_organizations')
         .select(
           `
@@ -103,12 +107,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         .eq('user_id', supabaseUser.id)
         .returns<UserOrgWithRelations[]>();
 
+      if (orgsError) {
+        console.error('[AuthContext] Error fetching organizations:', orgsError);
+      }
+
       // Get user's profile data
-      const { data: userData } = await supabase
+      // eslint-disable-next-line no-console
+      console.info('[AuthContext] Fetching user profile');
+      const { data: userData, error: userError } = await supabase
         .from('users')
         .select('name')
         .eq('id', supabaseUser.id)
         .single();
+
+      if (userError) {
+        console.error('[AuthContext] Error fetching user data:', userError);
+      }
 
       const organizations: Organization[] =
         userOrgs
@@ -138,10 +152,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         currentOrganization: defaultOrg,
       };
 
+      // eslint-disable-next-line no-console
+      console.info('[AuthContext] Setting user state with', organizations.length, 'organizations');
       setUser(userInfo);
       setCurrentOrganization(defaultOrg || null);
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      console.error('[AuthContext] Unexpected error in fetchUserData:', error);
       // Even if fetching additional data fails, set basic user info
       const basicUser: User = {
         id: supabaseUser.id,
@@ -159,8 +175,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     let mounted = true;
 
     const initAuth = async () => {
+      // eslint-disable-next-line no-console
+      console.info('[AuthContext] Starting auth initialization');
       try {
         const supabase = createClient();
+        // eslint-disable-next-line no-console
+        console.info('[AuthContext] Created Supabase client');
 
         // getUser()を使用してサーバー側で認証を検証（getSession()はクライアント側のCookieから直接取得するため安全でない）
         const {
@@ -168,15 +188,28 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           error,
         } = await supabase.auth.getUser();
 
+        // eslint-disable-next-line no-console
+        console.info('[AuthContext] getUser result:', {
+          hasUser: !!validatedUser,
+          email: validatedUser?.email,
+          error: error?.message,
+        });
+
         if (validatedUser && !error && mounted) {
+          // eslint-disable-next-line no-console
+          console.info('[AuthContext] Valid user found, fetching user data');
           await fetchUserData(validatedUser);
+          // eslint-disable-next-line no-console
+          console.info('[AuthContext] User data fetched successfully');
         } else if (mounted) {
           // ユーザーが認証されていない、またはエラーが発生した場合
+          // eslint-disable-next-line no-console
+          console.info('[AuthContext] No user or error, clearing state');
           setUser(null);
           setCurrentOrganization(null);
         }
       } catch (error) {
-        console.error('Error initializing auth:', error);
+        console.error('[AuthContext] Error initializing auth:', error);
         // On error, set user to null to avoid blocking
         if (mounted) {
           setUser(null);
@@ -184,10 +217,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
       } finally {
         if (mounted) {
+          // eslint-disable-next-line no-console
+          console.info('[AuthContext] Setting loading to false');
           setLoading(false);
         }
       }
     };
+
+    // Timeout fallback: Force loading to false after 5 seconds to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (mounted) {
+        console.warn('[AuthContext] Timeout reached (5s), forcing loading to false');
+        setLoading(false);
+      }
+    }, 5000);
 
     // Set up auth state change listener
     const supabase = createClient();
@@ -196,6 +239,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
+      // eslint-disable-next-line no-console
+      console.info('[AuthContext] Auth state changed:', event);
       switch (event) {
         case 'SIGNED_IN':
         case 'TOKEN_REFRESHED':
@@ -222,7 +267,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     // Cleanup
     return () => {
+      // eslint-disable-next-line no-console
+      console.info('[AuthContext] Cleanup: unmounting');
       mounted = false;
+      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, [fetchUserData]);
