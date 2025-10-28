@@ -154,9 +154,12 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
       organizationId = newOrg.id;
       console.warn('[SignUp] Organization created successfully:', organizationId);
 
+      // Create service client for RLS bypass
+      const serviceClient = await createServiceClient();
+
       // Step 3: users テーブルにユーザー情報を保存
       console.warn('[SignUp] Step 3: Creating user record');
-      const { error: userError } = await supabase.from('users').insert({
+      const { error: userError } = await serviceClient.from('users').insert({
         id: authData.user.id,
         email,
         name,
@@ -178,7 +181,7 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
 
       // Step 4: ユーザーを組織に関連付け（管理者として）
       console.warn('[SignUp] Step 4: Creating user-organization association');
-      const { error: userOrgError } = await supabase.from('user_organizations').insert({
+      const { error: userOrgError } = await serviceClient.from('user_organizations').insert({
         user_id: authData.user.id,
         organization_id: organizationId,
         role: userRole,
@@ -198,8 +201,7 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
       // Step 5: CRITICAL - Update user's app_metadata with organization info
       console.warn('[SignUp] Step 5: Updating user app_metadata');
 
-      // Use service client for admin operations
-      const serviceClient = await createServiceClient();
+      // Use service client for admin operations (already created above)
       const { error: updateError } = await serviceClient.auth.admin.updateUserById(
         authData.user.id,
         {
