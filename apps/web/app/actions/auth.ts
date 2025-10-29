@@ -1,7 +1,6 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 
 import {
   ActionResult,
@@ -255,7 +254,12 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
 /**
  * ログイン
  */
-export async function signIn(input: SignInInput): Promise<ActionResult<AuthUser>> {
+export type SignInData = {
+  redirectTo: string;
+  user: AuthUser;
+};
+
+export async function signIn(input: SignInInput): Promise<ActionResult<SignInData>> {
   console.warn('[SignIn] Starting sign in process for:', { email: input.email });
 
   try {
@@ -352,31 +356,28 @@ export async function signIn(input: SignInInput): Promise<ActionResult<AuthUser>
 
     console.warn('[SignIn] Sign in completed successfully');
 
-    // CRITICAL FIX: Use server-side redirect to ensure cookies are available
+    // CRITICAL FIX: Return success and let client handle navigation
     // In Next.js 15, cookies set in Server Actions are not immediately available
-    // to client-side navigation. Using redirect() ensures the middleware can
-    // see the authentication cookies on the next request.
-    if (!userOrgs?.organization_id) {
-      console.warn('[SignIn] No organization found, redirecting to select-organization');
-      redirect('/auth/select-organization');
-    }
+    // when using redirect(). By returning success and using client-side navigation,
+    // we ensure the middleware can see the authentication cookies.
+    const redirectPath = !userOrgs?.organization_id ? '/auth/select-organization' : '/dashboard';
 
-    console.warn('[SignIn] Redirecting to dashboard');
-    redirect('/dashboard');
+    console.warn(`[SignIn] Returning success with redirect path: ${redirectPath}`);
+
+    return {
+      success: true,
+      data: {
+        redirectTo: redirectPath,
+        user: {
+          id: authData.user.id,
+          email: authData.user.email || '',
+          name: authData.user.user_metadata?.name || authData.user.email?.split('@')[0] || '',
+          organizationId: userOrgs?.organization_id || null,
+          role: userOrgs?.role || 'viewer',
+        },
+      },
+    };
   } catch (error) {
-    // IMPORTANT: redirect() throws a special error that must be re-thrown
-    // to work properly. Check if this is a Next.js redirect error by checking
-    // the digest property which contains 'NEXT_REDIRECT'.
-    if (
-      typeof error === 'object' &&
-      error !== null &&
-      'digest' in error &&
-      typeof error.digest === 'string' &&
-      error.digest.includes('NEXT_REDIRECT')
-    ) {
-      throw error;
-    }
-
     console.warn('[SignIn] Unexpected error:', error);
     return handleSupabaseError(error);
   }

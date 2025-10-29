@@ -3,6 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -29,6 +30,7 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,45 +43,41 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (data: LoginFormData) => {
-    console.log('[LoginPage] Starting login process');
+    console.warn('[LoginPage] Starting login process');
     setIsLoading(true);
     setError(null);
 
     try {
       // Server Actionを直接呼び出し
-      // IMPORTANT: signIn() now uses redirect() for successful logins,
-      // so it will never return on success - the page will redirect automatically.
-      // Only errors will be returned as ActionResult.
-      console.log('[LoginPage] Calling signIn Server Action');
+      // CRITICAL: signIn() now returns success with redirectTo path instead of using redirect()
+      // This ensures cookies are properly set before navigation occurs
+      console.warn('[LoginPage] Calling signIn Server Action');
       const result = await signIn({
         email: data.email,
         password: data.password,
       });
 
-      // If we reach here, it means there was an error (success would have redirected)
-      console.log('[LoginPage] signIn returned (should only happen on error):', result);
-      setError(result.error?.message || 'ログインに失敗しました');
-      setIsLoading(false);
-    } catch (err) {
-      console.log('[LoginPage] signIn threw error:', err);
+      console.warn('[LoginPage] signIn returned:', result);
 
-      // NEXT_REDIRECT errors are normal - they indicate successful redirect
-      // Only show error for actual failures
-      // Check for Next.js redirect error by checking the digest property
-      if (
-        typeof err === 'object' &&
-        err !== null &&
-        'digest' in err &&
-        typeof err.digest === 'string' &&
-        err.digest.includes('NEXT_REDIRECT')
-      ) {
-        console.log('[LoginPage] Detected NEXT_REDIRECT, allowing redirect to proceed');
-        // Successful redirect - do nothing, let Next.js handle it
-        throw err; // Re-throw to allow Next.js to handle the redirect
+      if (result.success && result.data?.redirectTo) {
+        // Success! Navigate to the specified path using client-side navigation
+        // This ensures cookies are available for middleware
+        console.warn('[LoginPage] Login successful, navigating to:', result.data.redirectTo);
+        router.push(result.data.redirectTo);
+      } else if (result.error) {
+        // Error returned from server
+        console.error('[LoginPage] Login failed:', result.error.message);
+        setError(result.error.message || 'ログインに失敗しました');
+        setIsLoading(false);
+      } else {
+        // Unexpected result
+        console.error('[LoginPage] Unexpected result:', result);
+        setError('ログインに失敗しました');
+        setIsLoading(false);
       }
-
-      // Actual error - show to user
-      console.error('[LoginPage] Login failed with error:', err);
+    } catch (err) {
+      // Unexpected exception
+      console.error('[LoginPage] Login threw exception:', err);
       setError(err instanceof Error ? err.message : 'ログインに失敗しました');
       setIsLoading(false);
     }

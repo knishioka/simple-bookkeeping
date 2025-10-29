@@ -286,11 +286,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         // DO NOT navigate here - let the calling component handle navigation
         // to avoid race conditions with middleware auth checks
         toast.success('ログインしました');
+
+        // Extract just the user data to maintain backward compatibility
+        // (Server Action now returns SignInData with redirectTo + user)
+        return {
+          success: true,
+          data: result.data.user,
+        };
       } else if (!result.success) {
         toast.error(result.error?.message || 'ログインに失敗しました');
+        return result;
       }
 
-      return result;
+      // This should never happen, but TypeScript needs it
+      return result as ActionResult<AuthUser>;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'ログインに失敗しました';
       toast.error(errorMessage);
