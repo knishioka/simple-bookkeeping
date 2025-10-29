@@ -3,7 +3,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -30,7 +29,6 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,27 +46,27 @@ export default function LoginPage() {
 
     try {
       // Server Actionを直接呼び出し
+      // IMPORTANT: signIn() now uses redirect() for successful logins,
+      // so it will never return on success - the page will redirect automatically.
+      // Only errors will be returned as ActionResult.
       const result = await signIn({
         email: data.email,
         password: data.password,
       });
 
-      if (result.success && result.data) {
-        // ログイン成功時のリダイレクト
-        // 組織情報がない場合は組織選択画面へ
-        if (!result.data.organizationId) {
-          router.push('/auth/select-organization');
-        } else {
-          router.push('/dashboard');
-        }
-      } else {
-        // エラーハンドリング
-        setError(result.error?.message || 'ログインに失敗しました');
-      }
+      // If we reach here, it means there was an error (success would have redirected)
+      setError(result.error?.message || 'ログインに失敗しました');
+      setIsLoading(false);
     } catch (err) {
-      // 予期しないエラーのハンドリング
+      // NEXT_REDIRECT errors are normal - they indicate successful redirect
+      // Only show error for actual failures
+      if (err instanceof Error && err.message.includes('NEXT_REDIRECT')) {
+        // Successful redirect - do nothing, let Next.js handle it
+        return;
+      }
+
+      // Actual error - show to user
       setError(err instanceof Error ? err.message : 'ログインに失敗しました');
-    } finally {
       setIsLoading(false);
     }
   };

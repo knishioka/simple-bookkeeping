@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
 import {
   ActionResult,
@@ -306,14 +307,6 @@ export async function signIn(input: SignInInput): Promise<ActionResult<AuthUser>
       .eq('is_default', true)
       .single();
 
-    // ユーザー情報を取得
-    console.warn('[SignIn] Fetching user data');
-    const { data: userData } = await supabase
-      .from('users')
-      .select('name')
-      .eq('id', authData.user.id)
-      .single();
-
     // CRITICAL: Check if app_metadata needs to be fixed (production bug fix)
     const currentAppMetadata = authData.user.app_metadata;
     const needsMetadataUpdate =
@@ -358,13 +351,18 @@ export async function signIn(input: SignInInput): Promise<ActionResult<AuthUser>
     revalidatePath('/');
 
     console.warn('[SignIn] Sign in completed successfully');
-    return createSuccessResult({
-      id: authData.user.id,
-      email: authData.user.email || '',
-      name: userData?.name || authData.user.user_metadata?.name,
-      organizationId: userOrgs?.organization_id,
-      role: userOrgs?.role,
-    });
+
+    // CRITICAL FIX: Use server-side redirect to ensure cookies are available
+    // In Next.js 15, cookies set in Server Actions are not immediately available
+    // to client-side navigation. Using redirect() ensures the middleware can
+    // see the authentication cookies on the next request.
+    if (!userOrgs?.organization_id) {
+      console.warn('[SignIn] No organization found, redirecting to select-organization');
+      redirect('/auth/select-organization');
+    }
+
+    console.warn('[SignIn] Redirecting to dashboard');
+    redirect('/dashboard');
   } catch (error) {
     console.warn('[SignIn] Unexpected error:', error);
     return handleSupabaseError(error);
