@@ -60,7 +60,14 @@ export default function LoginPage() {
     } catch (err) {
       // NEXT_REDIRECT errors are normal - they indicate successful redirect
       // Only show error for actual failures
-      if (err instanceof Error && err.message.includes('NEXT_REDIRECT')) {
+      // Check for Next.js redirect error by checking the digest property
+      if (
+        typeof err === 'object' &&
+        err !== null &&
+        'digest' in err &&
+        typeof err.digest === 'string' &&
+        err.digest.includes('NEXT_REDIRECT')
+      ) {
         // Successful redirect - do nothing, let Next.js handle it
         return;
       }
