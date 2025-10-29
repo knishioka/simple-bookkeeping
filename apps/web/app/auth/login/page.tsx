@@ -61,8 +61,14 @@ export default function LoginPage() {
 
       if (result.success && result.data?.redirectTo) {
         // Success! Navigate to the specified path using client-side navigation
-        // This ensures cookies are available for middleware
         console.warn('[LoginPage] Login successful, navigating to:', result.data.redirectTo);
+
+        // CRITICAL: Wait for cookies to be fully set before navigation
+        // Supabase cookies need time to propagate to the browser before middleware reads them
+        // Without this delay, middleware will not see the auth cookies and redirect to login
+        await new Promise((resolve) => setTimeout(resolve, 200));
+
+        console.warn('[LoginPage] Cookies set, now navigating...');
         router.push(result.data.redirectTo);
       } else if (result.error) {
         // Error returned from server
