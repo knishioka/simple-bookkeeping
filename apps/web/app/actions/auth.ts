@@ -364,6 +364,19 @@ export async function signIn(input: SignInInput): Promise<ActionResult<AuthUser>
     console.warn('[SignIn] Redirecting to dashboard');
     redirect('/dashboard');
   } catch (error) {
+    // IMPORTANT: redirect() throws a special error that must be re-thrown
+    // to work properly. Check if this is a Next.js redirect error by checking
+    // the digest property which contains 'NEXT_REDIRECT'.
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'digest' in error &&
+      typeof error.digest === 'string' &&
+      error.digest.includes('NEXT_REDIRECT')
+    ) {
+      throw error;
+    }
+
     console.warn('[SignIn] Unexpected error:', error);
     return handleSupabaseError(error);
   }
