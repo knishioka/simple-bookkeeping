@@ -148,3 +148,10 @@ test-results/
 *.zip
 results.xml
 .env.docker
+
+# Diagnostic scripts with hardcoded credentials (DO NOT COMMIT)
+scripts/check-production-db.js
+scripts/apply-rls-migration.js
+apps/web/scripts/check-production-db.mjs
+apps/web/scripts/check-schema.mjs
+apps/web/scripts/diagnose-rls.mjs
