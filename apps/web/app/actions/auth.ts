@@ -165,8 +165,7 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
         name,
         organization_id: organizationId,
         role: userRole,
-        password_hash: 'supabase_auth', // Supabase Authを使用していることを示す
-        // is_active: true, // Temporarily commented out due to schema cache issue
+        is_active: true,
       });
 
       if (userError) {
