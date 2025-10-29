@@ -155,3 +155,7 @@ scripts/apply-rls-migration.js
 apps/web/scripts/check-production-db.mjs
 apps/web/scripts/check-schema.mjs
 apps/web/scripts/diagnose-rls.mjs
+apps/web/scripts/diagnose-login.mjs
+apps/web/scripts/check-user-metadata.mjs
+apps/web/scripts/check-all-users.mjs
+apps/web/scripts/cleanup-users-without-orgs.mjs
