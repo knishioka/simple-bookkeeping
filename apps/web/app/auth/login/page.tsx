@@ -3,7 +3,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -30,7 +29,6 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,16 +58,13 @@ export default function LoginPage() {
       console.warn('[LoginPage] signIn returned:', result);
 
       if (result.success && result.data?.redirectTo) {
-        // Success! Navigate to the specified path using client-side navigation
-        console.warn('[LoginPage] Login successful, navigating to:', result.data.redirectTo);
+        // Success! Navigate using full page reload to ensure cookies are available
+        console.warn('[LoginPage] Login successful, redirecting to:', result.data.redirectTo);
 
-        // CRITICAL: Wait for cookies to be fully set before navigation
-        // Supabase cookies need time to propagate to the browser before middleware reads them
-        // Without this delay, middleware will not see the auth cookies and redirect to login
-        await new Promise((resolve) => setTimeout(resolve, 200));
-
-        console.warn('[LoginPage] Cookies set, now navigating...');
-        router.push(result.data.redirectTo);
+        // CRITICAL: Use window.location.href instead of router.push()
+        // Full page reload ensures all cookies are properly set before middleware checks auth
+        // This is more reliable than client-side navigation with cookie propagation delays
+        window.location.href = result.data.redirectTo;
       } else if (result.error) {
         // Error returned from server
         console.error('[LoginPage] Login failed:', result.error.message);
