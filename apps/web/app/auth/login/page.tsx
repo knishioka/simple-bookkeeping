@@ -41,6 +41,7 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (data: LoginFormData) => {
+    console.log('[LoginPage] Starting login process');
     setIsLoading(true);
     setError(null);
 
@@ -49,15 +50,19 @@ export default function LoginPage() {
       // IMPORTANT: signIn() now uses redirect() for successful logins,
       // so it will never return on success - the page will redirect automatically.
       // Only errors will be returned as ActionResult.
+      console.log('[LoginPage] Calling signIn Server Action');
       const result = await signIn({
         email: data.email,
         password: data.password,
       });
 
       // If we reach here, it means there was an error (success would have redirected)
+      console.log('[LoginPage] signIn returned (should only happen on error):', result);
       setError(result.error?.message || 'ログインに失敗しました');
       setIsLoading(false);
     } catch (err) {
+      console.log('[LoginPage] signIn threw error:', err);
+
       // NEXT_REDIRECT errors are normal - they indicate successful redirect
       // Only show error for actual failures
       // Check for Next.js redirect error by checking the digest property
@@ -68,11 +73,13 @@ export default function LoginPage() {
         typeof err.digest === 'string' &&
         err.digest.includes('NEXT_REDIRECT')
       ) {
+        console.log('[LoginPage] Detected NEXT_REDIRECT, allowing redirect to proceed');
         // Successful redirect - do nothing, let Next.js handle it
-        return;
+        throw err; // Re-throw to allow Next.js to handle the redirect
       }
 
       // Actual error - show to user
+      console.error('[LoginPage] Login failed with error:', err);
       setError(err instanceof Error ? err.message : 'ログインに失敗しました');
       setIsLoading(false);
     }
@@ -111,6 +118,7 @@ export default function LoginPage() {
               {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
             </div>
 
+            {/* TODO: Implement password reset functionality
             <div className="flex justify-end">
               <Link
                 href="/auth/reset-password"
@@ -119,6 +127,7 @@ export default function LoginPage() {
                 パスワードを忘れた場合
               </Link>
             </div>
+            */}
           </CardContent>
 
           <CardFooter className="flex flex-col space-y-4">
