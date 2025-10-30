@@ -68,9 +68,8 @@ entropy = 3.5
 [allowlist]
 paths = [
   # Examples and documentation
-  # Note: .env.example files are NOT automatically excluded
-  # to prevent accidental commit of real secrets
-  '''docs/.*''',
+  # Note: Documentation files ARE scanned to prevent real secret leaks
+  # Placeholders like <your-key-here> are whitelisted via regexes below
   '''README.md''',
   '''CLAUDE.md''',
   '''.gitleaks.toml''',
