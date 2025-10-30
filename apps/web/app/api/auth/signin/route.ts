@@ -1,6 +1,6 @@
 import type { Database } from '@/lib/supabase/database.types';
 
-import { createServerClient } from '@supabase/ssr';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { createServiceClient } from '@/lib/supabase/server';
@@ -60,21 +60,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // CRITICAL PATTERN: Create temporary response to collect cookies
-    // We'll create the final redirect response after authentication succeeds
-    const response = NextResponse.json({ success: true });
+    // CRITICAL: Store cookies with their full options for later use
+    // response.cookies.getAll() only returns {name, value} without options like httpOnly, secure, sameSite
+    // We need to preserve these options to maintain proper session security
+    let cookiesToSet: Array<{ name: string; value: string; options: CookieOptions }> = [];
 
-    // Create Supabase client that sets cookies on the response object
+    // Create Supabase client that captures cookies with full options
     const supabase = createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
       cookies: {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet) {
-          // CRITICAL: Set cookies directly on response object
-          // This ensures cookies are in the HTTP response
-          cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
+        setAll(cookies) {
+          // CRITICAL: Save cookies with full options (httpOnly, secure, sameSite, maxAge, etc.)
+          // These will be applied to the redirect response later
+          cookiesToSet = cookies;
+
+          // Also set on request for immediate use by Supabase client
+          cookies.forEach(({ name, value }) => {
+            request.cookies.set(name, value);
           });
         },
       },
@@ -182,19 +186,21 @@ export async function POST(request: NextRequest) {
     const redirectPath = !userOrgs?.organization_id ? '/auth/select-organization' : '/dashboard';
 
     console.warn(`[SignIn Route] Redirecting to: ${redirectPath}`);
+    console.warn(`[SignIn Route] Applying ${cookiesToSet.length} cookies to redirect response`);
 
-    // CRITICAL: Create redirect response and copy cookies from temporary response
+    // CRITICAL: Create redirect response and apply cookies with full options
     const redirectUrl = new URL(redirectPath, request.url);
     const redirectResponse = NextResponse.redirect(redirectUrl, {
       status: 303, // Use 303 See Other for POST -> GET redirect
     });
 
-    // Copy all cookies from the temporary response to the redirect response
-    response.cookies.getAll().forEach((cookie) => {
-      redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
+    // Apply all cookies with their full options (httpOnly, secure, sameSite, maxAge, etc.)
+    // This is critical for maintaining session security and preventing authentication loops
+    cookiesToSet.forEach(({ name, value, options }) => {
+      redirectResponse.cookies.set(name, value, options);
     });
 
-    console.warn('[SignIn Route] Returning redirect response with cookies');
+    console.warn('[SignIn Route] Returning redirect response with cookies (with full options)');
     return redirectResponse;
   } catch (error) {
     console.error('[SignIn Route] Unexpected error:', error);
