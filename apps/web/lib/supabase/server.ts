@@ -42,6 +42,39 @@ export async function createClient() {
 }
 
 /**
+ * Supabaseクライアント（Server Action専用）
+ * Server Actionsでのcookie設定エラーを表面化させるため、try-catchを使用しない
+ * CRITICAL: Server Componentsでは使用しないこと（cookie書き込み不可でエラーになる）
+ */
+export async function createActionClient() {
+  const cookieStore = await cookies();
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error(
+      'Missing Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY'
+    );
+  }
+
+  return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet) {
+        // Server Actionsでは、エラーをキャッチせずに表面化させる
+        // これにより、cookie設定の失敗が即座に検出できる
+        cookiesToSet.forEach(({ name, value, options }) => {
+          cookieStore.set(name, value, options);
+        });
+      },
+    },
+  });
+}
+
+/**
  * Service Roleキーを使用するSupabaseクライアント（管理者権限）
  * RLSを回避して操作が必要な場合に使用
  * 注意: サーバーサイドのみで使用すること

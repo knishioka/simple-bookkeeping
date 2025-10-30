@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import {
@@ -12,7 +13,7 @@ import {
   ERROR_CODES,
 } from './types';
 
-import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { createClient, createActionClient, createServiceClient } from '@/lib/supabase/server';
 
 // SECURITY NOTE: createServiceClient() should ONLY be used on the server side for admin operations.
 // This module has 'use server' directive, ensuring all functions run only on the server.
@@ -270,7 +271,9 @@ export async function signIn(input: SignInInput): Promise<ActionResult<AuthUser>
       });
     }
 
-    const supabase = await createClient();
+    // CRITICAL: Use createActionClient() to surface cookie-setting errors
+    // createClient() has try-catch that silently hides errors, which prevents proper authentication
+    const supabase = await createActionClient();
 
     // Supabase Authでログイン
     console.warn('[SignIn] Authenticating with Supabase Auth');
@@ -278,6 +281,19 @@ export async function signIn(input: SignInInput): Promise<ActionResult<AuthUser>
       email,
       password,
     });
+
+    // Check cookie state after authentication
+    const cookieStore = await cookies();
+    const allCookies = cookieStore.getAll();
+    console.warn(
+      '[SignIn] Cookies after signIn:',
+      allCookies.map((c) => ({ name: c.name, hasValue: !!c.value, valueLength: c.value.length }))
+    );
+    console.warn('[SignIn] Total cookies set:', allCookies.length);
+    console.warn(
+      '[SignIn] Auth cookies:',
+      allCookies.filter((c) => c.name.includes('auth') || c.name.includes('sb')).map((c) => c.name)
+    );
 
     if (authError) {
       console.warn('[SignIn] Authentication failed:', authError.message);
