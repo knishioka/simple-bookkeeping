@@ -47,37 +47,31 @@ export default function LoginPage() {
 
     try {
       // Server Actionを直接呼び出し
-      // CRITICAL: signIn() now returns success with redirectTo path instead of using redirect()
-      // This ensures cookies are properly set before navigation occurs
+      // CRITICAL: signIn() uses redirect() which throws a NEXT_REDIRECT error on success
+      // This error is automatically handled by Next.js to perform the redirect
+      // If an ActionResult is returned, it means an error occurred
       console.warn('[LoginPage] Calling signIn Server Action');
       const result = await signIn({
         email: data.email,
         password: data.password,
       });
 
-      console.warn('[LoginPage] signIn returned:', result);
+      // If we reach here, it means signIn returned an error (redirect didn't happen)
+      console.warn('[LoginPage] signIn returned error:', result);
 
-      if (result.success && result.data?.redirectTo) {
-        // Success! Navigate using full page reload to ensure cookies are available
-        console.warn('[LoginPage] Login successful, redirecting to:', result.data.redirectTo);
-
-        // CRITICAL: Use window.location.href instead of router.push()
-        // Full page reload ensures all cookies are properly set before middleware checks auth
-        // This is more reliable than client-side navigation with cookie propagation delays
-        window.location.href = result.data.redirectTo;
-      } else if (result.error) {
+      if (result.error) {
         // Error returned from server
         console.error('[LoginPage] Login failed:', result.error.message);
         setError(result.error.message || 'ログインに失敗しました');
-        setIsLoading(false);
       } else {
-        // Unexpected result
+        // Unexpected: success should have redirected
         console.error('[LoginPage] Unexpected result:', result);
         setError('ログインに失敗しました');
-        setIsLoading(false);
       }
+      setIsLoading(false);
     } catch (err) {
-      // Unexpected exception
+      // redirect() throws a NEXT_REDIRECT error which should not be caught here
+      // If we catch it, it's likely a different error
       console.error('[LoginPage] Login threw exception:', err);
       setError(err instanceof Error ? err.message : 'ログインに失敗しました');
       setIsLoading(false);

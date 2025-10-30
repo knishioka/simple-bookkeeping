@@ -281,28 +281,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       const result = await signIn({ email, password });
 
-      if (result.success && result.data) {
-        // The auth state change listener will handle updating the user state
-        // DO NOT navigate here - let the calling component handle navigation
-        // to avoid race conditions with middleware auth checks
-        toast.success('ログインしました');
-
-        // Extract just the user data to maintain backward compatibility
-        // (Server Action now returns SignInData with redirectTo + user)
-        return {
-          success: true,
-          data: result.data.user,
-        };
-      } else if (!result.success) {
-        toast.error(result.error?.message || 'ログインに失敗しました');
-        return result;
-      }
-
-      // This should never happen, but TypeScript needs it
-      return result as ActionResult<AuthUser>;
+      // If we reach here, signIn returned an error (redirect didn't happen)
+      // Success case: redirect() throws and navigation happens automatically
+      toast.error(result.error?.message || 'ログインに失敗しました');
+      setLoading(false);
+      return result;
     } catch (error) {
+      // Unexpected exception (not a redirect)
       const errorMessage = error instanceof Error ? error.message : 'ログインに失敗しました';
       toast.error(errorMessage);
+      setLoading(false);
       return {
         success: false,
         error: {
@@ -310,8 +298,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           message: errorMessage,
         },
       };
-    } finally {
-      setLoading(false);
     }
   };
 

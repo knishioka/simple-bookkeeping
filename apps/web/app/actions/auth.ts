@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
 import {
   ActionResult,
@@ -254,12 +255,7 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
 /**
  * ログイン
  */
-export type SignInData = {
-  redirectTo: string;
-  user: AuthUser;
-};
-
-export async function signIn(input: SignInInput): Promise<ActionResult<SignInData>> {
+export async function signIn(input: SignInInput): Promise<ActionResult<AuthUser>> {
   console.warn('[SignIn] Starting sign in process for:', { email: input.email });
 
   try {
@@ -356,28 +352,27 @@ export async function signIn(input: SignInInput): Promise<ActionResult<SignInDat
 
     console.warn('[SignIn] Sign in completed successfully');
 
-    // CRITICAL FIX: Return success and let client handle navigation
-    // In Next.js 15, cookies set in Server Actions are not immediately available
-    // when using redirect(). By returning success and using client-side navigation,
-    // we ensure the middleware can see the authentication cookies.
+    // CRITICAL FIX: Use redirect() directly in Server Action
+    // This ensures Set-Cookie and Location headers are sent in the same HTTP response
+    // The browser will set cookies before following the redirect
     const redirectPath = !userOrgs?.organization_id ? '/auth/select-organization' : '/dashboard';
 
-    console.warn(`[SignIn] Returning success with redirect path: ${redirectPath}`);
+    console.warn(`[SignIn] Redirecting to: ${redirectPath}`);
 
-    return {
-      success: true,
-      data: {
-        redirectTo: redirectPath,
-        user: {
-          id: authData.user.id,
-          email: authData.user.email || '',
-          name: authData.user.user_metadata?.name || authData.user.email?.split('@')[0] || '',
-          organizationId: userOrgs?.organization_id || null,
-          role: userOrgs?.role || 'viewer',
-        },
-      },
-    };
+    // redirect() throws an exception, so code after this won't execute
+    redirect(redirectPath);
   } catch (error) {
+    // redirect() throws a special NEXT_REDIRECT error that should not be caught
+    // Re-throw it so Next.js can handle the redirect properly
+    if (
+      error &&
+      typeof error === 'object' &&
+      'digest' in error &&
+      String(error.digest).startsWith('NEXT_REDIRECT')
+    ) {
+      throw error;
+    }
+
     console.warn('[SignIn] Unexpected error:', error);
     return handleSupabaseError(error);
   }
