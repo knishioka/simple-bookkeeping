@@ -1,17 +1,22 @@
+import type { Database } from '@/lib/supabase/database.types';
+
+import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 
-import { createActionClient, createServiceClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
 
 /**
  * Sign in Route Handler
  *
- * CRITICAL: Route Handler approach instead of Server Actions
- * This ensures cookies are properly set before redirect happens
+ * CRITICAL: Correct cookie handling pattern for Supabase SSR
+ * - Create Response object FIRST
+ * - Set cookies directly on Response object via Supabase client
+ * - This ensures Set-Cookie headers are in the redirect response
  *
- * Why Route Handler instead of Server Action:
- * - Server Actions with redirect() throw exceptions before cookies can be set
- * - Route Handlers allow proper cookie setting in the same HTTP response as redirect
- * - This fixes the login redirect loop issue
+ * Why this pattern works:
+ * - Supabase client's setAll() callback writes directly to Response.cookies
+ * - Browser receives both Set-Cookie and Location headers in same HTTP response
+ * - No race condition between cookie setting and redirect
  */
 export async function POST(request: NextRequest) {
   console.warn('[SignIn Route] Starting sign in process');
@@ -39,8 +44,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // CRITICAL: Use createActionClient() to surface cookie-setting errors
-    const supabase = await createActionClient();
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'CONFIG_ERROR',
+            message: 'Missing Supabase configuration',
+          },
+        },
+        { status: 500 }
+      );
+    }
+
+    // CRITICAL PATTERN: Create temporary response to collect cookies
+    // We'll create the final redirect response after authentication succeeds
+    const response = NextResponse.json({ success: true });
+
+    // Create Supabase client that sets cookies on the response object
+    const supabase = createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          // CRITICAL: Set cookies directly on response object
+          // This ensures cookies are in the HTTP response
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options);
+          });
+        },
+      },
+    });
 
     // Supabase Authでログイン
     console.warn('[SignIn Route] Authenticating with Supabase Auth');
@@ -145,12 +183,19 @@ export async function POST(request: NextRequest) {
 
     console.warn(`[SignIn Route] Redirecting to: ${redirectPath}`);
 
-    // CRITICAL: Use NextResponse.redirect() to ensure cookies are set in the same response
-    // This is the key difference from Server Actions - cookies are guaranteed to be in the redirect response
+    // CRITICAL: Create redirect response and copy cookies from temporary response
     const redirectUrl = new URL(redirectPath, request.url);
-    return NextResponse.redirect(redirectUrl, {
+    const redirectResponse = NextResponse.redirect(redirectUrl, {
       status: 303, // Use 303 See Other for POST -> GET redirect
     });
+
+    // Copy all cookies from the temporary response to the redirect response
+    response.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
+    });
+
+    console.warn('[SignIn Route] Returning redirect response with cookies');
+    return redirectResponse;
   } catch (error) {
     console.error('[SignIn Route] Unexpected error:', error);
     return NextResponse.json(
