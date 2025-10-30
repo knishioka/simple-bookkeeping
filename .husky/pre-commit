@@ -26,9 +26,12 @@ fi
 touch .git/pre-commit-executed
 
 # Check for secrets using gitleaks
+# CRITICAL: Use 'protect --staged' instead of 'detect' to scan only staged changes
+# 'detect' scans entire repo with allowlists and may have exit code issues
+# 'protect --staged' is the correct command for pre-commit hooks
 if command -v gitleaks >/dev/null 2>&1; then
   echo "🔍 Checking for secrets with gitleaks..."
-  gitleaks detect --source . --verbose --redact
+  gitleaks protect --staged --verbose --redact
   if [ $? -ne 0 ]; then
     echo "❌ Secrets detected! Please remove them before committing."
     exit 1
