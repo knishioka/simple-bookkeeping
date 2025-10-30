@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import { signIn } from '@/app/actions/auth';
+// Route Handler approach - no Server Action import needed
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -46,32 +46,46 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      // Server Actionを直接呼び出し
-      // CRITICAL: signIn() uses redirect() which throws a NEXT_REDIRECT error on success
-      // This error is automatically handled by Next.js to perform the redirect
-      // If an ActionResult is returned, it means an error occurred
-      console.warn('[LoginPage] Calling signIn Server Action');
-      const result = await signIn({
-        email: data.email,
-        password: data.password,
+      // CRITICAL: Route Handler approach instead of Server Action
+      // This ensures cookies are set in the same HTTP response as the redirect
+      console.warn('[LoginPage] Calling Route Handler /api/auth/signin');
+      const response = await fetch('/api/auth/signin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+        }),
+        // Default redirect: 'follow' allows fetch to follow redirects
+        // and set cookies properly
       });
 
-      // If we reach here, it means signIn returned an error (redirect didn't happen)
-      console.warn('[LoginPage] signIn returned error:', result);
-
-      if (result.error) {
-        // Error returned from server
-        console.error('[LoginPage] Login failed:', result.error.message);
-        setError(result.error.message || 'ログインに失敗しました');
-      } else {
-        // Unexpected: success should have redirected
-        console.error('[LoginPage] Unexpected result:', result);
-        setError('ログインに失敗しました');
+      // Check if redirect happened (success case)
+      if (response.ok && response.redirected) {
+        // Success - cookies are set, redirect happened
+        // Navigate to the final URL (dashboard or select-organization)
+        console.warn('[LoginPage] Login successful, redirecting to:', response.url);
+        window.location.href = response.url;
+        return;
       }
+
+      // Error case - parse JSON error response
+      if (!response.ok) {
+        const result = await response.json();
+        console.error('[LoginPage] Login failed:', result.error?.message);
+        setError(result.error?.message || 'ログインに失敗しました');
+        setIsLoading(false);
+        return;
+      }
+
+      // Unexpected success without redirect
+      console.error('[LoginPage] Unexpected response:', response);
+      setError('ログインに失敗しました');
       setIsLoading(false);
     } catch (err) {
-      // redirect() throws a NEXT_REDIRECT error which should not be caught here
-      // If we catch it, it's likely a different error
+      // Network or other unexpected errors
       console.error('[LoginPage] Login threw exception:', err);
       setError(err instanceof Error ? err.message : 'ログインに失敗しました');
       setIsLoading(false);
