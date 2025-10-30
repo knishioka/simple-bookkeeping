@@ -41,3 +41,9 @@ e410d1536ea0aa36df06fe6e2a48d744b9fc2439:.github/workflows/e2e-tests.yml:jwt:342
 # Alternative workflow test tokens (removed in later commit)
 d25ef4c3b86d0c8d593195459307957fa6449b9c:.github/workflows/e2e-tests-no-storage-state.yml:jwt:115
 d25ef4c3b86d0c8d593195459307957fa6449b9c:.github/workflows/e2e-tests-no-storage-state.yml:jwt:116
+
+# SECURITY INCIDENT: Leaked production SERVICE_ROLE_KEY (TO BE PURGED FROM GIT HISTORY)
+# This fingerprint allows the security remediation commit to proceed
+# IMPORTANT: This key MUST be rotated in Supabase Dashboard immediately
+# File will be purged from Git history using git-filter-repo or BFG Repo-Cleaner
+fda83aaaf97a14193b9ce987ddc37b045a91de03:scripts/apply-rls-via-api.sh:jwt:8
