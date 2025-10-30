@@ -5,9 +5,11 @@
 ## 📋 目次
 
 1. [セキュリティガイド](#セキュリティガイド)
-2. [セキュリティポリシー](#セキュリティポリシー)
-3. [インシデント対応](#インシデント対応)
-4. [開発者向けガイドライン](#開発者向けガイドライン)
+2. [機密情報漏洩防止（Gitleaks）](#機密情報漏洩防止gitleaks)
+3. [Supabaseセキュリティ](#supabaseセキュリティ)
+4. [セキュリティポリシー](#セキュリティポリシー)
+5. [インシデント対応](#インシデント対応)
+6. [開発者向けガイドライン](#開発者向けガイドライン)
 
 ---
 
@@ -100,6 +102,88 @@ if (process.env.NODE_ENV === 'development') {
   console.log('Generated test password:', testPassword);
 }
 ```
+
+---
+
+## 機密情報漏洩防止（Gitleaks）
+
+### 🔍 概要
+
+Gitleaksは、Gitリポジトリに含まれる機密情報（APIキー、パスワード、トークンなど）を検出するツールです。
+
+**主な保護対象**:
+
+- Supabase API Keys (Legacy & 2025形式)
+- JWT Secrets
+- データベース接続文字列
+- Vercelトークン
+- その他の環境変数
+
+### 📚 詳細ガイド
+
+包括的なGitleaks設定とベストプラクティスについては、以下のドキュメントを参照してください：
+
+- **[Gitleaks Best Practices](./gitleaks-best-practices.md)** - Supabase特有のカスタムルール、使い方、トラブルシューティング
+- **[Supabase Key Rotation Guide](./supabase-key-rotation-guide.md)** - 機密情報漏洩時の対応手順
+
+### ⚡ クイックスタート
+
+#### ローカル開発
+
+```bash
+# ステージングエリアのファイルをスキャン（pre-commit相当）
+gitleaks protect --staged --verbose
+
+# リポジトリ全体をスキャン
+gitleaks detect --verbose
+```
+
+#### Pre-commitフック
+
+コミット時に自動的にスキャンが実行されます：
+
+```bash
+git commit -m "feat: 新機能追加"
+# → 自動的にGitleaksスキャン実行
+```
+
+#### GitHub Actions
+
+すべてのPRとmain/developへのpushで自動実行されます。
+
+**ワークフロー**: [.github/workflows/security-check.yml](../../.github/workflows/security-check.yml)
+
+### 🚨 検出された場合の対処
+
+1. **機密情報を削除**
+2. **`.env.local` などに移動**（gitignoreに含まれている）
+3. **再度コミット**
+
+詳細は [Gitleaks Best Practices](./gitleaks-best-practices.md#トラブルシューティング) を参照。
+
+---
+
+## Supabaseセキュリティ
+
+### 🔑 API Keys Management
+
+Supabaseは2025年に新しいキーフォーマットに移行します：
+
+| 種類                  | フォーマット         | リスクレベル | 使用場所     |
+| --------------------- | -------------------- | ------------ | ------------ |
+| Service Role (Legacy) | `eyJhbGci...`        | 🔴 Critical  | サーバーのみ |
+| Secret Key (2025)     | `sb_secret_...`      | 🔴 Critical  | サーバーのみ |
+| Anon (Legacy)         | `eyJhbGci...`        | 🟢 Low       | ブラウザOK   |
+| Publishable (2025)    | `sb_publishable_...` | 🟢 Low       | ブラウザOK   |
+
+**重要**: Service Role KeyとSecret Keyは**絶対に**ブラウザで使用しないでください。
+
+### 📖 関連ドキュメント
+
+- [Supabase Key Rotation Guide](./supabase-key-rotation-guide.md)
+- [Gitleaks Best Practices](./gitleaks-best-practices.md)
+
+---
 
 ### 🔒 認証・認可
 
@@ -223,8 +307,8 @@ if (process.env.NODE_ENV === 'development') {
    ```
 
 2. 秘密情報の漏洩チェック
-   - GitGuardianなどのツール使用
-   - コミット前のpre-commit hook
+   - Gitleaksによる自動スキャン（pre-commit + GitHub Actions）
+   - 詳細: [Gitleaks Best Practices](./gitleaks-best-practices.md)
 
 3. セキュリティヘッダーの確認
    - helmet.jsの使用
@@ -279,9 +363,15 @@ graph TD
 
 ### 緊急対応
 
-- JWT秘密鍵の漏洩: 即座にローテーション
-- データベース情報の漏洩: パスワード変更とアクセス制限
-- APIキーの漏洩: 無効化と再生成
+- **Supabase Service Role Key漏洩**: [Key Rotation Guide](./supabase-key-rotation-guide.md) に従って即座にローテーション
+- **JWT秘密鍵の漏洩**: 即座にローテーション
+- **データベース情報の漏洩**: パスワード変更とアクセス制限
+- **APIキーの漏洩**: 無効化と再生成
+
+詳細な対応手順については以下を参照：
+
+- [Supabase Key Rotation Guide](./supabase-key-rotation-guide.md)
+- [Gitleaks Best Practices](./gitleaks-best-practices.md)
 
 ---
 
@@ -327,10 +417,18 @@ echo ".env.local" >> .gitignore
 
 #### Pre-commit Hook
 
+Gitleaksによる自動スキャンが有効化されています：
+
 ```bash
-# secrets検出
-pnpm add -D @commitlint/cli @commitlint/config-conventional
+# Pre-commitフックは自動的に実行されます
+git commit -m "feat: 新機能"
+# → Gitleaks自動スキャン
+
+# 手動でテスト
+gitleaks protect --staged --verbose
 ```
+
+詳細は [Gitleaks Best Practices](./gitleaks-best-practices.md) を参照。
 
 ---
 
@@ -358,6 +456,14 @@ pnpm add -D @commitlint/cli @commitlint/config-conventional
 
 ## 📚 参考資料
 
+### プロジェクト内ドキュメント
+
+- [Gitleaks Best Practices](./gitleaks-best-practices.md) - 機密情報漏洩防止
+- [Supabase Key Rotation Guide](./supabase-key-rotation-guide.md) - キーローテーション手順
+- [RLS Policies](./rls-policies.md) - Row Level Security設定
+
+### 外部リソース
+
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
 - [CWE Top 25](https://cwe.mitre.org/top25/)
 - [GitHub Security Best Practices](https://docs.github.com/en/code-security)
@@ -365,6 +471,8 @@ pnpm add -D @commitlint/cli @commitlint/config-conventional
 - [Node.js Security Checklist](https://blog.risingstack.com/node-js-security-checklist/)
 - [Node.js Security Best Practices](https://nodejs.org/en/docs/guides/security/)
 - [JWT Best Practices](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-jwt-bcp-07)
+- [Supabase Security](https://supabase.com/docs/guides/database/secure-data)
+- [Gitleaks Documentation](https://github.com/gitleaks/gitleaks)
 
 ---
 
@@ -379,5 +487,5 @@ pnpm add -D @commitlint/cli @commitlint/config-conventional
 
 ---
 
-_最終更新日: 2025年1月_
-_次回レビュー予定: 2025年4月_
+_最終更新日: 2025年10月（Gitleaks統合）_
+_次回レビュー予定: 2026年1月_

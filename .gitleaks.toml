@@ -1,6 +1,69 @@
 [extend]
 useDefault = true
 
+# ==========================================
+# Supabase-specific Custom Rules (2025)
+# ==========================================
+# Detects Supabase API keys and JWT secrets
+# References:
+# - https://supabase.com/docs/guides/api/api-keys
+# - https://github.com/orgs/supabase/discussions/29260
+
+[[rules]]
+id = "supabase-service-role-jwt"
+description = "Supabase Legacy Service Role JWT (high risk - bypasses RLS)"
+regex = '''(?i)(supabase[_-]?(service[_-]?role|jwt)[_-]?(key|secret|token)['"]?\s*[=:]\s*['"]?)(eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)'''
+keywords = ["supabase_service_role", "SUPABASE_SERVICE_ROLE_KEY", "service_role"]
+secretGroup = 4
+entropy = 4.0
+
+[[rules]]
+id = "supabase-anon-jwt"
+description = "Supabase Legacy Anon JWT (public but should not be committed)"
+regex = '''(?i)(supabase[_-]?anon[_-]?(key|token)['"]?\s*[=:]\s*['"]?|NEXT_PUBLIC_SUPABASE_ANON_KEY['"]?\s*[=:]\s*['"]?)(eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)'''
+keywords = ["supabase_anon", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "anon"]
+secretGroup = 3
+entropy = 4.0
+
+[[rules]]
+id = "supabase-secret-key-2025"
+description = "Supabase Secret API Key (new format 2025 - high risk)"
+regex = '''(?i)(supabase[_-]?secret|secret[_-]?key)['"]?\s*[=:]\s*['"]?(sb_secret_[A-Za-z0-9_-]{15,})'''
+keywords = ["sb_secret_", "SUPABASE_SERVICE_ROLE_KEY"]
+secretGroup = 2
+entropy = 3.5
+
+[[rules]]
+id = "supabase-publishable-key-2025"
+description = "Supabase Publishable API Key (new format 2025)"
+regex = '''(?i)(supabase[_-]?publishable|publishable[_-]?key|NEXT_PUBLIC_SUPABASE)['"]?\s*[=:]\s*['"]?(sb_publishable_[A-Za-z0-9_-]{15,})'''
+keywords = ["sb_publishable_", "NEXT_PUBLIC_SUPABASE"]
+secretGroup = 2
+entropy = 3.0
+
+[[rules]]
+id = "supabase-jwt-secret"
+description = "Supabase JWT Secret (signing key - critical)"
+regex = '''(?i)(jwt[_-]?secret|signing[_-]?key|SUPABASE_JWT_SECRET)['"]?\s*[=:]\s*['"]?([A-Za-z0-9+/=]{32,})'''
+keywords = ["jwt_secret", "SUPABASE_JWT_SECRET", "signing_key"]
+secretGroup = 2
+entropy = 4.5
+
+[[rules]]
+id = "supabase-url-with-credentials"
+description = "Supabase URL with embedded credentials"
+regex = '''(postgresql://[^:]+:[^@]+@db\.[a-z0-9]+\.supabase\.co)'''
+keywords = ["supabase.co", "postgresql://"]
+entropy = 3.0
+
+[[rules]]
+id = "vercel-token"
+description = "Vercel deployment token"
+regex = '''(?i)(vercel[_-]?token|VERCEL_TOKEN)['"]?\s*[=:]\s*['"]?([A-Za-z0-9]{24,})'''
+keywords = ["vercel_token", "VERCEL_TOKEN"]
+secretGroup = 2
+entropy = 3.5
+
 # Additional allowlist
 [allowlist]
 paths = [
@@ -10,51 +73,64 @@ paths = [
   '''docs/.*''',
   '''README.md''',
   '''CLAUDE.md''',
-  
-  # Test files
+  '''.gitleaks.toml''',
+
+  # Test files (but still scan for real secrets)
   '''.*\.test\.(ts|js|tsx|jsx)$''',
   '''.*\.spec\.(ts|js|tsx|jsx)$''',
   '''.*\.e2e\.(ts|js)$''',
-  
-  # Build outputs
+  '''create-test-user.sql''',
+
+  # Build outputs and dependencies
   '''.next/.*''',
   '''.vercel/.*''',
   '''dist/.*''',
   '''build/.*''',
-  
-  # Lock files
+  '''node_modules/.*''',
   '''package-lock.json''',
   '''pnpm-lock.yaml''',
-  
-  # Config files
-  '''.gitleaks.toml''',
-  '''railway-deploy-steps.md''',
-  '''create-test-user.sql''',
-  '''supabase/project.json''',
-  '''supabase/.*'''
+
+  # Supabase local config (uses demo keys)
+  '''supabase/config.toml''',
+  '''supabase/seed.sql''',
 ]
 
-# Test credentials and placeholders
+# Test credentials and well-known demo keys
 regexes = [
+  # Test emails and passwords
   '''test@example\.com''',
   '''Test1234!''',
+  '''user@test\.com''',
+
+  # Placeholder patterns
   '''your[-_]?(secret|password|token|key|value|anon|service|role)[-_]?(key|token)?[-_]?here''',
   '''your[-_]?project[-_]?ref''',
+  '''<[A-Z_]+>''',
+  '''xxx+''',
+  '''\*\*\*+''',
+  '''\.\.\.+''',
+
+  # Test API keys
   '''sk[-_]test''',
   '''pk[-_]test''',
   '''dummy[-_]?(secret|password|token|key)''',
   '''placeholder''',
   '''example\.com''',
-  '''localhost''',
-  '''rnd_xxxxxxxxxxxxxxxxxxxxxxxxxx''',
-  # Supabase local development keys (well-known demo keys from Supabase documentation)
+  '''localhost:?\d*''',
+  '''127\.0\.0\.1''',
+  '''rnd_x+''',
+
+  # Well-known Supabase local development keys
+  # These are from official Supabase Docker documentation
+  # Anon key (public, safe for local Docker)
   '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9\.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0''',
+  # Service role key (for local Docker testing only)
   '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0\.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU''',
-  '''super-secret-jwt-token-with-at-least-32-characters-for-testing'''
+  # Test JWT secret
+  '''super-secret-jwt-token-with-at-least-32-characters-for-testing''',
+  '''super-secret-jwt-token-with-at-least-32-characters-long''',
 ]
 
-# Allow specific test tokens
+# Allow specific historical commits (from .gitleaksignore)
 commits = []
-files = [
-  '''create-test-user.sql'''
-]
+files = []
