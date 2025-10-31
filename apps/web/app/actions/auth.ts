@@ -199,6 +199,22 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
       }
       console.warn('[SignUp] User-organization association created successfully');
 
+      // Step 5a: Auto-confirm email so users can log in immediately
+      console.warn('[SignUp] Step 5a: Auto confirming user email for immediate access');
+      const { error: emailConfirmError } = await serviceClient.auth.admin.updateUserById(
+        authData.user.id,
+        {
+          email_confirm: true,
+        }
+      );
+
+      if (emailConfirmError) {
+        console.warn('[SignUp] WARNING: Failed to auto confirm email:', emailConfirmError);
+        // Continue even if email confirmation fails; user will need to verify via email
+      } else {
+        console.warn('[SignUp] Email auto confirmation completed');
+      }
+
       // Step 5: CRITICAL - Update user's app_metadata with organization info
       console.warn('[SignUp] Step 5: Updating user app_metadata');
 
