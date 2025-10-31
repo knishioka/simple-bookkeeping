@@ -176,7 +176,7 @@ cp .env.test.example .env.test
 docker-compose -f docker-compose.test.optimized.yml up --build
 
 # Or use the helper script
-./scripts/docker-e2e-test.sh --optimized
+./scripts/test-runner.sh e2e-docker --optimized
 ```
 
 ## Configuration Reference

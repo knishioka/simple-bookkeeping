@@ -54,11 +54,7 @@ Consolidated Vercel management tool that replaces:
 
 ### 🧪 test-runner.sh
 
-Consolidated test execution tool that replaces:
-
-- `docker-e2e-test.sh`
-- `e2e-test.sh`
-- `test-e2e-configs.sh`
+Consolidated test execution tool. Legacy wrapper scripts (`docker-e2e-test.sh`, `e2e-test.sh`, `test-e2e-configs.sh`) have been removed—use the commands below instead.
 
 **Usage:**
 
@@ -108,6 +104,9 @@ The following scripts are kept for backward compatibility but internally use the
 - `start-dev.sh` - Removed as it referenced the deprecated Express.js API server
 - `vercel-api-status.sh` - Use `pnpm vercel:status` or `./scripts/vercel-tools.sh status`
 - `vercel-logs.sh` - Use `pnpm logs:prod` or `./scripts/vercel-tools.sh logs`
+- `docker-e2e-test.sh` - Use `./scripts/test-runner.sh e2e-docker`
+- `e2e-test.sh` - Use `./scripts/test-runner.sh e2e`
+- `test-e2e-configs.sh` - Use `./scripts/test-runner.sh config`
 
 ## NPM Scripts
 

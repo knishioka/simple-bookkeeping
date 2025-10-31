@@ -48,7 +48,7 @@ pnpm --filter web test:e2e accounting-periods.spec.ts
 pnpm --filter web test:e2e:ui
 
 # Run in Docker
-./scripts/docker-e2e-test.sh
+./scripts/test-runner.sh e2e-docker
 ```
 
 ## 📊 Test Coverage

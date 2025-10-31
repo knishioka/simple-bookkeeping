@@ -109,15 +109,17 @@ SQLファイルが整理されています：
   - グレースフルシャットダウン
 - **必要設定**: `env/secrets/common.env`（`WEB_PORT`, `API_PORT` など）
 
-#### e2e-test.sh / docker-e2e-test.sh
+#### test-runner.sh（E2Eユーティリティ）
 
-- **用途**: Docker環境での隔離されたE2Eテスト実行
-- **実行方法**: `pnpm test:e2e [options]`
-- **オプション**:
+- **用途**: E2E テストの実行モードを一元管理
+- **実行方法**:
+  - ローカル: `./scripts/test-runner.sh e2e [options]`
+  - Docker: `./scripts/test-runner.sh e2e-docker [options]`
+- **主なオプション**:
   - `--headless`: ヘッドレスモード（デフォルト）
   - `--browser <name>`: ブラウザ指定
   - `--test <pattern>`: テストファイルパターン
-- **例**: `pnpm test:e2e --browser chromium --test auth`
+- **例**: `./scripts/test-runner.sh e2e --browser chromium --test auth`
 
 #### e2e-basic-test.js
 
@@ -169,19 +171,20 @@ SQLファイルが整理されています：
 
 以下のスクリプトはpackage.jsonから直接実行可能です：
 
-| npmスクリプト     | 実行されるスクリプト         | 説明               |
-| ----------------- | ---------------------------- | ------------------ |
-| `dev`             | `start-dev.sh`               | 開発サーバー起動   |
-| `dev:ports`       | `check-ports.js`             | ポートチェック     |
-| `db:init`         | `init-db.sh`                 | DB初期化           |
-| `test:e2e`        | `e2e-test.sh`                | E2Eテスト          |
-| `env:validate`    | `validate-env.ts`            | 環境変数検証       |
-| `deploy:check`    | `check-deployments.sh`       | デプロイ状況確認   |
-| `vercel:status`   | `vercel-tools.sh`            | Vercel状態確認     |
-| `vercel:logs`     | `vercel-tools.sh`            | Vercelログ取得     |
-| `logs:prod`       | `vercel logs`（npmラッパー） | 本番ログ取得       |
-| `precommit:check` | `check-build.sh`             | コミット前チェック |
-| `prepush:check`   | `check-full-build.sh`        | プッシュ前チェック |
+| npmスクリプト     | 実行されるスクリプト         | 説明                |
+| ----------------- | ---------------------------- | ------------------- |
+| `dev`             | `start-dev.sh`               | 開発サーバー起動    |
+| `dev:ports`       | `check-ports.js`             | ポートチェック      |
+| `db:init`         | `init-db.sh`                 | DB初期化            |
+| `test:e2e`        | `test-runner.sh e2e`         | E2Eテスト           |
+| `test:e2e:docker` | `test-runner.sh e2e-docker`  | DockerでのE2Eテスト |
+| `env:validate`    | `validate-env.ts`            | 環境変数検証        |
+| `deploy:check`    | `check-deployments.sh`       | デプロイ状況確認    |
+| `vercel:status`   | `vercel-tools.sh`            | Vercel状態確認      |
+| `vercel:logs`     | `vercel-tools.sh`            | Vercelログ取得      |
+| `logs:prod`       | `vercel logs`（npmラッパー） | 本番ログ取得        |
+| `precommit:check` | `check-build.sh`             | コミット前チェック  |
+| `prepush:check`   | `check-full-build.sh`        | プッシュ前チェック  |
 
 ## 🔄 Git Hooksとの連携
 
