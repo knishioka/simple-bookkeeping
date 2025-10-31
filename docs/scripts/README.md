@@ -26,7 +26,7 @@ pnpm db:init            # データベース初期化
 
 # デプロイメント監視
 pnpm deploy:check       # デプロイメント状態確認
-pnpm vercel:logs build   # Vercelのビルドログ
+pnpm logs:prod          # 本番ログ確認（ビルド/ランタイム）
 
 # 品質チェック
 pnpm precommit:check    # コミット前の軽量チェック

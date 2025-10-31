@@ -119,6 +119,6 @@ pnpm vercel:status
 - `env/secrets/` 配下のファイルは **絶対に Git にコミットしない**。共有が必要な場合は 1Password や Vault などの Secret Manager を使用してください。
 - automation や AI へトークンを渡す場合は `env/secrets/ai.env` に別トークンを発行し、利用範囲を限定してください。
 - 本番プロファイルで作業した後は `scripts/env-manager.sh switch local` を実行し、誤操作による本番データ更新を防ぎます。
-- Vercel CLI で `.env.local` に書き出す `vercel env pull` を使用する場合は、作成されたファイルがシンボリックリンクを上書きしないよう注意してください（必要に応じて `env-manager.sh switch local` で再生成）。
+- Vercel CLI の `vercel env pull` を使うときは `.env.local` ではなく別ファイル（例: `./tmp/vercel.env`）を指定し、確認後は削除してください。もし誤って `.env.local` を上書きした場合は、`scripts/env-manager.sh switch <profile>` で再生成できます。
 
 詳細は `env/README.md` と `docs/direnv-setup.md` を参照してください。

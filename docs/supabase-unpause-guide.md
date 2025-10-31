@@ -67,7 +67,7 @@ vercel --prod
 再デプロイ完了後、以下で新規登録→ログインテストを実行：
 
 ```bash
-pnpm exec playwright test e2e/production-signup-login.spec.ts --project=chromium-desktop --headed
+pnpm exec playwright test apps/web/e2e/production-auth-test-vercel.spec.ts --project=chromium-desktop --headed
 ```
 
 ---

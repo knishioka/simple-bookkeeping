@@ -700,7 +700,7 @@ Claude Codeがこのプロジェクトで作業する際は：
 
 3. **Vercel環境変数**
    - Vercel Dashboardから削除しない限り永続化
-   - `vercel env pull` で取得したファイルは機密扱い
+   - `vercel env pull` を使用する場合は `.env.local` ではなく一時ファイル（例: `./tmp/vercel.env`）に書き出し、内容を見た後は速やかに破棄
    - 不要になったら `rm .env.vercel.*` で削除
 
 ### 推奨される権限設定

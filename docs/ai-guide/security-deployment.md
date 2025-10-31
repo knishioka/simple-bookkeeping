@@ -172,7 +172,8 @@ vercel link
 vercel env ls                          # 一覧表示
 vercel env add SECRET_KEY             # 追加（対話形式で値を入力）
 vercel env rm OLD_SECRET              # 削除
-vercel env pull .env.local            # ローカルに環境変数をダウンロード（※ symlink を上書きしないよう注意）
+# ローカルにエクスポートする場合は、.env.localではなく一時ファイルを指定
+scripts/vercel-env-manager.sh pull --env production ./tmp/vercel.env
 
 # デプロイメント
 vercel                                # プレビューデプロイ
