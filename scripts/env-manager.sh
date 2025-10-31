@@ -6,7 +6,7 @@
 # Purpose: Manage environment profiles for local development
 #          Switch between Supabase Local and Production environments
 # Usage: scripts/env-manager.sh <command> [options]
-# Commands: list, current, switch, validate, diff
+# Commands: list, current, switch, validate, diff, bootstrap
 # ============================================================================
 
 # Get script directory
@@ -21,12 +21,17 @@ source "$SCRIPT_DIR/lib/common.sh"
 
 # Environment profile files
 ENV_LOCAL=".env.local"
-ENV_SUPABASE_LOCAL=".env.supabase-local"
-ENV_SUPABASE_PROD=".env.supabase-prod"
+ENV_SECRETS_DIR="env/secrets"
+ENV_TEMPLATES_DIR="env/templates"
+ENV_SUPABASE_LOCAL="$ENV_SECRETS_DIR/supabase.local.env"
+ENV_SUPABASE_PROD="$ENV_SECRETS_DIR/supabase.prod.env"
 
 # Project root
 PROJECT_ROOT="$(get_project_root)"
 cd "$PROJECT_ROOT" || die "Cannot change to project root: $PROJECT_ROOT"
+
+# Ensure secrets directory exists (ignored by git)
+mkdir -p "$ENV_SECRETS_DIR"
 
 # ============================================================================
 # Functions
@@ -46,6 +51,7 @@ ${BOLD}Commands:${NC}
   switch     Switch to a different environment profile
   validate   Validate current environment configuration
   diff       Show differences between profiles
+  bootstrap  Copy template env files into env/secrets (non-destructive)
   help       Show this help message
 
 ${BOLD}Environment Profiles:${NC}
@@ -63,6 +69,7 @@ ${BOLD}Examples:${NC}
   $0 switch prod             # Switch to production Supabase
   $0 validate                # Validate current configuration
   $0 diff local prod         # Compare two profiles
+  $0 bootstrap               # Copy template files into env/secrets
 
 ${BOLD}Safety Notes:${NC}
   ${WARNING_SIGN} Switching to 'prod' connects to production database
@@ -83,6 +90,7 @@ list_profiles() {
     print_subheader "${CHECK_MARK} Local Supabase Development"
     print_info "Profile: local"
     print_info "File: $ENV_SUPABASE_LOCAL"
+    print_info "Template: $ENV_TEMPLATES_DIR/supabase.local.env.example"
     print_info "Description: Local development with Supabase CLI (port 54321)"
     print_info "Database: postgresql://postgres:postgres@localhost:54322/postgres"
 
@@ -97,6 +105,7 @@ list_profiles() {
     print_subheader "${WARNING_SIGN} Production Supabase Development"
     print_info "Profile: prod"
     print_info "File: $ENV_SUPABASE_PROD"
+    print_info "Template: $ENV_TEMPLATES_DIR/supabase.prod.env.example"
     print_info "Description: Local development with Production Supabase"
     print_warning "Connects to LIVE production database!"
 
@@ -104,7 +113,7 @@ list_profiles() {
         print_success "Available"
 
         # Check if SERVICE_ROLE_KEY is configured
-        if grep -q "your-production-service-role-key-here" "$ENV_SUPABASE_PROD" 2>/dev/null; then
+        if grep -q "your-production-service-role-key" "$ENV_SUPABASE_PROD" 2>/dev/null; then
             print_warning "Service Role Key not configured yet"
         fi
     else
@@ -112,6 +121,57 @@ list_profiles() {
     fi
 
     echo ""
+}
+
+# Bootstrap env/secrets directory with template copies
+bootstrap_env() {
+    print_header "Bootstrapping environment secrets"
+
+    local templates=(
+        "common.env:$ENV_TEMPLATES_DIR/common.env.example"
+        "supabase.local.env:$ENV_TEMPLATES_DIR/supabase.local.env.example"
+        "supabase.prod.env:$ENV_TEMPLATES_DIR/supabase.prod.env.example"
+        "vercel.env:$ENV_TEMPLATES_DIR/vercel.env.example"
+        "ai.env:$ENV_TEMPLATES_DIR/ai.env.example"
+    )
+
+    local created=0
+
+    for entry in "${templates[@]}"; do
+        local filename template target
+        filename="${entry%%:*}"
+        template="${entry#*:}"
+        target="$ENV_SECRETS_DIR/$filename"
+
+        if [ ! -f "$template" ]; then
+            print_warning "Template missing: $template"
+            continue
+        fi
+
+        if [ -f "$target" ]; then
+            print_info "Exists: $target (skipped)"
+            continue
+        fi
+
+        cp "$template" "$target"
+        if [ $? -eq 0 ]; then
+            print_success "Created: $target"
+            ((created++))
+        else
+            print_error "Failed to copy $template -> $target"
+        fi
+    done
+
+    if [ $created -eq 0 ]; then
+        print_info "No new files were created."
+    else
+        print_success "Bootstrap complete ($created file(s) created)."
+    fi
+
+    echo ""
+    print_info "Next steps:"
+    print_info "  1. Edit files under $ENV_SECRETS_DIR with real credentials"
+    print_info "  2. Run scripts/env-manager.sh switch local"
 }
 
 # Show current environment
@@ -482,6 +542,9 @@ main() {
             ;;
         diff|compare)
             diff_profiles "$1" "$2"
+            ;;
+        bootstrap)
+            bootstrap_env
             ;;
         help|--help|-h)
             show_usage

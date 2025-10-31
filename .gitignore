@@ -17,6 +17,8 @@ out/
 .env.production.local
 !.env.example
 !.env.*.example
+env/secrets/
+env/**/*.env
 
 # Database
 *.db
