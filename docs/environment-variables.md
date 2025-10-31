@@ -1,230 +1,124 @@
 # 環境変数管理ガイド
 
-このドキュメントでは、simple-bookkeeping プロジェクトにおける環境変数の管理方法を説明します。
+このドキュメントでは、simple-bookkeeping プロジェクトにおける環境変数の構成と運用方法を説明します。  
+2025 年 2 月以降、direnv と `env/` ディレクトリを中心とした運用に統一しました。
 
-## 📁 整理済みファイル構成（2025年10月最新版）
-
-### 現在使用するファイル（10個のみ）
+## 全体構成
 
 ```
 .
-├── .env.example                    # [Git管理] プロジェクト全体の設定テンプレート
-├── .env.local                      # [Gitignore] Workspace全体の実際の設定
-├── .env.local.example              # [Git管理] .env.local のテンプレート
-├── .env.test.example               # [Git管理] テスト設定テンプレート（未使用）
-├── .env.test.local.example         # [Git管理] テスト設定テンプレート（未使用）
-├── .envrc                          # [Git管理] direnv設定（自動読み込み）
-├── .envrc.example                  # [Git管理] direnvテンプレート
-├── apps/web/.env.local             # [Gitignore] Next.js app実際の設定
-├── apps/web/.env.test.example      # [Git管理] E2Eテスト設定テンプレート
-└── packages/database/.env          # [Gitignore] Prisma設定（必要に応じて）
+├── env/
+│   ├── README.md                    # 運用サマリ
+│   ├── templates/                   # Git 管理されるテンプレート
+│   │   ├── common.env.example
+│   │   ├── supabase.local.env.example
+│   │   ├── supabase.prod.env.example
+│   │   ├── vercel.env.example
+│   │   └── ai.env.example
+│   └── secrets/                     # Gitignore（各自が作成）
+│       ├── common.env               # 非機密デフォルト
+│       ├── supabase.local.env       # ローカル Supabase プロファイル
+│       ├── supabase.prod.env        # 本番 Supabase プロファイル（必要時のみ）
+│       └── vercel.env               # Vercel CLI / API メタデータ
+├── .env.local → env/secrets/supabase.local.env (symlink)
+├── .env.local.example               # symlink 運用の説明
+└── .envrc                           # direnv 設定（env/ と連携）
 ```
 
-### 削除済みファイル（整理完了）
+`direnv` は以下の順番でファイルを読み込みます。
 
-以下のファイルは2025年10月に整理・削除されました：
+1. `env/secrets/common.env`（存在すれば）
+2. `.env.local`（`scripts/env-manager.sh` がプロファイルへ張るシンボリックリンク）
+3. `env/secrets/vercel.env`
+4. `env/secrets/ai.env`（任意：AI エージェント専用トークンなど）
 
-- `.env` - 空ファイルのため削除
-- `.env.demo`, `.env.docker` - 古い設定
-- `.env.local.simplified` - バックアップファイル
-- `.env.production*` - 複数の重複ファイル
-- `.env.vercel` - Vercel CLIが自動管理
-- `.env.supabase.example` - 不要
-- `apps/web/.env.local.backup` - バックアップ
-- `apps/web/.env.production` - 不要
-- `apps/web/.env.test` - .exampleで十分
-- `apps/web/.env.vercel.production` - Vercel管理
+`SUPABASE_DB_URL` が定義されている場合、`.envrc` が `DATABASE_URL` と `DIRECT_URL` にエクスポートするため、Prisma や CLI から追加設定なしで利用できます。
 
-## 📋 ファイル別の役割と使い方
-
-### 1. リポジトリルート: `.env.local`
-
-**場所**: `/Users/ken/Developer/private/simple-bookkeeping/.env.local`
-
-**目的**: Workspace全体で共有される設定（CLIツール用）
-
-**含まれる設定**:
-
-- `SUPABASE_ACCESS_TOKEN`: Supabase CLI用アクセストークン
-- `LOCAL_DB_URL`: ローカル開発用PostgreSQL接続文字列
-- `PROD_DB_URL`: 本番DB接続文字列（psql/pgAdmin用）
-- `VERCEL_TOKEN`: Vercel API Token（オプション）
-
-**作成方法**:
+## 初期セットアップ
 
 ```bash
-# テンプレートからコピー
-cp .env.local.example .env.local
+direnv allow  # 初回のみ
 
-# 必要な値を設定
-# - SUPABASE_ACCESS_TOKEN: supabase login で取得
-# - PROD_DB_URL: Supabase Dashboard > Settings > Database から取得
+mkdir -p env/secrets
+cp env/templates/common.env.example env/secrets/common.env
+cp env/templates/supabase.local.env.example env/secrets/supabase.local.env
+cp env/templates/vercel.env.example env/secrets/vercel.env
+# 任意: automation 用トークンが必要な場合のみ
+# cp env/templates/ai.env.example env/secrets/ai.env
+
+# もしくは
+# scripts/env-manager.sh bootstrap
+
+# 本番 Supabase へ接続したい場合のみ:
+# cp env/templates/supabase.prod.env.example env/secrets/supabase.prod.env
+
+scripts/env-manager.sh switch local
 ```
 
-**使用例**:
+主な項目は以下のファイルに記載します。
+
+- `env/secrets/common.env`
+  - `NODE_ENV`, `NEXT_PUBLIC_APP_URL`, `WEB_PORT`, `API_PORT`, `ENABLE_SWAGGER` などプロファイル共通の非機密設定。
+
+- `env/secrets/supabase.local.env`
+  - ローカル Supabase CLI / Docker 用 URL とキー (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`)。
+  - `SUPABASE_DB_URL`, `SUPABASE_STUDIO_URL`, `SUPABASE_API_URL` などローカル開発でのみ必要な値。
+
+- `env/secrets/supabase.prod.env`
+  - 本番 Supabase を参照したい場合にのみ作成。安全のため read-only トークンで運用し、`scripts/env-manager.sh switch prod` を実行するたびに確認プロンプトが表示されます。
+
+- `env/secrets/vercel.env`
+  - `VERCEL_PROJECT_ID`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_NAME`, `VERCEL_PRODUCTION_URL`, `VERCEL_TOKEN` など Vercel CLI の参照情報。トークンは必要最小限のスコープで発行してください。
+
+## プロファイルの切り替え
 
 ```bash
-# psqlでローカルDBに接続
-psql $LOCAL_DB_URL
+# 現在のプロファイル確認
+scripts/env-manager.sh current
 
-# psqlで本番DBに接続（管理作業時のみ）
-psql $PROD_DB_URL -c "SELECT * FROM organizations LIMIT 10;"
+# 利用可能なプロファイル一覧
+scripts/env-manager.sh list
+
+# ローカル Supabase へ切り替え
+scripts/env-manager.sh switch local
+
+# 本番 Supabase へ切り替え（警告あり）
+scripts/env-manager.sh switch prod
 ```
 
-### 2. Web アプリ: `apps/web/.env.local`
+`.env.local` は常に `env/secrets/supabase.*.env` へのシンボリックリンクに置き換えられます。  
+VS Code などで編集する際は `.env.local` を開くと実体ファイルが更新されます。
 
-**場所**: `/Users/ken/Developer/private/simple-bookkeeping/apps/web/.env.local`
-
-**目的**: Next.js Webアプリケーション固有の設定
-
-**含まれる設定**:
-
-- `NEXT_PUBLIC_SUPABASE_URL`: Supabase APIエンドポイント
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase匿名キー
-- `E2E_USE_MOCK_AUTH`: E2Eテストでのモック認証フラグ
-
-**環境切り替え方法**:
+## よく使うコマンド
 
 ```bash
-# ローカル開発モード（推奨）
-NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...（ローカル用キー）
+# direnv が読み込んだ値を確認
+direnv status
 
-# 本番デバッグモード（トラブルシューティング時のみ）
-NEXT_PUBLIC_SUPABASE_URL=https://eksgzskroipxdwtbmkxm.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...（本番用キー）
-```
-
-## 🔄 使い分けガイド
-
-### 開発作業時
-
-```bash
-# 1. Supabaseをローカルで起動
+# Supabase ローカル環境を起動
 pnpm supabase:start
 
-# 2. apps/web/.env.local をローカルモードに設定
-# （ローカルSupabaseの設定をコメント解除、本番をコメントアウト）
+# Prisma Studio / psql
+pnpm db:studio
+psql "$SUPABASE_DB_URL"
 
-# 3. 開発サーバー起動
-pnpm dev
-
-# 4. ローカルDBを確認する場合
-psql $LOCAL_DB_URL
-# または
-pnpm db:studio  # Prisma Studio
+# Vercel CLI で情報参照
+vercel whoami
+pnpm vercel:status
 ```
 
-### 本番環境のデバッグ時
+## チェックリスト
 
-```bash
-# 1. apps/web/.env.local を本番モードに設定
-# （本番Supabaseの設定をコメント解除、ローカルをコメントアウト）
+- [ ] `env/secrets/` が `.gitignore` に含まれていることを確認する（既定で追加済み）。
+- [ ] `direnv allow` 実行後に `✅ direnv: Loaded environment for simple-bookkeeping` が表示される。
+- [ ] `scripts/env-manager.sh current` の出力で `ENV_PROFILE` と `ENV_SUPABASE` が期待通りになっている。
+- [ ] `VERCEL_TOKEN` や `SUPABASE_SERVICE_ROLE_KEY` は最小権限トークンを使用し、不要になったら速やかに無効化する。
 
-# 2. 開発サーバー起動（本番DBに接続）
-pnpm dev
+## セキュリティと運用上の注意
 
-# 3. 本番DBを直接確認する場合
-psql $PROD_DB_URL
+- `env/secrets/` 配下のファイルは **絶対に Git にコミットしない**。共有が必要な場合は 1Password や Vault などの Secret Manager を使用してください。
+- automation や AI へトークンを渡す場合は `env/secrets/ai.env` に別トークンを発行し、利用範囲を限定してください。
+- 本番プロファイルで作業した後は `scripts/env-manager.sh switch local` を実行し、誤操作による本番データ更新を防ぎます。
+- Vercel CLI で `.env.local` に書き出す `vercel env pull` を使用する場合は、作成されたファイルがシンボリックリンクを上書きしないよう注意してください（必要に応じて `env-manager.sh switch local` で再生成）。
 
-# ⚠️ 作業後は必ずローカルモードに戻すこと！
-```
-
-### psql での DB 操作
-
-```bash
-# ローカルDB接続
-psql $LOCAL_DB_URL
-
-# よく使うコマンド例
-psql $LOCAL_DB_URL -c "\dt"  # テーブル一覧
-psql $LOCAL_DB_URL -c "SELECT * FROM organizations;"
-
-# 本番DB接続（管理作業時のみ）
-psql $PROD_DB_URL
-
-# RLSポリシー確認（本番DB）
-psql $PROD_DB_URL -c "SELECT policyname, cmd, qual FROM pg_policies WHERE tablename = 'organizations';"
-```
-
-## 📋 チェックリスト
-
-### 開発開始時
-
-- [ ] `pwd` で作業ディレクトリ確認
-- [ ] `apps/web/.env.local` がローカルモードになっているか確認
-- [ ] `pnpm supabase:start` でローカルSupabase起動
-
-### 本番デバッグ終了時
-
-- [ ] `apps/web/.env.local` をローカルモードに戻す
-- [ ] 本番DB接続を切断
-- [ ] 不要なテストデータを削除（本番DBに作成した場合）
-
-### コミット前
-
-- [ ] `.env.local` ファイルが `.gitignore` に含まれているか確認
-- [ ] パスワードやシークレットが含まれていないか確認
-- [ ] `apps/web/.env.local` がローカルモードに戻っているか確認
-
-## 🔐 セキュリティ注意事項
-
-1. **絶対にコミットしない**
-   - `.env.local` ファイルは `.gitignore` に含まれています
-   - `git status` で Untracked になっていることを確認
-
-2. **本番DB接続は慎重に**
-   - 本番DBへの直接接続は必要最小限に
-   - 作業後は即座に接続を切断
-   - 読み取り専用クエリを推奨
-
-3. **パスワードの取り扱い**
-   - `PROD_DB_URL` のパスワードは定期的にローテーション
-   - チーム内でも共有しない（各自で取得）
-   - 画面共有時は環境変数を表示しない
-
-## 🆘 トラブルシューティング
-
-### Q: どの .env.local を使えばいいかわからない
-
-**A**:
-
-- **psql, Supabase CLI等**: リポジトリルートの `.env.local`
-- **Next.jsアプリ開発**: `apps/web/.env.local`
-
-### Q: 環境変数が反映されない
-
-**A**:
-
-```bash
-# Next.js開発サーバーを再起動
-# Ctrl+C で停止
-pnpm dev
-```
-
-### Q: ローカルと本番のどちらに接続されているかわからない
-
-**A**:
-
-```bash
-# apps/web/.env.local を確認
-cat apps/web/.env.local | grep NEXT_PUBLIC_SUPABASE_URL
-# → http://localhost:54321 ならローカル
-# → https://eksgzskroipxdwtbmkxm.supabase.co なら本番
-```
-
-### Q: psql接続でパスワードエラーが出る
-
-**A**:
-
-```bash
-# Supabase Dashboard でパスワードを確認
-# Settings > Database > Connection String > Password
-# 正しいパスワードで .env.local を更新
-```
-
-## 📚 関連ドキュメント
-
-- [Supabaseガイドライン](./ai-guide/supabase-guidelines.md)
-- [セキュリティとデプロイメント](./ai-guide/security-deployment.md)
-- [npm スクリプトガイド](./npm-scripts-guide.md)
+詳細は `env/README.md` と `docs/direnv-setup.md` を参照してください。

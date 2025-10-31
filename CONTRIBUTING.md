@@ -22,8 +22,12 @@ Simple Bookkeepingプロジェクトへの貢献に興味を持っていただ�
 3. **環境変数の設定**
 
    ```bash
-   cp .env.example .env
-   # .envファイルを編集してデータベース接続情報を設定
+   direnv allow  # 初回のみ
+   mkdir -p env/secrets
+   cp env/templates/common.env.example env/secrets/common.env
+   cp env/templates/supabase.local.env.example env/secrets/supabase.local.env
+   cp env/templates/vercel.env.example env/secrets/vercel.env
+   scripts/env-manager.sh switch local
    ```
 
 4. **データベースのセットアップ**

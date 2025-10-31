@@ -64,7 +64,7 @@ sessionStorage.clear();
 
 ```bash
 # Supabaseの環境変数を確認
-cat .env.local | grep SUPABASE
+cat env/secrets/supabase.local.env | grep SUPABASE
 
 # Supabaseローカルサービスの再起動
 pnpm supabase:stop
@@ -89,8 +89,7 @@ lsof -i :54323 # Supabase DB
 # プロセスを終了
 kill -9 <PID>
 
-# または環境変数でポートを変更
-PORT=3002 pnpm dev
+# または env/secrets/common.env の WEB_PORT を変更し、direnv reload
 ```
 
 ## 📦 パッケージ関連

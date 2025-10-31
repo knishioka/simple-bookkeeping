@@ -60,6 +60,22 @@ packages/
 
 ```
 
+## 🔒 環境変数・シークレット運用ポリシー
+
+- **direnv + env/secrets/** を必ず使用すること  
+  `env/secrets/` 配下は `.gitignore` 済み。テンプレートは `env/templates/*.env.example` にあり、初回は `scripts/env-manager.sh bootstrap` で複製する。
+- `.env.local` は常に `env/secrets/supabase.<profile>.env` へのシンボリックリンク。プロファイル切替は `scripts/env-manager.sh switch local|prod`、状態確認は `scripts/env-manager.sh current`。
+- Supabase / Vercel などの資格情報を新たに取得した場合は、対応する `env/secrets/*.env` に追記し、`direnv reload` で反映。**新しい `.env.*` ファイルを作らないこと**。
+- CLI 実行時に一時的に資格情報をエクスポートする場合は、次の形式を守る：
+  ```bash
+  set -a; source env/secrets/vercel.env; set +a
+  vercel whoami   # 例
+  ```
+  実行ログにトークンを出力しない。必要なら `with_escalated_permissions` 付きでコマンドを呼ぶ。
+- テンプレートの更新が必要な場合は、`env/templates/*.env.example` を修正し、該当するドキュメント（`docs/environment-variables.md`, `env/README.md`など）も併せて更新する。
+- セキュリティ上、本番プロファイル (`scripts/env-manager.sh switch prod`) を使用した後は必ず `switch local` に戻す。
+- 参考資料: `env/README.md`, `docs/ENVIRONMENT_VARIABLES.md`, `docs/direnv-setup.md` に詳細な手順と背景がまとまっているので都度確認すること。
+
 ## 📋 AI開発で最もよく使うコマンド（優先度順）
 
 ### 1️⃣ 日常的な開発フロー
@@ -193,7 +209,6 @@ pnpm db:studio             # Prisma Studio起動（GUI）
 - [ユーザーストーリーテスト](./docs/user-story-testing-guide.md) - ユーザーストーリーテスト
 - [npmスクリプト一覧](./docs/npm-scripts-guide.md) - npmスクリプトの一覧と説明
 - [direnvセットアップ](./docs/direnv-setup.md) - direnvを使用した環境変数管理
-- [デプロイメントガイド](./docs/deployment/) - デプロイメントガイド
 
 ### データベーススキーマ
 
@@ -324,17 +339,50 @@ Claude Codeは以下の原則に従ってCLI操作を実行します：
 | 🟡 注意 (書き込み)     | `vercel env add`, `vercel env rm`, `vercel promote`                              | 設定変更・デプロイ昇格 | ユーザー確認必須 |
 | 🔴 危険 (破壊的)       | `vercel remove`, `vercel env rm --all`, `vercel domains rm`                      | プロジェクト削除等     | 実行禁止         |
 
-**推奨**: 既存の`scripts/vercel-tools.sh`を使用（統合ツール）
+### 🎯 npm-first アプローチ（推奨）
+
+**基本方針**: Vercel CLIを直接使用せず、環境変数対応のnpmスクリプトを使用します。
+
+#### 利用可能なnpmスクリプト
 
 ```bash
-# ✅ 安全な操作例
-pnpm vercel:status          # デプロイ状況確認
-pnpm vercel:logs runtime    # ログ取得
-./scripts/vercel-tools.sh api-status  # API接続確認
+# 🟢 よく使うコマンド（環境変数自動読み込み）
+pnpm logs:prod              # 本番ログ取得（短縮版）
+pnpm vercel:logs:prod       # 本番ログ取得（完全版）
+pnpm vercel:list            # デプロイメント一覧
+pnpm vercel:status          # デプロイ状況詳細
+pnpm deploy:check           # 本番デプロイチェック
 
-# ⚠️ 確認が必要な操作例
-vercel env add KEY production  # 環境変数追加
-vercel promote <deployment-id>  # 本番昇格
+# 🔧 既存スクリプト（高度な操作）
+./scripts/vercel-tools.sh logs runtime   # ランタイムログ
+./scripts/vercel-tools.sh api-status     # API接続確認
+./scripts/vercel-tools.sh deployments    # デプロイメント一覧
+```
+
+#### 環境変数の自動読み込み
+
+npmスクリプトは自動的に `.env.local` から以下の変数を読み込みます：
+
+```bash
+VERCEL_PRODUCTION_URL=https://simple-bookkeeping-jp.vercel.app
+VERCEL_PROJECT_NAME=simple-bookkeeping
+VERCEL_PROJECT_ID=prj_8BmJYPQwrTpY9WJMBZj94kidtdC5
+VERCEL_ORG_ID=team_FYwHyCZFiSA7IWL5AsUe9q7G
+VERCEL_TOKEN=<自動取得 or 手動設定>
+```
+
+**重要**: direnvを使用すると自動的に環境変数が読み込まれます。
+
+#### 実践例
+
+```bash
+# ✅ 推奨: npmスクリプト経由
+pnpm logs:prod                  # 本番ログ確認
+pnpm vercel:list                # デプロイ一覧
+
+# ⚠️ 直接CLI使用（環境変数が必要）
+vercel logs "$VERCEL_PRODUCTION_URL"   # 手動で環境変数指定
+vercel list "$VERCEL_PROJECT_NAME"     # 手動で環境変数指定
 
 # ❌ 実行してはいけない操作
 vercel remove              # プロジェクト削除
@@ -380,9 +428,10 @@ supabase link --project-ref xxx  # 本番プロジェクトへのリンク変更
 
 **エラー対処**:
 
-- Vercel: `scripts/vercel-tools.sh api-status`で接続確認
+- Vercel: `pnpm logs:prod`でログ確認、`pnpm vercel:status`で状態確認
 - Supabase: `pnpm supabase:status`でサービス状態確認
 - 環境変数: `pnpm env:validate`で検証
+- デプロイメント調査: deployment-investigatorサブエージェントを使用
 
 ### 📚 関連ドキュメント
 
@@ -513,6 +562,35 @@ Claude Codeの専門サブエージェントは、特定の条件下で自動的
 - プロジェクトボードへの自動追加（設定時）
 - 重複Issueの検出と防止
 
+#### deployment-investigator (デプロイメント調査専門)
+
+**自動呼び出しトリガー:**
+
+- デプロイメントの失敗検出時
+- 本番環境でのエラー報告時
+- 「デプロイメントのログを確認して」という依頼時
+- 「本番環境でエラーが出ている」という報告時
+- 「Vercelでビルドが失敗した」という報告時
+
+**主な機能:**
+
+- npm scripts経由でのVercel操作（環境変数自動読み込み）
+- デプロイメントログの詳細解析とエラー分類
+- ビルドエラー、ランタイムエラーの根本原因特定
+- WebSearchによるVercel/Next.js固有の問題解決
+- 環境変数の自動検証と不整合検出
+- 構造化されたデプロイメント調査レポート生成
+- 修正手順の具体的な提案
+
+**npm-first アプローチ:**
+
+```bash
+# このサブエージェントは以下のnpmスクリプトを優先的に使用
+pnpm logs:prod              # 本番ログ取得
+pnpm vercel:list            # デプロイメント一覧
+pnpm vercel:status          # 詳細ステータス
+```
+
 ### ベストプラクティス
 
 1. **proactive activation**: サブエージェントは必要に応じて自動的に呼び出されますが、明示的に呼び出すこともできます
@@ -528,6 +606,9 @@ Claude Codeの専門サブエージェントは、特定の条件下で自動的
 
    # CI失敗時の自動フロー
    ci-investigator → auto-fixer → test-runner → pre-push-validator
+
+   # デプロイメント失敗時の自動フロー
+   deployment-investigator → auto-fixer → code-reviewer → pre-push-validator
    ```
 
 3. **WebSearch活用**: サブエージェントは自動的にWebSearchを使用して最新情報を取得

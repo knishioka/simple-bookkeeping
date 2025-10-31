@@ -134,12 +134,12 @@ const serviceRoleKey = 'sb_secret_abc123...';
 
 ### 2. ファイル命名規則
 
-| ファイル            | Gitコミット | 用途                   |
-| ------------------- | ----------- | ---------------------- |
-| `.env.local`        | ❌ 禁止     | ローカル開発の実際の値 |
-| `.env.example`      | ⚠️ 注意     | プレースホルダーのみ   |
-| `.env.test.example` | ✅ OK       | テスト用の公開キー     |
-| `.env.production`   | ❌ 禁止     | 本番環境の実際の値     |
+| ファイル                      | Gitコミット | 用途                            |
+| ----------------------------- | ----------- | ------------------------------- |
+| `.env.local`（symlink）       | ❌ 禁止     | アクティブプロファイルの実値    |
+| `env/secrets/*.env`           | ❌ 禁止     | ローカル/本番プロファイルの実値 |
+| `env/templates/*.env.example` | ✅ OK       | プレースホルダーのみ            |
+| `.env.test.example`           | ✅ OK       | テスト用の公開キー（CI共有可）  |
 
 **`.gitignore` 確認**:
 
@@ -196,9 +196,11 @@ regexes = [
 
 ```bash
 # .gitignore に追加されているか確認
+grep "env/secrets" .gitignore
 grep ".env.local" .gitignore
 
 # なければ追加
+echo "env/secrets/" >> .gitignore
 echo ".env.local" >> .gitignore
 ```
 

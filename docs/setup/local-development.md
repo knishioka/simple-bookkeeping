@@ -45,13 +45,21 @@ cd simple-bookkeeping
 # 依存関係のインストール
 pnpm install
 
-# 環境変数の設定
-cp .env.example .env.local
+# direnv/環境変数の初期化
+direnv allow  # 初回のみ
+
+mkdir -p env/secrets
+cp env/templates/common.env.example env/secrets/common.env
+cp env/templates/supabase.local.env.example env/secrets/supabase.local.env
+cp env/templates/vercel.env.example env/secrets/vercel.env
+scripts/env-manager.sh switch local
+# または
+# scripts/env-manager.sh bootstrap && scripts/env-manager.sh switch local
 ```
 
 ### 4. 環境変数の設定
 
-`.env.local`ファイルを編集して、Supabase接続情報を設定：
+`env/secrets/supabase.local.env` を編集して、Supabase接続情報を設定：
 
 ```bash
 # Supabase接続設定（ローカル開発用）
@@ -60,7 +68,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
 
 # データベース接続（Prisma用）
-DATABASE_URL=postgresql://postgres:postgres@localhost:54322/postgres?schema=public
+SUPABASE_DB_URL=postgresql://postgres:postgres@localhost:54322/postgres?schema=public
+
+# direnv が SUPABASE_DB_URL を DATABASE_URL として自動エクスポートします
 ```
 
 ### 5. データベースの初期化
@@ -121,7 +131,7 @@ pnpm db:reset
 
 ```bash
 # テスト用環境変数ファイル作成
-cp .env.example .env.test.local
+cp .env.test.local.example .env.test.local
 
 # テスト用データベースのセットアップ
 NODE_ENV=test pnpm db:reset
@@ -148,7 +158,7 @@ Password: password123
 
 ## ⚠️ 注意事項
 
-1. **ポート競合**: デフォルトポート(3000)が使用中の場合は、環境変数で変更可能
+1. **ポート競合**: デフォルトポート(3000)が使用中の場合は、`env/secrets/common.env` の `WEB_PORT` を変更
 2. **データベース接続**: Supabaseが起動していることを確認
 3. **環境変数**: Supabase関連の環境変数を正しく設定
 

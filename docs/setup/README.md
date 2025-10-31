@@ -20,8 +20,14 @@ cd simple-bookkeeping
 pnpm install
 
 # 3. 環境変数の設定
-cp .env.example .env.local
-# .env.localを編集して必要な値を設定
+direnv allow  # 初回のみ
+mkdir -p env/secrets
+cp env/templates/common.env.example env/secrets/common.env
+cp env/templates/supabase.local.env.example env/secrets/supabase.local.env
+cp env/templates/vercel.env.example env/secrets/vercel.env
+scripts/env-manager.sh switch local
+# または
+# scripts/env-manager.sh bootstrap && scripts/env-manager.sh switch local
 
 # 4. データベースの初期化
 pnpm db:init
@@ -53,8 +59,8 @@ pnpm dev
 ### Q: ポートが競合した場合は？
 
 ```bash
-# .env.localファイルで変更
-PORT=3010  # デフォルト: 3000
+# env/secrets/common.env を編集
+WEB_PORT=3010  # デフォルト: 3000
 ```
 
 ### Q: データベースをリセットしたい

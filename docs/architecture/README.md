@@ -171,8 +171,7 @@ pnpm dev              # Next.js開発サーバー (Port 3000)
 export PORT=3030
 pnpm dev
 
-# または .env.local ファイルで設定
-echo "PORT=3030" >> .env.local
+# または env/secrets/common.env の WEB_PORT を更新して direnv reload
 ```
 
 ## 🌍 外部公開時の考慮事項

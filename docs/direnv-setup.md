@@ -44,30 +44,32 @@ direnv hook fish | source
 # プロジェクトディレクトリに移動
 cd /path/to/simple-bookkeeping
 
-# .envrc.example をコピー
-cp .envrc.example .envrc
-
-# 必要に応じて .envrc を編集
-# ※ 基本的にはそのまま使用可能
-
-# direnv を有効化
+# direnv を有効化（初回のみ許可）
 direnv allow
 ```
 
 ### 2. 環境変数の設定
 
-direnv は以下のファイルから環境変数を自動的に読み込みます：
+direnv は以下の順番で環境変数を読み込みます：
 
-- `.env` - 基本的な環境変数
-- `.env.local` - ローカル環境固有の設定（Git管理外）
+1. `env/secrets/common.env` — 共有できる非機密デフォルト
+2. `.env.local` — `scripts/env-manager.sh` が指す Supabase プロファイル
+3. `env/secrets/vercel.env` — Vercel CLI/API 用トークンなど
+4. `env/secrets/ai.env` — （任意）AI エージェント専用トークン
 
-必要な環境変数：
+テンプレートは `env/templates/` に配置してあるので、以下のようにコピーして使用します：
 
 ```bash
-# .env.local に以下を設定
-DATABASE_URL=postgresql://...
-JWT_SECRET=your-secret-key
-VERCEL_TOKEN=xxxx        # Vercel CLI/API を使用する場合
+mkdir -p env/secrets
+cp env/templates/common.env.example env/secrets/common.env
+cp env/templates/supabase.local.env.example env/secrets/supabase.local.env
+cp env/templates/vercel.env.example env/secrets/vercel.env
+# （任意）AI/自動化用トークンを分離したい場合
+# cp env/templates/ai.env.example env/secrets/ai.env
+
+# もしくは
+# scripts/env-manager.sh bootstrap
+scripts/env-manager.sh switch local
 ```
 
 ### 3. 提供される機能
@@ -76,7 +78,7 @@ direnv を有効化すると、以下の機能が利用可能になります：
 
 #### 環境変数の自動読み込み
 
-- `.env` と `.env.local` から環境変数を自動読み込み
+- `env/secrets/common.env` → `.env.local` → `env/secrets/vercel.env` の順に読み込み
 - Node.js バージョンの自動切り替え（nvm 使用時）
 - pnpm のパス設定
 
@@ -139,7 +141,7 @@ direnv reload
 ## セキュリティに関する注意
 
 - `.envrc` ファイルは Git 管理から除外されています
-- 機密情報は `.env.local` に記載し、`.env` には含めないでください
+- 機密情報は `env/secrets/` 配下に置き、テンプレートのみ Git 管理します
 - チーム開発では `.envrc.example` を共有し、各自がカスタマイズしてください
 
 ## 参考リンク

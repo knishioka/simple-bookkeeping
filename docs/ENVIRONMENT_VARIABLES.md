@@ -4,11 +4,15 @@
 
 ## 🎯 環境別設定表
 
-| 環境   | 設定ファイル   | 用途          | Supabase URL                     |
-| ------ | -------------- | ------------- | -------------------------------- |
-| 開発   | `.env.local`   | ローカル開発  | http://localhost:54321           |
-| テスト | `.env.test`    | E2Eテスト・CI | http://localhost:54321           |
-| 本番   | Vercel環境変数 | 本番デプロイ  | https://[project-id].supabase.co |
+| 環境   | プロファイルファイル                     | 選択方法                              | Supabase URL                      |
+| ------ | ---------------------------------------- | ------------------------------------- | --------------------------------- |
+| 開発   | `env/secrets/supabase.local.env`         | `scripts/env-manager.sh switch local` | http://localhost:54321            |
+| テスト | `.env.test`                              | Playwright / CI が直接読み込み        | http://localhost:54321            |
+| 本番   | `env/secrets/supabase.prod.env` (direnv) | `scripts/env-manager.sh switch prod`  | https://[project-ref].supabase.co |
+| 本番   | Vercel Environment Variables             | Vercel Dashboard                      | https://[project-ref].supabase.co |
+
+`scripts/env-manager.sh` が `.env.local` を該当プロファイルへシンボリックリンクします。  
+direnv は `env/secrets/common.env` → `.env.local` → `env/secrets/vercel.env` の順に読み込み、CLI と Next.js へ環境変数を提供します。
 
 ## 🔑 必須環境変数（Supabase）
 
@@ -35,33 +39,35 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:54322/postgres
 DIRECT_URL=postgresql://postgres:postgres@localhost:54322/postgres
 ```
 
-## 📦 開発環境設定（.env.local）
+## 📦 開発プロファイル（`env/secrets/supabase.local.env`）
+
+`env/templates/supabase.local.env.example` をコピーして作成します。
 
 ```bash
-# ===========================================
-# Supabase設定（最優先）
-# ===========================================
+ENV_PROFILE=local
+ENV_SUPABASE=local
+
 NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
-# ===========================================
-# データベース設定
-# ===========================================
-DATABASE_URL=postgresql://postgres:postgres@localhost:54322/postgres
-DIRECT_URL=postgresql://postgres:postgres@localhost:54322/postgres
+# (任意) CLI/Prisma 用の直接接続 URL
+SUPABASE_DB_URL=postgresql://postgres:postgres@localhost:54322/postgres
 
-# ===========================================
-# Next.js設定
-# ===========================================
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-NODE_ENV=development
-
-# ===========================================
-# デバッグ設定（開発時のみ）
-# ===========================================
-DEBUG=true
 LOG_LEVEL=debug
+```
+
+## 🪄 共通設定（`env/secrets/common.env`）
+
+非機密なデフォルト値をまとめます。`env/templates/common.env.example` をベースにしてください。
+
+```bash
+NODE_ENV=development
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+WEB_PORT=3000
+API_PORT=3001
+ENABLE_SWAGGER=true
+LOG_LEVEL=info
 ```
 
 ## 🧪 テスト環境設定（.env.test）
@@ -93,33 +99,34 @@ TEST_MODE=fast
 E2E_TEST_TIMEOUT=30000
 ```
 
-## 🚀 本番環境設定（Vercel）
+## 🚀 本番環境設定
+
+### ローカルで本番 Supabase に接続する場合
+
+`env/templates/supabase.prod.env.example` を `env/secrets/supabase.prod.env` にコピーし、本番プロジェクトの値を設定します。  
+切り替えは `scripts/env-manager.sh switch prod` を使用します。
+
+```bash
+ENV_PROFILE=local-with-production-supabase
+ENV_SUPABASE=production
+
+NEXT_PUBLIC_SUPABASE_URL=https://[your-project-ref].supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-production-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-production-service-role-key
+```
+
+### Vercelデプロイ時の設定
 
 Vercel Dashboard > Settings > Environment Variables で以下を設定：
 
 ```bash
-# ===========================================
-# Supabase設定（本番）
-# ===========================================
-NEXT_PUBLIC_SUPABASE_URL=https://[your-project-id].supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://[your-project-ref].supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-production-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-production-service-role-key
-
-# ===========================================
-# データベース設定（本番）
-# ===========================================
 DATABASE_URL=postgresql://[user]:[password]@[host]:[port]/[database]?pgbouncer=true
 DIRECT_URL=postgresql://[user]:[password]@[host]:[port]/[database]
-
-# ===========================================
-# Next.js設定
-# ===========================================
 NEXT_PUBLIC_APP_URL=https://simple-bookkeeping.vercel.app
 NODE_ENV=production
-
-# ===========================================
-# セキュリティ設定
-# ===========================================
 RATE_LIMIT_ENABLED=true
 CORS_ORIGIN=https://simple-bookkeeping.vercel.app
 ```
@@ -139,7 +146,7 @@ pnpm supabase:start
 # 環境変数を取得
 pnpm supabase status
 
-# 出力された値を.env.localに設定
+# 出力された値を env/secrets/supabase.local.env に設定
 # API URL: http://localhost:54321
 # anon key: eyJ...
 # service_role key: eyJ...

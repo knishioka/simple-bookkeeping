@@ -61,29 +61,22 @@ pnpm env:validate       # 環境変数検証
 - **必要環境変数**: `VERCEL_TOKEN`
 - **出力**: 最新デプロイメント状態、ビルド状況、健全性
 
-#### vercel-api-status.sh
+#### vercel-tools.sh
 
-- **用途**: Vercel APIを使用した詳細なデプロイメント状態監視
-- **実行方法**: `pnpm vercel:status`
-- **必要環境変数**: `VERCEL_TOKEN`または Vercel CLI認証
-- **機能**:
-  - デプロイメント履歴
-  - ビルド状態
-  - プロジェクト統計
-  - エラー情報
+- **用途**: Vercel CLI のラッパー。ステータス確認やログ取得などを一元管理
+- **実行方法**:
+  - `pnpm vercel:status` → `./scripts/vercel-tools.sh status`
+  - `pnpm vercel:logs runtime` → `./scripts/vercel-tools.sh logs runtime`
+  - `pnpm vercel:deployments` → `./scripts/vercel-tools.sh deployments`
+  - `pnpm vercel:api` → `./scripts/vercel-tools.sh api-status`
+- **必要環境変数**: `.env.local` 経由で読み込まれる Vercel プロジェクト情報（`VERCEL_PROJECT_NAME`, `VERCEL_PRODUCTION_URL` など）
 
-#### vercel-logs.sh
+#### logs:prod
 
-- **用途**: Vercelのログ取得・管理
-- **実行方法**: `pnpm vercel:logs <command> [options]`
-- **コマンド**:
-  - `runtime`: ランタイムログ
-  - `build`: ビルドログ
-  - `function`: Function実行ログ
-  - `errors`: エラーログのみ
-  - `stream`: リアルタイムストリーミング
-  - `deployment <url>`: 特定デプロイメントのログ
-- **例**: `pnpm vercel:logs build --lines 100`
+- **用途**: 本番環境（Vercel）の最新ログをワンコマンドで取得
+- **実行方法**: `pnpm logs:prod`
+- **仕組み**: `.env.local` から `VERCEL_PRODUCTION_URL` を読み込み、`vercel logs` を実行
+- **例**: `pnpm logs:prod | grep ERROR`
 
 ### 🗄️ データベース管理スクリプト
 
@@ -114,7 +107,7 @@ SQLファイルが整理されています：
   - ポート競合チェック
   - 並列サーバー起動
   - グレースフルシャットダウン
-- **必要設定**: `.env`ファイル（WEB_PORT, API_PORT）
+- **必要設定**: `env/secrets/common.env`（`WEB_PORT`, `API_PORT` など）
 
 #### e2e-test.sh / docker-e2e-test.sh
 
@@ -176,18 +169,19 @@ SQLファイルが整理されています：
 
 以下のスクリプトはpackage.jsonから直接実行可能です：
 
-| npmスクリプト     | 実行されるスクリプト   | 説明               |
-| ----------------- | ---------------------- | ------------------ |
-| `dev`             | `start-dev.sh`         | 開発サーバー起動   |
-| `dev:ports`       | `check-ports.js`       | ポートチェック     |
-| `db:init`         | `init-db.sh`           | DB初期化           |
-| `test:e2e`        | `e2e-test.sh`          | E2Eテスト          |
-| `env:validate`    | `validate-env.ts`      | 環境変数検証       |
-| `deploy:check`    | `check-deployments.sh` | デプロイ状況確認   |
-| `vercel:status`   | `vercel-api-status.sh` | Vercel状態確認     |
-| `vercel:logs`     | `vercel-logs.sh`       | Vercelログ取得     |
-| `precommit:check` | `check-build.sh`       | コミット前チェック |
-| `prepush:check`   | `check-full-build.sh`  | プッシュ前チェック |
+| npmスクリプト     | 実行されるスクリプト         | 説明               |
+| ----------------- | ---------------------------- | ------------------ |
+| `dev`             | `start-dev.sh`               | 開発サーバー起動   |
+| `dev:ports`       | `check-ports.js`             | ポートチェック     |
+| `db:init`         | `init-db.sh`                 | DB初期化           |
+| `test:e2e`        | `e2e-test.sh`                | E2Eテスト          |
+| `env:validate`    | `validate-env.ts`            | 環境変数検証       |
+| `deploy:check`    | `check-deployments.sh`       | デプロイ状況確認   |
+| `vercel:status`   | `vercel-tools.sh`            | Vercel状態確認     |
+| `vercel:logs`     | `vercel-tools.sh`            | Vercelログ取得     |
+| `logs:prod`       | `vercel logs`（npmラッパー） | 本番ログ取得       |
+| `precommit:check` | `check-build.sh`             | コミット前チェック |
+| `prepush:check`   | `check-full-build.sh`        | プッシュ前チェック |
 
 ## 🔄 Git Hooksとの連携
 
@@ -260,7 +254,7 @@ pnpm vercel:status
 - `WEB_PORT`: Webサーバーポート（デフォルト: 3000）
 - `API_PORT`: APIサーバーポート（デフォルト: 3001）
 
-詳細は`.env.example`を参照してください。
+詳細は `env/README.md` を参照してください。
 
 ## 📝 注意事項
 

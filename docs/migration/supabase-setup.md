@@ -41,18 +41,32 @@ supabase start
 
 ### 2. 環境変数の設定
 
-`.env.local`ファイルを作成し、以下の環境変数を設定：
+`env/secrets/` 配下に環境プロファイルを作成し、以下の環境変数を設定：
 
 ```bash
-# .env.exampleをコピー
-cp .env.example .env.local
+# テンプレートをコピー
+direnv allow  # 初回のみ
+mkdir -p env/secrets
+cp env/templates/common.env.example env/secrets/common.env
+cp env/templates/supabase.local.env.example env/secrets/supabase.local.env
+cp env/templates/supabase.prod.env.example env/secrets/supabase.prod.env
+cp env/templates/vercel.env.example env/secrets/vercel.env
+
+# または
+# scripts/env-manager.sh bootstrap
+
+# ローカル開発用のプロファイルを有効化
+scripts/env-manager.sh switch local
+
+# 本番Supabaseで開発する場合（要注意）
+# scripts/env-manager.sh switch prod
 
 # 以下の値を実際の値に置き換え
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-# ローカル開発時
+# ローカル開発時 (env/secrets/supabase.local.env)
 SUPABASE_DB_URL=postgresql://postgres:postgres@localhost:54322/postgres
 SUPABASE_STUDIO_URL=http://localhost:54323
 SUPABASE_API_URL=http://localhost:54321

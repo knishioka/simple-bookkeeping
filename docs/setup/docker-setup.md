@@ -17,13 +17,18 @@
 ### 1. 環境変数の準備
 
 ```bash
-# ローカル開発用の設定ファイルをコピー
-cp .env.local.example .env.local
-
-# Supabase URLとキーは自動的に設定されます
-# NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
-# NEXT_PUBLIC_SUPABASE_ANON_KEY=（自動生成）
+# direnv/環境変数テンプレートをセットアップ
+direnv allow  # 初回のみ
+mkdir -p env/secrets
+cp env/templates/common.env.example env/secrets/common.env
+cp env/templates/supabase.local.env.example env/secrets/supabase.local.env
+cp env/templates/vercel.env.example env/secrets/vercel.env
+scripts/env-manager.sh switch local
+# または
+# scripts/env-manager.sh bootstrap && scripts/env-manager.sh switch local
 ```
+
+`env/secrets/supabase.local.env` にローカルSupabaseの URL とキーが含まれているため、必要に応じて編集してください。
 
 ### 2. ポート戦略
 
@@ -146,7 +151,7 @@ pnpm supabase:start
 ## セキュリティ上の注意
 
 1. **Supabaseキーの管理**: 匿名キーとサービスロールキーを適切に管理
-2. **環境変数の管理**: `.env.local`ファイルはGitにコミットしない
+2. **環境変数の管理**: `env/secrets/` 配下の実ファイルはGitにコミットしない
 3. **Row Level Security**: データベースアクセスはRLSポリシーで制御
 4. **ローカル開発用**: 開発用の認証情報を使用
 

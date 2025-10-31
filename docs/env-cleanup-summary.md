@@ -3,6 +3,10 @@
 **実施日**: 2025年10月10日
 **実施者**: Claude Code
 
+> **2025-02 更新**  
+> 現在は `env/secrets/` ディレクトリで環境プロファイルを管理しています。本資料に登場する `.env.supabase-*` などは `env/secrets/supabase.*.env` に置き換えて読み替えてください。  
+> `.env.example` / `.envrc.example` はテンプレートとして維持せず、`env/templates/*.env.example` とルートの `.envrc` に集約しました。
+
 ## 📊 整理結果
 
 ### 整理前のファイル数
@@ -16,18 +20,17 @@
 
 ## ✅ 保持したファイル（10個）
 
-| ファイル                     | Git管理 | 用途                                     |
-| ---------------------------- | ------- | ---------------------------------------- |
-| `.env.example`               | ✅      | プロジェクト全体の設定テンプレート       |
-| `.env.local`                 | ❌      | Workspace全体の実際の設定（psql, CLI用） |
-| `.env.local.example`         | ✅      | .env.local のテンプレート（整理済み）    |
-| `.env.test.example`          | ✅      | テスト設定テンプレート（将来用）         |
-| `.env.test.local.example`    | ✅      | テスト設定テンプレート（将来用）         |
-| `.envrc`                     | ✅      | direnv設定（更新済み）                   |
-| `.envrc.example`             | ✅      | direnvテンプレート                       |
-| `apps/web/.env.local`        | ❌      | Next.js app設定（整理済み）              |
-| `apps/web/.env.test.example` | ✅      | E2Eテスト設定テンプレート                |
-| `packages/database/.env`     | ❌      | Prisma設定（必要に応じて）               |
+| ファイル                      | Git管理 | 用途                                     |
+| ----------------------------- | ------- | ---------------------------------------- |
+| `env/templates/*.env.example` | ✅      | プロファイル/サービス別テンプレート      |
+| `.env.local`                  | ❌      | Workspace全体の実際の設定（psql, CLI用） |
+| `.env.local.example`          | ✅      | .env.local のテンプレート（整理済み）    |
+| `.env.test.example`           | ✅      | テスト設定テンプレート（将来用）         |
+| `.env.test.local.example`     | ✅      | テスト設定テンプレート（将来用）         |
+| `.envrc`                      | ✅      | direnv設定（更新済み）                   |
+| `apps/web/.env.local`         | ❌      | Next.js app設定（整理済み）              |
+| `apps/web/.env.test.example`  | ✅      | E2Eテスト設定テンプレート                |
+| `packages/database/.env`      | ❌      | Prisma設定（必要に応じて）               |
 
 ## 🗑️ 削除したファイル（14個）
 
@@ -168,7 +171,7 @@ fi
 │   ├── Workspace用: .env.local
 │   └── Next.js用: apps/web/.env.local
 ├── テンプレート整備
-│   ├── .env.example (プロジェクト全体)
+│   ├── env/templates/*.env.example (共有)
 │   └── .env.local.example (Workspace)
 └── ドキュメント完備
 ```

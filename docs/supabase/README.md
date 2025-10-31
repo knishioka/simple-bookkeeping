@@ -60,22 +60,27 @@ docker-compose -f docker-compose.supabase-test.yml up -d
 ### 2. 環境変数の設定
 
 ```bash
-# .env.local.exampleをコピー
-cp .env.local.example .env.local
-
-# .env.localはデフォルトでローカルSupabase設定済み
-# 変更不要でそのまま使用可能
+direnv allow  # 初回のみ
+mkdir -p env/secrets
+cp env/templates/common.env.example env/secrets/common.env
+cp env/templates/supabase.local.env.example env/secrets/supabase.local.env
+cp env/templates/vercel.env.example env/secrets/vercel.env
+scripts/env-manager.sh switch local
+# または
+# scripts/env-manager.sh bootstrap && scripts/env-manager.sh switch local
 ```
 
-デフォルト設定（.env.local）:
+デフォルト設定（`env/secrets/supabase.local.env`）:
 
 ```env
 # ローカルSupabase（開発環境用）
 NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
-DATABASE_URL=postgresql://postgres:postgres@localhost:54322/postgres?schema=public
+SUPABASE_DB_URL=postgresql://postgres:postgres@localhost:54322/postgres?schema=public
 ```
+
+`direnv` が `SUPABASE_DB_URL` を `DATABASE_URL` としてエクスポートするため、Prisma や CLI から直接利用できます。
 
 ### 3. 本番環境の設定（production）
 

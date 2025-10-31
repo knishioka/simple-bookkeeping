@@ -35,7 +35,7 @@
 2. **✅ 開発環境構築**
    - ✅ Docker環境の構築（docker-compose.yml）
    - ✅ 開発用データベースのセットアップ
-   - ✅ 環境変数管理（.env.example）
+   - ✅ 環境変数管理（direnv + env/templates 配置）
    - ✅ pnpmモノレポ構造
 
 3. **✅ プロジェクト構造**

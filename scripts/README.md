@@ -101,13 +101,13 @@ The following scripts are kept for backward compatibility but internally use the
 
 - `check-build.sh` → Calls `build-tools.sh check`
 - `check-full-build.sh` → Calls `build-tools.sh check-full`
-- `vercel-api-status.sh` → Calls `vercel-tools.sh api-status`
-- `vercel-logs.sh` → Calls `vercel-tools.sh logs`
 - `check-deployments.sh` → Calls `vercel-tools.sh deployments`
 
 ## Removed Scripts
 
 - `start-dev.sh` - Removed as it referenced the deprecated Express.js API server
+- `vercel-api-status.sh` - Use `pnpm vercel:status` or `./scripts/vercel-tools.sh status`
+- `vercel-logs.sh` - Use `pnpm logs:prod` or `./scripts/vercel-tools.sh logs`
 
 ## NPM Scripts
 
@@ -125,9 +125,12 @@ The package.json scripts have been updated to use the consolidated tools:
     // Vercel operations
     "vercel:status": "./scripts/vercel-tools.sh status",
     "vercel:logs": "./scripts/vercel-tools.sh logs",
+    "vercel:logs:prod": "bash -c 'set -a && source .env.local && set +a && vercel logs \"$VERCEL_PRODUCTION_URL\"'",
+    "vercel:list": "bash -c 'set -a && source .env.local && set +a && vercel list \"$VERCEL_PROJECT_NAME\"'",
     "vercel:api": "./scripts/vercel-tools.sh api-status",
     "vercel:deployments": "./scripts/vercel-tools.sh deployments",
     "deploy:check": "./scripts/vercel-tools.sh deployments --prod",
+    "logs:prod": "pnpm vercel:logs:prod",
 
     // Testing
     "test:e2e:docker": "./scripts/test-runner.sh e2e-docker",

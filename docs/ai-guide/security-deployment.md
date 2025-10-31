@@ -44,7 +44,7 @@ const API_KEY = process.env.API_KEY;
 **必須の対策：**
 
 1. `.env`ファイルは必ず`.gitignore`に含める
-2. `.env.example`を作成してサンプル値を提供
+2. `env/templates/*.env.example` を整備してサンプル値を提供
 3. 機密情報は環境変数またはシークレット管理サービスを使用
 4. コミット前に`git diff`で確認
 
@@ -61,9 +61,10 @@ vercel env add DATABASE_URL
 vercel env add JWT_SECRET
 vercel env ls  # 確認
 
-# ローカル開発時は.env.localを使用
-touch .env.local
-echo "DATABASE_URL=postgresql://..." >> .env.local
+# ローカル開発時は env/secrets/ 配下で管理
+mkdir -p env/secrets
+cp env/templates/common.env.example env/secrets/common.env
+echo "SUPABASE_DB_URL=postgresql://..." >> env/secrets/supabase.local.env
 ```
 
 ## 🔐 セキュリティ対策
@@ -91,8 +92,8 @@ gitleaks detect --source . --log-opts="--all" --verbose
 # 環境変数
 .env
 .env.*
-!.env.example
 !.env.*.example
+env/secrets/
 
 # 認証情報
 *secret*
@@ -139,19 +140,18 @@ supabase/.env
 
 ### 環境変数管理のベストプラクティス
 
-1. **環境変数ファイルの命名規則**
-   - `.env` - ローカル開発用（.gitignore対象）
-   - `.env.example` - サンプル（コミット可）
-   - `.env.local` - Next.jsローカル設定（.gitignore対象）
-   - `.env.production` - 本番環境設定（絶対にコミットしない）
+1. **環境変数ファイルの管理場所を固定**
+   - Git 管理対象: `env/templates/*.example`
+   - Gitignore 対象: `env/secrets/*.env`（各自が作成）
+   - `.env.local` は `env/secrets/supabase.*.env` へのシンボリックリンクとして運用
 
-2. **環境変数のテンプレート化**
+2. **テンプレートは例示のみに留める**
 
    ```bash
-   # .env.exampleを常に最新に保つ
-   cp .env .env.example
-   # 値をプレースホルダーに置換
-   sed -i 's/=.*/=your_value_here/' .env.example
+   cp env/templates/common.env.example env/secrets/common.env
+   cp env/templates/supabase.local.env.example env/secrets/supabase.local.env
+   # 値をプレースホルダーから実際の値に置き換える
+   sed -i '' 's/your-production-anon-key/<real key>/' env/secrets/supabase.prod.env
    ```
 
 3. **プラットフォームごとの管理**
@@ -172,7 +172,7 @@ vercel link
 vercel env ls                          # 一覧表示
 vercel env add SECRET_KEY             # 追加（対話形式で値を入力）
 vercel env rm OLD_SECRET              # 削除
-vercel env pull .env.local            # ローカルに環境変数をダウンロード
+vercel env pull .env.local            # ローカルに環境変数をダウンロード（※ symlink を上書きしないよう注意）
 
 # デプロイメント
 vercel                                # プレビューデプロイ
@@ -504,14 +504,22 @@ pnpm vercel:logs runtime    # ランタイムログ
 - 🔴 Error/Failed
 - 🟡 Building/Deploying
 
-### デプロイメントドキュメント
+### デプロイメント操作（npm-first アプローチ）
 
-詳細なデプロイメント手順やトラブルシューティングについては、[docs/deployment/](../../deployment/) を参照してください：
+Vercelデプロイメントの確認や調査は、npmスクリプト経由で行います：
 
-- [README.md](../../deployment/README.md) - クイックスタート
-- [detailed-guide.md](../../deployment/detailed-guide.md) - 詳細手順
-- [troubleshooting.md](../../deployment/troubleshooting.md) - トラブルシューティング
-- [scripts-reference.md](../../deployment/scripts-reference.md) - スクリプトリファレンス
+```bash
+# 本番ログ確認
+pnpm logs:prod
+
+# デプロイメント一覧
+pnpm vercel:list
+
+# 詳細ステータス
+pnpm vercel:status
+```
+
+詳細は[CLAUDE.md](../../CLAUDE.md)の「Vercel/Supabase CLIの安全な操作ガイド」セクションを参照してください。
 
 ## 🛡️ プロジェクトのセキュリティポリシー
 

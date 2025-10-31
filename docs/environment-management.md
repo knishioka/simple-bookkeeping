@@ -17,37 +17,52 @@
 
 ### サポートされる環境
 
-| 環境名             | プロファイル | ファイル              | 用途                 | Supabase URL                             |
-| ------------------ | ------------ | --------------------- | -------------------- | ---------------------------------------- |
-| ローカル開発       | `local`      | `.env.supabase-local` | ローカルSupabase使用 | http://localhost:54321                   |
-| 本番接続ローカル   | `prod`       | `.env.supabase-prod`  | 本番Supabase使用     | https://eksgzskroipxdwtbmkxm.supabase.co |
-| Vercelデモサーバー | N/A          | Vercel環境変数        | デモ環境             | https://eksgzskroipxdwtbmkxm.supabase.co |
+| 環境名             | プロファイル | ファイル                                  | 用途                 | Supabase URL                             |
+| ------------------ | ------------ | ----------------------------------------- | -------------------- | ---------------------------------------- |
+| ローカル開発       | `local`      | `env/secrets/supabase.local.env`          | ローカルSupabase使用 | http://localhost:54321                   |
+| 本番接続ローカル   | `prod`       | `env/secrets/supabase.prod.env`           | 本番Supabase使用     | https://eksgzskroipxdwtbmkxm.supabase.co |
+| Vercelデモサーバー | N/A          | Vercel環境変数 / `env/secrets/vercel.env` | デモ環境             | https://eksgzskroipxdwtbmkxm.supabase.co |
 
 ### 環境ファイル構造
 
 ```
 /Users/ken/Developer/private/simple-bookkeeping/
-├── .env.local                  # 現在アクティブな環境（シンボリックリンク）
-├── .env.supabase-local         # ローカルSupabase環境設定
-├── .env.supabase-prod          # 本番Supabase環境設定
-└── .env.example                # 環境変数テンプレート
+├── .env.local                      # 現在アクティブな環境（シンボリックリンク）
+├── env/
+│   ├── README.md
+│   ├── templates/…               # 共有されるテンプレート
+│   └── secrets/
+│       ├── common.env            # 非機密デフォルト
+│       ├── supabase.local.env    # ローカルSupabase環境設定
+│       ├── supabase.prod.env     # 本番Supabase環境設定
+│       └── vercel.env            # Vercel CLI/デプロイ情報
 ```
 
-**重要**: `.env.local` は実際には `.env.supabase-local` または `.env.supabase-prod` へのシンボリックリンクです。
+**重要**: `.env.local` は `env/secrets/supabase.*.env` へのシンボリックリンクです。
 
 ### 環境識別子
 
 各環境ファイルには識別用の環境変数が含まれています：
 
 ```bash
-# .env.supabase-local
+# env/secrets/supabase.local.env
 ENV_PROFILE=local
 ENV_SUPABASE=local
 
-# .env.supabase-prod
+# env/secrets/supabase.prod.env
 ENV_PROFILE=local-with-production-supabase
 ENV_SUPABASE=production
 ```
+
+## 初期セットアップ
+
+```bash
+direnv allow  # 初回のみ
+scripts/env-manager.sh bootstrap
+scripts/env-manager.sh switch local
+```
+
+`bootstrap` はテンプレートを `env/secrets/` にコピーします（既存ファイルは保持）。その後、必要な値を編集してから `switch local` でプロファイルを有効化してください。
 
 ## 環境の切り替え
 
@@ -66,7 +81,7 @@ pnpm env:current
 Current Environment Configuration
 ═══════════════════════════════════════════════════════
 
-[INFO] Configuration: Symlink to .env.supabase-local
+[INFO] Configuration: Symlink to env/secrets/supabase.local.env
 
 --- Environment Identifiers ---
 [SUCCESS] ENV_PROFILE: local
@@ -388,7 +403,7 @@ pnpm vercel:env:rm OLD_VAR --dry-run
 ```bash
 # 1. シンボリックリンクを確認
 ls -la .env.local
-# 出力例: .env.local -> .env.supabase-local
+# 出力例: .env.local -> env/secrets/supabase.local.env
 
 # 2. 環境設定を確認
 pnpm env:current
@@ -674,7 +689,7 @@ Claude Codeがこのプロジェクトで作業する際は：
 ### 機密情報の取り扱い
 
 1. **環境ファイルの管理**
-   - `.env.supabase-local` と `.env.supabase-prod` は `.gitignore` に含まれています
+   - `env/secrets/supabase.local.env` と `env/secrets/supabase.prod.env` は `.gitignore` に含まれています
    - 本番環境のService Role Keyは絶対にコミットしない
    - 環境ファイルのバックアップは暗号化して保存
 
@@ -692,7 +707,7 @@ Claude Codeがこのプロジェクトで作業する際は：
 
 ```bash
 # 環境ファイルの権限を制限
-chmod 600 .env.supabase-*
+chmod 600 env/secrets/supabase.*.env
 chmod 600 .env.local
 
 # スクリプトの実行権限

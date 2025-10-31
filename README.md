@@ -212,8 +212,13 @@ cd simple-bookkeeping
 pnpm install
 
 # 3. 環境変数の設定
-cp .env.local.example .env.local
-# .env.localはデフォルトでローカルSupabase設定済み
+mkdir -p env/secrets
+cp env/templates/common.env.example env/secrets/common.env
+cp env/templates/supabase.local.env.example env/secrets/supabase.local.env
+cp env/templates/vercel.env.example env/secrets/vercel.env
+scripts/env-manager.sh switch local
+# または
+# scripts/env-manager.sh bootstrap && scripts/env-manager.sh switch local
 
 # 4. ローカルSupabaseの起動（必須）
 pnpm supabase:start    # Supabase CLI (推奨)
@@ -406,14 +411,14 @@ pnpm db:studio
 pnpm deploy:check
 
 # Vercelログ確認
-pnpm vercel:logs build
+pnpm logs:prod
 ```
 
 ### 本番デプロイ
 
 - **Vercel**: mainブランチへのpushで自動デプロイ
 
-詳細は[デプロイメントガイド](./docs/deployment/)を参照。
+詳細は[デプロイメント運用ガイド](./docs/ai-guide/security-deployment.md)を参照。
 
 ### テスト戦略
 
@@ -467,7 +472,7 @@ pnpm build:packages
 # tsconfig.jsonのパスマッピングを確認
 ```
 
-詳細は[トラブルシューティングガイド](./docs/deployment/troubleshooting.md)を参照。
+詳細は[セットアップトラブルシューティング](./docs/setup/troubleshooting.md)を参照。
 
 ## スクリプト
 
