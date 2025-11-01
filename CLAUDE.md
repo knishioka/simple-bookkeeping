@@ -72,6 +72,7 @@ packages/
   vercel whoami   # 例
   ```
   実行ログにトークンを出力しない。必要なら `with_escalated_permissions` 付きでコマンドを呼ぶ。
+- Vercel CLI (`vercel`) と Supabase CLI (`supabase`) はこの環境で利用可能。direnv を有効にしておけば必要なトークン／URL が自動で読み込まれるため、`vercel env ls` や `supabase status` などのコマンドを直接実行できる。
 - テンプレートの更新が必要な場合は、`env/templates/*.env.example` を修正し、該当するドキュメント（`docs/environment-variables.md`, `env/README.md`など）も併せて更新する。
 - セキュリティ上、本番プロファイル (`scripts/env-manager.sh switch prod`) を使用した後は必ず `switch local` に戻す。
 - 参考資料: `env/README.md`, `docs/ENVIRONMENT_VARIABLES.md`, `docs/direnv-setup.md` に詳細な手順と背景がまとまっているので都度確認すること。

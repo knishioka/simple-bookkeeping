@@ -14,6 +14,7 @@
 - Use `scripts/env-manager.sh bootstrap` to copy templates into `env/secrets/`, then `scripts/env-manager.sh switch <profile>` to activate (`local` or `prod`). See `docs/direnv-setup.md` for the direnv hook details.
 - Real Supabase keys live in `env/secrets/supabase.*.env`; verify the active profile with `scripts/env-manager.sh current` before running migrations or CLI work.
 - Vercel metadata and tokens belong in `env/secrets/vercel.env`; temporarily export them for CLI actions with `set -a; source env/secrets/vercel.env; set +a`.
+- Vercel CLI (`vercel`) と Supabase CLI (`supabase`) は使用可能。必要なトークンは `env/secrets/vercel.env` と Supabase プロファイルに格納されているので、利用前に direnv をロードしておくこと。
 - Avoid creating ad-hoc `.env.*` files; update the appropriate `env/secrets/*.env` file and reload direnv (`direnv reload`) when values change.
 
 ## Build, Test, and Development Commands
