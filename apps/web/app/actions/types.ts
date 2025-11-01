@@ -5,6 +5,7 @@
  * エラーハンドリングを標準化するための型定義
  */
 
+import { AuthApiError } from '@supabase/supabase-js';
 import { z } from 'zod';
 
 import { formatZodError, getZodErrorDetails } from './validation/common';
@@ -84,6 +85,7 @@ export const ERROR_CODES = {
   INTERNAL_ERROR: 'INTERNAL_ERROR',
   SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
   NETWORK_ERROR: 'NETWORK_ERROR',
+  CONFIGURATION_ERROR: 'CONFIGURATION_ERROR',
 } as const;
 
 /**
@@ -166,6 +168,27 @@ export function handleSupabaseError(error: unknown): ActionResult<never> {
 
   // Type guard to check if error has a code property
   const errorWithCode = error as { code?: string; message?: string };
+
+  // Skip legacy key checks in test environment
+  if (process.env.NODE_ENV !== 'test') {
+    if (
+      error instanceof AuthApiError &&
+      typeof error.message === 'string' &&
+      error.message.toLowerCase().includes('legacy api keys')
+    ) {
+      return createErrorResult(
+        ERROR_CODES.CONFIGURATION_ERROR,
+        'SupabaseのAPIキーがレガシー形式です。Project Settings → API で新しいAnonキー / Service Roleキーを発行し、環境変数を更新してください。'
+      );
+    }
+
+    if (error instanceof Error && error.message.includes('レガシー形式')) {
+      return createErrorResult(
+        ERROR_CODES.CONFIGURATION_ERROR,
+        'SupabaseのAPIキーがレガシー形式です。Project Settings → API で新しいAnonキー / Service Roleキーを発行し、環境変数を更新してください。'
+      );
+    }
+  }
 
   // 認証エラー
   if (errorWithCode.code === 'PGRST301') {

@@ -3,6 +3,19 @@ import type { Database } from './database.types';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
+const assertNotLegacyKey = (key: string, envName: string) => {
+  // Skip validation in test environment
+  if (process.env.NODE_ENV === 'test') {
+    return;
+  }
+
+  if (key.startsWith('sbp_')) {
+    throw new Error(
+      `${envName} にレガシー形式 (sbp_...) の Supabase API キーが設定されています。Project settings → API で新しいキーを発行し、環境変数を更新してください。`
+    );
+  }
+};
+
 /**
  * Supabaseクライアント（サーバー用）
  * Server Components、Route Handlers、Server Actionsで使用
@@ -22,6 +35,8 @@ export async function createClient() {
       'Missing Supabase environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY'
     );
   }
+
+  assertNotLegacyKey(supabaseAnonKey, 'NEXT_PUBLIC_SUPABASE_ANON_KEY');
 
   return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
     cookies: {
@@ -58,6 +73,8 @@ export async function createActionClient() {
     );
   }
 
+  assertNotLegacyKey(supabaseAnonKey, 'NEXT_PUBLIC_SUPABASE_ANON_KEY');
+
   return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
@@ -88,6 +105,8 @@ export async function createServiceClient() {
   if (!supabaseUrl || !supabaseServiceKey) {
     throw new Error('Missing Supabase service environment variables');
   }
+
+  assertNotLegacyKey(supabaseServiceKey, 'SUPABASE_SERVICE_ROLE_KEY');
 
   return createServerClient<Database>(supabaseUrl, supabaseServiceKey, {
     cookies: {

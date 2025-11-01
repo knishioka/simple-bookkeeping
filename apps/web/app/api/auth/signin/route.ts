@@ -204,11 +204,12 @@ export async function POST(request: NextRequest) {
     return redirectResponse;
   } catch (error) {
     console.error('[SignIn Route] Unexpected error:', error);
+    const isLegacyKeyError = error instanceof Error && error.message.includes('レガシー形式');
     return NextResponse.json(
       {
         success: false,
         error: {
-          code: 'INTERNAL_ERROR',
+          code: isLegacyKeyError ? 'CONFIGURATION_ERROR' : 'INTERNAL_ERROR',
           message: error instanceof Error ? error.message : 'ログインに失敗しました。',
         },
       },
