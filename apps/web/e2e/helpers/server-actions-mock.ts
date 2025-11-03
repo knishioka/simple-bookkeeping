@@ -137,7 +137,7 @@ export class ServerActionsMock {
     // 認証関連のモック
     this.registerMocks([
       {
-        modulePath: '@/lib/supabase',
+        modulePath: '@/lib/supabase/server',
         actionName: 'createClient',
         mockImplementation: async () => ({
           auth: {
@@ -283,7 +283,7 @@ export class MockImplementations {
    * 会計期間関連のServer Actionsモック
    */
   static accountingPeriods = {
-    getAccountingPeriodsWithAuth: async () => ({
+    getAccountingPeriods: async () => ({
       success: true,
       data: {
         items: [
@@ -302,7 +302,7 @@ export class MockImplementations {
       },
     }),
 
-    createAccountingPeriodWithAuth: async (data: Record<string, unknown>) => ({
+    createAccountingPeriod: async (data: Record<string, unknown>) => ({
       success: true,
       data: TestDataBuilder.createAccountingPeriod({
         ...data,
@@ -310,7 +310,7 @@ export class MockImplementations {
       }),
     }),
 
-    updateAccountingPeriodWithAuth: async (id: string, data: Record<string, unknown>) => ({
+    updateAccountingPeriod: async (id: string, data: Record<string, unknown>) => ({
       success: true,
       data: TestDataBuilder.createAccountingPeriod({
         id,
@@ -319,9 +319,35 @@ export class MockImplementations {
       }),
     }),
 
-    deleteAccountingPeriodWithAuth: async (id: string) => ({
+    deleteAccountingPeriod: async (id: string) => ({
       success: true,
       data: { id },
+    }),
+
+    closeAccountingPeriod: async (id: string) => ({
+      success: true,
+      data: TestDataBuilder.createAccountingPeriod({
+        id,
+        is_active: false,
+        is_closed: true,
+      }),
+    }),
+
+    reopenAccountingPeriod: async (id: string) => ({
+      success: true,
+      data: TestDataBuilder.createAccountingPeriod({
+        id,
+        is_active: true,
+        is_closed: false,
+      }),
+    }),
+
+    activateAccountingPeriod: async (id: string) => ({
+      success: true,
+      data: TestDataBuilder.createAccountingPeriod({
+        id,
+        is_active: true,
+      }),
     }),
   };
 
@@ -329,7 +355,7 @@ export class MockImplementations {
    * 監査ログ関連のServer Actionsモック
    */
   static auditLogs = {
-    getAuditLogsWithAuth: async () => ({
+    getAuditLogs: async () => ({
       success: true,
       data: {
         items: [
@@ -345,14 +371,22 @@ export class MockImplementations {
       },
     }),
 
-    getEntityTypesWithAuth: async () => ({
+    getEntityTypes: async () => ({
       success: true,
       data: ['AccountingPeriod', 'Account', 'JournalEntry', 'User', 'Organization'],
     }),
 
-    exportAuditLogsWithAuth: async () => ({
+    exportAuditLogs: async () => ({
       success: true,
       data: 'id,entity_type,action,user_email,created_at\n1,AccountingPeriod,CREATE,test@example.com,2024-01-01',
+    }),
+
+    auditEntityChange: async () => ({
+      success: true,
+      data: {
+        id: `audit-${Date.now()}`,
+        action: 'UPDATE',
+      },
     }),
   };
 }
@@ -389,24 +423,39 @@ export async function setupServerActionsTest(
   if (mockAccountingPeriods) {
     ServerActionsMock.registerMocks([
       {
-        modulePath: '@/app/actions/accounting-periods-wrapper',
-        actionName: 'getAccountingPeriodsWithAuth',
-        mockImplementation: MockImplementations.accountingPeriods.getAccountingPeriodsWithAuth,
+        modulePath: '@/app/actions/accounting-periods',
+        actionName: 'getAccountingPeriods',
+        mockImplementation: MockImplementations.accountingPeriods.getAccountingPeriods,
       },
       {
-        modulePath: '@/app/actions/accounting-periods-wrapper',
-        actionName: 'createAccountingPeriodWithAuth',
-        mockImplementation: MockImplementations.accountingPeriods.createAccountingPeriodWithAuth,
+        modulePath: '@/app/actions/accounting-periods',
+        actionName: 'createAccountingPeriod',
+        mockImplementation: MockImplementations.accountingPeriods.createAccountingPeriod,
       },
       {
-        modulePath: '@/app/actions/accounting-periods-wrapper',
-        actionName: 'updateAccountingPeriodWithAuth',
-        mockImplementation: MockImplementations.accountingPeriods.updateAccountingPeriodWithAuth,
+        modulePath: '@/app/actions/accounting-periods',
+        actionName: 'updateAccountingPeriod',
+        mockImplementation: MockImplementations.accountingPeriods.updateAccountingPeriod,
       },
       {
-        modulePath: '@/app/actions/accounting-periods-wrapper',
-        actionName: 'deleteAccountingPeriodWithAuth',
-        mockImplementation: MockImplementations.accountingPeriods.deleteAccountingPeriodWithAuth,
+        modulePath: '@/app/actions/accounting-periods',
+        actionName: 'deleteAccountingPeriod',
+        mockImplementation: MockImplementations.accountingPeriods.deleteAccountingPeriod,
+      },
+      {
+        modulePath: '@/app/actions/accounting-periods',
+        actionName: 'closeAccountingPeriod',
+        mockImplementation: MockImplementations.accountingPeriods.closeAccountingPeriod,
+      },
+      {
+        modulePath: '@/app/actions/accounting-periods',
+        actionName: 'reopenAccountingPeriod',
+        mockImplementation: MockImplementations.accountingPeriods.reopenAccountingPeriod,
+      },
+      {
+        modulePath: '@/app/actions/accounting-periods',
+        actionName: 'activateAccountingPeriod',
+        mockImplementation: MockImplementations.accountingPeriods.activateAccountingPeriod,
       },
     ]);
   }
@@ -415,19 +464,24 @@ export async function setupServerActionsTest(
   if (mockAuditLogs) {
     ServerActionsMock.registerMocks([
       {
-        modulePath: '@/app/actions/audit-logs-wrapper',
-        actionName: 'getAuditLogsWithAuth',
-        mockImplementation: MockImplementations.auditLogs.getAuditLogsWithAuth,
+        modulePath: '@/app/actions/audit-logs',
+        actionName: 'getAuditLogs',
+        mockImplementation: MockImplementations.auditLogs.getAuditLogs,
       },
       {
-        modulePath: '@/app/actions/audit-logs-wrapper',
-        actionName: 'getEntityTypesWithAuth',
-        mockImplementation: MockImplementations.auditLogs.getEntityTypesWithAuth,
+        modulePath: '@/app/actions/audit-logs',
+        actionName: 'getEntityTypes',
+        mockImplementation: MockImplementations.auditLogs.getEntityTypes,
       },
       {
-        modulePath: '@/app/actions/audit-logs-wrapper',
-        actionName: 'exportAuditLogsWithAuth',
-        mockImplementation: MockImplementations.auditLogs.exportAuditLogsWithAuth,
+        modulePath: '@/app/actions/audit-logs',
+        actionName: 'exportAuditLogs',
+        mockImplementation: MockImplementations.auditLogs.exportAuditLogs,
+      },
+      {
+        modulePath: '@/app/actions/audit-logs',
+        actionName: 'auditEntityChange',
+        mockImplementation: MockImplementations.auditLogs.auditEntityChange,
       },
     ]);
   }
