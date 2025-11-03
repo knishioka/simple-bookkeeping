@@ -37,11 +37,13 @@
    - Node 20.x (`.nvmrc` は存在しないため `fnm`/`nvm` で 20 系を使用)。
    - pnpm 10 (`packageManager` フィールド参照)。`corepack enable` 後に `corepack prepare pnpm@10.12.3 --activate` を推奨。
 2. **依存インストール**
+
    ```bash
    pnpm install --frozen-lockfile
    ```
 
    - CI と同じく lockfile 固定。ワークスペース全体で 1 度実行すれば各パッケージにリンクされます。
+
 3. **direnv / 環境変数**
    - `direnv allow` をプロジェクトルートで実行。
    - テンプレート複製: `bash scripts/env-manager.sh bootstrap`。
