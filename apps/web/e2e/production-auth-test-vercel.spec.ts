@@ -1,12 +1,14 @@
 import { test, expect } from '@playwright/test';
 
+import { describeProductionAuth } from './utils/production-test-guard';
+
 /**
  * Vercel Production Authentication Test
  *
  * このテストは本番環境（Vercel）のSupabaseで新規会員登録とログインをテストします。
  */
 
-test.describe('Vercel Production Authentication Test', () => {
+describeProductionAuth('Vercel Production Authentication Test', () => {
   // ランダムなテストユーザー情報を生成
   const timestamp = Date.now();
   const testUser = {
