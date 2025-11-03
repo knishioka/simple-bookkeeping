@@ -1,4 +1,6 @@
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 import {
   signUp,
@@ -11,7 +13,7 @@ import {
 } from '../auth';
 import { ERROR_CODES } from '../types';
 
-import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient, createActionClient } from '@/lib/supabase/server';
 
 // Mock dependencies
 jest.mock('next/cache', () => ({
@@ -22,9 +24,14 @@ jest.mock('next/navigation', () => ({
   redirect: jest.fn(),
 }));
 
+jest.mock('next/headers', () => ({
+  cookies: jest.fn(),
+}));
+
 jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn(),
   createServiceClient: jest.fn(),
+  createActionClient: jest.fn(),
 }));
 
 const mockRevalidatePath = revalidatePath as jest.MockedFunction<typeof revalidatePath>;
@@ -32,6 +39,22 @@ const mockCreateClient = createClient as jest.MockedFunction<typeof createClient
 const mockCreateServiceClient = createServiceClient as jest.MockedFunction<
   typeof createServiceClient
 >;
+const mockCreateActionClient = createActionClient as jest.MockedFunction<typeof createActionClient>;
+const mockCookies = cookies as jest.MockedFunction<typeof cookies>;
+const mockRedirect = redirect as jest.MockedFunction<typeof redirect>;
+
+function mockNextRedirectImplementation() {
+  mockRedirect.mockImplementation((path: string) => {
+    const error: Error & { digest?: string } = new Error('NEXT_REDIRECT');
+    error.digest = `NEXT_REDIRECT;${path}`;
+    throw error;
+  });
+}
+
+async function expectRedirectWithPath(action: Promise<unknown>, path: string): Promise<void> {
+  await expect(action).rejects.toMatchObject({ digest: `NEXT_REDIRECT;${path}` });
+  expect(mockRedirect).toHaveBeenCalledWith(path);
+}
 
 describe('Auth Server Actions', () => {
   let mockSupabaseClient: any;
@@ -63,6 +86,7 @@ describe('Auth Server Actions', () => {
           deleteUser: jest.fn().mockResolvedValue({ error: null }),
         },
       },
+      from: jest.fn(),
     };
 
     // Mock createClient to return a Promise that resolves to the mock client
@@ -70,6 +94,17 @@ describe('Auth Server Actions', () => {
 
     // Mock createServiceClient to return a Promise that resolves to the service mock client
     mockCreateServiceClient.mockImplementation(() => Promise.resolve(mockServiceSupabaseClient));
+
+    // Server actions uses the dedicated action client which should behave like the normal client in tests
+    mockCreateActionClient.mockImplementation(() => Promise.resolve(mockSupabaseClient));
+
+    mockCookies.mockResolvedValue({
+      getAll: jest.fn().mockReturnValue([]),
+      set: jest.fn(),
+      delete: jest.fn(),
+    } as any);
+
+    mockNextRedirectImplementation();
   });
 
   describe('signUp', () => {
@@ -99,22 +134,16 @@ describe('Auth Server Actions', () => {
       };
 
       const userInsertQuery = {
-        insert: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          error: null,
-        }),
+        insert: jest.fn().mockResolvedValue({ error: null }),
       };
 
       const userOrgInsertQuery = {
-        insert: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          error: null,
-        }),
+        insert: jest.fn().mockResolvedValue({ error: null }),
       };
 
       // Mock from() to return different queries for each table
-      mockSupabaseClient.from
-        .mockReturnValueOnce(orgInsertQuery) // organizations table
+      mockSupabaseClient.from.mockReturnValueOnce(orgInsertQuery); // organizations table
+      mockServiceSupabaseClient.from
         .mockReturnValueOnce(userInsertQuery) // users table
         .mockReturnValueOnce(userOrgInsertQuery); // user_organizations table
 
@@ -166,22 +195,16 @@ describe('Auth Server Actions', () => {
       };
 
       const userInsertQuery = {
-        insert: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          error: null,
-        }),
+        insert: jest.fn().mockResolvedValue({ error: null }),
       };
 
       const userOrgInsertQuery = {
-        insert: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          error: null,
-        }),
+        insert: jest.fn().mockResolvedValue({ error: null }),
       };
 
       // Mock from() to return different queries for each table
-      mockSupabaseClient.from
-        .mockReturnValueOnce(orgInsertQuery) // organizations table
+      mockSupabaseClient.from.mockReturnValueOnce(orgInsertQuery); // organizations table
+      mockServiceSupabaseClient.from
         .mockReturnValueOnce(userInsertQuery) // users table
         .mockReturnValueOnce(userOrgInsertQuery); // user_organizations table
 
@@ -338,17 +361,13 @@ describe('Auth Server Actions', () => {
         .mockReturnValueOnce(userOrgQuery) // user_organizations table
         .mockReturnValueOnce(userQuery); // users table
 
-      const result = await signIn(validCredentials);
+      await expectRedirectWithPath(signIn(validCredentials), '/dashboard');
 
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual({
-        id: mockUser.id,
-        email: mockUser.email,
-        name: '山田太郎',
-        organizationId: 'org-123',
-        role: 'admin',
+      expect(mockSupabaseClient.auth.signInWithPassword).toHaveBeenCalledWith({
+        email: validCredentials.email,
+        password: validCredentials.password,
       });
-
+      expect(mockSupabaseClient.from).toHaveBeenNthCalledWith(1, 'user_organizations');
       expect(mockRevalidatePath).toHaveBeenCalledWith('/dashboard');
       expect(mockRevalidatePath).toHaveBeenCalledWith('/');
 
@@ -369,6 +388,7 @@ describe('Auth Server Actions', () => {
       expect(result.error?.message).toContain('必須項目が入力されていません');
       expect(result.error?.details).toHaveProperty('email');
       expect(result.error?.details).toHaveProperty('password');
+      expect(mockRedirect).not.toHaveBeenCalled();
     });
 
     it('should handle invalid credentials', async () => {
@@ -382,6 +402,7 @@ describe('Auth Server Actions', () => {
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.UNAUTHORIZED);
       expect(result.error?.message).toContain('メールアドレスまたはパスワードが正しくありません');
+      expect(mockRedirect).not.toHaveBeenCalled();
     });
 
     it('should handle user without organization', async () => {
@@ -414,16 +435,11 @@ describe('Auth Server Actions', () => {
 
       mockSupabaseClient.from.mockReturnValueOnce(userOrgQuery).mockReturnValueOnce(userQuery);
 
-      const result = await signIn(validCredentials);
+      await expectRedirectWithPath(signIn(validCredentials), '/auth/select-organization');
 
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual({
-        id: mockUser.id,
-        email: mockUser.email,
-        name: '山田太郎',
-        organizationId: undefined,
-        role: undefined,
-      });
+      expect(mockSupabaseClient.auth.signInWithPassword).toHaveBeenCalled();
+      expect(mockRevalidatePath).toHaveBeenCalledWith('/dashboard');
+      expect(mockRevalidatePath).toHaveBeenCalledWith('/');
     });
 
     it('should fix missing app_metadata during sign in', async () => {
@@ -460,16 +476,7 @@ describe('Auth Server Actions', () => {
 
       mockSupabaseClient.from.mockReturnValueOnce(userOrgQuery).mockReturnValueOnce(userQuery);
 
-      const result = await signIn(validCredentials);
-
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual({
-        id: mockUser.id,
-        email: mockUser.email,
-        name: '田中花子',
-        organizationId: 'org-456',
-        role: 'viewer',
-      });
+      await expectRedirectWithPath(signIn(validCredentials), '/dashboard');
 
       // Verify that updateUserById was called to fix the metadata
       expect(mockServiceSupabaseClient.auth.admin.updateUserById).toHaveBeenCalledWith(
@@ -517,10 +524,13 @@ describe('Auth Server Actions', () => {
 
       mockSupabaseClient.from.mockReturnValueOnce(userOrgQuery).mockReturnValueOnce(userQuery);
 
-      const result = await signIn(validCredentials);
+      await expectRedirectWithPath(signIn(validCredentials), '/auth/select-organization');
 
-      expect(result.success).toBe(true);
-      expect(result.data?.name).toBe('田中花子');
+      expect(mockSupabaseClient.auth.signInWithPassword).toHaveBeenCalledWith({
+        email: validCredentials.email,
+        password: validCredentials.password,
+      });
+      expect(mockSupabaseClient.from).toHaveBeenNthCalledWith(1, 'user_organizations');
     });
   });
 
