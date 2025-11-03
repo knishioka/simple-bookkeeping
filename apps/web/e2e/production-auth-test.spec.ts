@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 
+import { describeProductionAuth } from './utils/production-test-guard';
+
 /**
  * Production Authentication Test
  *
@@ -11,7 +13,7 @@ import { test, expect } from '@playwright/test';
  * - テスト後に手動でユーザーを削除することをお勧めします
  */
 
-test.describe('Production Authentication Test', () => {
+describeProductionAuth('Production Authentication Test', () => {
   // ランダムなテストユーザー情報を生成
   const timestamp = Date.now();
   const testUser = {
