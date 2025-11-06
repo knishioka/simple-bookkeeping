@@ -142,8 +142,9 @@ describe('Auth Server Actions', () => {
       };
 
       // Mock from() to return different queries for each table
-      mockSupabaseClient.from.mockReturnValueOnce(orgInsertQuery); // organizations table
+      // IMPORTANT: Organization creation now uses serviceClient, not regular client
       mockServiceSupabaseClient.from
+        .mockReturnValueOnce(orgInsertQuery) // organizations table (now using serviceClient)
         .mockReturnValueOnce(userInsertQuery) // users table
         .mockReturnValueOnce(userOrgInsertQuery); // user_organizations table
 
@@ -203,8 +204,9 @@ describe('Auth Server Actions', () => {
       };
 
       // Mock from() to return different queries for each table
-      mockSupabaseClient.from.mockReturnValueOnce(orgInsertQuery); // organizations table
+      // IMPORTANT: Organization creation now uses serviceClient, not regular client
       mockServiceSupabaseClient.from
+        .mockReturnValueOnce(orgInsertQuery) // organizations table (now using serviceClient)
         .mockReturnValueOnce(userInsertQuery) // users table
         .mockReturnValueOnce(userOrgInsertQuery); // user_organizations table
 
@@ -293,7 +295,7 @@ describe('Auth Server Actions', () => {
         error: null,
       });
 
-      // Organization creation fails
+      // Organization creation fails (now using serviceClient)
       const orgInsertQuery = {
         insert: jest.fn().mockReturnThis(),
         select: jest.fn().mockReturnThis(),
@@ -303,7 +305,8 @@ describe('Auth Server Actions', () => {
         }),
       };
 
-      mockSupabaseClient.from.mockReturnValueOnce(orgInsertQuery);
+      // IMPORTANT: Organization creation now uses serviceClient, not regular client
+      mockServiceSupabaseClient.from.mockReturnValueOnce(orgInsertQuery);
 
       const result = await signUp(validInput);
 

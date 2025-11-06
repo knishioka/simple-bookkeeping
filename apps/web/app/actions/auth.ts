@@ -124,9 +124,18 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
     console.warn('[SignUp] Creating organization with name:', finalOrgName);
 
     try {
+      // Create service client for RLS bypass during signup
+      // IMPORTANT: serviceClient is required because new users don't have organization
+      // membership yet, and RLS policies would block standard client operations
+      // SECURITY: This is safe because:
+      // 1. Runs only server-side in 'use server' context (never exposed to client)
+      // 2. User authentication is validated via Supabase Auth before DB operations
+      // 3. Service client usage is minimal and limited to initial signup setup only
+      const serviceClient = await createServiceClient();
+
       // Step 2: 組織を作成
       console.warn('[SignUp] Step 2: Creating organization');
-      const { data: newOrg, error: orgError } = await supabase
+      const { data: newOrg, error: orgError } = await serviceClient
         .from('organizations')
         .insert({
           name: finalOrgName,
@@ -140,7 +149,6 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
         console.warn('[SignUp] Organization creation failed:', orgError);
         // Authユーザーは作成済みなので、削除を試みる
         try {
-          const serviceClient = await createServiceClient();
           await serviceClient.auth.admin.deleteUser(authData.user.id);
           console.warn('[SignUp] Successfully rolled back auth user');
         } catch (rollbackError) {
@@ -155,9 +163,6 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
 
       organizationId = newOrg.id;
       console.warn('[SignUp] Organization created successfully:', organizationId);
-
-      // Create service client for RLS bypass
-      const serviceClient = await createServiceClient();
 
       // Step 3: users テーブルにユーザー情報を保存
       console.warn('[SignUp] Step 3: Creating user record');
