@@ -43,12 +43,49 @@
 
 ## データベース関連
 
+### 基本操作
+
 | コマンド          | 説明                                             | 使用例            |
 | ----------------- | ------------------------------------------------ | ----------------- |
 | `pnpm db:init`    | データベースを初期化（マイグレーション＋シード） | `pnpm db:init`    |
 | `pnpm db:migrate` | マイグレーションを実行                           | `pnpm db:migrate` |
 | `pnpm db:seed`    | シードデータを投入                               | `pnpm db:seed`    |
-| `pnpm db:studio`  | Prisma Studioを起動                              | `pnpm db:studio`  |
+| `pnpm db:studio`  | Prisma Studioを起動（GUI）                       | `pnpm db:studio`  |
+
+### テーブル確認
+
+| コマンド              | 説明                           | 使用例                |
+| --------------------- | ------------------------------ | --------------------- |
+| `pnpm db:tables`      | ローカル環境のテーブル一覧表示 | `pnpm db:tables`      |
+| `pnpm db:tables:prod` | 本番環境のテーブル一覧表示     | `pnpm db:tables:prod` |
+
+### クエリ実行 ⚠️
+
+| コマンド                   | 説明                                    | 使用例                                                 |
+| -------------------------- | --------------------------------------- | ------------------------------------------------------ |
+| `pnpm db:query "SQL"`      | ローカル環境でSQLクエリ実行             | `pnpm db:query "SELECT * FROM organizations LIMIT 5;"` |
+| `pnpm db:query:prod "SQL"` | 本番環境でSQLクエリ実行（読み取り推奨） | `pnpm db:query:prod "SELECT COUNT(*) FROM users;"`     |
+
+**注意:** 本番環境でのクエリ実行は読み取り専用を推奨。データ変更はSupabase Dashboard経由で実施。
+
+### 詳細操作（スクリプト経由）
+
+```bash
+# ローカル環境でクエリ実行
+bash scripts/db-query.sh --env local "SELECT * FROM organizations LIMIT 5;"
+
+# 本番環境でクエリ実行（確認プロンプトあり）
+bash scripts/db-query.sh --env prod "SELECT * FROM organizations LIMIT 5;"
+
+# 本番環境でクエリ実行（確認スキップ）
+bash scripts/db-query.sh --env prod --yes "SELECT * FROM organizations LIMIT 5;"
+
+# JSON形式で出力
+bash scripts/db-query.sh --env prod --yes --format json "SELECT * FROM organizations LIMIT 5;"
+
+# SQLファイルから実行
+bash scripts/db-query.sh --env prod --yes --file queries/report.sql
+```
 
 ## Docker関連
 
@@ -96,6 +133,18 @@ pnpm clean && pnpm install && pnpm build && pnpm test
 pnpm db:migrate && pnpm db:seed
 ```
 
+### データベース調査
+
+```bash
+# ローカル環境のテーブル確認
+pnpm db:tables
+
+# 本番環境のデータ確認
+pnpm db:tables:prod
+pnpm db:query:prod "SELECT COUNT(*) FROM organizations;"
+pnpm db:query:prod "SELECT COUNT(*) FROM users;"
+```
+
 ## Tips
 
 1. **並列実行**: Turboを使用しているため、依存関係のないタスクは自動的に並列実行されます
@@ -110,6 +159,12 @@ pnpm db:migrate && pnpm db:seed
 3. **環境変数**: direnvを使用している場合、プロジェクトディレクトリに入ると自動的に環境変数が設定されます
 
 4. **ログの詳細度**: Turboのログレベルを調整
+
    ```bash
    TURBO_LOG_LEVEL=debug pnpm build
    ```
+
+5. **データベース操作の安全性**:
+   - 本番環境への操作は常に読み取り専用を推奨
+   - データ変更が必要な場合はSupabase Dashboard経由で実施
+   - 詳細な操作方法は [Database Operations Guide](./database-operations.md) を参照
