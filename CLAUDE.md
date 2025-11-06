@@ -117,14 +117,31 @@ pnpm build                 # 4. ビルド確認
 ### 4️⃣ データベース・インフラ操作
 
 ```bash
-# Supabase/DB操作
+# Supabase起動・停止
 pnpm supabase:start        # Supabase起動
 pnpm supabase:stop         # Supabase停止
+pnpm supabase:status       # 状態確認
+
+# データベース操作（ローカル）
 pnpm db:migrate            # マイグレーション実行
 pnpm db:studio             # Prisma Studio起動（GUI）
+pnpm db:tables             # テーブル一覧表示
+
+# データベース操作（本番）⚠️
+pnpm db:tables:prod        # 本番テーブル一覧
+pnpm db:query:prod "SELECT COUNT(*) FROM organizations;"  # クエリ実行
+
+# カスタムクエリ（詳細な操作）
+bash scripts/db-query.sh --env prod --yes "SQL"     # 本番DB
+bash scripts/db-query.sh --env local "SQL"          # ローカルDB
 ```
 
-詳細は [npm-scripts-guide.md](./docs/npm-scripts-guide.md) を参照。
+**重要:** 本番DB操作は読み取り専用を推奨。データ変更はSupabase Dashboard経由で実施。
+
+詳細は以下を参照：
+
+- [Database Operations Guide](./docs/database-operations.md) - **DB操作の完全ガイド**
+- [npm-scripts-guide.md](./docs/npm-scripts-guide.md) - すべてのnpmスクリプト
 
 ## 🏗️ 現在のアーキテクチャ（Supabase中心）
 
@@ -203,6 +220,12 @@ pnpm db:studio             # Prisma Studio起動（GUI）
    - Edge Functionsの活用
    - トラブルシューティング
 
+6. **[Database Operations Guide](./docs/database-operations.md)** ⭐ NEW
+   - Claude Codeからのデータベース操作
+   - 本番/ローカルDBへのクエリ実行
+   - よく使うクエリのサンプル集
+   - 安全性とベストプラクティス
+
 ### プロジェクト固有のドキュメント
 
 - [システム構成](./docs/architecture/README.md) - システム構成とポート番号
@@ -217,9 +240,21 @@ pnpm db:studio             # Prisma Studio起動（GUI）
 # スキーマ確認
 cat packages/database/prisma/schema.prisma
 
-# ER図生成
+# GUI でスキーマ確認（Prisma Studio）
 pnpm --filter @simple-bookkeeping/database prisma:studio
+
+# テーブル一覧を確認
+pnpm db:tables          # ローカル環境
+pnpm db:tables:prod     # 本番環境
 ```
+
+**主要テーブル構成（14テーブル/ビュー）:**
+
+- organizations, users, user_organizations
+- accounting_periods, accounts, partners
+- journal_entries, journal_entry_lines
+- audit_logs, file_metadata, user_presence
+- account_balances (VIEW), trial_balance (VIEW), dashboard_stats (VIEW)
 
 ## 🔐 最重要：機密情報の取り扱い
 
