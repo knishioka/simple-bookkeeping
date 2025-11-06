@@ -1,4 +1,5 @@
 import type { Database } from '@/lib/supabase/database.types';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
@@ -159,7 +160,7 @@ export async function POST(request: NextRequest) {
       );
 
       // Use service client for admin operations
-      const serviceClient = await createServiceClient();
+      const serviceClient: SupabaseClient<Database> = createServiceClient();
       const { error: updateError } = await serviceClient.auth.admin.updateUserById(
         authData.user.id,
         {

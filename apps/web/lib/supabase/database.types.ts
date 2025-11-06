@@ -54,7 +54,8 @@ export interface Database {
           id: string;
           email: string;
           name: string;
-          password_hash: string;
+          role: 'admin' | 'accountant' | 'viewer';
+          organization_id: string;
           is_active: boolean;
           created_at: string;
           updated_at: string;
@@ -63,7 +64,8 @@ export interface Database {
           id?: string;
           email: string;
           name: string;
-          password_hash: string;
+          role?: 'admin' | 'accountant' | 'viewer';
+          organization_id: string;
           is_active?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -72,7 +74,8 @@ export interface Database {
           id?: string;
           email?: string;
           name?: string;
-          password_hash?: string;
+          role?: 'admin' | 'accountant' | 'viewer';
+          organization_id?: string;
           is_active?: boolean;
           created_at?: string;
           updated_at?: string;

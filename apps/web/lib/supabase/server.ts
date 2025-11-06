@@ -1,6 +1,7 @@
 import type { Database } from './database.types';
 
 import { createServerClient } from '@supabase/ssr';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
 const assertNotLegacyKey = (key: string, envName: string) => {
@@ -95,10 +96,11 @@ export async function createActionClient() {
  * Service Roleキーを使用するSupabaseクライアント（管理者権限）
  * RLSを回避して操作が必要な場合に使用
  * 注意: サーバーサイドのみで使用すること
+ *
+ * IMPORTANT: Service Role Key は @supabase/supabase-js の createClient を使用する必要があります。
+ * @supabase/ssr の createServerClient は anon/publishable key 用で、service role key では動作しません。
  */
-export async function createServiceClient() {
-  const cookieStore = await cookies();
-
+export function createServiceClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -108,24 +110,11 @@ export async function createServiceClient() {
 
   assertNotLegacyKey(supabaseServiceKey, 'SUPABASE_SERVICE_ROLE_KEY');
 
-  return createServerClient<Database>(supabaseUrl, supabaseServiceKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet) {
-        try {
-          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
-        } catch {
-          // The `setAll` method was called from a Server Component.
-          // This can be ignored if you have middleware refreshing
-          // user sessions.
-        }
-      },
-    },
+  // Use @supabase/supabase-js createClient for service role key
+  // @supabase/ssr createServerClient does not work with service role keys
+  return createSupabaseClient<Database>(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
-      detectSessionInUrl: false,
       persistSession: false,
     },
   });
