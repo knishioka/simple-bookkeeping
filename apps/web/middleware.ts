@@ -1,6 +1,8 @@
+import type { Database } from '@/lib/supabase/database.types';
 import type { NextRequest } from 'next/server';
 
 import { createServerClient } from '@supabase/ssr';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 import { NextResponse } from 'next/server';
@@ -260,17 +262,44 @@ export async function middleware(request: NextRequest) {
 
     console.warn('[Middleware] No organization ID found in app_metadata, checking database');
 
+    // CRITICAL: Use service client for database fallback
+    // Regular client with RLS may not have permissions immediately after signin
+    // Service client bypasses RLS and always has access
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!serviceRoleKey) {
+      console.error('[Middleware] Service role key not configured, cannot query database');
+      // Redirect to select-organization without database check
+      const redirectUrl = new URL('/auth/select-organization', request.url);
+      redirectUrl.searchParams.set('redirectTo', pathname);
+      const nextResponse = NextResponse.redirect(redirectUrl);
+      nextResponse.headers.set('x-redirect-count', (redirectCount + 1).toString());
+      return nextResponse;
+    }
+
+    // Create service client for admin operations
+    const serviceClient = createSupabaseClient<Database>(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
     // PERFORMANCE NOTE: Database fallback query
     // This is only executed when app_metadata is missing or incorrect.
     // Normally, app_metadata should be set during signup/signin (see auth.ts)
     // This fallback exists for legacy users or edge cases where metadata update failed.
     // TODO: Monitor frequency of this fallback - if common, investigate root cause
-    const { data: userOrg } = await supabase
+    const { data: userOrg, error: userOrgError } = await serviceClient
       .from('user_organizations')
       .select('organization_id, role')
       .eq('user_id', user.id)
       .eq('is_default', true)
-      .single();
+      .single<{ organization_id: string; role: string }>();
+
+    if (userOrgError) {
+      console.error('[Middleware] Failed to query user_organizations:', userOrgError);
+    }
 
     if (userOrg?.organization_id) {
       console.warn('[Middleware] Found organization in database:', userOrg.organization_id);
