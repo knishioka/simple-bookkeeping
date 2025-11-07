@@ -71,11 +71,32 @@ export default function LoginPage() {
         return;
       }
 
-      // Error case - parse JSON error response
+      // Error case - parse error response
       if (!response.ok) {
-        const result = await response.json();
-        console.error('[LoginPage] Login failed:', result.error?.message);
-        setError(result.error?.message || 'ログインに失敗しました');
+        // Check Content-Type to determine response format
+        const contentType = response.headers.get('content-type');
+        console.warn('[LoginPage] Error response Content-Type:', contentType);
+
+        // Handle JSON error response
+        if (contentType && contentType.includes('application/json')) {
+          try {
+            const result = await response.json();
+            console.error('[LoginPage] Login failed:', result.error?.message);
+            setError(result.error?.message || 'ログインに失敗しました');
+          } catch (parseError) {
+            console.error('[LoginPage] Failed to parse JSON error:', parseError);
+            setError('ログインに失敗しました');
+          }
+        } else {
+          // Non-JSON response (likely HTML error page)
+          console.error('[LoginPage] Received non-JSON error response');
+          const text = await response.text();
+          console.error(
+            '[LoginPage] Error response text (first 200 chars):',
+            text.substring(0, 200)
+          );
+          setError('サーバーエラーが発生しました。しばらく経ってから再度お試しください。');
+        }
         setIsLoading(false);
         return;
       }
