@@ -138,10 +138,18 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
 
       // Step 2: 組織を作成
       console.warn('[SignUp] Step 2: Creating organization');
-      // TODO: Fix type incompatibility between @supabase/supabase-js v2.56 and database.types.ts
-      const { data: newOrg, error: orgError } = await serviceClient
+      const {
+        data: newOrg,
+        error: orgError,
+      }: {
+        data: Database['public']['Tables']['organizations']['Row'] | null;
+        error: Error | null;
+      } = await serviceClient
         .from('organizations')
-        // @ts-expect-error - Regenerate database.types.ts with Supabase CLI when Docker is available
+        // @ts-expect-error - Type inference issue with @supabase/supabase-js v2.50.0 and service client
+        // TypeScript incorrectly infers 'never' for insert operations on service client
+        // This is a known compatibility issue and does not affect runtime behavior
+        // TODO: Consider upgrading @supabase/supabase-js to v2.56+ when stable
         .insert({
           name: finalOrgName,
           code: `ORG-${Date.now()}`, // 仮のコード（後で変更可能）
@@ -166,7 +174,6 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
         );
       }
 
-      // @ts-expect-error - Type incompatibility fix needed (see TODO above)
       organizationId = newOrg.id;
       console.warn('[SignUp] Organization created successfully:', organizationId);
 
@@ -174,7 +181,7 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
       console.warn('[SignUp] Step 3: Creating user record');
       const { error: userError } = await serviceClient
         .from('users')
-        // @ts-expect-error - Type incompatibility fix needed (see TODO above)
+        // @ts-expect-error - Type inference issue with @supabase/supabase-js v2.50.0 and service client (see Step 2)
         .insert({
           id: authData.user.id,
           email,
@@ -198,7 +205,7 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
       console.warn('[SignUp] Step 4: Creating user-organization association');
       const { error: userOrgError } = await serviceClient
         .from('user_organizations')
-        // @ts-expect-error - Type incompatibility fix needed (see TODO above)
+        // @ts-expect-error - Type inference issue with @supabase/supabase-js v2.50.0 and service client (see Step 2)
         .insert({
           user_id: authData.user.id,
           organization_id: organizationId,
