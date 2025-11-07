@@ -205,6 +205,19 @@ export async function POST(request: NextRequest) {
       `[SignIn Route] Returning success JSON with ${cookiesToSet.length} Supabase cookies`
     );
 
+    // Log cookie details for debugging
+    console.warn('[SignIn Route] Cookies to set:');
+    cookiesToSet.forEach(({ name, value, options }) => {
+      console.warn(`[SignIn Route]   - ${name}:`, {
+        valueLength: value.length,
+        httpOnly: options.httpOnly,
+        secure: options.secure,
+        sameSite: options.sameSite,
+        path: options.path,
+        maxAge: options.maxAge,
+      });
+    });
+
     // CRITICAL: Return JSON response instead of redirect
     // This allows the client to receive and store cookies BEFORE redirecting
     // Fixes the issue where cookies are not available during server-side redirect
@@ -222,6 +235,11 @@ export async function POST(request: NextRequest) {
       successResponse.cookies.set(name, value, options);
     });
 
+    console.warn('[SignIn Route] Response created with cookies');
+    console.warn(
+      '[SignIn Route] Response headers will include Set-Cookie for:',
+      cookiesToSet.map((c) => c.name).join(', ')
+    );
     console.warn('[SignIn Route] Returning success response with cookies for client-side redirect');
     return successResponse;
   } catch (error) {

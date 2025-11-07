@@ -71,11 +71,32 @@ export default function LoginPage() {
         try {
           const result = await response.json();
 
+          console.warn('[LoginPage] Response received:', {
+            ok: response.ok,
+            success: result.success,
+            redirectTo: result.redirectTo,
+            organizationId: result.organizationId,
+          });
+
+          // Log response headers (Set-Cookie)
+          const setCookieHeaders = response.headers.get('set-cookie');
+          console.warn(
+            '[LoginPage] Set-Cookie header:',
+            setCookieHeaders ? 'Present' : 'Not found'
+          );
+
+          // Log current cookies BEFORE redirect
+          console.warn('[LoginPage] Current cookies before redirect:', document.cookie);
+
           if (response.ok && result.success) {
             // Success - cookies are set, now redirect client-side
             console.warn('[LoginPage] Login successful, redirecting to:', result.redirectTo);
+            console.warn('[LoginPage] Will redirect in 100ms...');
+
             // Small delay to ensure cookies are fully set
             setTimeout(() => {
+              console.warn('[LoginPage] Executing redirect now');
+              console.warn('[LoginPage] Cookies at redirect time:', document.cookie);
               window.location.href = result.redirectTo;
             }, 100);
             return;

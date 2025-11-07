@@ -216,20 +216,44 @@ export async function middleware(request: NextRequest) {
     },
   });
 
+  // Log incoming cookies for debugging
+  const cookieHeader = request.headers.get('cookie');
+  console.warn(`[Middleware] Path: ${pathname}`);
+  console.warn(`[Middleware] Cookie header present: ${!!cookieHeader}`);
+  if (cookieHeader) {
+    const cookieNames = cookieHeader.split(';').map((c) => c.trim().split('=')[0]);
+    console.warn(`[Middleware] Cookie names:`, cookieNames);
+    const supabaseCookies = cookieNames.filter(
+      (name) => name.startsWith('sb-') || name.startsWith('supabase-')
+    );
+    console.warn(`[Middleware] Supabase cookies:`, supabaseCookies);
+  }
+
   // Check if user is authenticated
   const {
     data: { user },
+    error: getUserError,
   } = await supabase.auth.getUser();
 
-  console.warn(`[Middleware] Path: ${pathname}, User: ${user?.id || 'none'}`);
+  console.warn(`[Middleware] getUser() result:`, {
+    userId: user?.id || 'none',
+    error: getUserError?.message,
+  });
 
   if (!user) {
     // Redirect to login if not authenticated
-    console.warn('[Middleware] No user found, redirecting to login');
+    console.warn('[Middleware] ❌ No user found - redirecting to login');
+    console.warn('[Middleware] Reason: getUser() returned no user');
+    if (getUserError) {
+      console.warn('[Middleware] getUser() error details:', getUserError);
+    }
     const redirectUrl = new URL('/auth/login', request.url);
     redirectUrl.searchParams.set('redirectTo', pathname);
+    console.warn('[Middleware] Redirect URL:', redirectUrl.toString());
     return NextResponse.redirect(redirectUrl);
   }
+
+  console.warn('[Middleware] ✅ User authenticated:', user.id);
 
   // Check organization context
   // CRITICAL: Check temporary cookie first (set by signin route)
