@@ -25,9 +25,19 @@ export default function SelectOrganizationPage() {
   useEffect(() => {
     async function checkUser() {
       try {
+        console.warn('[SelectOrganization] Calling getCurrentUser()');
         const result = await getCurrentUser();
+        console.warn('[SelectOrganization] getCurrentUser() result:', {
+          success: result.success,
+          hasData: !!result.data,
+          userId: result.data?.id,
+          email: result.data?.email,
+          organizationId: result.data?.organizationId,
+          role: result.data?.role,
+        });
 
         if (!result.success) {
+          console.error('[SelectOrganization] getCurrentUser() failed');
           setError('ユーザー情報の取得に失敗しました。');
           setIsLoading(false);
           return;
@@ -35,17 +45,25 @@ export default function SelectOrganizationPage() {
 
         if (!result.data) {
           // Not logged in, redirect to login
+          console.warn('[SelectOrganization] No user data, redirecting to login');
           router.push('/auth/login');
           return;
         }
 
         if (result.data.organizationId) {
           // User has organization, redirect to dashboard
+          console.warn(
+            '[SelectOrganization] User has organization:',
+            result.data.organizationId,
+            'redirecting to dashboard'
+          );
           router.push('/dashboard');
           return;
         }
 
         // User logged in but no organization
+        console.warn('[SelectOrganization] User logged in but no organization found');
+        console.warn('[SelectOrganization] User data:', result.data);
         setError('アカウントに組織が関連付けられていません。管理者にお問い合わせください。');
         setIsLoading(false);
       } catch (err) {

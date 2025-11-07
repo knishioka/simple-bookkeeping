@@ -582,6 +582,7 @@ export async function updatePassword(
  */
 export async function getCurrentUser(): Promise<ActionResult<AuthUser | null>> {
   try {
+    console.warn('[getCurrentUser] Starting user fetch');
     const supabase = await createClient();
 
     const {
@@ -589,33 +590,62 @@ export async function getCurrentUser(): Promise<ActionResult<AuthUser | null>> {
       error,
     } = await supabase.auth.getUser();
 
+    console.warn('[getCurrentUser] getUser() result:', {
+      hasUser: !!user,
+      userId: user?.id,
+      email: user?.email,
+      error: error?.message,
+    });
+
     if (error || !user) {
+      console.warn('[getCurrentUser] No authenticated user, returning null');
       return createSuccessResult(null);
     }
 
     // ユーザーの組織情報を取得
-    const { data: userOrgs } = await supabase
+    console.warn('[getCurrentUser] Fetching user_organizations for user:', user.id);
+    const { data: userOrgs, error: userOrgsError } = await supabase
       .from('user_organizations')
       .select('organization_id, role')
       .eq('user_id', user.id)
       .eq('is_default', true)
       .single();
 
+    console.warn('[getCurrentUser] user_organizations query result:', {
+      hasData: !!userOrgs,
+      organizationId: userOrgs?.organization_id,
+      role: userOrgs?.role,
+      error: userOrgsError?.message,
+      errorCode: userOrgsError?.code,
+      errorDetails: userOrgsError?.details,
+    });
+
     // ユーザー情報を取得
-    const { data: userData } = await supabase
+    console.warn('[getCurrentUser] Fetching users table for user:', user.id);
+    const { data: userData, error: userDataError } = await supabase
       .from('users')
       .select('name')
       .eq('id', user.id)
       .single();
 
-    return createSuccessResult({
+    console.warn('[getCurrentUser] users query result:', {
+      hasData: !!userData,
+      name: userData?.name,
+      error: userDataError?.message,
+    });
+
+    const result = {
       id: user.id,
       email: user.email || '',
       name: userData?.name || user.user_metadata?.name,
       organizationId: userOrgs?.organization_id,
       role: userOrgs?.role,
-    });
+    };
+
+    console.warn('[getCurrentUser] Returning user data:', result);
+    return createSuccessResult(result);
   } catch (error) {
+    console.error('[getCurrentUser] Unexpected error:', error);
     return handleSupabaseError(error);
   }
 }
