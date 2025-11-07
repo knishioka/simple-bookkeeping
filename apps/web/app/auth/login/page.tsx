@@ -73,9 +73,25 @@ export default function LoginPage() {
 
       // Error case - parse JSON error response
       if (!response.ok) {
-        const result = await response.json();
-        console.error('[LoginPage] Login failed:', result.error?.message);
-        setError(result.error?.message || 'ログインに失敗しました');
+        // CRITICAL: Check Content-Type before parsing as JSON
+        // If server returns HTML (e.g., 404 page), attempting to parse as JSON will fail
+        const contentType = response.headers.get('content-type');
+
+        if (contentType && contentType.includes('application/json')) {
+          // Response is JSON - safe to parse
+          const result = await response.json();
+          console.error('[LoginPage] Login failed:', result.error?.message);
+          setError(result.error?.message || 'ログインに失敗しました');
+        } else {
+          // Response is not JSON (likely HTML error page)
+          console.error('[LoginPage] Login failed with non-JSON response:', {
+            status: response.status,
+            statusText: response.statusText,
+            contentType,
+          });
+          setError(`ログインに失敗しました (${response.status}: ${response.statusText})`);
+        }
+
         setIsLoading(false);
         return;
       }
