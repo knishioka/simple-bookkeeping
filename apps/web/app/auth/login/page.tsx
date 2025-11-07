@@ -46,8 +46,9 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      // CRITICAL: Route Handler approach instead of Server Action
-      // This ensures cookies are set in the same HTTP response as the redirect
+      // CRITICAL: Route Handler returns JSON with redirect URL
+      // Cookies are set in the response, then client-side redirect happens
+      // This ensures cookies are available BEFORE the redirect
       console.warn('[LoginPage] Calling Route Handler /api/auth/signin');
       const response = await fetch('/api/auth/signin', {
         method: 'POST',
@@ -58,52 +59,46 @@ export default function LoginPage() {
           email: data.email,
           password: data.password,
         }),
-        // Default redirect: 'follow' allows fetch to follow redirects
-        // and set cookies properly
+        credentials: 'include', // Important: include cookies in request/response
       });
 
-      // Check if redirect happened (success case)
-      if (response.ok && response.redirected) {
-        // Success - cookies are set, redirect happened
-        // Navigate to the final URL (dashboard or select-organization)
-        console.warn('[LoginPage] Login successful, redirecting to:', response.url);
-        window.location.href = response.url;
-        return;
-      }
+      // Parse response
+      const contentType = response.headers.get('content-type');
+      console.warn('[LoginPage] Response Content-Type:', contentType);
 
-      // Error case - parse error response
-      if (!response.ok) {
-        // Check Content-Type to determine response format
-        const contentType = response.headers.get('content-type');
-        console.warn('[LoginPage] Error response Content-Type:', contentType);
+      // Handle JSON response
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          const result = await response.json();
 
-        // Handle JSON error response
-        if (contentType && contentType.includes('application/json')) {
-          try {
-            const result = await response.json();
-            console.error('[LoginPage] Login failed:', result.error?.message);
-            setError(result.error?.message || 'ログインに失敗しました');
-          } catch (parseError) {
-            console.error('[LoginPage] Failed to parse JSON error:', parseError);
-            setError('ログインに失敗しました');
+          if (response.ok && result.success) {
+            // Success - cookies are set, now redirect client-side
+            console.warn('[LoginPage] Login successful, redirecting to:', result.redirectTo);
+            // Small delay to ensure cookies are fully set
+            setTimeout(() => {
+              window.location.href = result.redirectTo;
+            }, 100);
+            return;
           }
-        } else {
-          // Non-JSON response (likely HTML error page)
-          console.error('[LoginPage] Received non-JSON error response');
-          const text = await response.text();
-          console.error(
-            '[LoginPage] Error response text (first 200 chars):',
-            text.substring(0, 200)
-          );
-          setError('サーバーエラーが発生しました。しばらく経ってから再度お試しください。');
+
+          // Error case
+          console.error('[LoginPage] Login failed:', result.error?.message);
+          setError(result.error?.message || 'ログインに失敗しました');
+          setIsLoading(false);
+          return;
+        } catch (parseError) {
+          console.error('[LoginPage] Failed to parse JSON response:', parseError);
+          setError('ログインに失敗しました');
+          setIsLoading(false);
+          return;
         }
-        setIsLoading(false);
-        return;
       }
 
-      // Unexpected success without redirect
-      console.error('[LoginPage] Unexpected response:', response);
-      setError('ログインに失敗しました');
+      // Non-JSON response (unexpected)
+      console.error('[LoginPage] Received non-JSON response');
+      const text = await response.text();
+      console.error('[LoginPage] Response text (first 200 chars):', text.substring(0, 200));
+      setError('サーバーエラーが発生しました。しばらく経ってから再度お試しください。');
       setIsLoading(false);
     } catch (err) {
       // Network or other unexpected errors

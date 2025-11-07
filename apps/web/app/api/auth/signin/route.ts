@@ -200,48 +200,30 @@ export async function POST(request: NextRequest) {
     // Determine redirect path
     const redirectPath = !userOrgs?.organization_id ? '/auth/select-organization' : '/dashboard';
 
-    console.warn(`[SignIn Route] Redirecting to: ${redirectPath}`);
-    console.warn(`[SignIn Route] Applying ${cookiesToSet.length} cookies to redirect response`);
+    console.warn(`[SignIn Route] User will be redirected to: ${redirectPath}`);
+    console.warn(
+      `[SignIn Route] Returning success JSON with ${cookiesToSet.length} Supabase cookies`
+    );
 
-    // CRITICAL: Create redirect response and apply cookies with full options
-    const redirectUrl = new URL(redirectPath, request.url);
-    const redirectResponse = NextResponse.redirect(redirectUrl, {
-      status: 303, // Use 303 See Other for POST -> GET redirect
-    });
+    // CRITICAL: Return JSON response instead of redirect
+    // This allows the client to receive and store cookies BEFORE redirecting
+    // Fixes the issue where cookies are not available during server-side redirect
+    const successResponse = NextResponse.json(
+      {
+        success: true,
+        redirectTo: redirectPath,
+        organizationId: userOrgs?.organization_id,
+      },
+      { status: 200 }
+    );
 
-    // Apply all cookies with their full options (httpOnly, secure, sameSite, maxAge, etc.)
-    // This is critical for maintaining session security and preventing authentication loops
+    // Apply all Supabase session cookies with their full options
     cookiesToSet.forEach(({ name, value, options }) => {
-      redirectResponse.cookies.set(name, value, options);
+      successResponse.cookies.set(name, value, options);
     });
 
-    // CRITICAL: Add organization info as temporary cookie for middleware
-    // This ensures middleware can access organization immediately after signin
-    // even before app_metadata is refreshed in the JWT token
-    if (userOrgs?.organization_id) {
-      // IMPORTANT: Use 'none' for sameSite to ensure cookie is sent during redirect
-      // This is safe because we use httpOnly and secure flags
-      const isProduction = process.env.NODE_ENV === 'production';
-      redirectResponse.cookies.set('x-temp-org-id', userOrgs.organization_id, {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: 'none', // Required for cross-site redirect to work
-        maxAge: 60, // 1 minute - just enough for the redirect
-        path: '/',
-      });
-      redirectResponse.cookies.set('x-temp-org-role', userOrgs.role || 'viewer', {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: 'none', // Required for cross-site redirect to work
-        maxAge: 60,
-        path: '/',
-      });
-      console.warn('[SignIn Route] Added temporary organization cookies for middleware');
-      console.warn('[SignIn Route] Cookie settings:', { isProduction, sameSite: 'none' });
-    }
-
-    console.warn('[SignIn Route] Returning redirect response with cookies (with full options)');
-    return redirectResponse;
+    console.warn('[SignIn Route] Returning success response with cookies for client-side redirect');
+    return successResponse;
   } catch (error) {
     console.error('[SignIn Route] Unexpected error:', error);
     const isLegacyKeyError = error instanceof Error && error.message.includes('レガシー形式');
