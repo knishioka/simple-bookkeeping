@@ -219,21 +219,25 @@ export async function POST(request: NextRequest) {
     // This ensures middleware can access organization immediately after signin
     // even before app_metadata is refreshed in the JWT token
     if (userOrgs?.organization_id) {
+      // IMPORTANT: Use 'none' for sameSite to ensure cookie is sent during redirect
+      // This is safe because we use httpOnly and secure flags
+      const isProduction = process.env.NODE_ENV === 'production';
       redirectResponse.cookies.set('x-temp-org-id', userOrgs.organization_id, {
         httpOnly: true,
-        secure: true,
-        sameSite: 'lax',
+        secure: isProduction,
+        sameSite: 'none', // Required for cross-site redirect to work
         maxAge: 60, // 1 minute - just enough for the redirect
         path: '/',
       });
       redirectResponse.cookies.set('x-temp-org-role', userOrgs.role || 'viewer', {
         httpOnly: true,
-        secure: true,
-        sameSite: 'lax',
+        secure: isProduction,
+        sameSite: 'none', // Required for cross-site redirect to work
         maxAge: 60,
         path: '/',
       });
       console.warn('[SignIn Route] Added temporary organization cookies for middleware');
+      console.warn('[SignIn Route] Cookie settings:', { isProduction, sameSite: 'none' });
     }
 
     console.warn('[SignIn Route] Returning redirect response with cookies (with full options)');
