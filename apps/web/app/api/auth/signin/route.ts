@@ -135,14 +135,19 @@ export async function POST(request: NextRequest) {
     console.warn('[SignIn Route] Authentication successful for user:', authData.user.id);
     console.warn('[SignIn Route] Current app_metadata:', authData.user.app_metadata);
 
+    // CRITICAL: Create service client for admin operations
+    // Use service client instead of regular client for organization lookup
+    // because RLS may not recognize the session immediately after sign-in
+    const serviceClient: SupabaseClient<Database> = createServiceClient();
+
     // ユーザーの組織情報を取得
     console.warn('[SignIn Route] Fetching user organization for user:', authData.user.id);
-    const { data: userOrgs, error: userOrgsError } = await supabase
+    const { data: userOrgs, error: userOrgsError } = await serviceClient
       .from('user_organizations')
       .select('organization_id, role')
       .eq('user_id', authData.user.id)
       .eq('is_default', true)
-      .single();
+      .single<{ organization_id: string; role: string }>();
 
     console.warn('[SignIn Route] user_organizations query result:', {
       hasData: !!userOrgs,
@@ -169,8 +174,7 @@ export async function POST(request: NextRequest) {
         currentAppMetadata?.current_organization_id
       );
 
-      // Use service client for admin operations
-      const serviceClient: SupabaseClient<Database> = createServiceClient();
+      // Service client already created above
       const { error: updateError } = await serviceClient.auth.admin.updateUserById(
         authData.user.id,
         {
