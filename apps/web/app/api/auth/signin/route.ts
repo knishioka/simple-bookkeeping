@@ -215,6 +215,27 @@ export async function POST(request: NextRequest) {
       redirectResponse.cookies.set(name, value, options);
     });
 
+    // CRITICAL: Add organization info as temporary cookie for middleware
+    // This ensures middleware can access organization immediately after signin
+    // even before app_metadata is refreshed in the JWT token
+    if (userOrgs?.organization_id) {
+      redirectResponse.cookies.set('x-temp-org-id', userOrgs.organization_id, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        maxAge: 60, // 1 minute - just enough for the redirect
+        path: '/',
+      });
+      redirectResponse.cookies.set('x-temp-org-role', userOrgs.role || 'viewer', {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'lax',
+        maxAge: 60,
+        path: '/',
+      });
+      console.warn('[SignIn Route] Added temporary organization cookies for middleware');
+    }
+
     console.warn('[SignIn Route] Returning redirect response with cookies (with full options)');
     return redirectResponse;
   } catch (error) {

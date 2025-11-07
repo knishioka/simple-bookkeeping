@@ -232,10 +232,17 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check organization context
+  // CRITICAL: Check temporary cookie first (set by signin route)
+  // This ensures we have organization info immediately after signin
+  // even before app_metadata is refreshed in the JWT token
+  const tempOrgId = request.cookies.get('x-temp-org-id')?.value;
+  const tempOrgRole = request.cookies.get('x-temp-org-role')?.value;
+
   const userMetadata = user.app_metadata;
-  const currentOrganizationId = userMetadata?.current_organization_id;
+  const currentOrganizationId = tempOrgId || userMetadata?.current_organization_id;
 
   console.warn(`[Middleware] User ${user.id} app_metadata:`, userMetadata);
+  console.warn(`[Middleware] Temp cookie org: ${tempOrgId || 'NONE'}`);
   console.warn(`[Middleware] Current organization: ${currentOrganizationId || 'NONE'}`);
 
   // Redirect loop detection
@@ -333,12 +340,12 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith('/api/')) {
     response.headers.set('x-user-id', user.id);
     response.headers.set('x-organization-id', currentOrganizationId);
-    response.headers.set('x-user-role', userMetadata?.current_role || 'viewer');
+    response.headers.set('x-user-role', tempOrgRole || userMetadata?.current_role || 'viewer');
   }
 
   // Check role-based access for admin routes
   if (pathname.startsWith('/admin/') || pathname.startsWith('/settings/')) {
-    const userRole = userMetadata?.current_role;
+    const userRole = tempOrgRole || userMetadata?.current_role;
     if (userRole !== 'admin') {
       return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
@@ -346,7 +353,7 @@ export async function middleware(request: NextRequest) {
 
   // Check role-based access for accountant routes
   if (pathname.startsWith('/accounting/') || pathname.startsWith('/reports/')) {
-    const userRole = userMetadata?.current_role;
+    const userRole = tempOrgRole || userMetadata?.current_role;
     if (userRole !== 'admin' && userRole !== 'accountant') {
       return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
