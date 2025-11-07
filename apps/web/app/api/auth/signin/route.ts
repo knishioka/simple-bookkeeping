@@ -136,13 +136,23 @@ export async function POST(request: NextRequest) {
     console.warn('[SignIn Route] Current app_metadata:', authData.user.app_metadata);
 
     // ユーザーの組織情報を取得
-    console.warn('[SignIn Route] Fetching user organization');
-    const { data: userOrgs } = await supabase
+    console.warn('[SignIn Route] Fetching user organization for user:', authData.user.id);
+    const { data: userOrgs, error: userOrgsError } = await supabase
       .from('user_organizations')
       .select('organization_id, role')
       .eq('user_id', authData.user.id)
       .eq('is_default', true)
       .single();
+
+    console.warn('[SignIn Route] user_organizations query result:', {
+      hasData: !!userOrgs,
+      organizationId: userOrgs?.organization_id,
+      role: userOrgs?.role,
+      error: userOrgsError?.message,
+      errorCode: userOrgsError?.code,
+      errorDetails: userOrgsError?.details,
+      errorHint: userOrgsError?.hint,
+    });
 
     // CRITICAL: Check if app_metadata needs to be fixed (production bug fix)
     const currentAppMetadata = authData.user.app_metadata;
