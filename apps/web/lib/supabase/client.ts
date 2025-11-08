@@ -54,7 +54,47 @@ export function createClient() {
 
   assertNotLegacyKey(supabaseAnonKey, 'NEXT_PUBLIC_SUPABASE_ANON_KEY');
 
-  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
+  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      get(name: string) {
+        // eslint-disable-next-line no-console
+        console.info('[Supabase Client] Cookie get:', name);
+        if (typeof document === 'undefined') return undefined;
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+          const [key, value] = cookie.trim().split('=');
+          if (key === name) {
+            return decodeURIComponent(value);
+          }
+        }
+        return undefined;
+      },
+      set(name: string, value: string, options: { maxAge?: number; path?: string }) {
+        // eslint-disable-next-line no-console
+        console.info('[Supabase Client] Cookie set:', { name, valueLength: value.length });
+        if (typeof document === 'undefined') return;
+        let cookie = `${name}=${encodeURIComponent(value)}`;
+        if (options.path) {
+          cookie += `; path=${options.path}`;
+        }
+        if (options.maxAge) {
+          cookie += `; max-age=${options.maxAge}`;
+        }
+        cookie += '; SameSite=Lax';
+        document.cookie = cookie;
+      },
+      remove(name: string, options: { path?: string }) {
+        // eslint-disable-next-line no-console
+        console.info('[Supabase Client] Cookie remove:', name);
+        if (typeof document === 'undefined') return;
+        let cookie = `${name}=; max-age=0`;
+        if (options.path) {
+          cookie += `; path=${options.path}`;
+        }
+        document.cookie = cookie;
+      },
+    },
+  });
 }
 
 /**
