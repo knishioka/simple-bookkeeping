@@ -218,15 +218,15 @@ export async function middleware(request: NextRequest) {
 
   // Log incoming cookies for debugging
   const cookieHeader = request.headers.get('cookie');
-  console.warn(`[Middleware] Path: ${pathname}`);
-  console.warn(`[Middleware] Cookie header present: ${!!cookieHeader}`);
+  console.log(`[Middleware] Path: ${pathname}`);
+  console.log(`[Middleware] Cookie header present: ${!!cookieHeader}`);
   if (cookieHeader) {
     const cookieNames = cookieHeader.split(';').map((c) => c.trim().split('=')[0]);
-    console.warn(`[Middleware] Cookie names:`, cookieNames);
+    console.log(`[Middleware] Cookie names:`, cookieNames);
     const supabaseCookies = cookieNames.filter(
       (name) => name.startsWith('sb-') || name.startsWith('supabase-')
     );
-    console.warn(`[Middleware] Supabase cookies:`, supabaseCookies);
+    console.log(`[Middleware] Supabase cookies:`, supabaseCookies);
   }
 
   // Check if user is authenticated
@@ -235,25 +235,25 @@ export async function middleware(request: NextRequest) {
     error: getUserError,
   } = await supabase.auth.getUser();
 
-  console.warn(`[Middleware] getUser() result:`, {
+  console.log(`[Middleware] getUser() result:`, {
     userId: user?.id || 'none',
     error: getUserError?.message,
   });
 
   if (!user) {
     // Redirect to login if not authenticated
-    console.warn('[Middleware] ❌ No user found - redirecting to login');
-    console.warn('[Middleware] Reason: getUser() returned no user');
+    console.log('[Middleware] ❌ No user found - redirecting to login');
+    console.log('[Middleware] Reason: getUser() returned no user');
     if (getUserError) {
-      console.warn('[Middleware] getUser() error details:', getUserError);
+      console.log('[Middleware] getUser() error details:', getUserError);
     }
     const redirectUrl = new URL('/auth/login', request.url);
     redirectUrl.searchParams.set('redirectTo', pathname);
-    console.warn('[Middleware] Redirect URL:', redirectUrl.toString());
+    console.log('[Middleware] Redirect URL:', redirectUrl.toString());
     return NextResponse.redirect(redirectUrl);
   }
 
-  console.warn('[Middleware] ✅ User authenticated:', user.id);
+  console.log('[Middleware] ✅ User authenticated:', user.id);
 
   // Check organization context
   // CRITICAL: Check temporary cookie first (set by signin route)
@@ -265,16 +265,16 @@ export async function middleware(request: NextRequest) {
   const userMetadata = user.app_metadata;
   const currentOrganizationId = tempOrgId || userMetadata?.current_organization_id;
 
-  console.warn(`[Middleware] User ${user.id} app_metadata:`, userMetadata);
-  console.warn(`[Middleware] Temp cookie org: ${tempOrgId || 'NONE'}`);
-  console.warn(`[Middleware] Current organization: ${currentOrganizationId || 'NONE'}`);
+  console.log(`[Middleware] User ${user.id} app_metadata:`, userMetadata);
+  console.log(`[Middleware] Temp cookie org: ${tempOrgId || 'NONE'}`);
+  console.log(`[Middleware] Current organization: ${currentOrganizationId || 'NONE'}`);
 
   // Redirect loop detection
   const redirectCount = parseInt(request.headers.get('x-redirect-count') || '0');
-  console.warn(`[Middleware] Redirect count: ${redirectCount}`);
+  console.log(`[Middleware] Redirect count: ${redirectCount}`);
 
   if (redirectCount > 5) {
-    console.warn('[Middleware] ERROR: Redirect loop detected! Breaking loop.');
+    console.log('[Middleware] ERROR: Redirect loop detected! Breaking loop.');
     // Break the loop by allowing access to dashboard even without organization
     // This will help us debug the issue
     if (pathname !== '/dashboard') {
@@ -287,11 +287,11 @@ export async function middleware(request: NextRequest) {
   if (!currentOrganizationId) {
     // Special handling for organization selection page to prevent loops
     if (pathname === '/auth/select-organization') {
-      console.warn('[Middleware] Already on select-organization page, allowing access');
+      console.log('[Middleware] Already on select-organization page, allowing access');
       return response;
     }
 
-    console.warn('[Middleware] No organization ID found in app_metadata, checking database');
+    console.log('[Middleware] No organization ID found in app_metadata, checking database');
 
     // CRITICAL: Use service client for database fallback
     // Regular client with RLS may not have permissions immediately after signin
@@ -333,8 +333,8 @@ export async function middleware(request: NextRequest) {
     }
 
     if (userOrg?.organization_id) {
-      console.warn('[Middleware] Found organization in database:', userOrg.organization_id);
-      console.warn('[Middleware] Attempting to fix app_metadata');
+      console.log('[Middleware] Found organization in database:', userOrg.organization_id);
+      console.log('[Middleware] Attempting to fix app_metadata');
 
       // Try to update app_metadata (this might fail if we don't have service role key)
       // But we should still allow the user to continue
@@ -345,12 +345,12 @@ export async function middleware(request: NextRequest) {
       // Add a header to indicate metadata needs fixing
       response.headers.set('x-fix-metadata', 'true');
 
-      console.warn('[Middleware] Allowing access with organization from database');
+      console.log('[Middleware] Allowing access with organization from database');
       return response;
     }
 
     // Redirect to organization selection if no organization is found anywhere
-    console.warn('[Middleware] No organization found, redirecting to select-organization');
+    console.log('[Middleware] No organization found, redirecting to select-organization');
     const redirectUrl = new URL('/auth/select-organization', request.url);
     redirectUrl.searchParams.set('redirectTo', pathname);
 

@@ -42,7 +42,7 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (data: LoginFormData) => {
-    console.warn('[LoginPage] Starting login process');
+    console.log('[LoginPage] Starting login process');
     setIsLoading(true);
     setError(null);
 
@@ -50,7 +50,7 @@ export default function LoginPage() {
       // CRITICAL: Route Handler returns JSON with redirect URL
       // Cookies are set in the response, then client-side redirect happens
       // This ensures cookies are available BEFORE the redirect
-      console.warn('[LoginPage] Calling Route Handler /api/auth/signin');
+      console.log('[LoginPage] Calling Route Handler /api/auth/signin');
       const response = await fetch('/api/auth/signin', {
         method: 'POST',
         headers: {
@@ -65,14 +65,14 @@ export default function LoginPage() {
 
       // Parse response
       const contentType = response.headers.get('content-type');
-      console.warn('[LoginPage] Response Content-Type:', contentType);
+      console.log('[LoginPage] Response Content-Type:', contentType);
 
       // Handle JSON response
       if (contentType && contentType.includes('application/json')) {
         try {
           const result = await response.json();
 
-          console.warn('[LoginPage] Response received:', {
+          console.log('[LoginPage] Response received:', {
             ok: response.ok,
             success: result.success,
             redirectTo: result.redirectTo,
@@ -81,23 +81,20 @@ export default function LoginPage() {
 
           // Log response headers (Set-Cookie)
           const setCookieHeaders = response.headers.get('set-cookie');
-          console.warn(
-            '[LoginPage] Set-Cookie header:',
-            setCookieHeaders ? 'Present' : 'Not found'
-          );
+          console.log('[LoginPage] Set-Cookie header:', setCookieHeaders ? 'Present' : 'Not found');
 
           // Log current cookies BEFORE redirect
-          console.warn('[LoginPage] Current cookies before redirect:', document.cookie);
+          console.log('[LoginPage] Current cookies before redirect:', document.cookie);
 
           if (response.ok && result.success) {
             // Success - cookies are set, now redirect client-side
-            console.warn('[LoginPage] Login successful, redirecting to:', result.redirectTo);
-            console.warn('[LoginPage] Will redirect in 100ms...');
+            console.log('[LoginPage] Login successful, redirecting to:', result.redirectTo);
+            console.log('[LoginPage] Will redirect in 100ms...');
 
             // Small delay to ensure cookies are fully set
             setTimeout(() => {
-              console.warn('[LoginPage] Executing redirect now');
-              console.warn('[LoginPage] Cookies at redirect time:', document.cookie);
+              console.log('[LoginPage] Executing redirect now');
+              console.log('[LoginPage] Cookies at redirect time:', document.cookie);
               window.location.href = result.redirectTo;
             }, 100);
             return;

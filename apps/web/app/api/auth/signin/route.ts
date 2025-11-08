@@ -20,7 +20,7 @@ import { createServiceClient } from '@/lib/supabase/server';
  * - No race condition between cookie setting and redirect
  */
 export async function POST(request: NextRequest) {
-  console.warn('[SignIn Route] Starting sign in process');
+  console.log('[SignIn Route] Starting sign in process');
 
   try {
     const body = await request.json();
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     // Validation
     if (!email || !password) {
-      console.warn('[SignIn Route] Validation failed: missing credentials');
+      console.log('[SignIn Route] Validation failed: missing credentials');
       return NextResponse.json(
         {
           success: false,
@@ -86,14 +86,14 @@ export async function POST(request: NextRequest) {
     });
 
     // Supabase Authでログイン
-    console.warn('[SignIn Route] Authenticating with Supabase Auth');
+    console.log('[SignIn Route] Authenticating with Supabase Auth');
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (authError) {
-      console.warn('[SignIn Route] Authentication failed:', authError.message);
+      console.log('[SignIn Route] Authentication failed:', authError.message);
       if (authError.message.includes('Invalid login credentials')) {
         return NextResponse.json(
           {
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!authData.user) {
-      console.warn('[SignIn Route] Authentication failed: no user returned');
+      console.log('[SignIn Route] Authentication failed: no user returned');
       return NextResponse.json(
         {
           success: false,
@@ -132,8 +132,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.warn('[SignIn Route] Authentication successful for user:', authData.user.id);
-    console.warn('[SignIn Route] Current app_metadata:', authData.user.app_metadata);
+    console.log('[SignIn Route] Authentication successful for user:', authData.user.id);
+    console.log('[SignIn Route] Current app_metadata:', authData.user.app_metadata);
 
     // CRITICAL: Create service client for admin operations
     // Use service client instead of regular client for organization lookup
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
     const serviceClient: SupabaseClient<Database> = createServiceClient();
 
     // ユーザーの組織情報を取得
-    console.warn('[SignIn Route] Fetching user organization for user:', authData.user.id);
+    console.log('[SignIn Route] Fetching user organization for user:', authData.user.id);
     const { data: userOrgs, error: userOrgsError } = await serviceClient
       .from('user_organizations')
       .select('organization_id, role')
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
       .eq('is_default', true)
       .single<{ organization_id: string; role: string }>();
 
-    console.warn('[SignIn Route] user_organizations query result:', {
+    console.log('[SignIn Route] user_organizations query result:', {
       hasData: !!userOrgs,
       organizationId: userOrgs?.organization_id,
       role: userOrgs?.role,
@@ -167,9 +167,9 @@ export async function POST(request: NextRequest) {
         currentAppMetadata.current_organization_id !== userOrgs.organization_id);
 
     if (needsMetadataUpdate) {
-      console.warn('[SignIn Route] FIXING: app_metadata is missing or incorrect, updating now');
-      console.warn('[SignIn Route] Expected org:', userOrgs.organization_id);
-      console.warn(
+      console.log('[SignIn Route] FIXING: app_metadata is missing or incorrect, updating now');
+      console.log('[SignIn Route] Expected org:', userOrgs.organization_id);
+      console.log(
         '[SignIn Route] Current org in metadata:',
         currentAppMetadata?.current_organization_id
       );
@@ -186,29 +186,29 @@ export async function POST(request: NextRequest) {
       );
 
       if (updateError) {
-        console.warn('[SignIn Route] WARNING: Failed to fix app_metadata:', updateError);
+        console.log('[SignIn Route] WARNING: Failed to fix app_metadata:', updateError);
         // Continue anyway - the user can still use the app
       } else {
-        console.warn('[SignIn Route] Successfully fixed app_metadata');
+        console.log('[SignIn Route] Successfully fixed app_metadata');
       }
     } else if (userOrgs?.organization_id) {
-      console.warn('[SignIn Route] app_metadata is correctly set');
+      console.log('[SignIn Route] app_metadata is correctly set');
     } else {
-      console.warn('[SignIn Route] No organization found for user');
+      console.log('[SignIn Route] No organization found for user');
     }
 
     // Determine redirect path
     const redirectPath = !userOrgs?.organization_id ? '/auth/select-organization' : '/dashboard';
 
-    console.warn(`[SignIn Route] User will be redirected to: ${redirectPath}`);
-    console.warn(
+    console.log(`[SignIn Route] User will be redirected to: ${redirectPath}`);
+    console.log(
       `[SignIn Route] Returning success JSON with ${cookiesToSet.length} Supabase cookies`
     );
 
     // Log cookie details for debugging
-    console.warn('[SignIn Route] Cookies to set:');
+    console.log('[SignIn Route] Cookies to set:');
     cookiesToSet.forEach(({ name, value, options }) => {
-      console.warn(`[SignIn Route]   - ${name}:`, {
+      console.log(`[SignIn Route]   - ${name}:`, {
         valueLength: value.length,
         httpOnly: options.httpOnly,
         secure: options.secure,
@@ -235,12 +235,12 @@ export async function POST(request: NextRequest) {
       successResponse.cookies.set(name, value, options);
     });
 
-    console.warn('[SignIn Route] Response created with cookies');
-    console.warn(
+    console.log('[SignIn Route] Response created with cookies');
+    console.log(
       '[SignIn Route] Response headers will include Set-Cookie for:',
       cookiesToSet.map((c) => c.name).join(', ')
     );
-    console.warn('[SignIn Route] Returning success response with cookies for client-side redirect');
+    console.log('[SignIn Route] Returning success response with cookies for client-side redirect');
     return successResponse;
   } catch (error) {
     console.error('[SignIn Route] Unexpected error:', error);
