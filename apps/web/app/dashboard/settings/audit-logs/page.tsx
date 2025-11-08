@@ -72,7 +72,7 @@ export default function AuditLogsPage() {
             .from('user_organizations')
             .select('organization_id, role')
             .eq('user_id', user.id)
-            .single();
+            .single<{ organization_id: string; role: string }>();
 
           if (orgError) {
             console.error('Organization fetch error:', orgError);

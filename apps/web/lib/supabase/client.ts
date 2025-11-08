@@ -1,6 +1,6 @@
 import type { Database } from './database.types';
 
-import { createBrowserClient } from '@supabase/ssr';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
 const assertNotLegacyKey = (key: string, envName: string) => {
   // Skip validation in test environment
@@ -23,7 +23,7 @@ export function createClient() {
   // Check if running in test environment with mock
   if (typeof window !== 'undefined') {
     const win = window as unknown as {
-      __supabaseClientMock?: () => ReturnType<typeof createBrowserClient>;
+      __supabaseClientMock?: () => ReturnType<typeof createSupabaseClient<Database>>;
     };
     if (win.__supabaseClientMock) {
       return win.__supabaseClientMock();
@@ -54,11 +54,19 @@ export function createClient() {
 
   assertNotLegacyKey(supabaseAnonKey, 'NEXT_PUBLIC_SUPABASE_ANON_KEY');
 
-  // Use the official pattern from Supabase docs - no custom cookie handlers needed
-  // @supabase/ssr handles cookies automatically
+  // WORKAROUND: Use @supabase/supabase-js directly instead of @supabase/ssr
+  // @supabase/ssr's createBrowserClient is not making network requests in Next.js 15
+  // This is a temporary fix until the compatibility issue is resolved
   // eslint-disable-next-line no-console
-  console.info('[Supabase Client] Creating browser client');
-  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
+  console.info('[Supabase Client] Creating browser client with @supabase/supabase-js');
+  return createSupabaseClient<Database>(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+    },
+  });
 }
 
 /**

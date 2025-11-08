@@ -118,7 +118,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         .from('users')
         .select('name')
         .eq('id', supabaseUser.id)
-        .single();
+        .single<{ name: string | null }>();
 
       if (userError) {
         console.error('[AuthContext] Error fetching user data:', userError);
@@ -362,11 +362,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Update default organization in database
       await supabase
         .from('user_organizations')
+        // @ts-expect-error - Type inference issue with @supabase/supabase-js
         .update({ is_default: false })
         .eq('user_id', user.id);
 
       await supabase
         .from('user_organizations')
+        // @ts-expect-error - Type inference issue with @supabase/supabase-js
         .update({ is_default: true })
         .eq('user_id', user.id)
         .eq('organization_id', organizationId);
