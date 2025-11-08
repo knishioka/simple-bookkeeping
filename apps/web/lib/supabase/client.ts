@@ -15,9 +15,13 @@ const assertNotLegacyKey = (key: string, envName: string) => {
   }
 };
 
+// Singleton instance to prevent multiple GoTrueClient instances
+let browserClient: ReturnType<typeof createSupabaseClient<Database>> | null = null;
+
 /**
  * Supabaseクライアント（ブラウザ用）
  * クライアントサイドコンポーネントで使用
+ * シングルトンパターンで実装し、複数のインスタンス作成を防ぐ
  */
 export function createClient() {
   // Check if running in test environment with mock
@@ -28,6 +32,13 @@ export function createClient() {
     if (win.__supabaseClientMock) {
       return win.__supabaseClientMock();
     }
+  }
+
+  // Return existing instance if available (singleton pattern)
+  if (browserClient) {
+    // eslint-disable-next-line no-console
+    console.info('[Supabase Client] Reusing existing browser client instance');
+    return browserClient;
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -58,8 +69,8 @@ export function createClient() {
   // @supabase/ssr's createBrowserClient is not making network requests in Next.js 15
   // This is a temporary fix until the compatibility issue is resolved
   // eslint-disable-next-line no-console
-  console.info('[Supabase Client] Creating browser client with @supabase/supabase-js');
-  return createSupabaseClient<Database>(supabaseUrl, supabaseAnonKey, {
+  console.info('[Supabase Client] Creating NEW browser client with @supabase/supabase-js');
+  browserClient = createSupabaseClient<Database>(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
@@ -67,6 +78,8 @@ export function createClient() {
       storage: typeof window !== 'undefined' ? window.localStorage : undefined,
     },
   });
+
+  return browserClient;
 }
 
 /**
