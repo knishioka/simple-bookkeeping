@@ -33,6 +33,15 @@ export function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+  // Temporary debug logging for production environment variable check
+  // eslint-disable-next-line no-console
+  console.info('[Supabase Client] Environment check:', {
+    hasUrl: !!supabaseUrl,
+    urlPrefix: supabaseUrl?.substring(0, 30),
+    hasAnonKey: !!supabaseAnonKey,
+    anonKeyPrefix: supabaseAnonKey?.substring(0, 20),
+  });
+
   if (!supabaseUrl || !supabaseAnonKey) {
     // 開発環境やテスト環境で環境変数が設定されていない場合のエラーメッセージを改善
     console.warn(
