@@ -35,7 +35,10 @@ const nextConfig = {
     ignoreBuildErrors: false,
   },
   compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
+    // Temporarily disable console removal for debugging authentication issues
+    // TODO: Re-enable after fixing authentication redirect loop
+    // removeConsole: process.env.NODE_ENV === 'production',
+    removeConsole: false,
   },
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons', 'date-fns'],
