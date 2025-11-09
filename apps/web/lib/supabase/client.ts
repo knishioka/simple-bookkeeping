@@ -128,14 +128,18 @@ export function createClient() {
           return null;
         }
 
-        const value = chunk.substring(chunkKey.length + 1);
-        chunks.push(value);
+        // CRITICAL: Each chunk value is URL-encoded and needs to be decoded
+        // before joining with other chunks
+        const encodedValue = chunk.substring(chunkKey.length + 1);
+        const decodedValue = decodeURIComponent(encodedValue);
+        chunks.push(decodedValue);
         chunkIndex++;
       }
 
       // Combine all chunks and parse
+      // Chunks are already decoded, so just join and parse
       if (chunks.length > 0) {
-        const combined = decodeURIComponent(chunks.join(''));
+        const combined = chunks.join('');
         const parsed = parseCookieValue(combined);
         // eslint-disable-next-line no-console
         console.info(
