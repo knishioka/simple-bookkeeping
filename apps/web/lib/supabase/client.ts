@@ -70,12 +70,36 @@ export function createClient() {
   // This is a temporary fix until the compatibility issue is resolved
   // eslint-disable-next-line no-console
   console.info('[Supabase Client] Creating NEW browser client with @supabase/supabase-js');
+
+  // CRITICAL: Use cookie-based storage to match server-side session storage
+  // Server Actions use cookies via @supabase/ssr, so browser client must read from cookies too
+  const cookieStorage = {
+    getItem: (key: string) => {
+      const cookies = document.cookie.split(';');
+      for (const cookie of cookies) {
+        const [name, ...rest] = cookie.split('=');
+        if (name.trim() === key) {
+          return rest.join('=');
+        }
+      }
+      return null;
+    },
+    setItem: (key: string, value: string) => {
+      document.cookie = `${key}=${value}; path=/; max-age=31536000; SameSite=Lax`;
+    },
+    removeItem: (key: string) => {
+      document.cookie = `${key}=; path=/; max-age=0`;
+    },
+  };
+
   browserClient = createSupabaseClient<Database>(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      storage: cookieStorage,
+      storageKey: `sb-${supabaseUrl.split('//')[1].split('.')[0]}-auth-token`,
+      flowType: 'pkce',
     },
   });
 
