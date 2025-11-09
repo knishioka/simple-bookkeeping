@@ -75,20 +75,51 @@ export function createClient() {
   // Server Actions use cookies via @supabase/ssr, so browser client must read from cookies too
   const cookieStorage = {
     getItem: (key: string) => {
-      const cookies = document.cookie.split(';');
-      for (const cookie of cookies) {
-        const [name, ...rest] = cookie.split('=');
-        if (name.trim() === key) {
-          return rest.join('=');
+      // Supabase splits large cookies into chunks (key.0, key.1, etc.)
+      // We need to find all chunks and combine them
+      const cookies = document.cookie.split(';').map((c) => c.trim());
+      const chunks: string[] = [];
+
+      // Find all cookie chunks for this key
+      let chunkIndex = 0;
+      while (true) {
+        const chunkKey = chunkIndex === 0 ? `${key}.${chunkIndex}` : `${key}.${chunkIndex}`;
+        const chunk = cookies.find((c) => c.startsWith(`${chunkKey}=`));
+
+        if (!chunk) {
+          // If we found at least one chunk (index 0), stop here
+          if (chunkIndex > 0) break;
+
+          // Otherwise, try to find a non-chunked cookie
+          const singleCookie = cookies.find((c) => c.startsWith(`${key}=`));
+          if (singleCookie) {
+            return decodeURIComponent(singleCookie.substring(key.length + 1));
+          }
+          return null;
         }
+
+        const value = chunk.substring(chunkKey.length + 1);
+        chunks.push(value);
+        chunkIndex++;
       }
+
+      // Combine all chunks
+      if (chunks.length > 0) {
+        return decodeURIComponent(chunks.join(''));
+      }
+
       return null;
     },
     setItem: (key: string, value: string) => {
-      document.cookie = `${key}=${value}; path=/; max-age=31536000; SameSite=Lax`;
+      // Let the server handle cookie chunking - just store the value
+      document.cookie = `${key}=${encodeURIComponent(value)}; path=/; max-age=31536000; SameSite=Lax`;
     },
     removeItem: (key: string) => {
+      // Remove the main cookie and all chunks
       document.cookie = `${key}=; path=/; max-age=0`;
+      for (let i = 0; i < 10; i++) {
+        document.cookie = `${key}.${i}=; path=/; max-age=0`;
+      }
     },
   };
 
