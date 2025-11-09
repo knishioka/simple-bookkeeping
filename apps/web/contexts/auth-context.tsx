@@ -183,12 +183,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         console.info('[AuthContext] Created Supabase client');
 
         // getUser()を使用してサーバー側で認証を検証（getSession()はクライアント側のCookieから直接取得するため安全でない）
-        // タイムアウトを追加してハングを防ぐ
+        // タイムアウトを追加してハングを防ぐ（本番環境のネットワーク遅延を考慮して10秒に設定）
         // eslint-disable-next-line no-console
         console.info('[AuthContext] Calling getUser()...');
         const getUserPromise = supabase.auth.getUser();
         const timeoutPromise = new Promise<{ data: { user: null }; error: Error }>((_, reject) => {
-          setTimeout(() => reject(new Error('getUser() timeout after 3s')), 3000);
+          setTimeout(() => reject(new Error('getUser() timeout after 10s')), 10000);
         });
 
         let validatedUser = null;
