@@ -230,22 +230,27 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check if user is authenticated
+  // CRITICAL: Use getSession() instead of getUser() to avoid API timeout issues
+  // getSession() reads from cookies (fast), while getUser() calls Supabase API (slow/timeout)
   const {
-    data: { user },
-    error: getUserError,
-  } = await supabase.auth.getUser();
+    data: { session },
+    error: getSessionError,
+  } = await supabase.auth.getSession();
 
-  console.log(`[Middleware] getUser() result:`, {
+  const user = session?.user;
+
+  console.log(`[Middleware] getSession() result:`, {
+    hasSession: !!session,
     userId: user?.id || 'none',
-    error: getUserError?.message,
+    error: getSessionError?.message,
   });
 
   if (!user) {
     // Redirect to login if not authenticated
     console.log('[Middleware] ❌ No user found - redirecting to login');
-    console.log('[Middleware] Reason: getUser() returned no user');
-    if (getUserError) {
-      console.log('[Middleware] getUser() error details:', getUserError);
+    console.log('[Middleware] Reason: getSession() returned no user/session');
+    if (getSessionError) {
+      console.log('[Middleware] getSession() error details:', getSessionError);
     }
     const redirectUrl = new URL('/auth/login', request.url);
     redirectUrl.searchParams.set('redirectTo', pathname);
