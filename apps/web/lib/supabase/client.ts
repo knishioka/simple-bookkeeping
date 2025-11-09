@@ -161,16 +161,25 @@ export function createClient() {
     },
   };
 
-  browserClient = createSupabaseClient<Database>(supabaseUrl, supabaseAnonKey, {
+  const config = {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
       storage: cookieStorage,
       storageKey: `sb-${supabaseUrl.split('//')[1].split('.')[0]}-auth-token`,
-      flowType: 'pkce',
+      flowType: 'pkce' as const,
     },
+  };
+
+  // eslint-disable-next-line no-console
+  console.info('[Supabase Client] Creating client with config:', {
+    persistSession: config.auth.persistSession,
+    storageKey: config.auth.storageKey,
+    hasCustomStorage: !!config.auth.storage,
   });
+
+  browserClient = createSupabaseClient<Database>(supabaseUrl, supabaseAnonKey, config);
 
   return browserClient;
 }
