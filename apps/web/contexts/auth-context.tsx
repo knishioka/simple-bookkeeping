@@ -178,6 +178,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // eslint-disable-next-line no-console
       console.info('[AuthContext] Starting auth initialization');
       try {
+        // CRITICAL: Ensure we're in browser environment
+        if (typeof window === 'undefined') {
+          console.warn('[AuthContext] Skipping initialization - not in browser');
+          return;
+        }
+
+        // CRITICAL: Ensure document is ready (prevent SSR/hydration errors)
+        if (typeof document === 'undefined' || document.readyState === 'loading') {
+          console.warn('[AuthContext] Document not ready, deferring initialization');
+          // Retry after DOM is fully loaded
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+              if (mounted) initAuth();
+            });
+          }
+          return;
+        }
+
         const supabase = createClient();
         // eslint-disable-next-line no-console
         console.info('[AuthContext] Created Supabase client');
@@ -242,6 +260,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
       } catch (error) {
         console.error('[AuthContext] Error initializing auth:', error);
+        // CRITICAL: Log detailed error information for debugging
+        if (error instanceof Error) {
+          console.error('[AuthContext] Error name:', error.name);
+          console.error('[AuthContext] Error message:', error.message);
+          console.error('[AuthContext] Error stack:', error.stack);
+        }
         // On error, set user to null to avoid blocking
         if (mounted) {
           setUser(null);
