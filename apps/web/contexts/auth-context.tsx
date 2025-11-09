@@ -242,13 +242,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
     };
 
-    // Timeout fallback: Force loading to false after 5 seconds to prevent infinite loading
+    // Timeout fallback: Force loading to false after 15 seconds to prevent infinite loading
+    // (Set longer than getUser timeout to allow proper error handling)
     const timeoutId = setTimeout(() => {
       if (mounted) {
-        console.warn('[AuthContext] Timeout reached (5s), forcing loading to false');
+        console.warn('[AuthContext] Timeout reached (15s), forcing loading to false');
         setLoading(false);
       }
-    }, 5000);
+    }, 15000);
 
     // Set up auth state change listener
     const supabase = createClient();
