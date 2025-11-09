@@ -96,10 +96,30 @@ export function createClient() {
         console.warn(
           `[Cookie Storage] Clearing corrupted cookie: ${cookieKey} (migration from old storage format)`
         );
-        // Remove the main cookie and all chunks
-        document.cookie = `${cookieKey}=; path=/; max-age=0`;
+
+        // CRITICAL: Delete with multiple domain/path combinations to ensure complete removal
+        // Some browsers may have stored cookies with different domain specifications
+        const deleteCookie = (name: string) => {
+          // Standard deletion (most common case)
+          document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax`;
+
+          // Try with explicit domain (for production)
+          if (typeof window !== 'undefined') {
+            const domain = window.location.hostname;
+            document.cookie = `${name}=; path=/; domain=${domain}; max-age=0; SameSite=Lax`;
+
+            // Also try with dot-prefixed domain (for subdomain cookies)
+            if (domain.includes('.')) {
+              const rootDomain = domain.split('.').slice(-2).join('.');
+              document.cookie = `${name}=; path=/; domain=.${rootDomain}; max-age=0; SameSite=Lax`;
+            }
+          }
+        };
+
+        // Remove the main cookie and all possible chunks
+        deleteCookie(cookieKey);
         for (let i = 0; i < 10; i++) {
-          document.cookie = `${cookieKey}.${i}=; path=/; max-age=0`;
+          deleteCookie(`${cookieKey}.${i}`);
         }
       }
 
@@ -171,10 +191,28 @@ export function createClient() {
       document.cookie = `${key}=${encodeURIComponent(value)}; path=/; max-age=31536000; SameSite=Lax`;
     },
     removeItem: (key: string) => {
+      // CRITICAL: Delete with multiple domain/path combinations to ensure complete removal
+      const deleteCookie = (name: string) => {
+        // Standard deletion
+        document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax`;
+
+        // Try with explicit domain
+        if (typeof window !== 'undefined') {
+          const domain = window.location.hostname;
+          document.cookie = `${name}=; path=/; domain=${domain}; max-age=0; SameSite=Lax`;
+
+          // Also try with dot-prefixed domain (for subdomain cookies)
+          if (domain.includes('.')) {
+            const rootDomain = domain.split('.').slice(-2).join('.');
+            document.cookie = `${name}=; path=/; domain=.${rootDomain}; max-age=0; SameSite=Lax`;
+          }
+        }
+      };
+
       // Remove the main cookie and all chunks
-      document.cookie = `${key}=; path=/; max-age=0`;
+      deleteCookie(key);
       for (let i = 0; i < 10; i++) {
-        document.cookie = `${key}.${i}=; path=/; max-age=0`;
+        deleteCookie(`${key}.${i}`);
       }
     },
   };
