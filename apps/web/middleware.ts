@@ -15,6 +15,7 @@ const publicRoutes = [
   '/auth/reset-password',
   '/auth/verify-email',
   '/auth/select-organization', // Added to prevent redirect loops
+  '/test-cookies', // Cookie debugging page
 ];
 
 // Define route patterns for public access
