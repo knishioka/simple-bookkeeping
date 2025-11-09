@@ -377,13 +377,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Update default organization in database
       await supabase
         .from('user_organizations')
-        // @ts-expect-error - Type inference issue with @supabase/supabase-js
         .update({ is_default: false })
         .eq('user_id', user.id);
 
       await supabase
         .from('user_organizations')
-        // @ts-expect-error - Type inference issue with @supabase/supabase-js
         .update({ is_default: true })
         .eq('user_id', user.id)
         .eq('organization_id', organizationId);
