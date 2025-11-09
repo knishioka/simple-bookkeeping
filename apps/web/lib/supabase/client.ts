@@ -97,6 +97,8 @@ export function createClient() {
   // Server Actions use cookies via @supabase/ssr, so browser client must read from cookies too
   const cookieStorage = {
     getItem: (key: string) => {
+      // eslint-disable-next-line no-console
+      console.info('[Cookie Storage] getItem called for key:', key);
       // Supabase splits large cookies into chunks (key.0, key.1, etc.)
       // We need to find all chunks and combine them
       const cookies = document.cookie.split(';').map((c) => c.trim());
@@ -116,8 +118,13 @@ export function createClient() {
           const singleCookie = cookies.find((c) => c.startsWith(`${key}=`));
           if (singleCookie) {
             const value = decodeURIComponent(singleCookie.substring(key.length + 1));
-            return parseCookieValue(value);
+            const parsed = parseCookieValue(value);
+            // eslint-disable-next-line no-console
+            console.info('[Cookie Storage] Found non-chunked cookie, parsed:', !!parsed);
+            return parsed;
           }
+
+          console.warn('[Cookie Storage] No cookie found for key:', key);
           return null;
         }
 
@@ -129,9 +136,16 @@ export function createClient() {
       // Combine all chunks and parse
       if (chunks.length > 0) {
         const combined = decodeURIComponent(chunks.join(''));
-        return parseCookieValue(combined);
+        const parsed = parseCookieValue(combined);
+        // eslint-disable-next-line no-console
+        console.info(
+          `[Cookie Storage] Found ${chunks.length} chunks, combined length: ${combined.length}, parsed:`,
+          !!parsed
+        );
+        return parsed;
       }
 
+      console.warn('[Cookie Storage] No chunks found for key:', key);
       return null;
     },
     setItem: (key: string, value: string) => {
