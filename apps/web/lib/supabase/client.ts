@@ -161,13 +161,19 @@ export function createClient() {
     },
   };
 
+  // CRITICAL: Extract hostname from URL for cookie storage key
+  // Supabase uses only the hostname part (without port) for cookie names
+  // Example: localhost:54321 → localhost, eksgzskroipxdwtbmkxm.supabase.co → eksgzskroipxdwtbmkxm
+  const urlHost = supabaseUrl.split('//')[1].split('/')[0]; // "localhost:54321" or "eksgzskroipxdwtbmkxm.supabase.co"
+  const hostname = urlHost.split(':')[0].split('.')[0]; // "localhost" or "eksgzskroipxdwtbmkxm"
+
   const config = {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
       storage: cookieStorage,
-      storageKey: `sb-${supabaseUrl.split('//')[1].split('.')[0]}-auth-token`,
+      storageKey: `sb-${hostname}-auth-token`,
       flowType: 'pkce' as const,
     },
   };
