@@ -195,6 +195,11 @@ export class ErrorBoundary extends Component<Props, State> {
 // Async Error Boundary for handling async errors
 export const AsyncErrorBoundary = ({ children, ...props }: Props) => {
   React.useEffect(() => {
+    // CRITICAL: Only run in browser environment to prevent SSR errors
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       console.error('Unhandled promise rejection:', event.reason);
       // You could trigger error boundary here if needed

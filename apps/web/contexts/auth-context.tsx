@@ -172,30 +172,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // Initialize auth state and listen for changes
   useEffect(() => {
+    // CRITICAL: Early exit for SSR - do not run ANY initialization logic
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     let mounted = true;
 
     const initAuth = async () => {
       // eslint-disable-next-line no-console
       console.info('[AuthContext] Starting auth initialization');
       try {
-        // CRITICAL: Ensure we're in browser environment
-        if (typeof window === 'undefined') {
-          console.warn('[AuthContext] Skipping initialization - not in browser');
-          return;
-        }
-
-        // CRITICAL: Ensure document is ready (prevent SSR/hydration errors)
-        if (typeof document === 'undefined' || document.readyState === 'loading') {
-          console.warn('[AuthContext] Document not ready, deferring initialization');
-          // Retry after DOM is fully loaded
-          if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-              if (mounted) initAuth();
-            });
-          }
-          return;
-        }
-
         const supabase = createClient();
         // eslint-disable-next-line no-console
         console.info('[AuthContext] Created Supabase client');
@@ -289,7 +276,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
     }, 15000);
 
-    // Set up auth state change listener
+    // Set up auth state change listener (client-side only)
     const supabase = createClient();
     const {
       data: { subscription },
