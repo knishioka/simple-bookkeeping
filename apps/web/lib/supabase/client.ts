@@ -71,6 +71,28 @@ export function createClient() {
   // eslint-disable-next-line no-console
   console.info('[Supabase Client] Creating NEW browser client with @supabase/supabase-js');
 
+  // Helper function to parse cookie values
+  // Cookies may be stored as:
+  // 1. Plain JSON string
+  // 2. base64-encoded JSON (prefixed with 'base64-')
+  const parseCookieValue = (value: string): string | null => {
+    try {
+      // Check if the value is base64-encoded
+      if (value.startsWith('base64-')) {
+        // Remove 'base64-' prefix and decode
+        const base64String = value.substring(7);
+        const decoded = atob(base64String);
+        // The decoded value should be a JSON string
+        return decoded;
+      }
+      // Return as-is if not base64-encoded
+      return value;
+    } catch (error) {
+      console.error('[Cookie Storage] Failed to parse cookie value:', error);
+      return null;
+    }
+  };
+
   // CRITICAL: Use cookie-based storage to match server-side session storage
   // Server Actions use cookies via @supabase/ssr, so browser client must read from cookies too
   const cookieStorage = {
@@ -93,7 +115,8 @@ export function createClient() {
           // Otherwise, try to find a non-chunked cookie
           const singleCookie = cookies.find((c) => c.startsWith(`${key}=`));
           if (singleCookie) {
-            return decodeURIComponent(singleCookie.substring(key.length + 1));
+            const value = decodeURIComponent(singleCookie.substring(key.length + 1));
+            return parseCookieValue(value);
           }
           return null;
         }
@@ -103,9 +126,10 @@ export function createClient() {
         chunkIndex++;
       }
 
-      // Combine all chunks
+      // Combine all chunks and parse
       if (chunks.length > 0) {
-        return decodeURIComponent(chunks.join(''));
+        const combined = decodeURIComponent(chunks.join(''));
+        return parseCookieValue(combined);
       }
 
       return null;
