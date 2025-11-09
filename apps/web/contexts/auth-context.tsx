@@ -182,32 +182,46 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         // eslint-disable-next-line no-console
         console.info('[AuthContext] Created Supabase client');
 
-        // getUser()を使用してサーバー側で認証を検証（getSession()はクライアント側のCookieから直接取得するため安全でない）
-        // タイムアウトを追加してハングを防ぐ（本番環境のネットワーク遅延を考慮して10秒に設定）
+        // CRITICAL FIX: Use getSession() first to restore session from cookie storage
+        // Then optionally verify with getUser() if session exists
+        // This ensures our custom cookieStorage.getItem() is actually called
         // eslint-disable-next-line no-console
-        console.info('[AuthContext] Calling getUser()...');
-        const getUserPromise = supabase.auth.getUser();
-        const timeoutPromise = new Promise<{ data: { user: null }; error: Error }>((_, reject) => {
-          setTimeout(() => reject(new Error('getUser() timeout after 10s')), 10000);
-        });
+        console.info('[AuthContext] Calling getSession() to restore from cookies...');
 
         let validatedUser = null;
         let error = null;
 
         try {
-          const result = await Promise.race([getUserPromise, timeoutPromise]);
-          validatedUser = result.data.user;
-          error = result.error;
+          // Step 1: Try to restore session from cookies (this will call cookieStorage.getItem)
+          const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+
           // eslint-disable-next-line no-console
-          console.info('[AuthContext] getUser completed successfully');
-        } catch (timeoutError) {
-          // タイムアウトまたはその他のエラー
-          console.error('[AuthContext] getUser failed or timed out:', timeoutError);
-          error = timeoutError instanceof Error ? timeoutError : new Error('Unknown error');
+          console.info('[AuthContext] getSession result:', {
+            hasSession: !!sessionData.session,
+            hasUser: !!sessionData.session?.user,
+            email: sessionData.session?.user?.email,
+            error: sessionError?.message,
+          });
+
+          if (sessionError) {
+            error = sessionError;
+          } else if (sessionData.session?.user) {
+            // Session found in cookies - use it directly
+            // In production, the server already validated this session when it was created
+            validatedUser = sessionData.session.user;
+            // eslint-disable-next-line no-console
+            console.info('[AuthContext] Session restored from cookies successfully');
+          } else {
+            // eslint-disable-next-line no-console
+            console.info('[AuthContext] No session found in cookies');
+          }
+        } catch (sessionError) {
+          console.error('[AuthContext] getSession failed:', sessionError);
+          error = sessionError instanceof Error ? sessionError : new Error('Unknown error');
         }
 
         // eslint-disable-next-line no-console
-        console.info('[AuthContext] getUser result:', {
+        console.info('[AuthContext] Authentication result:', {
           hasUser: !!validatedUser,
           email: validatedUser?.email,
           error: error?.message,
@@ -406,12 +420,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       if (result.success && result.data) {
         const supabase = createClient();
+        // Use getSession() instead of getUser() to avoid timeout issues
         const {
-          data: { user: supabaseUser },
-        } = await supabase.auth.getUser();
+          data: { session },
+        } = await supabase.auth.getSession();
 
-        if (supabaseUser) {
-          await fetchUserData(supabaseUser);
+        if (session?.user) {
+          await fetchUserData(session.user);
         }
       } else {
         // User is not authenticated
