@@ -75,7 +75,7 @@ export function createClient() {
   // Cookies may be stored as:
   // 1. Plain JSON string
   // 2. base64-encoded JSON (prefixed with 'base64-')
-  const parseCookieValue = (value: string): string | null => {
+  const parseCookieValue = (value: string, cookieKey?: string): string | null => {
     try {
       // Check if the value is base64-encoded
       if (value.startsWith('base64-')) {
@@ -89,6 +89,20 @@ export function createClient() {
       return value;
     } catch (error) {
       console.error('[Cookie Storage] Failed to parse cookie value:', error);
+
+      // MIGRATION: Clear corrupted cookies from previous versions
+      // This handles cookies that were stored with the old broken encoding
+      if (cookieKey) {
+        console.warn(
+          `[Cookie Storage] Clearing corrupted cookie: ${cookieKey} (migration from old storage format)`
+        );
+        // Remove the main cookie and all chunks
+        document.cookie = `${cookieKey}=; path=/; max-age=0`;
+        for (let i = 0; i < 10; i++) {
+          document.cookie = `${cookieKey}.${i}=; path=/; max-age=0`;
+        }
+      }
+
       return null;
     }
   };
@@ -118,7 +132,7 @@ export function createClient() {
           const singleCookie = cookies.find((c) => c.startsWith(`${key}=`));
           if (singleCookie) {
             const value = decodeURIComponent(singleCookie.substring(key.length + 1));
-            const parsed = parseCookieValue(value);
+            const parsed = parseCookieValue(value, key);
             // eslint-disable-next-line no-console
             console.info('[Cookie Storage] Found non-chunked cookie, parsed:', !!parsed);
             return parsed;
@@ -140,7 +154,7 @@ export function createClient() {
       // Chunks are already decoded, so just join and parse
       if (chunks.length > 0) {
         const combined = chunks.join('');
-        const parsed = parseCookieValue(combined);
+        const parsed = parseCookieValue(combined, key);
         // eslint-disable-next-line no-console
         console.info(
           `[Cookie Storage] Found ${chunks.length} chunks, combined length: ${combined.length}, parsed:`,
