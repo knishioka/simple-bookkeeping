@@ -416,7 +416,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: playwright-report-${{ strategy.job-index }}
           path: apps/web/playwright-report/
@@ -424,7 +424,7 @@ jobs:
 
       - name: Upload test videos
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: playwright-videos-${{ strategy.job-index }}
           path: apps/web/test-results/
@@ -432,7 +432,7 @@ jobs:
 
       - name: Upload performance report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: performance-report-${{ strategy.job-index }}
           path: apps/web/performance-report.json
