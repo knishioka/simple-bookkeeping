@@ -2,7 +2,7 @@
 
 import { z } from 'zod';
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 const organizationUpdateSchema = z.object({
   name: z.string().min(1, '組織名は必須です'),
@@ -224,5 +224,80 @@ export async function removeOrganizationMember(
   } catch (error) {
     console.error('Failed to remove member:', error);
     return { success: false, error: 'メンバーの削除に失敗しました' };
+  }
+}
+
+/**
+ * Get user's organizations using Service Role Key
+ * This bypasses RLS to avoid authentication issues with new Secret Key
+ */
+export interface OrganizationWithRole {
+  id: string;
+  name: string;
+  code: string;
+  role: 'admin' | 'accountant' | 'viewer';
+  isDefault: boolean;
+}
+
+interface UserOrganization {
+  organization_id: string;
+  role: 'admin' | 'accountant' | 'viewer';
+  is_default: boolean;
+  organization: {
+    id: string;
+    name: string;
+    code: string;
+  };
+}
+
+export async function getUserOrganizations(
+  userId: string
+): Promise<ActionResult<OrganizationWithRole[]>> {
+  try {
+    // Use Service Role Key to bypass RLS
+    const supabase = createServiceClient();
+
+    const { data, error } = await supabase
+      .from('user_organizations')
+      .select(
+        `
+        organization_id,
+        role,
+        is_default,
+        organization:organizations (
+          id,
+          name,
+          code
+        )
+      `
+      )
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('[getUserOrganizations] Error:', error);
+      return { success: false, error: error.message };
+    }
+
+    if (!data || data.length === 0) {
+      return { success: true, data: [] };
+    }
+
+    const organizations: OrganizationWithRole[] = (data as unknown as UserOrganization[]).map(
+      (uo) => ({
+        id: uo.organization.id,
+        name: uo.organization.name,
+        code: uo.organization.code,
+        role: uo.role,
+        isDefault: uo.is_default,
+      })
+    );
+
+    return { success: true, data: organizations };
+  } catch (error) {
+    console.error('[getUserOrganizations] Unexpected error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
   }
 }

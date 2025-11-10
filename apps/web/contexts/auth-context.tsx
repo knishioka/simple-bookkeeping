@@ -8,6 +8,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { toast } from 'react-hot-toast';
 
 import { signIn, signOut, getCurrentUser } from '@/app/actions/auth';
+import { getUserOrganizations } from '@/app/actions/organizations';
 import { createClient } from '@/lib/supabase/client';
 
 interface Organization {
@@ -87,43 +88,25 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       // Get user's organizations with timeout
       // CRITICAL: Add timeout to prevent hanging queries
-      // If Supabase query doesn't complete in 10 seconds, abort and use fallback
-      const fetchOrgsWithTimeout = Promise.race([
-        supabase
-          .from('user_organizations')
-          .select(
-            `
-            id,
-            role,
-            is_default,
-            organization:organizations (
-              id,
-              name,
-              code
-            )
-          `
-          )
-          .eq('user_id', supabaseUser.id)
-          .returns<UserOrgWithRelations[]>(),
-        new Promise<{ data: null; error: { message: string } }>((_, reject) =>
-          setTimeout(() => reject(new Error('Organization fetch timeout (10s)')), 10000)
-        ),
-      ]);
+      // Use Server Action to fetch organizations (bypasses RLS with Service Role Key)
+      const orgResult = await getUserOrganizations(supabaseUser.id);
 
       let userOrgs: UserOrgWithRelations[] | null = null;
-      let orgsError: unknown = null;
 
-      try {
-        const result = await fetchOrgsWithTimeout;
-        userOrgs = result.data;
-        orgsError = result.error;
-
-        if (orgsError) {
-          console.error('[AuthContext] Error fetching organizations:', orgsError);
-        }
-      } catch (error) {
-        console.error('[AuthContext] TIMEOUT or NETWORK ERROR fetching organizations:', error);
-        // Continue with null userOrgs - will use fallback basic user
+      if (!orgResult.success) {
+        console.error('[AuthContext] Error fetching organizations:', orgResult.error);
+      } else if (orgResult.data) {
+        // Convert Server Action response to UserOrgWithRelations format
+        userOrgs = orgResult.data.map((org) => ({
+          id: crypto.randomUUID(), // Generate unique ID for the relation
+          role: org.role,
+          is_default: org.isDefault,
+          organization: {
+            id: org.id,
+            name: org.name,
+            code: org.code,
+          },
+        }));
       }
 
       // Get user's profile data with timeout
