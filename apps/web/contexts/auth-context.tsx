@@ -87,41 +87,82 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         } | null;
       }
 
-      // Get user's organizations
+      // Get user's organizations with timeout
       // eslint-disable-next-line no-console
       console.info('[AuthContext] Fetching user organizations');
-      const { data: userOrgs, error: orgsError } = await supabase
-        .from('user_organizations')
-        .select(
-          `
-          id,
-          role,
-          is_default,
-          organization:organizations (
-            id,
-            name,
-            code
-          )
-        `
-        )
-        .eq('user_id', supabaseUser.id)
-        .returns<UserOrgWithRelations[]>();
 
-      if (orgsError) {
-        console.error('[AuthContext] Error fetching organizations:', orgsError);
+      // CRITICAL: Add timeout to prevent hanging queries
+      // If Supabase query doesn't complete in 10 seconds, abort and use fallback
+      const fetchOrgsWithTimeout = Promise.race([
+        supabase
+          .from('user_organizations')
+          .select(
+            `
+            id,
+            role,
+            is_default,
+            organization:organizations (
+              id,
+              name,
+              code
+            )
+          `
+          )
+          .eq('user_id', supabaseUser.id)
+          .returns<UserOrgWithRelations[]>(),
+        new Promise<{ data: null; error: { message: string } }>((_, reject) =>
+          setTimeout(() => reject(new Error('Organization fetch timeout (10s)')), 10000)
+        ),
+      ]);
+
+      let userOrgs: UserOrgWithRelations[] | null = null;
+      let orgsError: unknown = null;
+
+      try {
+        const result = await fetchOrgsWithTimeout;
+        userOrgs = result.data;
+        orgsError = result.error;
+
+        if (orgsError) {
+          console.error('[AuthContext] Error fetching organizations:', orgsError);
+        } else {
+          // eslint-disable-next-line no-console
+          console.info('[AuthContext] Organizations fetched:', userOrgs?.length || 0);
+        }
+      } catch (error) {
+        console.error('[AuthContext] TIMEOUT or NETWORK ERROR fetching organizations:', error);
+        // Continue with null userOrgs - will use fallback basic user
       }
 
-      // Get user's profile data
+      // Get user's profile data with timeout
       // eslint-disable-next-line no-console
       console.info('[AuthContext] Fetching user profile');
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('name')
-        .eq('id', supabaseUser.id)
-        .single<{ name: string | null }>();
 
-      if (userError) {
-        console.error('[AuthContext] Error fetching user data:', userError);
+      const fetchUserWithTimeout = Promise.race([
+        supabase
+          .from('users')
+          .select('name')
+          .eq('id', supabaseUser.id)
+          .single<{ name: string | null }>(),
+        new Promise<{ data: null; error: { message: string } }>((_, reject) =>
+          setTimeout(() => reject(new Error('User profile fetch timeout (5s)')), 5000)
+        ),
+      ]);
+
+      let userData: { name: string | null } | null = null;
+      let userError: unknown = null;
+
+      try {
+        const result = await fetchUserWithTimeout;
+        userData = result.data;
+        userError = result.error;
+
+        if (userError) {
+          console.error('[AuthContext] Error fetching user data:', userError);
+        }
+      } catch (error) {
+        console.error('[AuthContext] TIMEOUT fetching user profile:', error);
+        // Continue with null userData
       }
 
       const organizations: Organization[] =
