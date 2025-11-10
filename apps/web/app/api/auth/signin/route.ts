@@ -141,23 +141,12 @@ export async function POST(request: NextRequest) {
     const serviceClient: SupabaseClient<Database> = createServiceClient();
 
     // ユーザーの組織情報を取得
-    console.log('[SignIn Route] Fetching user organization for user:', authData.user.id);
-    const { data: userOrgs, error: userOrgsError } = await serviceClient
+    const { data: userOrgs } = await serviceClient
       .from('user_organizations')
       .select('organization_id, role')
       .eq('user_id', authData.user.id)
       .eq('is_default', true)
       .single<{ organization_id: string; role: string }>();
-
-    console.log('[SignIn Route] user_organizations query result:', {
-      hasData: !!userOrgs,
-      organizationId: userOrgs?.organization_id,
-      role: userOrgs?.role,
-      error: userOrgsError?.message,
-      errorCode: userOrgsError?.code,
-      errorDetails: userOrgsError?.details,
-      errorHint: userOrgsError?.hint,
-    });
 
     // CRITICAL: Check if app_metadata needs to be fixed (production bug fix)
     const currentAppMetadata = authData.user.app_metadata;
@@ -167,13 +156,6 @@ export async function POST(request: NextRequest) {
         currentAppMetadata.current_organization_id !== userOrgs.organization_id);
 
     if (needsMetadataUpdate) {
-      console.log('[SignIn Route] FIXING: app_metadata is missing or incorrect, updating now');
-      console.log('[SignIn Route] Expected org:', userOrgs.organization_id);
-      console.log(
-        '[SignIn Route] Current org in metadata:',
-        currentAppMetadata?.current_organization_id
-      );
-
       // Service client already created above
       const { error: updateError } = await serviceClient.auth.admin.updateUserById(
         authData.user.id,
@@ -186,37 +168,12 @@ export async function POST(request: NextRequest) {
       );
 
       if (updateError) {
-        console.log('[SignIn Route] WARNING: Failed to fix app_metadata:', updateError);
         // Continue anyway - the user can still use the app
-      } else {
-        console.log('[SignIn Route] Successfully fixed app_metadata');
       }
-    } else if (userOrgs?.organization_id) {
-      console.log('[SignIn Route] app_metadata is correctly set');
-    } else {
-      console.log('[SignIn Route] No organization found for user');
     }
 
     // Determine redirect path
     const redirectPath = !userOrgs?.organization_id ? '/auth/select-organization' : '/dashboard';
-
-    console.log(`[SignIn Route] User will be redirected to: ${redirectPath}`);
-    console.log(
-      `[SignIn Route] Returning success JSON with ${cookiesToSet.length} Supabase cookies`
-    );
-
-    // Log cookie details for debugging
-    console.log('[SignIn Route] Cookies to set:');
-    cookiesToSet.forEach(({ name, value, options }) => {
-      console.log(`[SignIn Route]   - ${name}:`, {
-        valueLength: value.length,
-        httpOnly: options.httpOnly,
-        secure: options.secure,
-        sameSite: options.sameSite,
-        path: options.path,
-        maxAge: options.maxAge,
-      });
-    });
 
     // CRITICAL: Return JSON response instead of redirect
     // This allows the client to receive and store cookies BEFORE redirecting
@@ -235,12 +192,6 @@ export async function POST(request: NextRequest) {
       successResponse.cookies.set(name, value, options);
     });
 
-    console.log('[SignIn Route] Response created with cookies');
-    console.log(
-      '[SignIn Route] Response headers will include Set-Cookie for:',
-      cookiesToSet.map((c) => c.name).join(', ')
-    );
-    console.log('[SignIn Route] Returning success response with cookies for client-side redirect');
     return successResponse;
   } catch (error) {
     console.error('[SignIn Route] Unexpected error:', error);

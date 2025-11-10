@@ -65,36 +65,16 @@ export default function LoginPage() {
 
       // Parse response
       const contentType = response.headers.get('content-type');
-      console.log('[LoginPage] Response Content-Type:', contentType);
 
       // Handle JSON response
       if (contentType && contentType.includes('application/json')) {
         try {
           const result = await response.json();
 
-          console.log('[LoginPage] Response received:', {
-            ok: response.ok,
-            success: result.success,
-            redirectTo: result.redirectTo,
-            organizationId: result.organizationId,
-          });
-
-          // Log response headers (Set-Cookie)
-          const setCookieHeaders = response.headers.get('set-cookie');
-          console.log('[LoginPage] Set-Cookie header:', setCookieHeaders ? 'Present' : 'Not found');
-
-          // Log current cookies BEFORE redirect
-          console.log('[LoginPage] Current cookies before redirect:', document.cookie);
-
           if (response.ok && result.success) {
             // Success - cookies are set, now redirect client-side
-            console.log('[LoginPage] Login successful, redirecting to:', result.redirectTo);
-            console.log('[LoginPage] Will redirect in 100ms...');
-
             // Small delay to ensure cookies are fully set
             setTimeout(() => {
-              console.log('[LoginPage] Executing redirect now');
-              console.log('[LoginPage] Cookies at redirect time:', document.cookie);
               window.location.href = result.redirectTo;
             }, 100);
             return;
