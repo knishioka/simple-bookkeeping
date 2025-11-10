@@ -184,6 +184,99 @@ bash scripts/db-query.sh --env local "SQL"          # ローカルDB
    - または `pnpm supabase:docker` でDocker版を起動
    - 起動確認: http://localhost:54321
 
+### ⚠️ 重要な技術的注意事項（Issue #551の教訓）
+
+#### 🔴 RLS (Row Level Security) とデータベースアクセス
+
+**絶対に守るべきルール:**
+
+```typescript
+// ❌ NG: クライアントサイドから直接データベースクエリ
+// RLSポリシーが適用され、認証エラーになる可能性がある
+const supabase = createClient(); // Anon Key使用
+const { data } = await supabase.from('user_organizations').select('*');
+
+// ✅ OK: Server Actionsを使用
+// app/actions/organizations.ts
+export async function getUserOrganizations(userId: string) {
+  const supabase = createServiceClient(); // Service Role Key使用
+  return await supabase.from('user_organizations').select('*').eq('user_id', userId);
+}
+
+// クライアントサイドから呼び出し
+const orgResult = await getUserOrganizations(userId);
+```
+
+**理由:**
+
+- Anon Key: クライアントサイド用、RLSポリシーが適用される（公開OK）
+- Service Role Key: サーバーサイド専用、RLSをバイパス（絶対に秘密）
+- APIキー移行時などにRLS検証ロジックが変わる可能性がある
+- Server Actionsを使えば認証状態に依存せず安定したアクセスが可能
+
+**参考:** [Supabaseガイドライン](./docs/ai-guide/supabase-guidelines.md)
+
+#### 🔧 Turbo Monorepoの環境変数管理
+
+**重要:** 環境変数は`turbo.json`に明示的に列挙しないとアクセスできない！
+
+```json
+// turbo.json
+{
+  "globalEnv": ["NODE_ENV"],
+  "tasks": {
+    "dev": {
+      "env": [
+        "DATABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY", // ← 必須！忘れるとundefined
+        "SUPABASE_DB_URL"
+      ]
+    }
+  }
+}
+```
+
+**チェックリスト:**
+
+- [ ] 新しいシークレット追加時は`turbo.json`にも追加
+- [ ] `build`と`dev`タスク両方に必要な変数を列挙
+- [ ] `.env.local`に記載してもTurboキャッシュで無視される可能性がある
+- [ ] 環境変数が正しく読み込まれているか`echo $VAR_NAME`で確認
+
+**Issue #551の事例:**
+
+- `SUPABASE_SERVICE_ROLE_KEY`が`turbo.json`に記載されていなかった
+- → Next.jsプロセスで`process.env.SUPABASE_SERVICE_ROLE_KEY === undefined`
+- → Service Clientの初期化に失敗
+- → RLSポリシーを回避できずログインエラー
+
+#### 📝 デバッグログのクリーンアップ
+
+**開発中:**
+
+```typescript
+console.log('[DEBUG] User organizations:', userOrgs); // OK
+```
+
+**本番デプロイ前に必ず削除:**
+
+```typescript
+// ❌ 本番環境に残さない
+console.log('[DEBUG] User organizations:', userOrgs);
+
+// ✅ エラーログは残す
+console.error('[Error] Failed to fetch organizations:', error);
+```
+
+**自動化推奨:**
+
+```bash
+# コミット前にデバッグログをチェック
+git diff --cached | grep "console.log.*\[.*\]" && echo "⚠️  Debug logs found!"
+```
+
 ## 📚 詳細ガイドライン
 
 プロジェクトの詳細なガイドラインは、以下の専門ドキュメントに分割されています：
