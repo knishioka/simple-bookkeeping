@@ -70,8 +70,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // Function to fetch and set user data
   const fetchUserData = useCallback(async (supabaseUser: SupabaseUser) => {
-    // eslint-disable-next-line no-console
-    console.info('[AuthContext] fetchUserData called for user:', supabaseUser.id);
     try {
       const supabase = createClient();
 
@@ -88,9 +86,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
 
       // Get user's organizations with timeout
-      // eslint-disable-next-line no-console
-      console.info('[AuthContext] Fetching user organizations');
-
       // CRITICAL: Add timeout to prevent hanging queries
       // If Supabase query doesn't complete in 10 seconds, abort and use fallback
       const fetchOrgsWithTimeout = Promise.race([
@@ -125,9 +120,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
         if (orgsError) {
           console.error('[AuthContext] Error fetching organizations:', orgsError);
-        } else {
-          // eslint-disable-next-line no-console
-          console.info('[AuthContext] Organizations fetched:', userOrgs?.length || 0);
         }
       } catch (error) {
         console.error('[AuthContext] TIMEOUT or NETWORK ERROR fetching organizations:', error);
@@ -135,9 +127,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
 
       // Get user's profile data with timeout
-      // eslint-disable-next-line no-console
-      console.info('[AuthContext] Fetching user profile');
-
       const fetchUserWithTimeout = Promise.race([
         supabase
           .from('users')
@@ -193,8 +182,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         currentOrganization: defaultOrg,
       };
 
-      // eslint-disable-next-line no-console
-      console.info('[AuthContext] Setting user state with', organizations.length, 'organizations');
       setUser(userInfo);
       setCurrentOrganization(defaultOrg || null);
     } catch (error) {
