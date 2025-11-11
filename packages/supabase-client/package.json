@@ -26,7 +26,6 @@
     "@supabase/supabase-js": "^2.39.3"
   },
   "devDependencies": {
-    "@simple-bookkeeping/database": "workspace:*",
     "@types/node": "^20.11.1",
     "@types/react": "^19.1.9",
     "dotenv": "^16.3.1",
