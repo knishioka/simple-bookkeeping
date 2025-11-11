@@ -668,7 +668,7 @@ export async function getUserProfile(
       .from('users')
       .select('name')
       .eq('id', userId)
-      .single<{ name: string | null }>();
+      .maybeSingle<{ name: string | null }>();
 
     if (error) {
       logger.error('[getUserProfile] Error:', error);
