@@ -1,11 +1,11 @@
-import type { Database } from '@/lib/supabase/database.types';
 import type { NextRequest } from 'next/server';
 
 import { createServerClient } from '@supabase/ssr';
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 import { NextResponse } from 'next/server';
+
+import { getDefaultUserOrganization } from '@/app/actions/organizations';
 
 // Define public routes that don't require authentication
 const publicRoutes = [
@@ -262,14 +262,20 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
-    // CRITICAL: Use service client for database fallback
+    // CRITICAL: Use Server Action for database fallback
+    // Issue #553: Moved Service Role Key usage to Server Actions to reduce attack surface
     // Regular client with RLS may not have permissions immediately after signin
-    // Service client bypasses RLS and always has access
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    // Server Action bypasses RLS and always has access
+    // PERFORMANCE NOTE: Database fallback query via Server Action
+    // This is only executed when app_metadata is missing or incorrect.
+    // Normally, app_metadata should be set during signup/signin (see auth.ts)
+    // This fallback exists for legacy users or edge cases where metadata update failed.
+    // TODO: Monitor frequency of this fallback - if common, investigate root cause
+    const orgResult = await getDefaultUserOrganization(user.id);
 
-    if (!serviceRoleKey) {
-      console.error('[Middleware] Service role key not configured, cannot query database');
-      // Redirect to select-organization without database check
+    if (!orgResult.success || !orgResult.data) {
+      console.error('[Middleware] Failed to get default organization:', orgResult.error);
+      // Redirect to organization selection if no organization is found
       const redirectUrl = new URL('/auth/select-organization', request.url);
       redirectUrl.searchParams.set('redirectTo', pathname);
       const nextResponse = NextResponse.redirect(redirectUrl);
@@ -277,51 +283,16 @@ export async function middleware(request: NextRequest) {
       return nextResponse;
     }
 
-    // Create service client for admin operations
-    const serviceClient = createSupabaseClient<Database>(supabaseUrl, serviceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
+    // Successfully retrieved default organization
+    const userOrg = orgResult.data;
+    response.headers.set('x-user-id', user.id);
+    response.headers.set('x-organization-id', userOrg.organization_id);
+    response.headers.set('x-user-role', userOrg.role || 'viewer');
 
-    // PERFORMANCE NOTE: Database fallback query
-    // This is only executed when app_metadata is missing or incorrect.
-    // Normally, app_metadata should be set during signup/signin (see auth.ts)
-    // This fallback exists for legacy users or edge cases where metadata update failed.
-    // TODO: Monitor frequency of this fallback - if common, investigate root cause
-    const { data: userOrg, error: userOrgError } = await serviceClient
-      .from('user_organizations')
-      .select('organization_id, role')
-      .eq('user_id', user.id)
-      .eq('is_default', true)
-      .single<{ organization_id: string; role: string }>();
+    // Add a header to indicate metadata needs fixing
+    response.headers.set('x-fix-metadata', 'true');
 
-    if (userOrgError) {
-      console.error('[Middleware] Failed to query user_organizations:', userOrgError);
-    }
-
-    if (userOrg?.organization_id) {
-      // Try to update app_metadata (this might fail if we don't have service role key)
-      // But we should still allow the user to continue
-      response.headers.set('x-user-id', user.id);
-      response.headers.set('x-organization-id', userOrg.organization_id);
-      response.headers.set('x-user-role', userOrg.role || 'viewer');
-
-      // Add a header to indicate metadata needs fixing
-      response.headers.set('x-fix-metadata', 'true');
-
-      return response;
-    }
-
-    // Redirect to organization selection if no organization is found anywhere
-    const redirectUrl = new URL('/auth/select-organization', request.url);
-    redirectUrl.searchParams.set('redirectTo', pathname);
-
-    // Add redirect count header to detect loops
-    const nextResponse = NextResponse.redirect(redirectUrl);
-    nextResponse.headers.set('x-redirect-count', (redirectCount + 1).toString());
-    return nextResponse;
+    return response;
   }
 
   // Add user context to headers for API routes
