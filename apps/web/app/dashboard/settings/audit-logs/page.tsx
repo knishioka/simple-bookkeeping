@@ -1,6 +1,5 @@
 'use client';
 
-import { AuditAction } from '@simple-bookkeeping/database';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { Download, Filter, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -34,6 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { AuditAction } from '@/lib/constants/enums';
 import { createClient } from '@/lib/supabase/client';
 
 export default function AuditLogsPage() {
