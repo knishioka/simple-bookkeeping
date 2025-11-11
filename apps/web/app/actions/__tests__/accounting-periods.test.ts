@@ -48,6 +48,16 @@ jest.mock('../utils/type-guards', () => {
   };
 });
 
+// Mock logger
+jest.mock('@/lib/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+    error: jest.fn(),
+  },
+}));
+
 const mockRevalidatePath = revalidatePath as jest.MockedFunction<typeof revalidatePath>;
 const mockCreateClient = createClient as jest.MockedFunction<typeof createClient>;
 const mockAuditEntityChange = auditEntityChange as jest.MockedFunction<typeof auditEntityChange>;

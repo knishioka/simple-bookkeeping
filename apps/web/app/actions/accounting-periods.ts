@@ -26,6 +26,7 @@ import {
   accountingPeriodIdSchema,
 } from './validation/accounting-periods';
 
+import { logger } from '@/lib/logger';
 import { createClient } from '@/lib/supabase/server';
 
 type AccountingPeriod = Database['public']['Tables']['accounting_periods']['Row'];
@@ -56,7 +57,7 @@ async function checkPeriodOverlap(
   const { data, error } = await query;
 
   if (error) {
-    console.error('Error checking period overlap:', error);
+    logger.error('Error checking period overlap:', error);
     return true; // エラーの場合は安全のため重複ありとする
   }
 
@@ -250,7 +251,7 @@ export async function createAccountingPeriod(
     const oneYearLater = new Date(startDate);
     oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
     if (endDate > oneYearLater) {
-      console.warn('会計期間が1年を超えています:', validatedData.name);
+      logger.warn('会計期間が1年を超えています:', validatedData.name);
     }
 
     // 期間の重複チェック
