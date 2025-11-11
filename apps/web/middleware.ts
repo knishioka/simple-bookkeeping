@@ -172,22 +172,65 @@ export async function middleware(request: NextRequest) {
 
   // Skip authentication in test/development environment when Supabase is not configured
   // or when explicitly using mock authentication in CI
-  // CRITICAL SECURITY: Only allow test mode in non-production environments
-  // Issue #514: Also check cookie for E2E_USE_MOCK_AUTH for better test reliability
-  // Issue #520: Add localhost:8000 (Docker Compose Supabase) to trigger mock auth in E2E tests
-  const mockAuthCookie = request.cookies.get('mockAuth')?.value === 'true';
+  // CRITICAL SECURITY: Multi-layer production detection to prevent authentication bypass
+  // Issue #554: Removed user-controllable mockAuth cookie vulnerability
+  // Issue #514: Use E2E_USE_MOCK_AUTH environment variable for E2E tests
+  // Issue #520: Support localhost:8000 (Docker Compose Supabase) for E2E tests
+
+  // Multi-layer production detection (defense-in-depth)
+  const isProduction =
+    process.env.NODE_ENV === 'production' ||
+    process.env.VERCEL_ENV === 'production' ||
+    process.env.CI === 'true';
+
+  // Test mode is ONLY enabled when:
+  // 1. NOT in production (any layer)
+  // 2. AND one of the following:
+  //    - Explicit E2E_USE_MOCK_AUTH flag
+  //    - Supabase URL is not configured or is a known test placeholder
   const isTestMode =
-    process.env.NODE_ENV !== 'production' &&
+    !isProduction &&
     (process.env.E2E_USE_MOCK_AUTH === 'true' || // Explicit CI mock auth flag
-      mockAuthCookie || // Cookie-based mock auth (for E2E tests)
       !process.env.NEXT_PUBLIC_SUPABASE_URL ||
       process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://dummy.supabase.co' ||
       process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://placeholder.supabase.co' ||
       process.env.NEXT_PUBLIC_SUPABASE_URL === 'http://localhost:8000');
 
-  if (isTestMode) {
-    // In test environment, allow all routes without authentication
+  // Production safety assertion - MUST NEVER happen
+  if (isProduction && isTestMode) {
+    const error = new Error('CRITICAL SECURITY ERROR: Test mode enabled in production environment');
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error('🚨 CRITICAL SECURITY ERROR');
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error('Test mode is enabled in production environment!');
+    console.error('This should NEVER happen and indicates a serious misconfiguration.');
+    console.error('Environment:', {
+      NODE_ENV: process.env.NODE_ENV,
+      VERCEL_ENV: process.env.VERCEL_ENV,
+      CI: process.env.CI,
+      E2E_USE_MOCK_AUTH: process.env.E2E_USE_MOCK_AUTH,
+      SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    });
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    throw error;
+  }
 
+  if (isTestMode) {
+    // Explicit warning in non-production environment
+    console.warn('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.warn('⚠️  TEST MODE ACTIVE - Authentication Bypassed');
+    console.warn('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.warn('Environment:', {
+      NODE_ENV: process.env.NODE_ENV,
+      VERCEL_ENV: process.env.VERCEL_ENV,
+      CI: process.env.CI,
+      E2E_USE_MOCK_AUTH: process.env.E2E_USE_MOCK_AUTH,
+      SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    });
+    console.warn('This is ONLY safe in non-production environments.');
+    console.warn('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+    // In test environment, allow all routes without authentication
     // Set dummy user context for API routes
     if (pathname.startsWith('/api/')) {
       response.headers.set('x-user-id', 'test-user-id');

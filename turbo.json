@@ -8,6 +8,8 @@
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "env": [
         "NODE_ENV",
+        "VERCEL_ENV",
+        "CI",
         "DATABASE_URL",
         "NEXT_PUBLIC_API_URL",
         "NEXT_PUBLIC_SUPABASE_URL",
@@ -41,6 +43,9 @@
         "NEXTAUTH_SECRET",
         "NEXTAUTH_URL",
         "NODE_ENV",
+        "VERCEL_ENV",
+        "CI",
+        "E2E_USE_MOCK_AUTH",
         "NEXT_PUBLIC_API_URL",
         "SUPABASE_SERVICE_ROLE_KEY",
         "SUPABASE_DB_URL"
@@ -92,11 +97,13 @@
       "dependsOn": ["build"],
       "env": [
         "NODE_ENV",
+        "VERCEL_ENV",
+        "CI",
+        "E2E_USE_MOCK_AUTH",
         "DATABASE_URL",
         "NEXTAUTH_URL",
         "NEXTAUTH_SECRET",
         "TEST_MODE",
-        "CI",
         "NEXT_PUBLIC_SUPABASE_URL",
         "NEXT_PUBLIC_SUPABASE_ANON_KEY"
       ],

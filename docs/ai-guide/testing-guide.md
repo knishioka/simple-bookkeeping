@@ -189,6 +189,96 @@ test.beforeEach(async ({ page, context }) => {
 });
 ```
 
+#### 🔒 テストモードのセキュリティ (Issue #554)
+
+**重要なセキュリティ改善:**
+
+2025年1月、Issue #554でテストモードの認証バイパス脆弱性を修正しました。以下の点に注意してください。
+
+**削除された機能:**
+
+- ❌ `mockAuth` Cookie による認証バイパス（ユーザー制御可能だったため削除）
+- 本番環境では**いかなる方法でも**テストモードを有効化できません
+
+**新しいセキュリティ機構:**
+
+1. **多層防御による本番環境保護**
+
+   ```typescript
+   // middleware.ts の新しいロジック
+   const isProduction =
+     process.env.NODE_ENV === 'production' ||
+     process.env.VERCEL_ENV === 'production' ||
+     process.env.CI === 'true';
+
+   const isTestMode =
+     !isProduction &&
+     (process.env.E2E_USE_MOCK_AUTH === 'true' ||
+       !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+       process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://dummy.supabase.co' ||
+       process.env.NEXT_PUBLIC_SUPABASE_URL === 'https://placeholder.supabase.co' ||
+       process.env.NEXT_PUBLIC_SUPABASE_URL === 'http://localhost:8000');
+   ```
+
+2. **テストモードを有効化する方法**
+
+   E2Eテストで認証をバイパスするには、以下の**いずれか**を設定：
+
+   ```bash
+   # 方法1: 環境変数で明示的に指定（推奨）
+   E2E_USE_MOCK_AUTH=true
+
+   # 方法2: Supabase URLを未設定にする
+   NEXT_PUBLIC_SUPABASE_URL=  # 空にする
+
+   # 方法3: テスト用プレースホルダーURL
+   NEXT_PUBLIC_SUPABASE_URL=https://dummy.supabase.co
+   NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co
+   NEXT_PUBLIC_SUPABASE_URL=http://localhost:8000  # Docker Compose
+   ```
+
+3. **本番環境での保護**
+
+   以下の**いずれか**が設定されていると、テストモードは**絶対に**有効化されません：
+
+   ```bash
+   NODE_ENV=production
+   VERCEL_ENV=production
+   CI=true
+   ```
+
+4. **警告ログとエラー**
+   - テストモード有効時: 警告ログが出力されます
+   - 本番環境でテストモード検出時: **エラーをthrowして停止**します
+
+   ```typescript
+   // Production safety assertion
+   if (isProduction && isTestMode) {
+     throw new Error('CRITICAL SECURITY ERROR: Test mode enabled in production environment');
+   }
+   ```
+
+**E2Eテストでの使用例:**
+
+```typescript
+// playwright.config.ts
+export default defineConfig({
+  use: {
+    env: {
+      E2E_USE_MOCK_AUTH: 'true', // これでテストモードが有効化される
+    },
+  },
+});
+```
+
+**セキュリティテスト:**
+
+`apps/web/__tests__/middleware.test.ts` に30以上のテストケースがあり、以下を検証：
+
+- 本番環境では**絶対に**テストモードが有効化されないこと
+- 開発環境では適切にテストモードが動作すること
+- すべての環境変数の組み合わせが正しく処理されること
+
 ### 3. セレクタの選択
 
 ```typescript
