@@ -20,15 +20,12 @@ import { createServiceClient } from '@/lib/supabase/server';
  * - No race condition between cookie setting and redirect
  */
 export async function POST(request: NextRequest) {
-  console.log('[SignIn Route] Starting sign in process');
-
   try {
     const body = await request.json();
     const { email, password } = body;
 
     // Validation
     if (!email || !password) {
-      console.log('[SignIn Route] Validation failed: missing credentials');
       return NextResponse.json(
         {
           success: false,
@@ -86,14 +83,12 @@ export async function POST(request: NextRequest) {
     });
 
     // Supabase Authでログイン
-    console.log('[SignIn Route] Authenticating with Supabase Auth');
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (authError) {
-      console.log('[SignIn Route] Authentication failed:', authError.message);
       if (authError.message.includes('Invalid login credentials')) {
         return NextResponse.json(
           {
@@ -119,7 +114,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (!authData.user) {
-      console.log('[SignIn Route] Authentication failed: no user returned');
       return NextResponse.json(
         {
           success: false,
@@ -131,9 +125,6 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-
-    console.log('[SignIn Route] Authentication successful for user:', authData.user.id);
-    console.log('[SignIn Route] Current app_metadata:', authData.user.app_metadata);
 
     // CRITICAL: Create service client for admin operations
     // Use service client instead of regular client for organization lookup

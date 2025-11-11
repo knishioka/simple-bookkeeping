@@ -651,6 +651,35 @@ export async function getCurrentUser(): Promise<ActionResult<AuthUser | null>> {
 }
 
 /**
+ * ユーザープロファイル情報を取得（Service Role Keyでバイパス）
+ * RLS issues with new API key format workaround
+ */
+export async function getUserProfile(
+  userId: string
+): Promise<ActionResult<{ name: string | null }>> {
+  try {
+    // Use Service Role Key to bypass RLS
+    const supabase = createServiceClient();
+
+    const { data, error } = await supabase
+      .from('users')
+      .select('name')
+      .eq('id', userId)
+      .single<{ name: string | null }>();
+
+    if (error) {
+      console.error('[getUserProfile] Error:', error);
+      return createErrorResult(ERROR_CODES.DATABASE_ERROR, error.message);
+    }
+
+    return createSuccessResult(data || { name: null });
+  } catch (error) {
+    console.error('[getUserProfile] Unexpected error:', error);
+    return handleSupabaseError(error);
+  }
+}
+
+/**
  * メール確認
  */
 export async function confirmEmail(token: string): Promise<ActionResult<{ success: boolean }>> {

@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 
-import { signIn, signOut, getCurrentUser } from '@/app/actions/auth';
+import { signIn, signOut, getCurrentUser, getUserProfile } from '@/app/actions/auth';
 import { getUserOrganizations } from '@/app/actions/organizations';
 import { createClient } from '@/lib/supabase/client';
 
@@ -72,8 +72,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   // Function to fetch and set user data
   const fetchUserData = useCallback(async (supabaseUser: SupabaseUser) => {
     try {
-      const supabase = createClient();
-
       // Define the type for the user organization with relations
       interface UserOrgWithRelations {
         id: string;
@@ -87,8 +85,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
 
       // Get user's organizations with timeout
-      // CRITICAL: Add timeout to prevent hanging queries
-      // Use Server Action to fetch organizations (bypasses RLS with Service Role Key)
+      // CRITICAL: Use Server Action to fetch organizations (bypasses RLS with Service Role Key)
       const orgResult = await getUserOrganizations(supabaseUser.id);
 
       let userOrgs: UserOrgWithRelations[] | null = null;
@@ -109,32 +106,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }));
       }
 
-      // Get user's profile data with timeout
-      const fetchUserWithTimeout = Promise.race([
-        supabase
-          .from('users')
-          .select('name')
-          .eq('id', supabaseUser.id)
-          .single<{ name: string | null }>(),
-        new Promise<{ data: null; error: { message: string } }>((_, reject) =>
-          setTimeout(() => reject(new Error('User profile fetch timeout (5s)')), 5000)
-        ),
-      ]);
+      // Get user's profile data using Server Action (bypasses RLS)
+      // CRITICAL: Use Server Action instead of direct Supabase client query
+      // to avoid RLS permission issues with new API key format
+      const profileResult = await getUserProfile(supabaseUser.id);
 
       let userData: { name: string | null } | null = null;
-      let userError: unknown = null;
 
-      try {
-        const result = await fetchUserWithTimeout;
-        userData = result.data;
-        userError = result.error;
-
-        if (userError) {
-          console.error('[AuthContext] Error fetching user data:', userError);
-        }
-      } catch (error) {
-        console.error('[AuthContext] TIMEOUT fetching user profile:', error);
-        // Continue with null userData
+      if (!profileResult.success) {
+        console.error('[AuthContext] Error fetching user profile:', profileResult.error);
+      } else if (profileResult.data) {
+        userData = profileResult.data;
       }
 
       const organizations: Organization[] =

@@ -42,7 +42,6 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (data: LoginFormData) => {
-    console.log('[LoginPage] Starting login process');
     setIsLoading(true);
     setError(null);
 
@@ -50,7 +49,6 @@ export default function LoginPage() {
       // CRITICAL: Route Handler returns JSON with redirect URL
       // Cookies are set in the response, then client-side redirect happens
       // This ensures cookies are available BEFORE the redirect
-      console.log('[LoginPage] Calling Route Handler /api/auth/signin');
       const response = await fetch('/api/auth/signin', {
         method: 'POST',
         headers: {
