@@ -5,8 +5,6 @@ import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 import { NextResponse } from 'next/server';
 
-import { getDefaultUserOrganization } from '@/app/actions/organizations';
-
 // Define public routes that don't require authentication
 const publicRoutes = [
   '/',
@@ -163,8 +161,12 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Allow public routes
-  if (publicRoutes.includes(pathname) || publicPatterns.some((pattern) => pattern.test(pathname))) {
+  // Allow public routes and internal API routes
+  if (
+    publicRoutes.includes(pathname) ||
+    publicPatterns.some((pattern) => pattern.test(pathname)) ||
+    pathname.startsWith('/api/internal/')
+  ) {
     return response;
   }
 
@@ -262,37 +264,68 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
-    // CRITICAL: Use Server Action for database fallback
-    // Issue #553: Moved Service Role Key usage to Server Actions to reduce attack surface
+    // CRITICAL: Call internal API route for database fallback
+    // Issue #553: Use Node runtime API route to keep Service Role Key out of Edge middleware
+    // This API route runs on Node runtime and can safely access Service Role Key
     // Regular client with RLS may not have permissions immediately after signin
-    // Server Action bypasses RLS and always has access
-    // PERFORMANCE NOTE: Database fallback query via Server Action
+    // API route bypasses RLS via Server Action with Service Client
+    // PERFORMANCE NOTE: Database fallback query via internal API
     // This is only executed when app_metadata is missing or incorrect.
     // Normally, app_metadata should be set during signup/signin (see auth.ts)
     // This fallback exists for legacy users or edge cases where metadata update failed.
     // TODO: Monitor frequency of this fallback - if common, investigate root cause
-    const orgResult = await getDefaultUserOrganization(user.id);
 
-    if (!orgResult.success || !orgResult.data) {
-      console.error('[Middleware] Failed to get default organization:', orgResult.error);
-      // Redirect to organization selection if no organization is found
+    try {
+      // Call internal API route (runs on Node runtime, not Edge)
+      const apiUrl = new URL('/api/internal/default-organization', request.url);
+      const apiResponse = await fetch(apiUrl.toString(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user.id }),
+      });
+
+      if (!apiResponse.ok) {
+        console.error('[Middleware] API call failed:', apiResponse.status, apiResponse.statusText);
+        const redirectUrl = new URL('/auth/select-organization', request.url);
+        redirectUrl.searchParams.set('redirectTo', pathname);
+        const nextResponse = NextResponse.redirect(redirectUrl);
+        nextResponse.headers.set('x-redirect-count', (redirectCount + 1).toString());
+        return nextResponse;
+      }
+
+      const orgResult = await apiResponse.json();
+
+      if (!orgResult.success || !orgResult.data) {
+        console.error('[Middleware] Failed to get default organization:', orgResult.error);
+        // Redirect to organization selection if no organization is found
+        const redirectUrl = new URL('/auth/select-organization', request.url);
+        redirectUrl.searchParams.set('redirectTo', pathname);
+        const nextResponse = NextResponse.redirect(redirectUrl);
+        nextResponse.headers.set('x-redirect-count', (redirectCount + 1).toString());
+        return nextResponse;
+      }
+
+      // Successfully retrieved default organization
+      const userOrg = orgResult.data;
+      response.headers.set('x-user-id', user.id);
+      response.headers.set('x-organization-id', userOrg.organization_id);
+      response.headers.set('x-user-role', userOrg.role || 'viewer');
+
+      // Add a header to indicate metadata needs fixing
+      response.headers.set('x-fix-metadata', 'true');
+
+      return response;
+    } catch (error) {
+      console.error('[Middleware] Error calling internal API:', error);
+      // Redirect to organization selection on error
       const redirectUrl = new URL('/auth/select-organization', request.url);
       redirectUrl.searchParams.set('redirectTo', pathname);
       const nextResponse = NextResponse.redirect(redirectUrl);
       nextResponse.headers.set('x-redirect-count', (redirectCount + 1).toString());
       return nextResponse;
     }
-
-    // Successfully retrieved default organization
-    const userOrg = orgResult.data;
-    response.headers.set('x-user-id', user.id);
-    response.headers.set('x-organization-id', userOrg.organization_id);
-    response.headers.set('x-user-role', userOrg.role || 'viewer');
-
-    // Add a header to indicate metadata needs fixing
-    response.headers.set('x-fix-metadata', 'true');
-
-    return response;
   }
 
   // Add user context to headers for API routes
