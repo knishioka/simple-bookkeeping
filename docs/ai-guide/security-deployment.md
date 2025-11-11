@@ -522,6 +522,18 @@ pnpm vercel:status
 
 詳細は[CLAUDE.md](../../CLAUDE.md)の「Vercel/Supabase CLIの安全な操作ガイド」セクションを参照してください。
 
+## 🛡️ セキュリティヘッダー
+
+**実装場所：** `apps/web/next.config.js`
+
+セキュリティヘッダー（CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, Strict-Transport-Security）を設定済み。
+
+**検証：**
+
+```bash
+curl -I http://localhost:3000 | grep -E "(X-Frame|X-Content|Referrer|Permissions)"
+```
+
 ## 🛡️ プロジェクトのセキュリティポリシー
 
 ### 必須のセキュリティツール
