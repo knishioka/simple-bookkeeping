@@ -1,8 +1,6 @@
-import type { Database } from '@/lib/supabase/database.types';
 import type { NextRequest } from 'next/server';
 
 import { createServerClient } from '@supabase/ssr';
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 import { NextResponse } from 'next/server';
@@ -163,8 +161,12 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Allow public routes
-  if (publicRoutes.includes(pathname) || publicPatterns.some((pattern) => pattern.test(pathname))) {
+  // Allow public routes and internal API routes
+  if (
+    publicRoutes.includes(pathname) ||
+    publicPatterns.some((pattern) => pattern.test(pathname)) ||
+    pathname.startsWith('/api/internal/')
+  ) {
     return response;
   }
 
@@ -262,48 +264,51 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
-    // CRITICAL: Use service client for database fallback
+    // CRITICAL: Call internal API route for database fallback
+    // Issue #553: Use Node runtime API route to keep Service Role Key out of Edge middleware
+    // This API route runs on Node runtime and can safely access Service Role Key
     // Regular client with RLS may not have permissions immediately after signin
-    // Service client bypasses RLS and always has access
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!serviceRoleKey) {
-      console.error('[Middleware] Service role key not configured, cannot query database');
-      // Redirect to select-organization without database check
-      const redirectUrl = new URL('/auth/select-organization', request.url);
-      redirectUrl.searchParams.set('redirectTo', pathname);
-      const nextResponse = NextResponse.redirect(redirectUrl);
-      nextResponse.headers.set('x-redirect-count', (redirectCount + 1).toString());
-      return nextResponse;
-    }
-
-    // Create service client for admin operations
-    const serviceClient = createSupabaseClient<Database>(supabaseUrl, serviceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
-
-    // PERFORMANCE NOTE: Database fallback query
+    // API route bypasses RLS via Server Action with Service Client
+    // PERFORMANCE NOTE: Database fallback query via internal API
     // This is only executed when app_metadata is missing or incorrect.
     // Normally, app_metadata should be set during signup/signin (see auth.ts)
     // This fallback exists for legacy users or edge cases where metadata update failed.
     // TODO: Monitor frequency of this fallback - if common, investigate root cause
-    const { data: userOrg, error: userOrgError } = await serviceClient
-      .from('user_organizations')
-      .select('organization_id, role')
-      .eq('user_id', user.id)
-      .eq('is_default', true)
-      .single<{ organization_id: string; role: string }>();
 
-    if (userOrgError) {
-      console.error('[Middleware] Failed to query user_organizations:', userOrgError);
-    }
+    try {
+      // Call internal API route (runs on Node runtime, not Edge)
+      const apiUrl = new URL('/api/internal/default-organization', request.url);
+      const apiResponse = await fetch(apiUrl.toString(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user.id }),
+      });
 
-    if (userOrg?.organization_id) {
-      // Try to update app_metadata (this might fail if we don't have service role key)
-      // But we should still allow the user to continue
+      if (!apiResponse.ok) {
+        console.error('[Middleware] API call failed:', apiResponse.status, apiResponse.statusText);
+        const redirectUrl = new URL('/auth/select-organization', request.url);
+        redirectUrl.searchParams.set('redirectTo', pathname);
+        const nextResponse = NextResponse.redirect(redirectUrl);
+        nextResponse.headers.set('x-redirect-count', (redirectCount + 1).toString());
+        return nextResponse;
+      }
+
+      const orgResult = await apiResponse.json();
+
+      if (!orgResult.success || !orgResult.data) {
+        console.error('[Middleware] Failed to get default organization:', orgResult.error);
+        // Redirect to organization selection if no organization is found
+        const redirectUrl = new URL('/auth/select-organization', request.url);
+        redirectUrl.searchParams.set('redirectTo', pathname);
+        const nextResponse = NextResponse.redirect(redirectUrl);
+        nextResponse.headers.set('x-redirect-count', (redirectCount + 1).toString());
+        return nextResponse;
+      }
+
+      // Successfully retrieved default organization
+      const userOrg = orgResult.data;
       response.headers.set('x-user-id', user.id);
       response.headers.set('x-organization-id', userOrg.organization_id);
       response.headers.set('x-user-role', userOrg.role || 'viewer');
@@ -312,16 +317,15 @@ export async function middleware(request: NextRequest) {
       response.headers.set('x-fix-metadata', 'true');
 
       return response;
+    } catch (error) {
+      console.error('[Middleware] Error calling internal API:', error);
+      // Redirect to organization selection on error
+      const redirectUrl = new URL('/auth/select-organization', request.url);
+      redirectUrl.searchParams.set('redirectTo', pathname);
+      const nextResponse = NextResponse.redirect(redirectUrl);
+      nextResponse.headers.set('x-redirect-count', (redirectCount + 1).toString());
+      return nextResponse;
     }
-
-    // Redirect to organization selection if no organization is found anywhere
-    const redirectUrl = new URL('/auth/select-organization', request.url);
-    redirectUrl.searchParams.set('redirectTo', pathname);
-
-    // Add redirect count header to detect loops
-    const nextResponse = NextResponse.redirect(redirectUrl);
-    nextResponse.headers.set('x-redirect-count', (redirectCount + 1).toString());
-    return nextResponse;
   }
 
   // Add user context to headers for API routes

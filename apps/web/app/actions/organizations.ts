@@ -301,3 +301,47 @@ export async function getUserOrganizations(
     };
   }
 }
+
+/**
+ * Get user's default organization using Service Role Key
+ * This bypasses RLS and is used by middleware for authentication flow
+ * Issue #553: Moved from middleware.ts to reduce attack surface
+ */
+export interface DefaultOrganization {
+  organization_id: string;
+  role: 'admin' | 'accountant' | 'viewer';
+}
+
+export async function getDefaultUserOrganization(
+  userId: string
+): Promise<ActionResult<DefaultOrganization>> {
+  try {
+    // Use Service Role Key to bypass RLS
+    // This is critical for middleware authentication flow
+    const supabase = createServiceClient();
+
+    const { data, error } = await supabase
+      .from('user_organizations')
+      .select('organization_id, role')
+      .eq('user_id', userId)
+      .eq('is_default', true)
+      .single<DefaultOrganization>();
+
+    if (error) {
+      console.error('[getDefaultUserOrganization] Database error:', error);
+      return { success: false, error: error.message };
+    }
+
+    if (!data) {
+      return { success: false, error: 'Default organization not found' };
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('[getDefaultUserOrganization] Unexpected error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
