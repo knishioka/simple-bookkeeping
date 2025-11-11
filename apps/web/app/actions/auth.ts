@@ -19,6 +19,7 @@ import {
 } from './types';
 
 import { logger } from '@/lib/logger';
+import { validatePassword } from '@/lib/password-strength';
 import { createClient, createActionClient, createServiceClient } from '@/lib/supabase/server';
 
 // SECURITY NOTE: createServiceClient() should ONLY be used on the server side for admin operations.
@@ -82,10 +83,11 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
       return createValidationErrorResult('メールアドレスの形式が正しくありません。');
     }
 
-    // パスワードの強度チェック
-    if (password.length < 8) {
-      logger.warn('[SignUp] Validation failed: password too short');
-      return createValidationErrorResult('パスワードは8文字以上で入力してください。');
+    // パスワードの強度チェック（12文字以上 + 複雑性要件）
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      logger.warn('[SignUp] Validation failed: weak password');
+      return createValidationErrorResult(passwordValidation.errors[0]);
     }
 
     const supabase = await createClient();
@@ -530,9 +532,10 @@ export async function updatePassword(
       });
     }
 
-    // パスワードの強度チェック
-    if (newPassword.length < 8) {
-      return createValidationErrorResult('新しいパスワードは8文字以上で入力してください。');
+    // パスワードの強度チェック（12文字以上 + 複雑性要件）
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.isValid) {
+      return createValidationErrorResult(passwordValidation.errors[0]);
     }
 
     if (currentPassword === newPassword) {
