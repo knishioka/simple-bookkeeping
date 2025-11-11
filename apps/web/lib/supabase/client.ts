@@ -2,6 +2,8 @@ import type { Database } from './database.types';
 
 import { createBrowserClient } from '@supabase/ssr';
 
+import { logger } from '@/lib/logger';
+
 const assertNotLegacyKey = (key: string, envName: string) => {
   // Skip validation in test environment
   if (process.env.NODE_ENV === 'test') {
@@ -36,8 +38,7 @@ export function createClient() {
 
   // Return existing instance if available (singleton pattern)
   if (browserClient) {
-    // eslint-disable-next-line no-console
-    console.info('[Supabase Client] Reusing existing browser client instance');
+    logger.info('[Supabase Client] Reusing existing browser client instance');
     return browserClient;
   }
 
@@ -45,8 +46,7 @@ export function createClient() {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   // Temporary debug logging for production environment variable check
-  // eslint-disable-next-line no-console
-  console.info('[Supabase Client] Environment check:', {
+  logger.info('[Supabase Client] Environment check:', {
     hasUrl: !!supabaseUrl,
     urlPrefix: supabaseUrl?.substring(0, 30),
     hasAnonKey: !!supabaseAnonKey,
@@ -55,7 +55,7 @@ export function createClient() {
 
   if (!supabaseUrl || !supabaseAnonKey) {
     // 開発環境やテスト環境で環境変数が設定されていない場合のエラーメッセージを改善
-    console.warn(
+    logger.warn(
       'Supabase environment variables are not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.'
     );
     throw new Error(
@@ -67,8 +67,7 @@ export function createClient() {
 
   // Use @supabase/ssr's createBrowserClient for consistent cookie handling
   // This ensures client-side and server-side (middleware) use the same cookie format
-  // eslint-disable-next-line no-console
-  console.info('[Supabase Client] Creating NEW browser client with @supabase/ssr');
+  logger.info('[Supabase Client] Creating NEW browser client with @supabase/ssr');
 
   // createBrowserClient handles all cookie operations internally
   // No need for custom storage implementation

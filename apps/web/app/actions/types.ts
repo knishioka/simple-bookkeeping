@@ -151,6 +151,8 @@ export function createValidationErrorResult(
  * 内部エラーレスポンスを作成するヘルパー関数
  */
 export function createInternalErrorResult(error: unknown): ActionResult<never> {
+  // Note: Can't use logger here since types.ts is imported by logger.ts (circular dependency)
+  // This is safe since it's only error logging which should always be visible
   console.error('Internal Server Error:', error);
 
   return createErrorResult(
@@ -164,6 +166,8 @@ export function createInternalErrorResult(error: unknown): ActionResult<never> {
  * Supabaseエラーをハンドリングするヘルパー関数
  */
 export function handleSupabaseError(error: unknown): ActionResult<never> {
+  // Note: Can't use logger here since types.ts is imported by logger.ts (circular dependency)
+  // This is safe since it's only error logging which should always be visible
   console.error('Supabase Error:', error);
 
   // Type guard to check if error has a code property

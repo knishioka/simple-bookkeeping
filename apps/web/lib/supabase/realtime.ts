@@ -3,6 +3,8 @@ import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/
 
 import { createClient } from './client';
 
+import { logger } from '@/lib/logger';
+
 export type RealtimeEvent = 'INSERT' | 'UPDATE' | 'DELETE' | '*';
 
 export interface RealtimeSubscription {
@@ -97,13 +99,13 @@ export class RealtimeService {
     channel
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
-        console.warn('Online users:', state);
+        logger.warn('Online users:', state);
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        console.warn('User joined:', key, newPresences);
+        logger.warn('User joined:', key, newPresences);
       })
       .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-        console.warn('User left:', key, leftPresences);
+        logger.warn('User left:', key, leftPresences);
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
@@ -187,7 +189,7 @@ export class RealtimeService {
     // Supabase v2では、各チャンネルごとに状態を監視
     // グローバルな接続状態は現在サポートされていないため、
     // 個別のチャンネルで監視する必要があります
-    console.warn('Connection state monitoring should be done per channel');
+    logger.warn('Connection state monitoring should be done per channel');
   }
 }
 

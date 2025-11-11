@@ -141,9 +141,13 @@ test.describe('Local Login Test', () => {
         });
       }
 
-      // Check for visible error messages
-      const errorMessage = await page.locator('[role="alert"], .error-message').textContent();
-      if (errorMessage) {
+      // Check for visible error messages (exclude Next.js route announcer)
+      const errorElement = page.locator(
+        '[role="alert"]:not(#__next-route-announcer__), .error-message'
+      );
+      const errorCount = await errorElement.count();
+      if (errorCount > 0) {
+        const errorMessage = await errorElement.first().textContent();
         console.log(`\n❌ Visible error: ${errorMessage}`);
       }
     }

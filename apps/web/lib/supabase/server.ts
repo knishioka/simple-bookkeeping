@@ -4,6 +4,8 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
+import { logger } from '@/lib/logger';
+
 const assertNotLegacyKey = (key: string, envName: string) => {
   // Skip validation in test environment
   if (process.env.NODE_ENV === 'test') {
@@ -29,7 +31,7 @@ export async function createClient() {
 
   if (!supabaseUrl || !supabaseAnonKey) {
     // 開発環境やテスト環境で環境変数が設定されていない場合のエラーメッセージを改善
-    console.warn(
+    logger.warn(
       'Supabase environment variables are not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.'
     );
     throw new Error(

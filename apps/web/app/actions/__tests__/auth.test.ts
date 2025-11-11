@@ -34,6 +34,15 @@ jest.mock('@/lib/supabase/server', () => ({
   createActionClient: jest.fn(),
 }));
 
+jest.mock('@/lib/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+    error: jest.fn(),
+  },
+}));
+
 const mockRevalidatePath = revalidatePath as jest.MockedFunction<typeof revalidatePath>;
 const mockCreateClient = createClient as jest.MockedFunction<typeof createClient>;
 const mockCreateServiceClient = createServiceClient as jest.MockedFunction<
@@ -92,8 +101,8 @@ describe('Auth Server Actions', () => {
     // Mock createClient to return a Promise that resolves to the mock client
     mockCreateClient.mockImplementation(() => Promise.resolve(mockSupabaseClient));
 
-    // Mock createServiceClient to return a Promise that resolves to the service mock client
-    mockCreateServiceClient.mockImplementation(() => Promise.resolve(mockServiceSupabaseClient));
+    // Mock createServiceClient to return the service mock client directly (synchronous)
+    mockCreateServiceClient.mockImplementation(() => mockServiceSupabaseClient);
 
     // Server actions uses the dedicated action client which should behave like the normal client in tests
     mockCreateActionClient.mockImplementation(() => Promise.resolve(mockSupabaseClient));

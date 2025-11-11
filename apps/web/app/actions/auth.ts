@@ -3,6 +3,8 @@
 import type { Database } from '@/lib/supabase/database.types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+import { randomUUID } from 'crypto';
+
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -16,6 +18,7 @@ import {
   ERROR_CODES,
 } from './types';
 
+import { logger } from '@/lib/logger';
 import { createClient, createActionClient, createServiceClient } from '@/lib/supabase/server';
 
 // SECURITY NOTE: createServiceClient() should ONLY be used on the server side for admin operations.
@@ -57,14 +60,14 @@ interface AuthUser {
  * ユーザー登録
  */
 export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>> {
-  console.warn('[SignUp] Starting signup process for:', { email: input.email });
+  logger.warn('[SignUp] Starting signup process');
 
   try {
     const { email, password, name, organizationName } = input;
 
     // バリデーション
     if (!email || !password || !name) {
-      console.warn('[SignUp] Validation failed: missing required fields');
+      logger.warn('[SignUp] Validation failed: missing required fields');
       return createValidationErrorResult('必須項目が入力されていません。', {
         email: !email ? 'メールアドレスは必須です' : undefined,
         password: !password ? 'パスワードは必須です' : undefined,
@@ -75,20 +78,20 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
     // メールアドレスの形式チェック
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      console.warn('[SignUp] Validation failed: invalid email format');
+      logger.warn('[SignUp] Validation failed: invalid email format');
       return createValidationErrorResult('メールアドレスの形式が正しくありません。');
     }
 
     // パスワードの強度チェック
     if (password.length < 8) {
-      console.warn('[SignUp] Validation failed: password too short');
+      logger.warn('[SignUp] Validation failed: password too short');
       return createValidationErrorResult('パスワードは8文字以上で入力してください。');
     }
 
     const supabase = await createClient();
 
     // Step 1: Supabase Authでユーザーを作成
-    console.warn('[SignUp] Step 1: Creating auth user');
+    logger.warn('[SignUp] Step 1: Creating auth user');
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -101,7 +104,7 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
     });
 
     if (authError) {
-      console.warn('[SignUp] Auth creation failed:', authError.message);
+      logger.warn('[SignUp] Auth creation failed:', authError.message);
       if (authError.message.includes('already registered')) {
         return createErrorResult(
           ERROR_CODES.ALREADY_EXISTS,
@@ -112,11 +115,11 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
     }
 
     if (!authData.user) {
-      console.warn('[SignUp] Auth creation failed: no user returned');
+      logger.warn('[SignUp] Auth creation failed: no user returned');
       return createErrorResult(ERROR_CODES.INTERNAL_ERROR, 'ユーザーの作成に失敗しました。');
     }
 
-    console.warn('[SignUp] Auth user created successfully:', authData.user.id);
+    logger.warn('[SignUp] Auth user created successfully');
 
     // 組織を作成する場合（デフォルトで常に作成する）
     let organizationId: string | undefined;
@@ -124,7 +127,7 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
 
     // 組織名がない場合はデフォルト名を使用
     const finalOrgName = organizationName || `${name}の組織`;
-    console.warn('[SignUp] Creating organization with name:', finalOrgName);
+    logger.warn('[SignUp] Creating organization with name:', finalOrgName);
 
     try {
       // Create service client for RLS bypass during signup
@@ -137,7 +140,7 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
       const serviceClient: SupabaseClient<Database> = createServiceClient();
 
       // Step 2: 組織を作成
-      console.warn('[SignUp] Step 2: Creating organization');
+      logger.warn('[SignUp] Step 2: Creating organization');
       const {
         data: newOrg,
         error: orgError,
@@ -151,21 +154,24 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
         // This is a known compatibility issue and does not affect runtime behavior
         // TODO: Consider upgrading @supabase/supabase-js to v2.56+ when stable
         .insert({
+          id: randomUUID(), // Explicitly generate UUID for CI environment compatibility
           name: finalOrgName,
           code: `ORG-${Date.now()}`, // 仮のコード（後で変更可能）
+          created_at: new Date().toISOString(), // Explicit timestamp for CI compatibility
+          updated_at: new Date().toISOString(), // Explicit timestamp for CI compatibility
           // is_active: true, // Temporarily commented out due to schema cache issue
         })
         .select()
         .single();
 
       if (orgError || !newOrg) {
-        console.warn('[SignUp] Organization creation failed:', orgError);
+        logger.warn('[SignUp] Organization creation failed:', orgError);
         // Authユーザーは作成済みなので、削除を試みる
         try {
           await serviceClient.auth.admin.deleteUser(authData.user.id);
-          console.warn('[SignUp] Successfully rolled back auth user');
+          logger.warn('[SignUp] Successfully rolled back auth user');
         } catch (rollbackError) {
-          console.warn('[SignUp] Failed to rollback auth user:', rollbackError);
+          logger.warn('[SignUp] Failed to rollback auth user:', rollbackError);
           // Rollback failure is logged but doesn't affect the error response
         }
         return createErrorResult(
@@ -175,10 +181,10 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
       }
 
       organizationId = newOrg.id;
-      console.warn('[SignUp] Organization created successfully:', organizationId);
+      logger.warn('[SignUp] Organization created successfully:', organizationId);
 
       // Step 3: users テーブルにユーザー情報を保存
-      console.warn('[SignUp] Step 3: Creating user record');
+      logger.warn('[SignUp] Step 3: Creating user record');
       const { error: userError } = await serviceClient
         .from('users')
         // @ts-expect-error - Type inference issue with @supabase/supabase-js v2.50.0 and service client (see Step 2)
@@ -192,17 +198,17 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
         });
 
       if (userError) {
-        console.warn('[SignUp] User table insert failed:', userError);
+        logger.warn('[SignUp] User table insert failed:', userError);
         // 重要なエラーなので処理を続行しない
         return createErrorResult(
           ERROR_CODES.INTERNAL_ERROR,
           'ユーザー情報の保存に失敗しました。管理者にお問い合わせください。'
         );
       }
-      console.warn('[SignUp] User record created successfully');
+      logger.warn('[SignUp] User record created successfully');
 
       // Step 4: ユーザーを組織に関連付け（管理者として）
-      console.warn('[SignUp] Step 4: Creating user-organization association');
+      logger.warn('[SignUp] Step 4: Creating user-organization association');
       const { error: userOrgError } = await serviceClient
         .from('user_organizations')
         // @ts-expect-error - Type inference issue with @supabase/supabase-js v2.50.0 and service client (see Step 2)
@@ -214,17 +220,17 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
         });
 
       if (userOrgError) {
-        console.warn('[SignUp] User-organization association failed:', userOrgError);
+        logger.warn('[SignUp] User-organization association failed:', userOrgError);
         // 重要なエラーなので処理を続行しない
         return createErrorResult(
           ERROR_CODES.INTERNAL_ERROR,
           '組織への関連付けに失敗しました。管理者にお問い合わせください。'
         );
       }
-      console.warn('[SignUp] User-organization association created successfully');
+      logger.warn('[SignUp] User-organization association created successfully');
 
       // Step 5a: Auto-confirm email so users can log in immediately
-      console.warn('[SignUp] Step 5a: Auto confirming user email for immediate access');
+      logger.warn('[SignUp] Step 5a: Auto confirming user email for immediate access');
       const { error: emailConfirmError } = await serviceClient.auth.admin.updateUserById(
         authData.user.id,
         {
@@ -233,14 +239,14 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
       );
 
       if (emailConfirmError) {
-        console.warn('[SignUp] WARNING: Failed to auto confirm email:', emailConfirmError);
+        logger.warn('[SignUp] WARNING: Failed to auto confirm email:', emailConfirmError);
         // Continue even if email confirmation fails; user will need to verify via email
       } else {
-        console.warn('[SignUp] Email auto confirmation completed');
+        logger.warn('[SignUp] Email auto confirmation completed');
       }
 
       // Step 5: CRITICAL - Update user's app_metadata with organization info
-      console.warn('[SignUp] Step 5: Updating user app_metadata');
+      logger.warn('[SignUp] Step 5: Updating user app_metadata');
 
       // Use service client for admin operations (already created above)
       const { error: updateError } = await serviceClient.auth.admin.updateUserById(
@@ -254,16 +260,16 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
       );
 
       if (updateError) {
-        console.warn('[SignUp] WARNING: Failed to update app_metadata:', updateError);
+        logger.warn('[SignUp] WARNING: Failed to update app_metadata:', updateError);
         // app_metadataの更新に失敗しても、ログイン時に修正を試みるので続行
         // ただし、警告はログに残す
-        console.warn('[SignUp] Will attempt to fix app_metadata on next login');
+        logger.warn('[SignUp] Will attempt to fix app_metadata on next login');
       } else {
-        console.warn('[SignUp] User app_metadata updated successfully');
+        logger.warn('[SignUp] User app_metadata updated successfully');
       }
 
       // 成功レスポンス
-      console.warn('[SignUp] Signup completed successfully');
+      logger.warn('[SignUp] Signup completed successfully');
       return createSuccessResult({
         id: authData.user.id,
         email: authData.user.email || '',
@@ -272,14 +278,14 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
         role: userRole,
       });
     } catch (dbError) {
-      console.warn('[SignUp] Database operation failed:', dbError);
+      logger.warn('[SignUp] Database operation failed:', dbError);
       // Authユーザーは作成済みなので、削除を試みる（ベストエフォート）
       try {
         const serviceClient: SupabaseClient<Database> = createServiceClient();
         await serviceClient.auth.admin.deleteUser(authData.user.id);
-        console.warn('[SignUp] Successfully rolled back auth user after DB error');
+        logger.warn('[SignUp] Successfully rolled back auth user after DB error');
       } catch (rollbackError) {
-        console.warn('[SignUp] Failed to rollback auth user:', rollbackError);
+        logger.warn('[SignUp] Failed to rollback auth user:', rollbackError);
         // Continue to return the main error
       }
       return createErrorResult(
@@ -288,7 +294,7 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
       );
     }
   } catch (error) {
-    console.warn('[SignUp] Unexpected error:', error);
+    logger.warn('[SignUp] Unexpected error:', error);
     return handleSupabaseError(error);
   }
 }
@@ -297,14 +303,14 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
  * ログイン
  */
 export async function signIn(input: SignInInput): Promise<ActionResult<AuthUser>> {
-  console.warn('[SignIn] Starting sign in process for:', { email: input.email });
+  logger.warn('[SignIn] Starting sign in process');
 
   try {
     const { email, password } = input;
 
     // バリデーション
     if (!email || !password) {
-      console.warn('[SignIn] Validation failed: missing credentials');
+      logger.warn('[SignIn] Validation failed: missing credentials');
       return createValidationErrorResult('必須項目が入力されていません。', {
         email: !email ? 'メールアドレスは必須です' : undefined,
         password: !password ? 'パスワードは必須です' : undefined,
@@ -316,7 +322,7 @@ export async function signIn(input: SignInInput): Promise<ActionResult<AuthUser>
     const supabase = await createActionClient();
 
     // Supabase Authでログイン
-    console.warn('[SignIn] Authenticating with Supabase Auth');
+    logger.warn('[SignIn] Authenticating with Supabase Auth');
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -325,18 +331,18 @@ export async function signIn(input: SignInInput): Promise<ActionResult<AuthUser>
     // Check cookie state after authentication
     const cookieStore = await cookies();
     const allCookies = cookieStore.getAll();
-    console.warn(
+    logger.warn(
       '[SignIn] Cookies after signIn:',
       allCookies.map((c) => ({ name: c.name, hasValue: !!c.value, valueLength: c.value.length }))
     );
-    console.warn('[SignIn] Total cookies set:', allCookies.length);
-    console.warn(
+    logger.warn('[SignIn] Total cookies set:', allCookies.length);
+    logger.warn(
       '[SignIn] Auth cookies:',
       allCookies.filter((c) => c.name.includes('auth') || c.name.includes('sb')).map((c) => c.name)
     );
 
     if (authError) {
-      console.warn('[SignIn] Authentication failed:', authError.message);
+      logger.warn('[SignIn] Authentication failed:', authError.message);
       if (authError.message.includes('Invalid login credentials')) {
         return createErrorResult(
           ERROR_CODES.UNAUTHORIZED,
@@ -347,15 +353,15 @@ export async function signIn(input: SignInInput): Promise<ActionResult<AuthUser>
     }
 
     if (!authData.user) {
-      console.warn('[SignIn] Authentication failed: no user returned');
+      logger.warn('[SignIn] Authentication failed: no user returned');
       return createErrorResult(ERROR_CODES.INTERNAL_ERROR, 'ログインに失敗しました。');
     }
 
-    console.warn('[SignIn] Authentication successful for user:', authData.user.id);
-    console.warn('[SignIn] Current app_metadata:', authData.user.app_metadata);
+    logger.warn('[SignIn] Authentication successful');
+    logger.warn('[SignIn] Current app_metadata:', authData.user.app_metadata);
 
     // ユーザーの組織情報を取得
-    console.warn('[SignIn] Fetching user organization');
+    logger.warn('[SignIn] Fetching user organization');
     const { data: userOrgs } = await supabase
       .from('user_organizations')
       .select('organization_id, role')
@@ -371,12 +377,9 @@ export async function signIn(input: SignInInput): Promise<ActionResult<AuthUser>
         currentAppMetadata.current_organization_id !== userOrgs.organization_id);
 
     if (needsMetadataUpdate) {
-      console.warn('[SignIn] FIXING: app_metadata is missing or incorrect, updating now');
-      console.warn('[SignIn] Expected org:', userOrgs.organization_id);
-      console.warn(
-        '[SignIn] Current org in metadata:',
-        currentAppMetadata?.current_organization_id
-      );
+      logger.warn('[SignIn] FIXING: app_metadata is missing or incorrect, updating now');
+      logger.warn('[SignIn] Expected org:', userOrgs.organization_id);
+      logger.warn('[SignIn] Current org in metadata:', currentAppMetadata?.current_organization_id);
 
       // Use service client for admin operations
       const serviceClient: SupabaseClient<Database> = createServiceClient();
@@ -391,29 +394,29 @@ export async function signIn(input: SignInInput): Promise<ActionResult<AuthUser>
       );
 
       if (updateError) {
-        console.warn('[SignIn] WARNING: Failed to fix app_metadata:', updateError);
+        logger.warn('[SignIn] WARNING: Failed to fix app_metadata:', updateError);
         // Continue anyway - the user can still use the app
       } else {
-        console.warn('[SignIn] Successfully fixed app_metadata');
+        logger.warn('[SignIn] Successfully fixed app_metadata');
       }
     } else if (userOrgs?.organization_id) {
-      console.warn('[SignIn] app_metadata is correctly set');
+      logger.warn('[SignIn] app_metadata is correctly set');
     } else {
-      console.warn('[SignIn] No organization found for user');
+      logger.warn('[SignIn] No organization found for user');
     }
 
     // キャッシュを再検証
     revalidatePath('/dashboard');
     revalidatePath('/');
 
-    console.warn('[SignIn] Sign in completed successfully');
+    logger.warn('[SignIn] Sign in completed successfully');
 
     // CRITICAL FIX: Use redirect() directly in Server Action
     // This ensures Set-Cookie and Location headers are sent in the same HTTP response
     // The browser will set cookies before following the redirect
     const redirectPath = !userOrgs?.organization_id ? '/auth/select-organization' : '/dashboard';
 
-    console.warn(`[SignIn] Redirecting to: ${redirectPath}`);
+    logger.warn(`[SignIn] Redirecting to: ${redirectPath}`);
 
     // redirect() throws an exception, so code after this won't execute
     redirect(redirectPath);
@@ -429,7 +432,7 @@ export async function signIn(input: SignInInput): Promise<ActionResult<AuthUser>
       throw error;
     }
 
-    console.warn('[SignIn] Unexpected error:', error);
+    logger.warn('[SignIn] Unexpected error:', error);
     return handleSupabaseError(error);
   }
 }
@@ -498,7 +501,7 @@ export async function resetPassword(
 
     if (error) {
       // セキュリティのため、ユーザーが存在しない場合でも同じメッセージを返す
-      console.error('Password reset error:', error);
+      logger.error('Password reset error:', error);
     }
 
     // セキュリティのため、常に成功を返す
@@ -582,7 +585,7 @@ export async function updatePassword(
  */
 export async function getCurrentUser(): Promise<ActionResult<AuthUser | null>> {
   try {
-    console.warn('[getCurrentUser] Starting user fetch');
+    logger.warn('[getCurrentUser] Starting user fetch');
     const supabase = await createClient();
 
     const {
@@ -590,7 +593,7 @@ export async function getCurrentUser(): Promise<ActionResult<AuthUser | null>> {
       error,
     } = await supabase.auth.getUser();
 
-    console.warn('[getCurrentUser] getUser() result:', {
+    logger.warn('[getCurrentUser] getUser() result:', {
       hasUser: !!user,
       userId: user?.id,
       email: user?.email,
@@ -598,12 +601,12 @@ export async function getCurrentUser(): Promise<ActionResult<AuthUser | null>> {
     });
 
     if (error || !user) {
-      console.warn('[getCurrentUser] No authenticated user, returning null');
+      logger.warn('[getCurrentUser] No authenticated user, returning null');
       return createSuccessResult(null);
     }
 
     // ユーザーの組織情報を取得
-    console.warn('[getCurrentUser] Fetching user_organizations for user:', user.id);
+    logger.warn('[getCurrentUser] Fetching user_organizations');
     const { data: userOrgs, error: userOrgsError } = await supabase
       .from('user_organizations')
       .select('organization_id, role')
@@ -611,7 +614,7 @@ export async function getCurrentUser(): Promise<ActionResult<AuthUser | null>> {
       .eq('is_default', true)
       .single();
 
-    console.warn('[getCurrentUser] user_organizations query result:', {
+    logger.warn('[getCurrentUser] user_organizations query result:', {
       hasData: !!userOrgs,
       organizationId: userOrgs?.organization_id,
       role: userOrgs?.role,
@@ -621,14 +624,14 @@ export async function getCurrentUser(): Promise<ActionResult<AuthUser | null>> {
     });
 
     // ユーザー情報を取得
-    console.warn('[getCurrentUser] Fetching users table for user:', user.id);
+    logger.warn('[getCurrentUser] Fetching users table');
     const { data: userData, error: userDataError } = await supabase
       .from('users')
       .select('name')
       .eq('id', user.id)
       .single();
 
-    console.warn('[getCurrentUser] users query result:', {
+    logger.warn('[getCurrentUser] users query result:', {
       hasData: !!userData,
       name: userData?.name,
       error: userDataError?.message,
@@ -642,10 +645,10 @@ export async function getCurrentUser(): Promise<ActionResult<AuthUser | null>> {
       role: userOrgs?.role,
     };
 
-    console.warn('[getCurrentUser] Returning user data:', result);
+    logger.warn('[getCurrentUser] Returning user data:', result);
     return createSuccessResult(result);
   } catch (error) {
-    console.error('[getCurrentUser] Unexpected error:', error);
+    logger.error('[getCurrentUser] Unexpected error:', error);
     return handleSupabaseError(error);
   }
 }
@@ -665,16 +668,16 @@ export async function getUserProfile(
       .from('users')
       .select('name')
       .eq('id', userId)
-      .single<{ name: string | null }>();
+      .maybeSingle<{ name: string | null }>();
 
     if (error) {
-      console.error('[getUserProfile] Error:', error);
+      logger.error('[getUserProfile] Error:', error);
       return createErrorResult(ERROR_CODES.DATABASE_ERROR, error.message);
     }
 
     return createSuccessResult(data || { name: null });
   } catch (error) {
-    console.error('[getUserProfile] Unexpected error:', error);
+    logger.error('[getUserProfile] Unexpected error:', error);
     return handleSupabaseError(error);
   }
 }

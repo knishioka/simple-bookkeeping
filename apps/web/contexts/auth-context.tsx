@@ -9,6 +9,7 @@ import { toast } from 'react-hot-toast';
 
 import { signIn, signOut, getCurrentUser, getUserProfile } from '@/app/actions/auth';
 import { getUserOrganizations } from '@/app/actions/organizations';
+import { logger } from '@/lib/logger';
 import { createClient } from '@/lib/supabase/client';
 
 interface Organization {
@@ -91,7 +92,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       let userOrgs: UserOrgWithRelations[] | null = null;
 
       if (!orgResult.success) {
-        console.error('[AuthContext] Error fetching organizations:', orgResult.error);
+        logger.error('[AuthContext] Error fetching organizations:', orgResult.error);
       } else if (orgResult.data) {
         // Convert Server Action response to UserOrgWithRelations format
         userOrgs = orgResult.data.map((org) => ({
@@ -114,7 +115,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       let userData: { name: string | null } | null = null;
 
       if (!profileResult.success) {
-        console.error('[AuthContext] Error fetching user profile:', profileResult.error);
+        logger.error('[AuthContext] Error fetching user profile:', profileResult.error);
       } else if (profileResult.data) {
         userData = profileResult.data;
       }
@@ -150,7 +151,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setUser(userInfo);
       setCurrentOrganization(defaultOrg || null);
     } catch (error) {
-      console.error('[AuthContext] Unexpected error in fetchUserData:', error);
+      logger.error('[AuthContext] Unexpected error in fetchUserData:', error);
       // Even if fetching additional data fails, set basic user info
       const basicUser: User = {
         id: supabaseUser.id,
@@ -173,18 +174,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     let mounted = true;
 
     const initAuth = async () => {
-      // eslint-disable-next-line no-console
-      console.info('[AuthContext] Starting auth initialization');
+      logger.info('[AuthContext] Starting auth initialization');
       try {
         const supabase = createClient();
-        // eslint-disable-next-line no-console
-        console.info('[AuthContext] Created Supabase client');
+        logger.info('[AuthContext] Created Supabase client');
 
         // CRITICAL FIX: Use getSession() first to restore session from cookie storage
         // Then optionally verify with getUser() if session exists
         // This ensures our custom cookieStorage.getItem() is actually called
-        // eslint-disable-next-line no-console
-        console.info('[AuthContext] Calling getSession() to restore from cookies...');
+        logger.info('[AuthContext] Calling getSession() to restore from cookies...');
 
         let validatedUser = null;
         let error = null;
@@ -193,8 +191,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           // Step 1: Try to restore session from cookies (this will call cookieStorage.getItem)
           const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
 
-          // eslint-disable-next-line no-console
-          console.info('[AuthContext] getSession result:', {
+          logger.info('[AuthContext] getSession result:', {
             hasSession: !!sessionData.session,
             hasUser: !!sessionData.session?.user,
             email: sessionData.session?.user?.email,
@@ -207,44 +204,38 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             // Session found in cookies - use it directly
             // In production, the server already validated this session when it was created
             validatedUser = sessionData.session.user;
-            // eslint-disable-next-line no-console
-            console.info('[AuthContext] Session restored from cookies successfully');
+            logger.info('[AuthContext] Session restored from cookies successfully');
           } else {
-            // eslint-disable-next-line no-console
-            console.info('[AuthContext] No session found in cookies');
+            logger.info('[AuthContext] No session found in cookies');
           }
         } catch (sessionError) {
-          console.error('[AuthContext] getSession failed:', sessionError);
+          logger.error('[AuthContext] getSession failed:', sessionError);
           error = sessionError instanceof Error ? sessionError : new Error('Unknown error');
         }
 
-        // eslint-disable-next-line no-console
-        console.info('[AuthContext] Authentication result:', {
+        logger.info('[AuthContext] Authentication result:', {
           hasUser: !!validatedUser,
           email: validatedUser?.email,
           error: error?.message,
         });
 
         if (validatedUser && !error && mounted) {
-          // eslint-disable-next-line no-console
-          console.info('[AuthContext] Valid user found, fetching user data');
+          logger.info('[AuthContext] Valid user found, fetching user data');
           await fetchUserData(validatedUser);
-          // eslint-disable-next-line no-console
-          console.info('[AuthContext] User data fetched successfully');
+          logger.info('[AuthContext] User data fetched successfully');
         } else if (mounted) {
           // ユーザーが認証されていない、またはエラーが発生した場合
-          // eslint-disable-next-line no-console
-          console.info('[AuthContext] No user or error, clearing state');
+          logger.info('[AuthContext] No user or error, clearing state');
           setUser(null);
           setCurrentOrganization(null);
         }
       } catch (error) {
-        console.error('[AuthContext] Error initializing auth:', error);
+        logger.error('[AuthContext] Error initializing auth:', error);
         // CRITICAL: Log detailed error information for debugging
         if (error instanceof Error) {
-          console.error('[AuthContext] Error name:', error.name);
-          console.error('[AuthContext] Error message:', error.message);
-          console.error('[AuthContext] Error stack:', error.stack);
+          logger.error('[AuthContext] Error name:', error.name);
+          logger.error('[AuthContext] Error message:', error.message);
+          logger.error('[AuthContext] Error stack:', error.stack);
         }
         // On error, set user to null to avoid blocking
         if (mounted) {
@@ -253,8 +244,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
       } finally {
         if (mounted) {
-          // eslint-disable-next-line no-console
-          console.info('[AuthContext] Setting loading to false');
+          logger.info('[AuthContext] Setting loading to false');
           setLoading(false);
         }
       }
@@ -264,7 +254,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // (Set longer than getUser timeout to allow proper error handling)
     const timeoutId = setTimeout(() => {
       if (mounted) {
-        console.warn('[AuthContext] Timeout reached (15s), forcing loading to false');
+        logger.warn('[AuthContext] Timeout reached (15s), forcing loading to false');
         setLoading(false);
       }
     }, 15000);
@@ -276,8 +266,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
-      // eslint-disable-next-line no-console
-      console.info('[AuthContext] Auth state changed:', event);
+      logger.info('[AuthContext] Auth state changed:', event);
       switch (event) {
         case 'SIGNED_IN':
         case 'TOKEN_REFRESHED':
@@ -304,8 +293,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     // Cleanup
     return () => {
-      // eslint-disable-next-line no-console
-      console.info('[AuthContext] Cleanup: unmounting');
+      logger.info('[AuthContext] Cleanup: unmounting');
       mounted = false;
       clearTimeout(timeoutId);
       subscription.unsubscribe();
@@ -410,7 +398,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Refresh the page to reload data with new organization context
       router.refresh();
     } catch (error) {
-      console.error('Failed to switch organization:', error);
+      logger.error('Failed to switch organization:', error);
       toast.error('組織の切り替えに失敗しました');
     }
   };
@@ -436,7 +424,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setCurrentOrganization(null);
       }
     } catch (error) {
-      console.error('Failed to refresh user:', error);
+      logger.error('Failed to refresh user:', error);
     }
   };
 

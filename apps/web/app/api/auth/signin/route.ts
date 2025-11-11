@@ -4,6 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 
+import { logger } from '@/lib/logger';
 import { createServiceClient } from '@/lib/supabase/server';
 
 /**
@@ -185,7 +186,7 @@ export async function POST(request: NextRequest) {
 
     return successResponse;
   } catch (error) {
-    console.error('[SignIn Route] Unexpected error:', error);
+    logger.error('[SignIn Route] Unexpected error:', error);
     const isLegacyKeyError = error instanceof Error && error.message.includes('レガシー形式');
     return NextResponse.json(
       {

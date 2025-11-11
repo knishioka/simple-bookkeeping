@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { logger } from '@/lib/logger';
 
 const loginSchema = z.object({
   email: z.string().email('有効なメールアドレスを入力してください'),
@@ -79,12 +80,12 @@ export default function LoginPage() {
           }
 
           // Error case
-          console.error('[LoginPage] Login failed:', result.error?.message);
+          logger.error('[LoginPage] Login failed:', result.error?.message);
           setError(result.error?.message || 'ログインに失敗しました');
           setIsLoading(false);
           return;
         } catch (parseError) {
-          console.error('[LoginPage] Failed to parse JSON response:', parseError);
+          logger.error('[LoginPage] Failed to parse JSON response:', parseError);
           setError('ログインに失敗しました');
           setIsLoading(false);
           return;
@@ -92,14 +93,14 @@ export default function LoginPage() {
       }
 
       // Non-JSON response (unexpected)
-      console.error('[LoginPage] Received non-JSON response');
+      logger.error('[LoginPage] Received non-JSON response');
       const text = await response.text();
-      console.error('[LoginPage] Response text (first 200 chars):', text.substring(0, 200));
+      logger.error('[LoginPage] Response text (first 200 chars):', text.substring(0, 200));
       setError('サーバーエラーが発生しました。しばらく経ってから再度お試しください。');
       setIsLoading(false);
     } catch (err) {
       // Network or other unexpected errors
-      console.error('[LoginPage] Login threw exception:', err);
+      logger.error('[LoginPage] Login threw exception:', err);
       setError(err instanceof Error ? err.message : 'ログインに失敗しました');
       setIsLoading(false);
     }
