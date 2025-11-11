@@ -3,6 +3,8 @@
 import type { Database } from '@/lib/supabase/database.types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+import { randomUUID } from 'crypto';
+
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -152,6 +154,7 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
         // This is a known compatibility issue and does not affect runtime behavior
         // TODO: Consider upgrading @supabase/supabase-js to v2.56+ when stable
         .insert({
+          id: randomUUID(), // Explicitly generate UUID for CI environment compatibility
           name: finalOrgName,
           code: `ORG-${Date.now()}`, // 仮のコード（後で変更可能）
           // is_active: true, // Temporarily commented out due to schema cache issue
