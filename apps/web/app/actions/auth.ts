@@ -157,6 +157,8 @@ export async function signUp(input: SignUpInput): Promise<ActionResult<AuthUser>
           id: randomUUID(), // Explicitly generate UUID for CI environment compatibility
           name: finalOrgName,
           code: `ORG-${Date.now()}`, // 仮のコード（後で変更可能）
+          created_at: new Date().toISOString(), // Explicit timestamp for CI compatibility
+          updated_at: new Date().toISOString(), // Explicit timestamp for CI compatibility
           // is_active: true, // Temporarily commented out due to schema cache issue
         })
         .select()
