@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { signUp } from '@/app/actions/auth';
+import { PasswordStrengthMeter } from '@/components/auth/password-strength-meter';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,7 +25,13 @@ import { Label } from '@/components/ui/label';
 const signupSchema = z
   .object({
     email: z.string().email('有効なメールアドレスを入力してください'),
-    password: z.string().min(8, 'パスワードは8文字以上である必要があります'),
+    password: z
+      .string()
+      .min(12, 'パスワードは12文字以上である必要があります')
+      .regex(/[a-z]/, 'パスワードには小文字を含める必要があります')
+      .regex(/[A-Z]/, 'パスワードには大文字を含める必要があります')
+      .regex(/[0-9]/, 'パスワードには数字を含める必要があります')
+      .regex(/[^a-zA-Z0-9]/, 'パスワードには記号を含める必要があります'),
     confirmPassword: z.string(),
     organizationName: z.string().min(1, '組織名を入力してください'),
     name: z.string().min(1, 'お名前を入力してください'), // Server Actionの要件に合わせて必須に
@@ -45,9 +52,12 @@ export default function SignupPage() {
     register,
     handleSubmit,
     formState: { errors },
+    watch,
   } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
   });
+
+  const password = watch('password') || '';
 
   const onSubmit = async (data: SignupFormData) => {
     setIsLoading(true);
@@ -159,6 +169,7 @@ export default function SignupPage() {
               <Label htmlFor="password">パスワード</Label>
               <Input id="password" type="password" {...register('password')} disabled={isLoading} />
               {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
+              <PasswordStrengthMeter password={password} showRequirements={true} />
             </div>
 
             <div className="space-y-2">
