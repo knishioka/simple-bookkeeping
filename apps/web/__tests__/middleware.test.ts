@@ -14,16 +14,16 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
   function calculateIsTestMode(
     nodeEnv: string | undefined,
     vercelEnv: string | undefined,
-    ci: string | undefined,
     e2eUseMockAuth: string | undefined,
     supabaseUrl: string | undefined
   ): boolean {
     // This replicates the exact logic from middleware.ts
     // Multi-layer production detection (defense-in-depth)
-    const isProduction = nodeEnv === 'production' || vercelEnv === 'production' || ci === 'true';
+    // NOTE: CI is NOT treated as production to allow E2E tests in GitHub Actions
+    const isProduction = nodeEnv === 'production' || vercelEnv === 'production';
 
     // Test mode is ONLY enabled when:
-    // 1. NOT in production (any layer)
+    // 1. NOT in production (NODE_ENV or VERCEL_ENV)
     // 2. AND one of the following conditions is met
     const isTestMode =
       !isProduction &&
@@ -54,7 +54,6 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
         const isTestMode = calculateIsTestMode(
           'production',
           undefined,
-          undefined,
           'false',
           'https://dummy.supabase.co'
         );
@@ -65,7 +64,6 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
       test('should NEVER enable test mode with placeholder Supabase URL', () => {
         const isTestMode = calculateIsTestMode(
           'production',
-          undefined,
           undefined,
           'false',
           'https://placeholder.supabase.co'
@@ -78,7 +76,6 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
         const isTestMode = calculateIsTestMode(
           'production',
           undefined,
-          undefined,
           'false',
           undefined // No Supabase URL
         );
@@ -89,7 +86,6 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
       test('should NEVER enable test mode with ALL triggers combined', () => {
         const isTestMode = calculateIsTestMode(
           'production',
-          undefined,
           undefined,
           'true', // E2E_USE_MOCK_AUTH = true
           'https://dummy.supabase.co' // Dummy URL
@@ -113,7 +109,6 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
           const isTestMode = calculateIsTestMode(
             env,
             undefined,
-            undefined,
             'true',
             'https://dummy.supabase.co'
           );
@@ -128,7 +123,6 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
         const isTestMode = calculateIsTestMode(
           'development', // NODE_ENV is development
           'production', // VERCEL_ENV is production
-          undefined,
           'true',
           'https://dummy.supabase.co'
         );
@@ -140,7 +134,6 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
         const isTestMode = calculateIsTestMode(
           undefined, // NODE_ENV missing
           'production', // VERCEL_ENV is production
-          undefined,
           'true',
           undefined
         );
@@ -149,49 +142,36 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
       });
     });
 
-    describe('when CI is true', () => {
-      test('should NEVER enable test mode regardless of NODE_ENV', () => {
-        const isTestMode = calculateIsTestMode(
-          'development',
-          undefined,
-          'true', // CI is true
-          'true',
-          'https://dummy.supabase.co'
-        );
-
-        expect(isTestMode).toBe(false);
-      });
-
-      test('should protect CI environment from test mode', () => {
-        const isTestMode = calculateIsTestMode(undefined, undefined, 'true', 'true', undefined);
-
-        expect(isTestMode).toBe(false);
-      });
-    });
-
-    describe('multi-layer production detection', () => {
+    describe('dual-layer production detection', () => {
       test('should block test mode if ANY production flag is set', () => {
         const testCases = [
-          { nodeEnv: 'production', vercelEnv: undefined, ci: undefined },
-          { nodeEnv: undefined, vercelEnv: 'production', ci: undefined },
-          { nodeEnv: undefined, vercelEnv: undefined, ci: 'true' },
-          { nodeEnv: 'production', vercelEnv: 'production', ci: undefined },
-          { nodeEnv: 'production', vercelEnv: undefined, ci: 'true' },
-          { nodeEnv: undefined, vercelEnv: 'production', ci: 'true' },
-          { nodeEnv: 'production', vercelEnv: 'production', ci: 'true' },
+          { nodeEnv: 'production', vercelEnv: undefined },
+          { nodeEnv: undefined, vercelEnv: 'production' },
+          { nodeEnv: 'production', vercelEnv: 'production' },
         ];
 
-        testCases.forEach(({ nodeEnv, vercelEnv, ci }) => {
+        testCases.forEach(({ nodeEnv, vercelEnv }) => {
           const isTestMode = calculateIsTestMode(
             nodeEnv,
             vercelEnv,
-            ci,
             'true',
             'https://dummy.supabase.co'
           );
 
           expect(isTestMode).toBe(false);
         });
+      });
+
+      test('should allow test mode in CI when E2E_USE_MOCK_AUTH is set', () => {
+        // CI environment with E2E_USE_MOCK_AUTH=true should enable test mode
+        const isTestMode = calculateIsTestMode(
+          'test', // NODE_ENV = test (common in CI)
+          undefined, // VERCEL_ENV not set
+          'true', // E2E_USE_MOCK_AUTH = true
+          'https://real.supabase.co'
+        );
+
+        expect(isTestMode).toBe(true);
       });
     });
   });
@@ -201,7 +181,6 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
       test('should enable test mode with E2E_USE_MOCK_AUTH=true', () => {
         const isTestMode = calculateIsTestMode(
           'development',
-          undefined,
           undefined,
           'true',
           'https://real.supabase.co'
@@ -214,7 +193,6 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
         const isTestMode = calculateIsTestMode(
           'development',
           undefined,
-          undefined,
           'false',
           'https://dummy.supabase.co'
         );
@@ -225,7 +203,6 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
       test('should enable test mode with placeholder Supabase URL', () => {
         const isTestMode = calculateIsTestMode(
           'development',
-          undefined,
           undefined,
           'false',
           'https://placeholder.supabase.co'
@@ -238,7 +215,6 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
         const isTestMode = calculateIsTestMode(
           'development',
           undefined,
-          undefined,
           'false',
           'http://localhost:8000'
         );
@@ -247,13 +223,7 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
       });
 
       test('should enable test mode when Supabase URL is missing', () => {
-        const isTestMode = calculateIsTestMode(
-          'development',
-          undefined,
-          undefined,
-          'false',
-          undefined
-        );
+        const isTestMode = calculateIsTestMode('development', undefined, 'false', undefined);
 
         expect(isTestMode).toBe(true);
       });
@@ -261,7 +231,6 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
       test('should NOT enable test mode with real Supabase URL and no flags', () => {
         const isTestMode = calculateIsTestMode(
           'development',
-          undefined,
           undefined,
           'false',
           'https://abc123.supabase.co'
@@ -285,7 +254,6 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
           const isTestMode = calculateIsTestMode(
             'development',
             undefined,
-            undefined,
             value,
             'https://real.supabase.co'
           );
@@ -300,7 +268,6 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
         const isTestMode = calculateIsTestMode(
           'test',
           undefined,
-          undefined,
           'true',
           'https://real.supabase.co'
         );
@@ -311,7 +278,6 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
       test('should enable test mode with dummy URL', () => {
         const isTestMode = calculateIsTestMode(
           'test',
-          undefined,
           undefined,
           'false',
           'https://dummy.supabase.co'
@@ -327,7 +293,6 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
       const isTestMode = calculateIsTestMode(
         undefined,
         undefined,
-        undefined,
         'true',
         'https://real.supabase.co'
       );
@@ -336,13 +301,7 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
     });
 
     test('should handle empty string NODE_ENV', () => {
-      const isTestMode = calculateIsTestMode(
-        '',
-        undefined,
-        undefined,
-        'true',
-        'https://real.supabase.co'
-      );
+      const isTestMode = calculateIsTestMode('', undefined, 'true', 'https://real.supabase.co');
 
       expect(isTestMode).toBe(true);
     });
@@ -350,7 +309,6 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
     test('should handle multiple conditions true', () => {
       const isTestMode = calculateIsTestMode(
         'development',
-        undefined,
         undefined,
         'true', // E2E flag
         'https://dummy.supabase.co' // Dummy URL
@@ -372,7 +330,7 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
       ];
 
       testCases.forEach(({ url, expected }) => {
-        const isTestMode = calculateIsTestMode('development', undefined, undefined, 'false', url);
+        const isTestMode = calculateIsTestMode('development', undefined, 'false', url);
 
         expect(isTestMode).toBe(expected);
       });
@@ -380,23 +338,11 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
 
     test('should handle null vs undefined', () => {
       // undefined means not set, which triggers test mode
-      const undefinedCase = calculateIsTestMode(
-        'development',
-        undefined,
-        undefined,
-        'false',
-        undefined
-      );
+      const undefinedCase = calculateIsTestMode('development', undefined, 'false', undefined);
       expect(undefinedCase).toBe(true);
 
       // null might be treated differently (testing actual behavior)
-      const nullCase = calculateIsTestMode(
-        'development',
-        undefined,
-        undefined,
-        'false',
-        null as any
-      );
+      const nullCase = calculateIsTestMode('development', undefined, 'false', null as any);
       expect(nullCase).toBe(true); // null is falsy, so !null is true
     });
   });
@@ -413,13 +359,7 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
       ];
 
       productionCombinations.forEach((combo) => {
-        const isTestMode = calculateIsTestMode(
-          'production',
-          undefined,
-          undefined,
-          combo.e2e,
-          combo.url
-        );
+        const isTestMode = calculateIsTestMode('production', undefined, combo.e2e, combo.url);
 
         // ALL combinations should be false in production
         expect(isTestMode).toBe(false);
@@ -438,13 +378,7 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
       ];
 
       devCombinations.forEach((combo) => {
-        const isTestMode = calculateIsTestMode(
-          'development',
-          undefined,
-          undefined,
-          combo.e2e,
-          combo.url
-        );
+        const isTestMode = calculateIsTestMode('development', undefined, combo.e2e, combo.url);
 
         expect(isTestMode).toBe(combo.expected);
       });
@@ -454,12 +388,11 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
   describe('Documentation and Implementation Verification', () => {
     test('should match the exact logic from middleware.ts', () => {
       // This test documents the exact logic that should be in middleware.ts
-      // Issue #554: Multi-layer production detection
+      // Issue #554: Dual-layer production detection (NODE_ENV + VERCEL_ENV)
       const expectedLogic = `
       const isProduction =
         process.env.NODE_ENV === 'production' ||
-        process.env.VERCEL_ENV === 'production' ||
-        process.env.CI === 'true';
+        process.env.VERCEL_ENV === 'production';
 
       const isTestMode =
         !isProduction &&
@@ -474,7 +407,7 @@ describe('Middleware Security Tests - Test Mode Logic', () => {
       // For now, we document what the logic should be
       expect(expectedLogic).toContain("process.env.NODE_ENV === 'production'");
       expect(expectedLogic).toContain("process.env.VERCEL_ENV === 'production'");
-      expect(expectedLogic).toContain("process.env.CI === 'true'");
+      expect(expectedLogic).not.toContain("process.env.CI === 'true'"); // NOT checked to allow CI E2E tests
       expect(expectedLogic).toContain("E2E_USE_MOCK_AUTH === 'true'");
       expect(expectedLogic).toContain('!process.env.NEXT_PUBLIC_SUPABASE_URL');
       expect(expectedLogic).toContain("'https://dummy.supabase.co'");
@@ -507,11 +440,10 @@ describe('Performance Characteristics', () => {
     function calculateIsTestMode(
       nodeEnv: string | undefined,
       vercelEnv: string | undefined,
-      ci: string | undefined,
       e2eUseMockAuth: string | undefined,
       supabaseUrl: string | undefined
     ): boolean {
-      const isProduction = nodeEnv === 'production' || vercelEnv === 'production' || ci === 'true';
+      const isProduction = nodeEnv === 'production' || vercelEnv === 'production';
       const isTestMode =
         !isProduction &&
         (e2eUseMockAuth === 'true' ||
@@ -527,7 +459,7 @@ describe('Performance Characteristics', () => {
 
     // Run 10000 evaluations
     for (let i = 0; i < 10000; i++) {
-      calculateIsTestMode('development', undefined, undefined, 'true', 'https://test.supabase.co');
+      calculateIsTestMode('development', undefined, 'true', 'https://test.supabase.co');
     }
 
     const endTime = performance.now();

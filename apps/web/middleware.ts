@@ -178,15 +178,14 @@ export async function middleware(request: NextRequest) {
   // Issue #520: Support localhost:8000 (Docker Compose Supabase) for E2E tests
 
   // Multi-layer production detection (defense-in-depth)
+  // NOTE: CI is NOT treated as production to allow E2E tests in GitHub Actions
   const isProduction =
-    process.env.NODE_ENV === 'production' ||
-    process.env.VERCEL_ENV === 'production' ||
-    process.env.CI === 'true';
+    process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
 
   // Test mode is ONLY enabled when:
-  // 1. NOT in production (any layer)
+  // 1. NOT in production (NODE_ENV or VERCEL_ENV)
   // 2. AND one of the following:
-  //    - Explicit E2E_USE_MOCK_AUTH flag
+  //    - Explicit E2E_USE_MOCK_AUTH flag (used in CI)
   //    - Supabase URL is not configured or is a known test placeholder
   const isTestMode =
     !isProduction &&
@@ -207,7 +206,6 @@ export async function middleware(request: NextRequest) {
     console.error('Environment:', {
       NODE_ENV: process.env.NODE_ENV,
       VERCEL_ENV: process.env.VERCEL_ENV,
-      CI: process.env.CI,
       E2E_USE_MOCK_AUTH: process.env.E2E_USE_MOCK_AUTH,
       SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     });
@@ -223,7 +221,6 @@ export async function middleware(request: NextRequest) {
     console.warn('Environment:', {
       NODE_ENV: process.env.NODE_ENV,
       VERCEL_ENV: process.env.VERCEL_ENV,
-      CI: process.env.CI,
       E2E_USE_MOCK_AUTH: process.env.E2E_USE_MOCK_AUTH,
       SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     });

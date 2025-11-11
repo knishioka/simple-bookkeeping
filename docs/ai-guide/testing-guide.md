@@ -202,14 +202,13 @@ test.beforeEach(async ({ page, context }) => {
 
 **新しいセキュリティ機構:**
 
-1. **多層防御による本番環境保護**
+1. **二層防御による本番環境保護**
 
    ```typescript
    // middleware.ts の新しいロジック
+   // NOTE: CI is NOT treated as production to allow E2E tests in GitHub Actions
    const isProduction =
-     process.env.NODE_ENV === 'production' ||
-     process.env.VERCEL_ENV === 'production' ||
-     process.env.CI === 'true';
+     process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
 
    const isTestMode =
      !isProduction &&
@@ -220,12 +219,14 @@ test.beforeEach(async ({ page, context }) => {
        process.env.NEXT_PUBLIC_SUPABASE_URL === 'http://localhost:8000');
    ```
 
+   **重要:** CIは本番環境として扱われません。これにより、GitHub ActionsでE2Eテストを実行できます。
+
 2. **テストモードを有効化する方法**
 
    E2Eテストで認証をバイパスするには、以下の**いずれか**を設定：
 
    ```bash
-   # 方法1: 環境変数で明示的に指定（推奨）
+   # 方法1: 環境変数で明示的に指定（推奨・CIで使用）
    E2E_USE_MOCK_AUTH=true
 
    # 方法2: Supabase URLを未設定にする
@@ -244,8 +245,9 @@ test.beforeEach(async ({ page, context }) => {
    ```bash
    NODE_ENV=production
    VERCEL_ENV=production
-   CI=true
    ```
+
+   **CI環境でのE2Eテスト:** CI環境（`CI=true`）でも`E2E_USE_MOCK_AUTH=true`を設定すればテストモードが有効化されます。
 
 4. **警告ログとエラー**
    - テストモード有効時: 警告ログが出力されます
