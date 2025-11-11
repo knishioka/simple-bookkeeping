@@ -214,6 +214,45 @@ const orgResult = await getUserOrganizations(userId);
 - APIキー移行時などにRLS検証ロジックが変わる可能性がある
 - Server Actionsを使えば認証状態に依存せず安定したアクセスが可能
 
+**実例: AuthContextでのusersテーブルアクセス（Issue #551 続編）**
+
+```typescript
+// ❌ NG: AuthContextから直接usersテーブルをクエリ
+// contexts/auth-context.tsx
+const fetchUserData = async (supabaseUser: SupabaseUser) => {
+  const supabase = createClient(); // Anon Key
+  const { data } = await supabase
+    .from('users') // 403 Forbidden!
+    .select('name')
+    .eq('id', supabaseUser.id)
+    .single();
+};
+
+// ✅ OK: Server Actionを経由してusersテーブルにアクセス
+// app/actions/auth.ts
+export async function getUserProfile(userId: string) {
+  const supabase = createServiceClient(); // Service Role Key
+  const { data, error } = await supabase.from('users').select('name').eq('id', userId).single();
+
+  if (error) return createErrorResult(ERROR_CODES.DATABASE_ERROR, error.message);
+  return createSuccessResult(data || { name: null });
+}
+
+// contexts/auth-context.tsx
+const fetchUserData = async (supabaseUser: SupabaseUser) => {
+  const profileResult = await getUserProfile(supabaseUser.id);
+  if (profileResult.success && profileResult.data) {
+    userData = profileResult.data;
+  }
+};
+```
+
+**教訓:**
+
+- クライアントコンポーネント（React Context含む）から**あらゆるテーブル**への直接クエリは避ける
+- `user_organizations`だけでなく、`users`, `organizations`なども同様
+- 必ずServer Actions経由でService Role Keyを使用する
+
 **参考:** [Supabaseガイドライン](./docs/ai-guide/supabase-guidelines.md)
 
 #### 🔧 Turbo Monorepoの環境変数管理
