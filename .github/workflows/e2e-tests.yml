@@ -241,10 +241,7 @@ jobs:
       - name: Restore dependencies from cache
         run: pnpm install --frozen-lockfile --prefer-offline
 
-      - name: Generate Prisma Client
-        run: pnpm --filter @simple-bookkeeping/database prisma:generate
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      # Note: Prisma Client generation removed - migrated to Supabase (Issue #557)
 
       - name: Restore build cache
         uses: actions/cache/restore@v4
@@ -314,10 +311,9 @@ jobs:
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] Waiting for database initialization to complete..."
           sleep 3
 
-          # Now run prisma db push
-          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Applying database schema with Prisma..."
-          cd packages/database && npx prisma db push --skip-generate
-          echo "✓ Database schema applied successfully"
+          # Note: Database schema setup removed - migrated to Supabase (Issue #557)
+          # E2E tests now use Supabase Client to connect to the database
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Database ready for E2E tests (using Supabase Client)"
 
       - name: Restore Playwright browsers cache
         uses: actions/cache/restore@v4

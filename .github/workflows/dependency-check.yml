@@ -23,8 +23,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generate Prisma Client
-        run: pnpm --filter @simple-bookkeeping/database prisma:generate
+      # Note: Prisma Client generation removed - migrated to Supabase (Issue #557)
 
       - name: Build packages first
         run: pnpm build:packages

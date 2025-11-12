@@ -46,10 +46,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-build-
 
-      - name: Generate Prisma Client
-        run: pnpm --filter @simple-bookkeeping/database prisma:generate
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test?schema=public
+      # Note: Prisma Client generation removed - migrated to Supabase (Issue #557)
 
       - name: Build packages for linting
         run: pnpm build:packages
@@ -90,10 +87,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-build-
 
-      - name: Generate Prisma Client
-        run: pnpm --filter @simple-bookkeeping/database prisma:generate
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test?schema=public
+      # Note: Prisma Client generation removed - migrated to Supabase (Issue #557)
 
       - name: Build packages for type checking
         run: pnpm build:packages
@@ -147,15 +141,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-build-
 
-      - name: Generate Prisma Client
-        run: pnpm --filter @simple-bookkeeping/database prisma:generate
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test?schema=public
-
-      - name: Setup database schema
-        run: cd packages/database && npx prisma db push --skip-generate
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test?schema=public
+      # Note: Database schema setup removed - migrated to Supabase (Issue #557)
+      # Tests now use Supabase Client to connect to the database
 
       - name: Run tests
         run: pnpm test
