@@ -43,7 +43,6 @@
     "@radix-ui/react-tabs": "^1.1.12",
     "@radix-ui/react-toast": "^1.2.14",
     "@simple-bookkeeping/config": "workspace:*",
-    "@simple-bookkeeping/database": "workspace:*",
     "@simple-bookkeeping/shared": "workspace:*",
     "@simple-bookkeeping/supabase-client": "workspace:*",
     "@simple-bookkeeping/test-utils": "workspace:*",

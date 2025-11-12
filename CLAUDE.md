@@ -55,7 +55,7 @@ apps/web/                 # Next.js フルスタックアプリケーション (
     └── supabase.ts    # Supabase クライアント
 
 packages/
-├── database/          # Prisma スキーマ (@simple-bookkeeping/database)
+├── supabase-client/  # Supabase クライアント (@simple-bookkeeping/supabase-client)
 └── shared/           # 共有ユーティリティ (@simple-bookkeeping/shared)
 
 ```
@@ -124,7 +124,6 @@ pnpm supabase:status       # 状態確認
 
 # データベース操作（ローカル）
 pnpm db:migrate            # マイグレーション実行
-pnpm db:studio             # Prisma Studio起動（GUI）
 pnpm db:tables             # テーブル一覧表示
 
 # データベース操作（本番）⚠️
@@ -152,7 +151,7 @@ bash scripts/db-query.sh --env local "SQL"          # ローカルDB
 - Next.js 14 App Router + Server Actions (Port 3000)
 - Supabase (Database + Auth + RLS)
 - PostgreSQL 16
-- Prisma ORM (Supabaseデータベースへの接続)
+- Supabase Client (すべてのデータベースクエリ)
 - shadcn/ui + Tailwind CSS
 
 ### 環境別Supabase設定
@@ -175,9 +174,9 @@ bash scripts/db-query.sh --env local "SQL"          # ローカルDB
    - RLS (Row Level Security) ポリシーの活用
 
 3. **データベースアクセス**
-   - 優先: Supabase Client経由（新規実装）
-   - 暫定: Prisma ORM（既存コードのみ）
-   - 今後: 段階的にSupabase Clientへ統一
+   - ✅ **完了**: Supabase Client へ完全移行済み (Issue #557)
+   - すべてのデータベースクエリは Supabase Client 経由で実行
+   - RLS (Row Level Security) ポリシーが一貫して適用される
 
 4. **Supabase起動必須**
    - 開発前に必ず `pnpm supabase:start` を実行
@@ -369,12 +368,6 @@ git diff --cached | grep "console.log.*\[.*\]" && echo "⚠️  Debug logs found
 ### データベーススキーマ
 
 ```bash
-# スキーマ確認
-cat packages/database/prisma/schema.prisma
-
-# GUI でスキーマ確認（Prisma Studio）
-pnpm --filter @simple-bookkeeping/database prisma:studio
-
 # テーブル一覧を確認
 pnpm db:tables          # ローカル環境
 pnpm db:tables:prod     # 本番環境

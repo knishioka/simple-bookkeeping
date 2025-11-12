@@ -1,7 +1,6 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { UserRole } from '@simple-bookkeeping/database';
 import { AlertTriangle, Loader2, MoreHorizontal, Plus, Shield, UserMinus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -62,6 +61,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useAuth } from '@/contexts/auth-context';
+import { UserRole } from '@/lib/constants/enums';
 // TODO: Migrate to Server Actions - Issue #355
 // import { apiClient as api } from '@/lib/api-client';
 

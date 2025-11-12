@@ -38,10 +38,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generate Prisma Client
-        run: pnpm --filter @simple-bookkeeping/database prisma:generate
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test?schema=public
+      # Note: Prisma Client generation removed - migrated to Supabase (Issue #557)
 
       - name: Build packages
         run: pnpm build:packages

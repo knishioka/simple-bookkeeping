@@ -280,7 +280,7 @@ describe('Auth Server Actions', () => {
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.VALIDATION_ERROR);
-      expect(result.error?.message).toContain('パスワードは8文字以上で入力してください');
+      expect(result.error?.message).toContain('Password must be at least 12 characters long');
     });
 
     it('should handle duplicate email registration', async () => {
@@ -699,7 +699,7 @@ describe('Auth Server Actions', () => {
 
       expect(result.success).toBe(false);
       expect(result.error?.code).toBe(ERROR_CODES.VALIDATION_ERROR);
-      expect(result.error?.message).toContain('新しいパスワードは8文字以上で入力してください');
+      expect(result.error?.message).toContain('Password must be at least 12 characters long');
     });
 
     it('should prevent using same password', async () => {

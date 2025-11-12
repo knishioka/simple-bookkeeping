@@ -72,10 +72,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generate Prisma Client
-        run: pnpm --filter @simple-bookkeeping/database prisma:generate
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test?schema=public
+      # Note: Prisma Client generation removed - migrated to Supabase (Issue #557)
 
       - name: Build packages
         if: ${{ inputs.build-packages }}
@@ -93,12 +90,8 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key' }}
           DOCKER_BUILD: false
 
-      - name: Setup database schema
-        if: ${{ inputs.setup-database }}
-        run: |
-          cd packages/database && npx prisma db push --skip-generate
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/simple_bookkeeping_test?schema=public
+      # Note: Database schema setup step removed - migrated to Supabase (Issue #557)
+      # Applications now use Supabase Client to connect to the database
 
       - name: Cache Playwright browsers
         if: ${{ inputs.install-playwright }}
