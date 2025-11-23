@@ -37,7 +37,7 @@ jobs:
         shard: [1/2, 2/2]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # Docker layer caching is handled by GitHub Actions built-in support
       # No explicit cache action needed for Docker images
