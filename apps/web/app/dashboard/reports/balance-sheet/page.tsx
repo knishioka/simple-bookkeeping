@@ -1,6 +1,7 @@
 'use client';
 
-import { Calendar, Download } from 'lucide-react';
+import { Calendar, Download, TrendingUp, Plus } from 'lucide-react';
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
 import { getBalanceSheet } from '@/app/actions/reports';
@@ -9,6 +10,7 @@ import { ReportTable, ReportItem } from '@/components/common/ReportTable';
 import { ExportDialog } from '@/components/reports/ExportDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import { useOrganization } from '@/hooks/use-organization';
 import { useServerAction } from '@/hooks/useServerAction';
@@ -197,7 +199,19 @@ export default function BalanceSheetPage() {
             </Card>
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">データがありません</div>
+          <EmptyState
+            icon={<TrendingUp className="h-12 w-12" />}
+            title="表示するデータがありません"
+            description="仕訳を入力すると自動的に集計されます"
+            action={
+              <Link href="/dashboard/journal-entries/new">
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  仕訳入力へ
+                </Button>
+              </Link>
+            }
+          />
         )}
       </div>
       <ExportDialog

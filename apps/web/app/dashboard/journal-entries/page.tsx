@@ -1,11 +1,12 @@
 'use client';
 
-import { Calendar, Plus, Search, Upload } from 'lucide-react';
+import { Calendar, FileText, Plus, Search, Upload } from 'lucide-react';
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 
 import { getJournalEntries, updateJournalEntry } from '@/app/actions/journal-entries';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -242,8 +243,30 @@ export default function JournalEntriesPage() {
 
           {isLoading || isOrgLoading ? (
             <div className="text-center py-8">読み込み中...</div>
+          ) : entries.length === 0 ? (
+            // Show EmptyState when there are no entries at all
+            <EmptyState
+              icon={<FileText className="h-12 w-12" />}
+              title="仕訳がまだ登録されていません"
+              description="日々の取引を記録していきましょう"
+              action={
+                <>
+                  <Button onClick={handleCreate}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    新規作成
+                  </Button>
+                  <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    CSVインポート
+                  </Button>
+                </>
+              }
+            />
           ) : filteredEntries.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">仕訳が見つかりません</div>
+            // Show simple message when filters don't match any entries
+            <div className="text-center py-8 text-gray-500">
+              検索条件に一致する仕訳が見つかりません
+            </div>
           ) : (
             <Table data-testid="journal-entries-table">
               <TableHeader>

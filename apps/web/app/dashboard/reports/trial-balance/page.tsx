@@ -2,13 +2,15 @@
 
 import type { TrialBalanceItem } from '@/app/actions/reports';
 
-import { Calendar, Download, Printer } from 'lucide-react';
+import { Calendar, Download, Printer, TrendingUp, Plus } from 'lucide-react';
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
 import { getTrialBalance } from '@/app/actions/reports';
 import { ExportDialog } from '@/components/reports/ExportDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -173,8 +175,20 @@ export default function TrialBalancePage() {
                 <TableBody>
                   {data.entries.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-gray-500">
-                        データがありません
+                      <TableCell colSpan={5} className="p-0">
+                        <EmptyState
+                          icon={<TrendingUp className="h-12 w-12" />}
+                          title="表示するデータがありません"
+                          description="仕訳を入力すると自動的に集計されます"
+                          action={
+                            <Link href="/dashboard/journal-entries/new">
+                              <Button>
+                                <Plus className="mr-2 h-4 w-4" />
+                                仕訳入力へ
+                              </Button>
+                            </Link>
+                          }
+                        />
                       </TableCell>
                     </TableRow>
                   ) : (
