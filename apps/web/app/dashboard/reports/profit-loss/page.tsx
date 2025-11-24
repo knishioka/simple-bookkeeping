@@ -2,13 +2,15 @@
 
 import type { IncomeStatementItem } from '@/app/actions/reports';
 
-import { Calendar, Download, Printer } from 'lucide-react';
+import { Calendar, Download, Printer, TrendingUp, Plus } from 'lucide-react';
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
 import { getIncomeStatement } from '@/app/actions/reports';
 import { ExportDialog } from '@/components/reports/ExportDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { useOrganization } from '@/hooks/use-organization';
@@ -411,7 +413,19 @@ export default function ProfitLossPage() {
               </TableBody>
             </Table>
           ) : (
-            <div className="text-center py-8 text-gray-500">データがありません</div>
+            <EmptyState
+              icon={<TrendingUp className="h-12 w-12" />}
+              title="表示するデータがありません"
+              description="仕訳を入力すると自動的に集計されます"
+              action={
+                <Link href="/dashboard/journal-entries/new">
+                  <Button>
+                    <Plus className="mr-2 h-4 w-4" />
+                    仕訳入力へ
+                  </Button>
+                </Link>
+              }
+            />
           )}
         </CardContent>
       </Card>
