@@ -134,7 +134,7 @@ jobs:
 
       - name: Upload Storage State artifact
         if: ${{ inputs.install-playwright }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-storage-state
           path: apps/web/e2e/.auth/
