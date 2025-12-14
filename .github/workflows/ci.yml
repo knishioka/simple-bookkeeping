@@ -37,7 +37,7 @@ jobs:
         run: pnpm install --frozen-lockfile --prefer-offline
 
       - name: Restore build cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             packages/*/dist
@@ -78,7 +78,7 @@ jobs:
         run: pnpm install --frozen-lockfile --prefer-offline
 
       - name: Restore build cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             packages/*/dist
@@ -132,7 +132,7 @@ jobs:
         run: pnpm install --frozen-lockfile --prefer-offline
 
       - name: Restore build cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             packages/*/dist
@@ -178,7 +178,7 @@ jobs:
         run: pnpm install --frozen-lockfile --prefer-offline
 
       - name: Restore build cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             apps/web/.next

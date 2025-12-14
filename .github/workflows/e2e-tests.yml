@@ -244,7 +244,7 @@ jobs:
       # Note: Prisma Client generation removed - migrated to Supabase (Issue #557)
 
       - name: Restore build cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             apps/web/.next
@@ -316,7 +316,7 @@ jobs:
           echo "[$(date '+%Y-%m-%d %H:%M:%S')] Database ready for E2E tests (using Supabase Client)"
 
       - name: Restore Playwright browsers cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('**/pnpm-lock.yaml') }}-chromium
