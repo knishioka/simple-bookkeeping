@@ -62,6 +62,32 @@ export interface Database {
           updated_at?: string;
         };
       };
+      user_organizations: {
+        Row: {
+          id: string;
+          user_id: string;
+          organization_id: string;
+          role: 'admin' | 'accountant' | 'viewer';
+          is_default: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          organization_id: string;
+          role?: 'admin' | 'accountant' | 'viewer';
+          is_default?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          organization_id?: string;
+          role?: 'admin' | 'accountant' | 'viewer';
+          is_default?: boolean;
+          created_at?: string;
+        };
+      };
       accounting_periods: {
         Row: {
           id: string;
@@ -288,6 +314,85 @@ export interface Database {
           ip_address?: string | null;
           user_agent?: string | null;
           created_at?: string;
+        };
+      };
+      file_metadata: {
+        Row: {
+          id: string;
+          organization_id: string;
+          bucket_name: string;
+          file_path: string;
+          file_name: string;
+          file_size: number;
+          mime_type: string;
+          uploaded_by: string;
+          related_entity_type: string | null;
+          related_entity_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          bucket_name: string;
+          file_path: string;
+          file_name: string;
+          file_size: number;
+          mime_type: string;
+          uploaded_by: string;
+          related_entity_type?: string | null;
+          related_entity_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          bucket_name?: string;
+          file_path?: string;
+          file_name?: string;
+          file_size?: number;
+          mime_type?: string;
+          uploaded_by?: string;
+          related_entity_type?: string | null;
+          related_entity_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      user_presence: {
+        Row: {
+          id: string;
+          user_id: string;
+          organization_id: string;
+          channel_name: string;
+          status: string;
+          last_seen: string;
+          metadata: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          organization_id: string;
+          channel_name: string;
+          status?: string;
+          last_seen?: string;
+          metadata?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          organization_id?: string;
+          channel_name?: string;
+          status?: string;
+          last_seen?: string;
+          metadata?: Json | null;
+          created_at?: string;
+          updated_at?: string;
         };
       };
     };
