@@ -4,20 +4,9 @@ import { createServerClient } from '@supabase/ssr';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
+import { assertNotLegacyKey } from './validation';
+
 import { logger } from '@/lib/logger';
-
-const assertNotLegacyKey = (key: string, envName: string) => {
-  // Skip validation in test environment
-  if (process.env.NODE_ENV === 'test') {
-    return;
-  }
-
-  if (key.startsWith('sbp_')) {
-    throw new Error(
-      `${envName} にレガシー形式 (sbp_...) の Supabase API キーが設定されています。Project settings → API で新しいキーを発行し、環境変数を更新してください。`
-    );
-  }
-};
 
 /**
  * Supabaseクライアント（サーバー用）

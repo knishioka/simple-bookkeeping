@@ -6,26 +6,36 @@
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 
+function info(...args: unknown[]): void {
+  if (isDevelopment) {
+    // eslint-disable-next-line no-console
+    console.info(...args);
+  }
+}
+
+function warn(...args: unknown[]): void {
+  if (isDevelopment) {
+    console.warn(...args);
+  }
+}
+
+function debug(...args: unknown[]): void {
+  if (isDevelopment) {
+    // eslint-disable-next-line no-console
+    console.debug(...args);
+  }
+}
+
+function error(...args: unknown[]): void {
+  // Always log errors, even in production
+  console.error(...args);
+}
+
 export const logger = {
-  info: (...args: unknown[]) => {
-    if (isDevelopment) {
-      // eslint-disable-next-line no-console
-      console.info(...args);
-    }
-  },
-  warn: (...args: unknown[]) => {
-    if (isDevelopment) {
-      console.warn(...args);
-    }
-  },
-  debug: (...args: unknown[]) => {
-    if (isDevelopment) {
-      // eslint-disable-next-line no-console
-      console.debug(...args);
-    }
-  },
-  error: (...args: unknown[]) => {
-    // Always log errors, even in production
-    console.error(...args);
-  },
+  info,
+  warn,
+  debug,
+  error,
 } as const;
+
+export type Logger = typeof logger;
