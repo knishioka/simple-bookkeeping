@@ -20,8 +20,7 @@ export function assertNotLegacyKey(key: string, envName: string): void {
 
   if (key.startsWith('sbp_')) {
     throw new Error(
-      `${envName} にレガシー形式 (sbp_...) の Supabase API キーが設定されています。` +
-        `Project settings → API で新しいキーを発行し、環境変数を更新してください。`
+      `${envName} にレガシー形式 (sbp_...) の Supabase API キーが設定されています。Project settings → API で新しいキーを発行し、環境変数を更新してください。`
     );
   }
 }
