@@ -330,18 +330,16 @@ export async function signIn(input: SignInInput): Promise<ActionResult<AuthUser>
       password,
     });
 
-    // Check cookie state after authentication
+    // Log cookie state after authentication
     const cookieStore = await cookies();
     const allCookies = cookieStore.getAll();
-    logger.warn(
-      '[SignIn] Cookies after signIn:',
-      allCookies.map((c) => ({ name: c.name, hasValue: !!c.value, valueLength: c.value.length }))
-    );
-    logger.warn('[SignIn] Total cookies set:', allCookies.length);
-    logger.warn(
-      '[SignIn] Auth cookies:',
-      allCookies.filter((c) => c.name.includes('auth') || c.name.includes('sb')).map((c) => c.name)
-    );
+    const authCookieNames = allCookies
+      .filter((c) => c.name.includes('auth') || c.name.includes('sb'))
+      .map((c) => c.name);
+    logger.warn('[SignIn] Cookies set:', {
+      total: allCookies.length,
+      authCookies: authCookieNames,
+    });
 
     if (authError) {
       logger.warn('[SignIn] Authentication failed:', authError.message);

@@ -73,77 +73,45 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   // Function to fetch and set user data
   const fetchUserData = useCallback(async (supabaseUser: SupabaseUser) => {
     try {
-      // Define the type for the user organization with relations
-      interface UserOrgWithRelations {
-        id: string;
-        role: 'admin' | 'accountant' | 'viewer';
-        is_default: boolean;
-        organization: {
-          id: string;
-          name: string;
-          code: string;
-        } | null;
-      }
-
-      // Get user's organizations with timeout
-      // CRITICAL: Use Server Action to fetch organizations (bypasses RLS with Service Role Key)
+      // Get user's organizations using Server Action (bypasses RLS with Service Role Key)
       const orgResult = await getUserOrganizations(supabaseUser.id);
-
-      let userOrgs: UserOrgWithRelations[] | null = null;
 
       if (!orgResult.success) {
         logger.error('[AuthContext] Error fetching organizations:', orgResult.error);
-      } else if (orgResult.data) {
-        // Convert Server Action response to UserOrgWithRelations format
-        userOrgs = orgResult.data.map((org) => ({
-          id: crypto.randomUUID(), // Generate unique ID for the relation
-          role: org.role,
-          is_default: org.isDefault,
-          organization: {
-            id: org.id,
-            name: org.name,
-            code: org.code,
-          },
-        }));
       }
 
       // Get user's profile data using Server Action (bypasses RLS)
-      // CRITICAL: Use Server Action instead of direct Supabase client query
-      // to avoid RLS permission issues with new API key format
       const profileResult = await getUserProfile(supabaseUser.id);
-
-      let userData: { name: string | null } | null = null;
 
       if (!profileResult.success) {
         logger.error('[AuthContext] Error fetching user profile:', profileResult.error);
-      } else if (profileResult.data) {
-        userData = profileResult.data;
       }
 
+      // Map organizations directly from Server Action response
       const organizations: Organization[] =
-        userOrgs
-          ?.filter((userOrg) => userOrg.organization !== null)
-          .map((userOrg) => {
-            // We've filtered out null organizations above, so this is safe
-            const org = userOrg.organization;
-            if (!org) return null; // Type guard, will never happen
-            return {
+        orgResult.success && orgResult.data
+          ? orgResult.data.map((org) => ({
               id: org.id,
               name: org.name,
               code: org.code,
-              role: userOrg.role,
-              isDefault: userOrg.is_default,
-            };
-          })
-          .filter((org): org is Organization => org !== null) || [];
+              role: org.role,
+              isDefault: org.isDefault,
+            }))
+          : [];
 
       // Find default organization or use first one
       const defaultOrg = organizations.find((org) => org.isDefault) || organizations[0];
 
+      // Get user name from profile or fallback to metadata
+      const userName =
+        profileResult.success && profileResult.data?.name
+          ? profileResult.data.name
+          : supabaseUser.user_metadata?.name || 'Unknown User';
+
       const userInfo: User = {
         id: supabaseUser.id,
         email: supabaseUser.email || '',
-        name: userData?.name || supabaseUser.user_metadata?.name || 'Unknown User',
+        name: userName,
         organizations,
         currentOrganization: defaultOrg,
       };

@@ -2,20 +2,9 @@ import type { Database } from './database.types';
 
 import { createBrowserClient } from '@supabase/ssr';
 
+import { assertNotLegacyKey } from './validation';
+
 import { logger } from '@/lib/logger';
-
-const assertNotLegacyKey = (key: string, envName: string) => {
-  // Skip validation in test environment
-  if (process.env.NODE_ENV === 'test') {
-    return;
-  }
-
-  if (key.startsWith('sbp_')) {
-    throw new Error(
-      `${envName} にレガシー形式 (sbp_...) の Supabase API キーが設定されています。Project settings → API で新しいキーを発行し、環境変数を更新してください。`
-    );
-  }
-};
 
 // Singleton instance to prevent multiple GoTrueClient instances
 let browserClient: ReturnType<typeof createBrowserClient<Database>> | null = null;
